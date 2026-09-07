@@ -7,38 +7,41 @@ casilla (incluyendo enemigos y elementos).
 
 ## 1. Analizador de fondos (una sola vez por fondo, no por partida)
 
-> Como los fondos artísticos ya están creados de antemano, este paso se hace
-> con ayuda de una **IA de visión** que analiza cada imagen y propone la
-> plantilla automáticamente, en vez de marcarla a mano en un editor. El
-> proceso detallado (qué pedirle a la IA, formato de salida, validación
-> obligatoria posterior) está en `10-ANALIZADOR-IA-FONDOS.md`. Aquí se
-> describe solo el resultado que produce este paso, independientemente de si
-> se genera con IA o a mano.
+> Los fondos ya tienen **el tablero incorporado** (6 columnas × 5 filas,
+> dibujado en la propia imagen). El paso de análisis consiste en **localizar
+> ese tablero** con **MobileSAM** (segmentación de imagen) y derivar su
+> `boardArea`. El proceso detallado está en `10-ANALIZADOR-IA-FONDOS.md`.
+> Aquí se describe solo el resultado.
 
-Cuando subes un fondo nuevo (ej. `tablero_espacio.png`), un analizador
-(herramienta interna, no algo que corra en cada partida) genera su **plantilla**:
+Cuando subes un fondo nuevo (ej. `bg_01.jpg`), el script
+`background/sam-detect.py` localiza el tablero y guarda:
 
 ```
-IMAGEN DEL TABLERO
+IMAGEN DEL TABLERO (ya dibujado)
         ↓
-Analizador/editor de niveles (herramienta offline)
+MobileSAM (background/sam-detect.py)
         ↓
-PLANTILLA DE FONDO (JSON): zona segura, zona jugable, anclajes
+board-detection.json (boardArea en coordenadas normalizadas)
         ↓
-Motor del juego (en tiempo real, usa la plantilla, no la imagen en bruto)
+Calibración manual fina (demo visual)
+        ↓
+Motor del juego (en tiempo real, usa la boardArea, no la imagen en bruto)
 ```
 
-Esto evita que el motor tenga que "adivinar" nada en tiempo real: la plantilla
-ya dice exactamente dónde se puede construir el tablero.
+Esto evita que el motor tenga que "adivinar" nada en tiempo real: la
+`boardArea` ya dice exactamente dónde está el tablero.
 
 La plantilla define, en **coordenadas relativas (0.0–1.0)**, no en píxeles
 absolutos, para que funcione en cualquier resolución:
 
 - `safeArea`: zona decorativa que nunca debe taparse.
-- `boardArea`: rectángulo (o zona) donde el generador puede construir el tablero.
+- `boardArea`: rectángulo donde está dibujado el tablero (fijo 6×5).
 - `anchorPoints`: puntos de referencia para alinear elementos fijos (marco, HUD).
 
 Ver el esquema exacto en `06-ESQUEMAS-JSON.md`.
+
+> Estado actual: los 8 mundos comparten la misma `boardArea` calibrada
+> `{ x: 0.297962, y: 0.259115, width: 0.403343, height: 0.609375 }`.
 
 ## 2. Adaptación a pantalla panorámica (Screen Layout)
 
@@ -101,21 +104,22 @@ bordes borrosos. Por eso:
 - Todas las casillas se alinean perfectamente en horizontal y vertical, dentro
   del área de juego diseñada en el fondo (restricción absoluta, ver `04-SOLVER-VALIDADOR.md`).
 
-## 4. Forma del tablero (no siempre un rectángulo)
+## 4. Forma del tablero
 
-Dentro del `boardArea` se puede definir una "zona máxima segura" y, dentro de
-ella, el generador construye distintas formas (arquetipos) sin invadir nunca la
-decoración:
+> Estado actual: el tablero es **fijo 6×5**. Los fondos ya traen el tablero
+> dibujado y el generador NO produce tableros con otras dimensiones. La forma
+> se representa como una matriz de 6 columnas × 5 filas donde `#` = celda
+> inexistente y `.` = celda jugable.
 
 ```
-RECTÁNGULO · L · T · CRUZ · PASILLO · CÁMARA_CENTRAL · ANILLO · DOBLE_PASILLO · LABERINTO · IRREGULAR
+######
+#....#
+#.E..#
+#.PG.#
+######
 ```
 
-La forma se representa como una matriz donde `#` = celda inexistente y `.` =
-celda jugable, siempre sobre la rejilla ya calculada (nunca desplazada píxel a
-píxel de forma arbitraria).
-
-Más detalle de cómo se eligen y combinan arquetipos en `03-GENERADOR-NIVELES.md`.
+Más detalle de los arquetipos en `03-GENERADOR-NIVELES.md`.
 
 ## 5. Asset Resolver / Auto-tiling
 

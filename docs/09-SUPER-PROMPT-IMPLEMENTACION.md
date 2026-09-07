@@ -16,14 +16,16 @@ JS/TS/Python). Sustituye los placeholders entre `<...>` antes de enviarlo.
 ## Repositorio y ubicación de los fondos
 
 - **Repositorio del proyecto**: `https://github.com/santo-oficio/Grido.git`
-- **Fondos de imagen**: ya existen y están en la **carpeta raíz del proyecto
-  llamada `background`** (ej. `background/tablero_espacio.png`). El agente NO
-  debe pedirte que subas o coloques las imágenes en otro sitio: debe leerlas
-  de ahí y, si la estructura de carpetas que va a construir (Fase 0) necesita
-  organizarlas de otra forma (por ejemplo, moverlas a `assets/backgrounds/` o
-  separarlas por mundo dentro de esa carpeta), es el propio agente quien debe
-  **moverlas/reorganizarlas** como parte del trabajo, actualizando cualquier
-  referencia a su ruta en el código y en las `BackgroundTemplate` generadas.
+- **Fondos de imagen**: ya existen en **`assets/backgrounds/<MUNDO>/bg_01.jpg`**
+  (un archivo por mundo, 1376×768 px). Hay 8 mundos: ESPACIO, AGUA, TIERRA,
+  FUEGO, HIELO, VIENTO, INFRAMUNDO y CASTILLO_FINAL.
+- **Detección de tableros**: los fondos ya tienen el tablero **6×5 dibujado**.
+  La detección de `boardArea` se hace con **MobileSAM**
+  (`background/sam-detect.py`) y el resultado se guarda en
+  `assets/backgrounds/<MUNDO>/board-detection.json`. La calibración final
+  (ajuste fino) se hace con la demo visual (`demo-server.ts`).
+- **Tablero fijo**: `allowedBoardSizes` es `[[6,5]]`. No se generan tableros
+  con otras dimensiones por ahora.
 
 ## Cómo usar este prompt
 
@@ -128,30 +130,26 @@ FASE 0 — Setup
 
 FASE 1 — Motor gráfico (02-MOTOR-GRAFICO.md + 10-ANALIZADOR-IA-FONDOS.md)
 - Implementa el analizador de plantillas de fondo como una herramienta
-  CLI/offline que, para cada imagen ya existente en `background/` (raíz del
-  repositorio), llama a un modelo de visión (según 10-ANALIZADOR-IA-FONDOS.md,
-  sección 4, usa ese prompt de instrucción tal cual) y produce una
-  BackgroundTemplate candidata. Si reorganizas esas imágenes en otra ruta
-  como parte de la estructura del proyecto, hazlo tú mismo y referencia la
-  ruta final correcta en cada BackgroundTemplate.
+  CLI/offline que, para cada imagen en `assets/backgrounds/<MUNDO>/bg_01.jpg`,
+  usa **MobileSAM** (segmentación, ver 10-ANALIZADOR-IA-FONDOS.md) para
+  localizar el tablero 6×5 y producir `board-detection.json`. No uses VLM ni
+  CV clásica: MobileSAM con box prompts es la opción validada.
 - Implementa los chequeos automáticos de la sección 5 de
-  10-ANALIZADOR-IA-FONDOS.md (boardArea dentro de límites, tamaño de celda
-  válido posible, sin solapes con zonas extendibles, umbral de confianza) como
-  funciones testeables independientes del modelo de visión concreto usado.
-- Marca como "pendiente de revisión" (no bloqueante, pero visible) cualquier
-  BackgroundTemplate con confidence por debajo del umbral configurado.
+  10-ANALIZADOR-IA-FONDOS.md (boardArea dentro de límites, proporción ~6:5,
+  boardSize = [6,5]) como funciones testeables independientes del modelo.
+- Implementa la demo visual de calibración (demo-server.ts + demo.html) con
+  selector de casilla retro y ajuste fino (Shift/Ctrl + flechas).
 - Implementa el Screen Layout: dado un BackgroundTemplate y una resolución de
   pantalla real, calcula el boardArea en píxeles sin deformar el arte
-  (composición por zonas, no estiramiento).
+  (object-fit: contain, sin recortar).
 - Implementa el cálculo de rejilla de casillas: dado un boardArea en píxeles y
-  un número de columnas/filas, calcula cellWidth/cellHeight eligiendo SOLO
-  valores de `allowedCellSizes`, y centra el tablero.
+  6×5, calcula cellWidth/cellHeight eligiendo SOLO valores de
+  `allowedCellSizes`, y centra el tablero.
 - Implementa el Asset Resolver (auto-tiling): dado un LevelMap ya validado y un
   WorldConfig, produce la lista de sprites a dibujar por celda según vecinos.
 - Escribe tests que verifiquen: (a) ninguna celda cae fuera del boardArea,
   (b) el tamaño de celda elegido está siempre en la lista permitida,
-  (c) el auto-tiling asigna un sprite a cada combinación de vecinos posible
-  en los arquetipos definidos en 03-GENERADOR-NIVELES.md.
+  (c) el auto-tiling asigna un sprite a cada combinación de vecinos posible.
 
 FASE 2 — Generador de niveles (03-GENERADOR-NIVELES.md)
 - Implementa el Level Generator: dado un seed, un WorldConfig y un
@@ -205,9 +203,9 @@ FASE 5 — Integración y banco de niveles
   y comprobar que efectivamente termina en victoria).
 
 FASE 6 — Mundos (07-MUNDOS-TEMATICAS.md)
-- Implementa al menos un WorldConfig completo de ejemplo (usa el mundo
-  "ESPACIO" si no se indica otro) con sus tileAssets, tamaños de tablero
-  permitidos y tabla de dificultad.
+- Implementa los WorldConfigs de los 8 mundos (ESPACIO, AGUA, TIERRA, FUEGO,
+  HIELO, VIENTO, INFRAMUNDO, CASTILLO_FINAL) con sus tileAssets, tablero fijo
+  [6,5] y tabla de dificultad.
 - Verifica que añadir un WorldConfig nuevo NO requiere tocar código del
   generador, solver o motor de reglas (solo configuración/datos). Escríbelo
   como test explícito si es posible (ej. cargar dos WorldConfig distintos y

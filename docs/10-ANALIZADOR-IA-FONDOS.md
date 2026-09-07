@@ -1,159 +1,125 @@
-# 🧠 Analizador de Fondos con IA (Visión)
+# 🧠 Analizador de Fondos con IA (MobileSAM)
 
 Este documento sustituye/complementa al punto 1 de `02-MOTOR-GRAFICO.md`
-("Analizador de fondos"). Como **tú ya tienes las imágenes de fondo hechas**,
-lo que necesitas no es un editor manual donde marques tú a mano la zona
-jugable, sino un paso automático (asistido por IA con visión) que analice cada
-imagen y proponga la `BackgroundTemplate` (zona segura, zona jugable, tamaño de
-rejilla sugerido, puntos de anclaje).
+("Analizador de fondos"). Como **los fondos ya tienen el tablero incorporado**
+(6 columnas × 5 filas, dibujado en la propia imagen), lo que se necesita no es
+un editor manual ni un VLM que "adivine" dónde está el tablero, sino un paso
+automático de **segmentación de imagen** que localice el rectángulo del tablero
+y derive su `boardArea`.
 
-Esto sigue siendo un paso **offline** (se ejecuta una vez por cada fondo nuevo
-que subas, no en cada partida) — solo cambia cómo se genera el resultado: en
-vez de "tú lo dibujas a mano en un editor", "una IA de visión lo propone y tú
-lo apruebas o corriges".
+La herramienta elegida es **MobileSAM** (Segment Anything Model de Meta, versión
+ligera TinyViT). Es un modelo de segmentación que, dado un *box prompt* (una
+caja aproximada), devuelve la máscara exacta del objeto contenido en esa caja.
+
+> Importante: MobileSAM **no se usa en tiempo real durante la partida**. Es una
+> herramienta offline de pipeline. Una vez generada y calibrada la
+> `boardArea`, el juego solo usa el JSON (`board-detection.json`).
 
 ## 1. Dónde encaja en la arquitectura
 
 ```
-IMAGEN DE FONDO (la que ya tienes)
+IMAGEN DE FONDO (ya con tablero dibujado)
         ↓
-ANALIZADOR IA (visión) → propone BackgroundTemplate candidata
+background/sam-detect.py (MobileSAM) → board-detection.json
         ↓
-Revisión/ajuste rápido (humano o reglas automáticas de sanidad)
+Calibración manual fina (demo visual interactivo)
         ↓
-BackgroundTemplate final (JSON, ver 06-ESQUEMAS-JSON.md)
+board-detection.json final (coordenadas normalizadas)
         ↓
-Motor del juego (en tiempo real, usa la plantilla, nunca la IA de visión)
+Motor del juego (usa la boardArea, nunca el modelo de IA)
 ```
 
-Importante: **la IA de visión no interviene en tiempo real durante la
-partida.** Es una herramienta de producción/pipeline, igual que un editor
-manual lo sería. Una vez generada y aprobada la `BackgroundTemplate`, el juego
-solo usa el JSON, nunca vuelve a llamar a un modelo de IA para eso.
+## 2. Cómo funciona la detección (implementación real)
 
-## 2. Qué debe hacer el analizador IA, paso a paso
+El script `background/sam-detect.py`:
 
-Dado un fondo (ej. `tablero_espacio.png`), pedir al modelo de visión que
-identifique:
-
-1. **Zona jugable / tablero**: el rectángulo (o polígono) donde hay espacio
-   "neutro" pensado para colocar casillas, normalmente el área central o más
-   despejada de la composición.
-2. **Zona protegida / decorativa**: elementos que no se deben tapar nunca
-   (nave, personaje central, marco decorativo, textos, iconografía del mundo).
-3. **Rejilla sugerida**: si el propio fondo ya insinúa una cuadrícula (líneas,
-   paneles, baldosas dibujadas), que la IA intente detectar cuántas columnas y
-   filas "caben" de forma natural. Si no hay pistas visuales, que proponga un
-   nº de columnas/filas razonable según el tamaño del área jugable y los
-   `allowedCellSizes` del proyecto.
-4. **Puntos de anclaje**: esquinas o referencias claras del marco/decoración
-   para poder alinear HUD u otros elementos fijos.
-5. **Zonas decorativas extensibles**: qué partes del fondo se podrían repetir/
-   extender lateralmente al adaptar a panorámico sin romper la composición
-   (ver `02-MOTOR-GRAFICO.md`, sección 2), y cuáles son fijas e intocables.
-
-## 3. Formato de salida esperado (la IA debe devolver esto, no prosa)
-
-La IA de visión debe devolver **directamente** un JSON con la forma de
-`BackgroundTemplate` (ver `06-ESQUEMAS-JSON.md`), con coordenadas relativas
-(0.0–1.0), por ejemplo:
+1. Carga MobileSAM (`vit_t`, checkpoint `models/mobile_sam.pt`).
+2. Genera ~270 **cajas candidatas** centradas, con distintos tamaños y offsets.
+3. Pasa cada caja a MobileSAM como *box prompt* y obtiene una máscara.
+4. Evalúa cada máscara con tres métricas:
+   - **aspecto 6:5**: qué tan cerca está el rectángulo de la proporción
+     `columns / rows` (6/5 = 1.2).
+   - **rectangularidad**: fracción de la máscara que rellena su bounding box
+     (una máscara perfectamente rectangular = 1.0).
+   - **fuerza del grid interno**: energía de bordes (Sobel) sobre las líneas
+     divisorias de 6 columnas y 5 filas dentro de la máscara.
+5. Elige la máscara con mejor puntuación combinada y devuelve:
 
 ```json
 {
-  "id": "SPACE_01",
   "world": "ESPACIO",
-  "image": "tablero_espacio.png",
-  "safeArea": { "x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0 },
-  "boardArea": { "x": 0.25, "y": 0.28, "width": 0.50, "height": 0.48 },
-  "suggestedGrid": { "columns": 8, "columnsRange": [6, 10], "rows": 6, "rowsRange": [5, 8] },
-  "anchorPoints": {
-    "frameTopLeft": { "x": 0.20, "y": 0.22 }
-  },
-  "decorativeAreas": [
-    { "x": 0.0, "y": 0.0, "width": 0.25, "height": 1.0, "extendable": true },
-    { "x": 0.75, "y": 0.0, "width": 0.25, "height": 1.0, "extendable": true }
-  ],
-  "confidence": 0.83,
-  "notes": "El área central despejada corresponde al tablero; la nave superior es zona protegida."
+  "image": "assets/backgrounds/ESPACIO/bg_01.jpg",
+  "width": 1376,
+  "height": 768,
+  "boardArea": { "x": 0.2919, "y": 0.2526, "width": 0.4150, "height": 0.6206 },
+  "boardSize": [6, 5],
+  "cellSize": 94.05,
+  "arScore": 0.997,
+  "rectangularity": 0.966,
+  "gridScore": 2660.9,
+  "totalScore": 28572.6
 }
 ```
 
-- `confidence` y `notes` son campos propios de esta fase de análisis (no van
-  al `BackgroundTemplate` final): sirven para saber qué imágenes necesitan
-  revisión humana antes de aprobarse (ej. `confidence < 0.7` → revisar a mano).
-- `suggestedGrid` con rangos (no solo un número fijo) porque la decisión final
-  de columnas/filas de cada nivel concreto la toma el **Level Generator**
-  (`03-GENERADOR-NIVELES.md`), no este analizador. El analizador solo dice
-  "qué es razonable para este fondo".
+El resultado se guarda en `assets/backgrounds/<MUNDO>/board-detection.json`.
 
-## 4. Ejemplo de instrucción para el modelo de visión
+## 3. Por qué MobileSAM y no CV clásica ni VLM
 
-Esto es una referencia de qué pedirle al modelo (Claude con visión, GLM-4V/5.2
-con visión, etc.) al automatizar este paso dentro del proyecto:
+- **CV clásica** (Sobel, detección de líneas, varianza de bloques) resultó
+  **no fiable** con pixel art rico en detalles: los bordes decorativos del
+  fondo se confunden con las líneas del tablero.
+- **VLM** (Claude con visión, GLM, etc.) da coordenadas aproximadas en texto,
+  menos precisas para un tablero que debe encajar píxel a píxel.
+- **MobileSAM** es segmentación real: devuelve la máscara exacta del tablero,
+  funciona con pixel art, no requiere entrenamiento, y cabe en una RTX 3060
+  de 6 GB (modelo ~40 MB).
 
-```
-Analiza esta imagen de fondo de un juego de puzzles tipo Wappo, estilo
-pixel-art/retro. Devuelve EXCLUSIVAMENTE un JSON (sin texto adicional) con esta
-forma: { id, world, image, safeArea, boardArea, suggestedGrid, anchorPoints,
-decorativeAreas, confidence, notes }.
+## 4. Calibración manual final
 
-Reglas:
-- Todas las coordenadas de área (x, y, width, height) son relativas (0.0–1.0
-  respecto al ancho/alto total de la imagen), nunca píxeles absolutos.
-- boardArea debe ser la zona más despejada/neutra pensada para colocar
-  casillas de juego, sin tapar elementos centrales de la composición
-  (personajes, naves, iconografía del mundo).
-- decorativeAreas con extendable=true son zonas que se podrían repetir o
-  ampliar lateralmente sin romper la composición (para adaptar a pantalla
-  panorámica). Márcalas solo si realmente son repetibles (ej. patrones de
-  estrellas, texturas de fondo homogéneas), NUNCA si contienen elementos
-  únicos (naves, letreros, personajes).
-- suggestedGrid.columns/rows deben ser números razonables dado el tamaño de
-  boardArea; incluye también un rango (columnsRange, rowsRange) de valores
-  aceptables.
-- confidence entre 0.0 y 1.0: baja si la imagen es ambigua o no está claro
-  dónde debería ir el tablero.
-- No inventes anchorPoints si no hay un marco o referencia visual clara.
+La detección de MobileSAM da una **buena aproximación inicial**, pero el
+ajuste fino se hace a mano con la demo visual (`demo-server.ts` + `demo.html`):
+
+- La demo muestra el fondo a pantalla completa (`object-fit: contain`, sin
+  recortar) y superpone la rejilla 6×5 sobre la `boardArea` detectada.
+- Controles de calibración:
+  - `Flechas/WASD` — mover el selector de casilla.
+  - `Shift + Flechas` — mover la rejilla (ajuste fino).
+  - `Ctrl + Flechas` — escalar la rejilla.
+  - `C` — formulario para introducir píxeles exactos (left/top/width/height).
+  - `G` — guardar el ajuste.
+  - `Espacio` — cambiar de mundo.
+- Tras calibrar, los 8 mundos quedaron con la **misma `boardArea`**:
+
+```json
+{ "x": 0.297962, "y": 0.259115, "width": 0.403343, "height": 0.609375 }
 ```
 
-## 5. Validación obligatoria después del análisis IA
+## 5. Validación después del análisis
 
-Igual que con cualquier otro dato que entra al sistema, **la salida de la IA
-de visión no se usa a ciegas**. Antes de aceptar una `BackgroundTemplate`
-generada así, se aplican comprobaciones automáticas (no hace falta IA para
-esto, son chequeos geométricos simples):
+La salida de MobileSAM no se usa a ciegas. Se comprueba:
 
-1. `boardArea` está completamente dentro de `safeArea`/los límites de la imagen.
-2. `boardArea` tiene proporciones razonables (ni una línea de 1 px de alto, ni
-   ocupa el 100% de la imagen sin dejar margen a decoración).
-3. `suggestedGrid` (columnas × filas × `allowedCellSizes` del proyecto) permite
-   al menos un tamaño de celda válido dentro de `boardArea`.
-4. Ninguna `decorativeArea` con `extendable: true` se solapa con `boardArea`.
-5. Si `confidence < 0.7` (umbral configurable), marcar el fondo como
-   "pendiente de revisión humana" antes de usarlo en producción — no bloquea
-   el pipeline, pero no se publica sin visto bueno.
+1. `boardArea` dentro de los límites de la imagen (0.0–1.0).
+2. `boardArea` con proporciones razonables (~6:5).
+3. `boardSize` = [6, 5] (tablero fijo).
+4. Que la rejilla resultante tenga casillas de tamaño coherente.
+5. Calibración manual con la demo visual (visto bueno humano).
 
-Solo cuando pasa estas comprobaciones, la `BackgroundTemplate` se guarda como
-definitiva y entra al resto del pipeline (`02-MOTOR-GRAFICO.md` en adelante).
+## 6. Comandos
 
-## 6. Por qué esto no rompe la "regla de oro" del proyecto
+```bash
+# Detectar el tablero de un mundo
+.sam-venv\Scripts\python.exe background/sam-detect.py assets/backgrounds/<MUNDO>/bg_01.jpg <MUNDO> assets/backgrounds/<MUNDO>/board-detection.json
 
-La IA de visión **propone** una interpretación de la imagen (dónde está el
-tablero, qué es decorativo). El sistema geométrico/matemático (sección 5, y
-después el Solver de `04-SOLVER-VALIDADOR.md`) **decide** si esa propuesta es
-válida para construir niveles. Ningún nivel llega al jugador basándose
-únicamente en "lo que dijo la IA de visión" sin pasar los chequeos
-automáticos — exactamente el mismo principio que ya rige el generador de
-niveles y el solver.
+# Informe de casillas (solo lectura)
+npx tsx tools/detect-cells.ts [MUNDO]
 
-## 7. Nota práctica sobre coste y flujo de trabajo
+# Demo visual interactiva (calibración)
+npx tsx demo-server.ts
+```
 
-- Este análisis se hace **una vez por imagen de fondo**, no en cada partida ni
-  en cada nivel generado. El coste de usar un modelo con visión es marginal
-  frente al volumen de niveles generados.
-- Recomendado: guardar junto a cada `BackgroundTemplate` el `confidence` y las
-  `notes` originales del análisis, por si en el futuro queréis re-analizar
-  fondos con un modelo mejor y comparar resultados.
-- Si en el futuro cambiáis de modelo de visión (ej. de Claude a GLM o
-  viceversa), el contrato de entrada/salida (el JSON de la sección 3) se
-  mantiene igual — solo cambia qué modelo genera la propuesta inicial.
+## 7. Por qué esto no rompe la "regla de oro"
+
+MobileSAM **propone** dónde está el tablero (una máscara). La calibración
+humana + los chequeos geométricos **deciden** si la `boardArea` final es
+válida. Ningún nivel se construye sobre una `boardArea` sin calibrar y
+verificar.

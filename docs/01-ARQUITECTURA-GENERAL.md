@@ -11,6 +11,10 @@ validación). Esto permite:
 - Garantizar matemáticamente que cada nivel generado es resoluble y tiene una
   dificultad coherente, antes de que el jugador lo vea.
 
+> Estado actual: el tablero es **fijo 6×5** y ya está dibujado en cada fondo.
+> La `boardArea` se detecta con MobileSAM y está calibrada (los 8 mundos
+> comparten la misma). No se generan tableros con otras dimensiones.
+
 ## Diagrama de módulos
 
 ```

@@ -10,23 +10,27 @@ Generada una vez por el analizador/editor, por cada imagen de fondo.
 
 ```json
 {
-  "id": "SPACE_01",
+  "id": "ESPACIO_01",
   "world": "ESPACIO",
-  "image": "tablero_espacio.png",
+  "image": "assets/backgrounds/ESPACIO/bg_01.jpg",
   "safeArea": { "x": 0.0, "y": 0.0, "width": 1.0, "height": 1.0 },
-  "boardArea": { "x": 0.25, "y": 0.28, "width": 0.50, "height": 0.48 },
+  "boardArea": { "x": 0.297962, "y": 0.259115, "width": 0.403343, "height": 0.609375 },
   "marginPx": 3,
-  "allowedCellSizes": [48, 56, 64, 72, 80],
+  "allowedCellSizes": [47, 71, 95, 118, 142],
   "anchorPoints": {
-    "frameTopLeft": { "x": 0.20, "y": 0.22 },
+    "frameTopLeft": { "x": 0.02, "y": 0.02 },
     "hud": { "x": 0.02, "y": 0.02 }
   },
   "decorativeAreas": [
-    { "x": 0.0, "y": 0.0, "width": 0.25, "height": 1.0, "extendable": true },
-    { "x": 0.75, "y": 0.0, "width": 0.25, "height": 1.0, "extendable": true }
+    { "x": 0.0, "y": 0.0, "width": 0.297962, "height": 1.0, "extendable": true },
+    { "x": 0.701305, "y": 0.0, "width": 0.298695, "height": 1.0, "extendable": true }
   ]
 }
 ```
+
+> Nota: el tablero es **fijo 6×5** y los 8 mundos comparten la misma
+> `boardArea` calibrada (ver `10-ANALIZADOR-IA-FONDOS.md`). El campo
+> `boardArea` es la zona donde el tablero ya está dibujado en la imagen.
 
 - Coordenadas siempre **relativas** (0.0–1.0) para independencia de resolución.
 - `extendable: true` marca zonas decorativas que se pueden ampliar/repetir al
@@ -41,32 +45,29 @@ Salida del Level Generator, entrada del Solver y del Asset Resolver.
   "levelId": 48321,
   "seed": 839271,
   "world": "ESPACIO",
-  "backgroundTemplateId": "SPACE_01",
-  "archetype": "L_IRREGULAR",
-  "width": 12,
-  "height": 10,
+  "backgroundTemplateId": "ESPACIO_01",
+  "archetype": "RECTANGULO",
+  "width": 6,
+  "height": 5,
   "grid": [
-    "############",
-    "#..#.......#",
-    "#..#..####.#",
-    "#.....#....#",
-    "###...#..E.#",
-    "#.....#....#",
-    "#..P.......#",
-    "#..........#",
-    "#....G.....#",
-    "############"
+    "######",
+    "#....#",
+    "#.E..#",
+    "#.PG.#",
+    "######"
   ],
-  "player": [3, 6],
+  "player": [2, 3],
   "enemies": [
-    { "pos": [9, 4], "pattern": "PERSECUCION_SIMPLE" }
+    { "pos": [2, 2], "pattern": "PERSECUCION_SIMPLE" }
   ],
-  "goal": [5, 8],
+  "goal": [3, 3],
   "keys": [],
   "doors": [],
   "rulesetVersion": "1.0.0"
 }
 ```
+
+> Nota: el tablero es fijo **6×5** (`width=6, height=5`).
 
 - `grid` es la representación humana-legible de la matriz; internamente se
   puede indexar como array 2D de enums (`WALL`, `FLOOR`, `PLAYER`, `ENEMY`, ...).
@@ -107,7 +108,7 @@ Salida del Solver/Validador, lo que decide si un `LevelMap` entra al banco.
 ```json
 {
   "world": "ESPACIO",
-  "backgroundTemplates": ["SPACE_01", "SPACE_02", "SPACE_03"],
+  "backgroundTemplates": ["ESPACIO_01"],
   "tileAssets": {
     "floor": "space_floor.png",
     "wallEdgeTop": "space_wall_top.png",
@@ -116,7 +117,7 @@ Salida del Solver/Validador, lo que decide si un `LevelMap` entra al banco.
     "enemyDefault": "space_enemy.png",
     "goal": "space_goal.png"
   },
-  "allowedBoardSizes": [[6,5], [7,6], [8,6], [8,8]],
+  "allowedBoardSizes": [[6,5]],
   "difficultyTable": [
     { "range": [1, 10], "stars": 1, "maxEnemies": 1 },
     { "range": [11, 25], "stars": 2, "maxEnemies": 1 },
@@ -126,6 +127,9 @@ Salida del Solver/Validador, lo que decide si un `LevelMap` entra al banco.
   ]
 }
 ```
+
+> Nota: `allowedBoardSizes` es `[[6,5]]` (tablero fijo, no se generan otras
+> dimensiones por ahora).
 
 ## 5. Banco de niveles (índice)
 

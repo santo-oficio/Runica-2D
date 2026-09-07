@@ -20,7 +20,7 @@ estética retro/pixel-art de tus fondos artísticos, adaptados a pantalla panor�
 |---|---|
 | `01-ARQUITECTURA-GENERAL.md` | Visión global del sistema, diagrama de módulos y flujo de datos |
 | `02-MOTOR-GRAFICO.md` | Cómo se generan/adaptan fondos, casillas, sprites y auto-tiling |
-| `10-ANALIZADOR-IA-FONDOS.md` | Cómo una IA de visión analiza tus fondos ya creados y propone la plantilla automáticamente |
+| `10-ANALIZADOR-IA-FONDOS.md` | Cómo MobileSAM localiza el tablero 6×5 ya dibujado en cada fondo y deriva su boardArea |
 | `03-GENERADOR-NIVELES.md` | Generación procedural de niveles, arquetipos, seeds, infinitud |
 | `04-SOLVER-VALIDADOR.md` | Validación matemática y de dificultad antes de aceptar un nivel |
 | `05-REGLAS-MOTOR-JUEGO.md` | Reglas de juego tipo Wappo: movimiento, enemigos, condiciones de victoria |
@@ -31,6 +31,11 @@ estética retro/pixel-art de tus fondos artísticos, adaptados a pantalla panor�
 
 > Nota de orden de lectura: `10-ANALIZADOR-IA-FONDOS.md` amplía el punto 1 de
 > `02-MOTOR-GRAFICO.md`, así que léelos juntos.
+
+> Estado actual del proyecto: fases 0–7 implementadas y testeadas (300 tests).
+> Los fondos ya tienen el tablero **6×5 dibujado**; la detección de `boardArea`
+> se hace con **MobileSAM** y está calibrada (los 8 mundos comparten la misma
+> `boardArea`). Ver `PROGRESO.md` para el detalle fase a fase.
 
 ## Principio rector del proyecto
 

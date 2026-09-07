@@ -24,8 +24,8 @@ Para cada seed, el generador decide, en este orden:
 1. **Arquetipo de forma**: `RECTÁNGULO`, `L`, `T`, `CRUZ`, `PASILLO`,
    `CÁMARA_CENTRAL`, `ANILLO`, `DOBLE_PASILLO`, `LABERINTO`, `IRREGULAR`
    (pueden combinarse entre sí).
-2. **Tamaño del tablero** (columnas × filas), dentro de los límites que permite
-   el `boardArea` del fondo elegido.
+2. **Tamaño del tablero**: **fijo 6×5** (6 columnas × 5 filas). El tablero
+   ya está dibujado en el fondo, así que no se generan otras dimensiones.
 3. **Posición de las celdas jugables** dentro de esa forma (matriz `.` / `#`).
 4. **Población de entidades**: jugador, enemigos, obstáculos, puertas, llaves,
    objetivo — ver sección siguiente.
@@ -33,6 +33,9 @@ Para cada seed, el generador decide, en este orden:
 
 Todo esto se serializa como el "mapa lógico" (ver `06-ESQUEMAS-JSON.md`), que es
 el único dato que consumen el Solver y el Asset Resolver.
+
+> Estado actual: `allowedBoardSizes` es `[[6,5]]` (tablero fijo). Los
+> arquetipos siguen disponibles, pero todos operan sobre la rejilla 6×5.
 
 ## 2. Población de entidades
 
