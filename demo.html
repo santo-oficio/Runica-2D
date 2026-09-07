@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grido — demo de todos los fondos</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    color: #e0e0e0;
+  }
+
+  #stage {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+  }
+
+  #image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+    transition: opacity 0.25s ease;
+  }
+  #image.fade { opacity: 0; }
+
+  /* Selector de casilla — solo esquinas iluminadas estilo retro */
+  #selector {
+    position: absolute;
+    z-index: 15;
+    pointer-events: none;
+    background: var(--sel-bg, rgba(0, 255, 255, 0.08));
+    animation: pulse 1.1s ease-in-out infinite;
+    transition: left 0.1s ease, top 0.1s ease;
+  }
+  #selector .corner {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--sel-color, #0ff);
+    box-shadow: 0 0 6px var(--sel-color, #0ff);
+  }
+  #selector .corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+  #selector .corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+  #selector .corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+  #selector .corner.br { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+  @keyframes pulse {
+    0%, 100% { filter: drop-shadow(0 0 4px var(--sel-color, #0ff)); }
+    50%      { filter: drop-shadow(0 0 10px var(--sel-color, #0ff)); }
+  }
+
+  #hud {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 20;
+    background: rgba(0,0,0,0.65);
+    padding: 8px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.8em;
+  }
+  #hud .world { color: #7ec8e3; font-weight: bold; }
+  #hud .meta { color: #888; }
+  #hud .pos { color: var(--sel-color, #0ff); }
+
+  #help {
+    position: absolute;
+    bottom: 12px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    background: rgba(0,0,0,0.65);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 0.72em;
+    color: #aaa;
+    text-align: center;
+    line-height: 1.5;
+  }
+  #help .key { color: #0ff; }
+
+  /* Indicador de mundo actual */
+  #dots {
+    position: absolute;
+    top: 12px; right: 12px;
+    z-index: 20;
+    display: flex;
+    gap: 6px;
+    background: rgba(0,0,0,0.65);
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(126,200,227,0.3);
+  }
+  #dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #333;
+    transition: background 0.2s;
+  }
+  #dots .dot.active {
+    background: var(--sel-color, #0ff);
+    box-shadow: 0 0 6px var(--sel-color, #0ff);
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <img id="image" alt="fondo">
+  </div>
+
+  <div id="selector">
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+  </div>
+
+  <div id="hud">
+    <div class="world" id="world-label">Cargando…</div>
+    <div class="meta" id="meta-label"></div>
+    <div class="pos" id="pos-label"></div>
+  </div>
+
+  <div id="dots"></div>
+
+  <div id="help">
+    <span class="key">Espacio</span>: siguiente mundo &nbsp;·&nbsp;
+    <span class="key">Flechas/WASD</span>: mover selector
+  </div>
+
+<script>
+const img = document.getElementById('image');
+const selector = document.getElementById('selector');
+const worldLabel = document.getElementById('world-label');
+const metaLabel = document.getElementById('meta-label');
+const posLabel = document.getElementById('pos-label');
+const dotsEl = document.getElementById('dots');
+
+let worlds = [];
+let currentIdx = 0;
+let detection = null;
+let cols = 0, rows = 0;
+let selCol = 0, selRow = 0;
+let ba = { x: 0, y: 0, width: 0, height: 0 };
+let board = { left: 0, top: 0, w: 0, h: 0 };
+
+const SELECTOR_INSET = 0.08;
+
+const WORLD_COLORS = {
+  AGUA:          { color: "#0ff",   glow: "rgba(0, 255, 255, 0.35)"   },
+  TIERRA:        { color: "#3a5a1a",glow: "rgba(58, 90, 26, 0.45)", bg: "rgba(58, 90, 26, 0.20)" },
+  VIENTO:        { color: "#cfe",   glow: "rgba(200, 240, 230, 0.35)" },
+  FUEGO:         { color: "#f64",   glow: "rgba(255, 102, 68, 0.35)"  },
+  HIELO:         { color: "#0ff",   glow: "rgba(0, 255, 255, 0.45)"   },
+  ESPACIO:       { color: "#fff",  glow: "rgba(255, 255, 255, 0.45)", bg: "rgba(126, 200, 227, 0.20)" },
+  INFRAMUNDO:    { color: "#a0f",   glow: "rgba(170, 0, 255, 0.35)"   },
+  CASTILLO_FINAL:{ color: "#fc4",   glow: "rgba(255, 204, 68, 0.35)"  },
+};
+
+function applySelectorColor(world) {
+  const c = WORLD_COLORS[world] ?? WORLD_COLORS.AGUA;
+  document.documentElement.style.setProperty('--sel-color', c.color);
+  document.documentElement.style.setProperty('--sel-glow', c.glow);
+  if (c.bg) {
+    document.documentElement.style.setProperty('--sel-bg', c.bg);
+  } else {
+    document.documentElement.style.setProperty('--sel-bg', c.glow.replace('0.35', '0.08').replace('0.45', '0.08'));
+  }
+}
+
+function buildDots() {
+  dotsEl.innerHTML = '';
+  worlds.forEach((w, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === currentIdx ? ' active' : '');
+    dotsEl.appendChild(dot);
+  });
+}
+
+function updateDots() {
+  const dots = dotsEl.querySelectorAll('.dot');
+  dots.forEach((d, i) => d.classList.toggle('active', i === currentIdx));
+}
+
+async function main() {
+  const res = await fetch('/api/worlds');
+  worlds = await res.json();
+  buildDots();
+  loadWorld(0);
+}
+
+function loadWorld(idx) {
+  currentIdx = idx;
+  detection = worlds[idx];
+  cols = detection.boardSize[0];
+  rows = detection.boardSize[1];
+  ba = { ...detection.boardArea };
+  selCol = 0;
+  selRow = 0;
+
+  applySelectorColor(detection.world);
+
+  worldLabel.textContent = `Mundo: ${detection.world} (${idx + 1}/${worlds.length})`;
+  metaLabel.textContent = `${detection.image} · ${detection.width}x${detection.height} · tablero ${cols}x${rows}`;
+
+  img.classList.add('fade');
+  setTimeout(() => {
+    img.src = '/' + detection.image;
+    img.onload = () => {
+      img.classList.remove('fade');
+      layout();
+      positionSelector();
+    };
+  }, 200);
+
+  updateDots();
+}
+
+function layout() {
+  const rect = img.getBoundingClientRect();
+  board = {
+    left: rect.left + ba.x * rect.width,
+    top: rect.top + ba.y * rect.height,
+    w: ba.width * rect.width,
+    h: ba.height * rect.height,
+  };
+}
+
+function positionSelector() {
+  const cw = board.w / cols;
+  const ch = board.h / rows;
+  const insetX = cw * SELECTOR_INSET;
+  const insetY = ch * SELECTOR_INSET;
+  selector.style.left = (board.left + selCol * cw + insetX) + 'px';
+  selector.style.top = (board.top + selRow * ch + insetY) + 'px';
+  selector.style.width = (cw - insetX * 2) + 'px';
+  selector.style.height = (ch - insetY * 2) + 'px';
+  posLabel.textContent = `casilla [${selCol}, ${selRow}]`;
+}
+
+function canEnter(c, r) {
+  if (c < 0 || c >= cols || r < 0 || r >= rows) return false;
+  return true;
+}
+
+function moveSelector(dc, dr) {
+  const nc = selCol + dc;
+  const nr = selRow + dr;
+  if (!canEnter(nc, nr)) return;
+  selCol = nc;
+  selRow = nr;
+  positionSelector();
+}
+
+function nextWorld() {
+  loadWorld((currentIdx + 1) % worlds.length);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    nextWorld();
+    return;
+  }
+  const dirs = {
+    'ArrowUp': [0, -1], 'ArrowDown': [0, 1],
+    'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0],
+    'w': [0, -1], 's': [0, 1], 'a': [-1, 0], 'd': [1, 0],
+    'W': [0, -1], 'S': [0, 1], 'A': [-1, 0], 'D': [1, 0],
+  };
+  const d = dirs[e.key];
+  if (d) {
+    e.preventDefault();
+    moveSelector(d[0], d[1]);
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (detection) {
+    layout();
+    positionSelector();
+  }
+});
+
+main();
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "world": "TIERRA",
+  "image": "assets/backgrounds/TIERRA/bg_01.jpg",
+  "width": 1376,
+  "height": 768,
+  "boardArea": {
+    "x": 0.2979622093023256,
+    "y": 0.25911458333333334,
+    "width": 0.40334302325581395,
+    "height": 0.609375
+  },
+  "boardSize": [
+    6,
+    5
+  ],
+  "cellSize": 92.03333333333333,
+  "arScore": 0.964882226980728,
+  "rectangularity": 0.7415173510517697,
+  "gridScore": 942.8862729438354,
+  "totalScore": 11135.26230747085
+}

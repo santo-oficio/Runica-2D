@@ -1,0 +1,21 @@
+{
+  "world": "HIELO",
+  "image": "assets/backgrounds/HIELO/bg_01.jpg",
+  "width": 1376,
+  "height": 768,
+  "boardArea": {
+    "x": 0.2979622093023256,
+    "y": 0.25911458333333334,
+    "width": 0.40334302325581395,
+    "height": 0.609375
+  },
+  "boardSize": [
+    6,
+    5
+  ],
+  "cellSize": 83.51666666666667,
+  "arScore": 0.6986522911051212,
+  "rectangularity": 0.5646005023058646,
+  "gridScore": 2326.3682739199357,
+  "totalScore": 24526.935532610343
+}

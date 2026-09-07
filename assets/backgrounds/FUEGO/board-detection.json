@@ -1,0 +1,21 @@
+{
+  "world": "FUEGO",
+  "image": "assets/backgrounds/FUEGO/bg_01.jpg",
+  "width": 1376,
+  "height": 768,
+  "boardArea": {
+    "x": 0.2979622093023256,
+    "y": 0.25911458333333334,
+    "width": 0.40334302325581395,
+    "height": 0.609375
+  },
+  "boardSize": [
+    6,
+    5
+  ],
+  "cellSize": 94.03333333333333,
+  "arScore": 0.9906779661016949,
+  "rectangularity": 0.9611443693829543,
+  "gridScore": 818.8813818186353,
+  "totalScore": 10140.636153671003
+}

@@ -1,0 +1,21 @@
+{
+  "world": "VIENTO",
+  "image": "assets/backgrounds/VIENTO/bg_01.jpg",
+  "width": 1376,
+  "height": 768,
+  "boardArea": {
+    "x": 0.2979622093023256,
+    "y": 0.25911458333333334,
+    "width": 0.40334302325581395,
+    "height": 0.609375
+  },
+  "boardSize": [
+    6,
+    5
+  ],
+  "cellSize": 95.48333333333333,
+  "arScore": 0.9569296375266525,
+  "rectangularity": 0.8269848990772675,
+  "gridScore": 1123.303747148223,
+  "totalScore": 13016.95200808615
+}

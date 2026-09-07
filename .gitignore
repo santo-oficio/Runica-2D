@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+
+# Cobertura
+coverage/
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Entorno
+.env
+.env.local
+
+# MobileSAM (Python venv + modelo)
+.sam-venv/
+models/

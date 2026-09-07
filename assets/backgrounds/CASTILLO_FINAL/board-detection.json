@@ -1,0 +1,21 @@
+{
+  "world": "CASTILLO_FINAL",
+  "image": "assets/backgrounds/CASTILLO_FINAL/bg_01.jpg",
+  "width": 1376,
+  "height": 768,
+  "boardArea": {
+    "x": 0.2979622093023256,
+    "y": 0.25911458333333334,
+    "width": 0.40334302325581395,
+    "height": 0.609375
+  },
+  "boardSize": [
+    6,
+    5
+  ],
+  "cellSize": 95.38333333333333,
+  "arScore": 0.9697722567287785,
+  "rectangularity": 0.46480880924897855,
+  "gridScore": 658.3529862822838,
+  "totalScore": 8018.1109288005955
+}

@@ -1,0 +1,21 @@
+{
+  "world": "INFRAMUNDO",
+  "image": "assets/backgrounds/INFRAMUNDO/bg_01.jpg",
+  "width": 1376,
+  "height": 768,
+  "boardArea": {
+    "x": 0.2979622093023256,
+    "y": 0.25911458333333334,
+    "width": 0.40334302325581395,
+    "height": 0.609375
+  },
+  "boardSize": [
+    6,
+    5
+  ],
+  "cellSize": 95.78333333333333,
+  "arScore": 0.9846473029045644,
+  "rectangularity": 0.9796854902587729,
+  "gridScore": 683.1585663745482,
+  "totalScore": 8795.91845690882
+}
