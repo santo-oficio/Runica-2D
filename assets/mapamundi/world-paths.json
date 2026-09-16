@@ -1,0 +1,52 @@
+{
+  "paths": {
+    "ESPACIO": {
+      "up": "FUEGO",
+      "down": "INFRAMUNDO",
+      "left": "MAZMORRA",
+      "right": null
+    },
+    "AGUA": {
+      "up": "MAZMORRA",
+      "down": null,
+      "left": "VIENTO",
+      "right": "INFRAMUNDO"
+    },
+    "TIERRA": {
+      "up": null,
+      "down": "HIELO",
+      "left": null,
+      "right": "FUEGO"
+    },
+    "FUEGO": {
+      "up": null,
+      "down": "ESPACIO",
+      "left": "TIERRA",
+      "right": null
+    },
+    "HIELO": {
+      "up": "TIERRA",
+      "down": "VIENTO",
+      "left": null,
+      "right": "MAZMORRA"
+    },
+    "VIENTO": {
+      "up": "HIELO",
+      "down": null,
+      "left": null,
+      "right": "AGUA"
+    },
+    "INFRAMUNDO": {
+      "up": "ESPACIO",
+      "down": null,
+      "left": "AGUA",
+      "right": null
+    },
+    "MAZMORRA": {
+      "up": null,
+      "down": "AGUA",
+      "left": "HIELO",
+      "right": "ESPACIO"
+    }
+  }
+}

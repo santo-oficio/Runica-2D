@@ -1,4 +1,4 @@
-# Progreso de implementación — Wappo Infinito
+﻿# Progreso de implementación — Wappo Infinito
 
 Seguimiento fase a fase del plan de `docs/09-SUPER-PROMPT-IMPLEMENTACION.md`.
 Cada fase deja aquí un resumen breve: qué se implementó, qué tests existen y
@@ -16,7 +16,7 @@ Stack: **TypeScript puro + Vitest** (sin frameworks pesados), Node ≥ 20, ESM.
   `solver/`, `assets-resolver/`, `engine/`, `worlds/`, `schemas/`, `tests/`.
 - **Reorganización de fondos**: las 7 imágenes que estaban en `background/`
   se movieron a `assets/backgrounds/<MUNDO>/` (un mundo por carpeta):
-  - ESPACIO, FUEGO, HIELO, INFRAMUNDO, TIERRA, VIENTO, CASTILLO_FINAL.
+  - ESPACIO, FUEGO, HIELO, INFRAMUNDO, TIERRA, VIENTO, MAZMORRA.
   - `background/` queda vacío para alojar el módulo analizador (Fase 1).
 - **Proyecto TypeScript** (`package.json`, `tsconfig.json` con strict +
   `noUncheckedIndexedAccess`, `vitest.config.ts`, `.gitignore`).
@@ -458,7 +458,7 @@ puntuador de dificultad, y test de integración con 1.000 seeds.
 ### Próximo paso
 FASE 5 — Mundos, configuración, bancos de niveles y generación por lotes
 (`07-MUNDOS-TEMATICAS.md`): definir los 7 mundos temáticos (ESPACIO,
-FUEGO, HIELO, INFRAMUNDO, TIERRA, VIENTO, CASTILLO_FINAL), sus
+FUEGO, HIELO, INFRAMUNDO, TIERRA, VIENTO, MAZMORRA), sus
 WorldConfigs, tablas de dificultad, y generación por lotes de bancos de
 niveles validados.
 
@@ -656,7 +656,7 @@ Los 8 mundos comparten el mismo `boardArea` calibrado:
 | HIELO | 1376×768 | ✅ | ✅ |
 | VIENTO | 1376×768 | ✅ | ✅ |
 | INFRAMUNDO | 1376×768 | ✅ | ✅ |
-| CASTILLO_FINAL | 1376×768 | ✅ | ✅ |
+| MAZMORRA | 1376×768 | ✅ | ✅ |
 
 ### Colores temáticos del selector
 - ESPACIO → blanco brillante con fondo azul celeste
@@ -666,7 +666,7 @@ Los 8 mundos comparten el mismo `boardArea` calibrado:
 - HIELO → cian brillante
 - VIENTO → verde claro
 - INFRAMUNDO → morado
-- CASTILLO_FINAL → dorado
+- MAZMORRA → dorado
 
 ### Resultado de ejecutar los tests
 - `npm run typecheck` → **verde**.

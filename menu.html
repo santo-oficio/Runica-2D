@@ -1,0 +1,483 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D — Menú</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #0a0a12;
+    font-family: 'Georgia', 'Times New Roman', serif;
+  }
+
+  /* Fondo: gradiente oscuro con viñeta */
+  #bg {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background:
+      radial-gradient(ellipse at 50% 40%, #1a1a2e 0%, #0a0a12 60%, #050508 100%);
+  }
+
+  /* Estrellas sutiles de fondo */
+  #bg::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 80% 20%, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.15), transparent),
+      radial-gradient(1px 1px at 90% 50%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 10% 60%, rgba(255,255,255,0.18), transparent),
+      radial-gradient(2px 2px at 70% 40%, rgba(126,200,227,0.15), transparent),
+      radial-gradient(1px 1px at 30% 50%, rgba(255,204,68,0.12), transparent);
+    background-size: 300px 300px;
+    opacity: 0.6;
+  }
+
+  /* Pergamino central */
+  #scroll {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 520px;
+    max-width: 90vw;
+    z-index: 10;
+    animation: fadeIn 0.8s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -45%) scale(0.95); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  /* Borde superior del pergamino (rodillo) */
+  .rod-top, .rod-bottom {
+    width: 100%;
+    height: 28px;
+    background: linear-gradient(180deg, #6b4a2a 0%, #8b6a3a 30%, #5b3a1a 100%);
+    border-radius: 14px;
+    position: relative;
+    box-shadow:
+      0 4px 12px rgba(0,0,0,0.6),
+      inset 0 2px 4px rgba(255,220,150,0.3),
+      inset 0 -2px 4px rgba(0,0,0,0.4);
+  }
+  .rod-top::before, .rod-bottom::before,
+  .rod-top::after, .rod-bottom::after {
+    content: '';
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    width: 36px; height: 36px;
+    background: radial-gradient(circle, #8b6a3a 30%, #5b3a1a 70%, #3b2a0a 100%);
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  }
+  .rod-top::before, .rod-bottom::before { left: -18px; }
+  .rod-top::after, .rod-bottom::after { right: -18px; }
+
+  /* Cuerpo del pergamino */
+  .parchment {
+    background:
+      /* Manchas y envejecimiento */
+      radial-gradient(ellipse at 20% 15%, rgba(180,150,100,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 85%, rgba(160,120,80,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 60% 30%, rgba(200,170,120,0.08) 0%, transparent 40%),
+      radial-gradient(ellipse at 30% 70%, rgba(140,100,60,0.1) 0%, transparent 45%),
+      /* Textura base */
+      linear-gradient(180deg, #f0e0c0 0%, #e8d4a8 40%, #e0c898 70%, #d8c088 100%);
+    padding: 40px 50px 35px;
+    border-left: 3px solid #c0a868;
+    border-right: 3px solid #c0a868;
+    box-shadow:
+      0 0 30px rgba(0,0,0,0.5),
+      inset 0 0 60px rgba(180,140,80,0.15);
+    position: relative;
+  }
+
+  /* Borde decorativo interior */
+  .parchment::before {
+    content: '';
+    position: absolute;
+    top: 12px; left: 12px; right: 12px; bottom: 12px;
+    border: 1px solid rgba(139,90,43,0.3);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
+  /* Esquinas decorativas */
+  .parchment::after {
+    content: '';
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 20px; height: 20px;
+    border-top: 2px solid rgba(139,90,43,0.4);
+    border-left: 2px solid rgba(139,90,43,0.4);
+    pointer-events: none;
+  }
+
+  /* Título */
+  .title {
+    text-align: center;
+    font-size: 2.8em;
+    font-weight: bold;
+    color: #4a2a0a;
+    letter-spacing: 6px;
+    text-shadow: 1px 1px 0 rgba(255,240,200,0.5), 2px 2px 4px rgba(100,60,20,0.3);
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    text-align: center;
+    font-size: 0.95em;
+    color: #7a5a2a;
+    font-style: italic;
+    letter-spacing: 2px;
+    margin-bottom: 28px;
+  }
+
+  /* Separador ornamental */
+  .separator {
+    text-align: center;
+    color: #a08050;
+    font-size: 1.2em;
+    margin: 18px 0;
+    letter-spacing: 8px;
+  }
+
+  /* Opciones del menú */
+  .menu-list {
+    list-style: none;
+    text-align: center;
+  }
+
+  .menu-item {
+    font-size: 1.3em;
+    color: #5a3a1a;
+    padding: 10px 20px;
+    margin: 6px 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 1px;
+    position: relative;
+    display: inline-block;
+    min-width: 260px;
+  }
+
+  .menu-item:hover {
+    color: #8b4a0a;
+    text-shadow: 0 0 8px rgba(200,100,30,0.4);
+    transform: scale(1.05);
+  }
+
+  .menu-item::before {
+    content: '◆';
+    font-size: 0.6em;
+    color: #a08050;
+    margin-right: 10px;
+    vertical-align: middle;
+    transition: color 0.2s ease;
+  }
+
+  .menu-item::after {
+    content: '◆';
+    font-size: 0.6em;
+    color: #a08050;
+    margin-left: 10px;
+    vertical-align: middle;
+    transition: color 0.2s ease;
+  }
+
+  .menu-item:hover::before,
+  .menu-item:hover::after {
+    color: #c08030;
+  }
+
+  .menu-item.disabled {
+    color: #b0a080;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .menu-item.disabled:hover {
+    color: #b0a080;
+    text-shadow: none;
+    transform: none;
+  }
+
+  /* Selector de idioma */
+  .lang-selector {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.85em;
+    color: #7a5a2a;
+  }
+
+  .lang-selector select {
+    background: #f0e0c0;
+    color: #5a3a1a;
+    border: 1px solid #b09050;
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-family: 'Georgia', serif;
+    font-size: 0.9em;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+
+  .lang-selector select:focus { outline: none; border-color: #8b6a3a; }
+
+  /* Panel de instrucciones/créditos (overlay) */
+  #panel-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.75);
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #panel-overlay.show { display: flex; }
+
+  .panel-scroll {
+    width: 560px;
+    max-width: 90vw;
+    max-height: 80vh;
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .panel-content {
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
+  .panel-content h2 {
+    text-align: center;
+    font-size: 1.8em;
+    color: #4a2a0a;
+    margin-bottom: 18px;
+    letter-spacing: 3px;
+  }
+
+  .panel-content p {
+    color: #5a3a1a;
+    font-size: 1.05em;
+    line-height: 1.7;
+    margin: 10px 0;
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .panel-content p::before {
+    content: '•';
+    color: #a08050;
+    position: absolute;
+    left: 0;
+  }
+
+  .panel-content .credit-line {
+    text-align: center;
+    padding-left: 0;
+    font-size: 1.1em;
+  }
+
+  .panel-content .credit-line::before { content: ''; }
+
+  .panel-back {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .panel-back button {
+    background: transparent;
+    border: 2px solid #8b6a3a;
+    color: #5a3a1a;
+    font-family: 'Georgia', serif;
+    font-size: 1em;
+    padding: 8px 30px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    letter-spacing: 1px;
+  }
+
+  .panel-back button:hover {
+    background: rgba(139,106,58,0.2);
+    color: #8b4a0a;
+  }
+
+  /* Scrollbar del panel */
+  .panel-content::-webkit-scrollbar { width: 8px; }
+  .panel-content::-webkit-scrollbar-track { background: rgba(180,150,100,0.1); }
+  .panel-content::-webkit-scrollbar-thumb {
+    background: rgba(139,106,58,0.4);
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+
+<!-- Menú principal en pergamino -->
+<div id="scroll">
+  <div class="rod-top"></div>
+  <div class="parchment">
+    <div class="title" data-i18n="menu.title"></div>
+    <div class="subtitle" data-i18n="menu.subtitle"></div>
+    <div class="separator">✦ ✦ ✦</div>
+    <ul class="menu-list">
+      <li class="menu-item" data-i18n="menu.newGame" data-action="newGame"></li>
+      <li class="menu-item" data-i18n="menu.continue" data-action="continue"></li>
+      <li class="menu-item" data-i18n="menu.instructions" data-action="instructions"></li>
+      <li class="menu-item" data-i18n="menu.settings" data-action="settings"></li>
+      <li class="menu-item" data-i18n="menu.credits" data-action="credits"></li>
+      <li class="menu-item" data-i18n="menu.exit" data-action="exit"></li>
+    </ul>
+    <div class="separator">✦ ✦ ✦</div>
+    <div class="lang-selector">
+      <span data-i18n="menu.language"></span>:
+      <select id="lang-select">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+      </select>
+    </div>
+  </div>
+  <div class="rod-bottom"></div>
+</div>
+
+<!-- Panel overlay para instrucciones/créditos -->
+<div id="panel-overlay">
+  <div class="panel-scroll">
+    <div class="rod-top"></div>
+    <div class="parchment">
+      <div class="panel-content" id="panel-content"></div>
+      <div class="panel-back">
+        <button data-i18n="instructions.back" id="btn-back"></button>
+      </div>
+    </div>
+    <div class="rod-bottom"></div>
+  </div>
+</div>
+
+<script>
+  // --- i18n cliente ---
+  let translations = {};
+  let fallback = {};
+  const SUPPORTED = ['es', 'en', 'fr', 'de', 'it'];
+
+  async function loadLang(lang) {
+    const resp = await fetch(`/api/i18n/${lang}`);
+    if (!resp.ok) return {};
+    return await resp.json();
+  }
+
+  function t(key) {
+    return translations[key] ?? fallback[key] ?? key;
+  }
+
+  function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      el.textContent = t(key);
+    });
+    document.title = t('menu.title') + ' — ' + t('menu.subtitle');
+  }
+
+  async function changeLang(lang) {
+    translations = await loadLang(lang);
+    if (lang !== 'es' && Object.keys(fallback).length === 0) {
+      fallback = await loadLang('es');
+    }
+    applyTranslations();
+  }
+
+  // --- Panel de instrucciones / créditos ---
+  function showPanel(type) {
+    if (type === 'instructions') {
+      window.location.href = '/instructions.html';
+      return;
+    }
+    const content = document.getElementById('panel-content');
+    if (type === 'credits') {
+      content.innerHTML = `
+        <h2>${t('credits.title')}</h2>
+        <p class="credit-line"><strong>Runika 2D — ${t('menu.subtitle')}</strong></p>
+        <p class="credit-line">${t('credits.design')}</p>
+        <p class="credit-line">${t('credits.inspired')}</p>
+      `;
+    } else if (type === 'settings') {
+      content.innerHTML = `
+        <h2>${t('menu.settings')}</h2>
+        <p class="credit-line">${t('menu.language')}:</p>
+        <p class="credit-line">
+          <select id="settings-lang" onchange="document.getElementById('lang-select').value=this.value; document.getElementById('lang-select').dispatchEvent(new Event('change'))">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="it">Italiano</option>
+          </select>
+        </p>
+      `;
+      // Sincronizar con el selector del menu
+      setTimeout(() => {
+        const sel = document.getElementById('settings-lang');
+        if (sel) sel.value = document.getElementById('lang-select').value;
+      }, 0);
+    }
+    document.getElementById('panel-overlay').classList.add('show');
+  }
+
+  function hidePanel() {
+    document.getElementById('panel-overlay').classList.remove('show');
+  }
+
+  // --- Eventos ---
+  document.querySelectorAll('.menu-item[data-action]').forEach(el => {
+    el.addEventListener('click', () => {
+      const action = el.getAttribute('data-action');
+      if (action === 'instructions') showPanel('instructions');
+      else if (action === 'credits') showPanel('credits');
+      else if (action === 'settings') showPanel('settings');
+      else if (action === 'newGame') {
+        // TODO: iniciar nueva partida
+        alert(t('menu.newGame') + ' — ' + t('menu.todo'));
+      } else if (action === 'continue') {
+        // TODO: continuar partida
+        alert(t('menu.continue') + ' — ' + t('menu.todo'));
+      } else if (action === 'exit') {
+        window.close();
+      }
+    });
+  });
+
+  document.getElementById('btn-back').addEventListener('click', hidePanel);
+  document.getElementById('panel-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) hidePanel();
+  });
+
+  document.getElementById('lang-select').addEventListener('change', (e) => {
+    changeLang(e.target.value);
+  });
+
+  // --- Init ---
+  (async () => {
+    fallback = await loadLang('es');
+    translations = fallback;
+    applyTranslations();
+  })();
+</script>
+
+</body>
+</html>

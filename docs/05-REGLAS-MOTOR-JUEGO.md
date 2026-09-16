@@ -10,6 +10,12 @@ consume.
 > y derrota). A continuación se propone un esqueleto estándar que puedes ajustar
 > a tu diseño concreto — sustituye/completa lo que no coincida con "tu" Wappo.
 
+> ⚠️ **Ampliado en `13-MECANICAS-OBSTACULOS-TRAMPAS-ATURDIMIENTO.md`**: los
+> obstáculos (`X`) ocupan la casilla completa (bloquean igual que una pared,
+> a diferencia del Wappo original) y las trampas (`T`) aturden 3 turnos a
+> quien las pisa, de forma individual por entidad. Lee ese documento para el
+> detalle del bucle de turno actualizado y el estado de aturdimiento.
+
 ## 1. Entidades del mapa lógico
 
 | Símbolo | Significado |
@@ -18,10 +24,11 @@ consume.
 | `.` | Celda transitable |
 | `P` | Posición inicial del jugador |
 | `E` | Enemigo |
-| `X` | Obstáculo (bloquea pero no es pared del tablero) |
+| `X` | Obstáculo — ocupa la casilla completa, bloquea el movimiento igual que una pared (`#`), pero es una entidad propia a efectos de sprite y de recuento de dificultad. Ver `13-MECANICAS-OBSTACULOS-TRAMPAS-ATURDIMIENTO.md`, sección 1 |
 | `G` | Objetivo / meta |
 | `D` | Puerta (puede requerir llave) |
 | `K` | Llave |
+| `T` | Trampa (ver detalle del efecto y reglas en `11-ACTUALIZACION-NIVELES-DIFICULTAD-PROGRESO.md`, sección 4) — **efecto exacto de aturdimiento de 3 turnos definido en `13-MECANICAS-OBSTACULOS-TRAMPAS-ATURDIMIENTO.md`, sección 2** |
 
 Se puede ampliar esta tabla por mundo (ej. `L` = lava en el mundo Fuego, `W` =
 agua profunda en el mundo Agua) siempre que el motor tenga la regla programada.

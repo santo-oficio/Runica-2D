@@ -155,7 +155,7 @@ export function backgroundPrompt(world: string, variant: number): { prompt: stri
     INFRAMUNDO: "underworld, dark realm, ghostly spirits, purple mist, dark center with empty void, decorative borders with skeletal trees and souls",
     TIERRA: "lush forest, ancient ruins, mossy stones, green foliage, dark center with clearing, decorative borders with trees and vines",
     VIENTO: "windy sky, clouds, floating islands, storm, dark center with calm air, decorative borders with swirling clouds and birds",
-    CASTILLO_FINAL: "dark castle, throne room, gothic architecture, dark center with empty floor, decorative borders with pillars and banners",
+    MAZMORRA: "dark castle, throne room, gothic architecture, dark center with empty floor, decorative borders with pillars and banners",
   };
 
   const theme = worldThemes[world] ?? worldThemes["ESPACIO"]!;
@@ -177,7 +177,7 @@ export function tilePrompt(world: string, tileType: string): { prompt: string; n
     INFRAMUNDO: "dark stone floor, ghostly tiles, underworld ground",
     TIERRA: "mossy stone floor, earthy ground, forest clearing",
     VIENTO: "cloud floor, airy stone, wind-swept ground",
-    CASTILLO_FINAL: "castle stone floor, gothic tiles, dark dungeon",
+    MAZMORRA: "castle stone floor, gothic tiles, dark dungeon",
   };
 
   const style = worldStyles[world] ?? worldStyles["ESPACIO"]!;
@@ -212,7 +212,7 @@ export function spritePrompt(world: string, entityType: string): { prompt: strin
     INFRAMUNDO: "ghostly, dark, spectral",
     TIERRA: "nature, forest, earthy",
     VIENTO: "windy, airy, cloud",
-    CASTILLO_FINAL: "gothic, dark, castle",
+    MAZMORRA: "gothic, dark, castle",
   };
 
   const style = worldStyles[world] ?? worldStyles["ESPACIO"]!;

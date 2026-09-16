@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grido — demo de todos los fondos</title>
+<title>Runika 2D — demo de todos los fondos</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -26,39 +26,109 @@
   }
 
   #image {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     display: block;
-    image-rendering: pixelated;
     transition: opacity 0.25s ease;
   }
   #image.fade { opacity: 0; }
 
-  /* Selector de casilla — solo esquinas iluminadas estilo retro */
+  /* Selector de casilla — oculto en modo calibración (los avatares se muestran en sus casillas) */
   #selector {
     position: absolute;
     z-index: 15;
     pointer-events: none;
-    background: var(--sel-bg, rgba(0, 255, 255, 0.08));
-    animation: pulse 1.1s ease-in-out infinite;
-    transition: left 0.1s ease, top 0.1s ease;
+    background: var(--sel-bg, rgba(0, 255, 255, 0.18));
+    transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
+    display: none;
   }
-  #selector .corner {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    border: 2px solid var(--sel-color, #0ff);
-    box-shadow: 0 0 6px var(--sel-color, #0ff);
-  }
-  #selector .corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; }
-  #selector .corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; }
-  #selector .corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; }
-  #selector .corner.br { bottom: 0; right: 0; border-left: none; border-top: none; }
 
-  @keyframes pulse {
-    0%, 100% { filter: drop-shadow(0 0 4px var(--sel-color, #0ff)); }
-    50%      { filter: drop-shadow(0 0 10px var(--sel-color, #0ff)); }
+  /* Rejilla visible del tablero (oculta por defecto, se activa con L) */
+  #grid-overlay {
+    display: none;
+    position: absolute;
+    z-index: 14;
+    pointer-events: none;
+  }
+  #grid-overlay .grid-line {
+    position: absolute;
+    background: rgba(255, 0, 255, 0.9);
+  }
+  #grid-overlay .grid-line.v { width: 2px; }
+  #grid-overlay .grid-line.h { height: 2px; }
+  #grid-overlay .grid-border {
+    position: absolute;
+    border: 3px solid rgba(0, 255, 255, 0.95);
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
+  }
+
+  /* Rectángulo de arrastre para calibrar */
+  #drag-rect {
+    position: absolute;
+    z-index: 30;
+    pointer-events: none;
+    border: 2px dashed #0ff;
+    background: rgba(0, 255, 255, 0.12);
+    display: none;
+  }
+
+  /* Marcador de la casilla 1x1 para calibrar (oculto) */
+  #cellref {
+    display: none;
+  }
+  #cellref .tag {
+    position: absolute;
+    top: -18px; left: -2px;
+    font-size: 11px;
+    color: #ff0;
+    background: rgba(0,0,0,0.7);
+    padding: 0 4px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  /* Avatar dentro del selector — ocupa toda la casilla */
+  #avatar {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  }
+
+  /* Enemigos y obstaculos */
+  #entities {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 13;
+  }
+  .entity {
+    position: absolute;
+    pointer-events: none;
+    image-rendering: pixelated;
+    transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  }
+  .entity.trap {
+    animation: spin 3s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  @keyframes trapShake {
+    0%   { transform: rotate(0deg) scale(1); }
+    20%  { transform: rotate(-15deg) scale(0.9) translateX(3px); }
+    40%  { transform: rotate(15deg) scale(1.1) translateX(-3px); }
+    60%  { transform: rotate(-10deg) scale(0.95) translateY(2px); }
+    80%  { transform: rotate(10deg) scale(1.05) translateY(-2px); }
+    100% { transform: rotate(0deg) scale(1); }
   }
 
   #hud {
@@ -121,11 +191,22 @@
   </div>
 
   <div id="selector">
-    <div class="corner tl"></div>
-    <div class="corner tr"></div>
-    <div class="corner bl"></div>
-    <div class="corner br"></div>
+    <img id="avatar" src="/assets/avatars/avatar_01.png" alt="avatar">
   </div>
+
+  <!-- Rejilla visible del tablero -->
+  <div id="grid-overlay"></div>
+
+  <!-- Marcador de la casilla 1x1 para calibrar -->
+  <div id="cellref"><span class="tag">casilla 1×1</span></div>
+
+  <!-- Rectángulo de arrastre para calibrar -->
+  <div id="drag-rect"></div>
+
+  <!-- Enemigos y obstaculos del mundo -->
+  <div id="entities"></div>
+
+  <audio id="step-sound" preload="auto"></audio>
 
   <div id="hud">
     <div class="world" id="world-label">Cargando…</div>
@@ -136,17 +217,44 @@
   <div id="dots"></div>
 
   <div id="help">
-    <span class="key">Espacio</span>: siguiente mundo &nbsp;·&nbsp;
-    <span class="key">Flechas/WASD</span>: mover selector
+    <span class="key">Flechas</span>: mover todo &nbsp;·&nbsp;
+    <span class="key">+ / −</span>: agrandar/reducir &nbsp;·&nbsp;
+    <span class="key">Shift</span>: paso fino &nbsp;·&nbsp;
+    <span class="key">Arrastrar ratón</span>: redibujar &nbsp;·&nbsp;
+    <span class="key">G</span>: guardar &nbsp;·&nbsp;
+    <span class="key">Espacio</span>: mundo &nbsp;·&nbsp;
+    <span class="key">A</span>: avatar/losas &nbsp;·&nbsp;
+    <span class="key">L</span>: rejilla
   </div>
 
 <script>
+// Base URL para API y assets: si estamos en el preview proxy (puerto != 3000),
+// usar http://localhost:3000; si no, relativo.
+const BASE = (window.location.port && window.location.port !== '3000') ? 'http://localhost:3000' : '';
+
 const img = document.getElementById('image');
 const selector = document.getElementById('selector');
+const avatarImg = document.getElementById('avatar');
 const worldLabel = document.getElementById('world-label');
 const metaLabel = document.getElementById('meta-label');
 const posLabel = document.getElementById('pos-label');
 const dotsEl = document.getElementById('dots');
+
+const AVATARS = [
+  '/assets/avatars/avatar_01.png',
+  '/assets/avatars/avatar_02.png',
+  '/assets/avatars/avatar_03.png',
+  '/assets/avatars/avatar_04.png',
+  '/assets/avatars/avatar_05.png',
+  '/assets/avatars/avatar_06.png',
+  '/assets/avatars/avatar_07.png',
+  '/assets/avatars/avatar_08.png',
+];
+// Avatar persistente (se guarda al seleccionar con Enter)
+let avatarIdx = parseInt(localStorage.getItem('Runika 2D-avatar-idx') ?? '0', 10) || 0;
+avatarImg.src = `${BASE}` + AVATARS[avatarIdx] + '?t=' + Date.now();
+
+// (Auto-guardado de medidas eliminado: la calibración ahora es 100% manual por mundo.)
 
 let worlds = [];
 let currentIdx = 0;
@@ -155,18 +263,21 @@ let cols = 0, rows = 0;
 let selCol = 0, selRow = 0;
 let ba = { x: 0, y: 0, width: 0, height: 0 };
 let board = { left: 0, top: 0, w: 0, h: 0 };
+// Calibración independiente para los avatares
+let avatarBa = { x: 0, y: 0, width: 0, height: 0 };
+let avatarBoard = { left: 0, top: 0, w: 0, h: 0 };
 
-const SELECTOR_INSET = 0.08;
+const SELECTOR_INSET = 0.02;
 
 const WORLD_COLORS = {
   AGUA:          { color: "#0ff",   glow: "rgba(0, 255, 255, 0.35)"   },
-  TIERRA:        { color: "#3a5a1a",glow: "rgba(58, 90, 26, 0.45)", bg: "rgba(58, 90, 26, 0.20)" },
-  VIENTO:        { color: "#cfe",   glow: "rgba(200, 240, 230, 0.35)" },
+  TIERRA:        { color: "#3a5a1a",glow: "rgba(58, 90, 26, 0.45)", bg: "rgba(255, 220, 100, 0.30)" },
+  VIENTO:        { color: "#cfe",   glow: "rgba(200, 240, 230, 0.35)", bg: "rgba(140, 230, 255, 0.30)" },
   FUEGO:         { color: "#f64",   glow: "rgba(255, 102, 68, 0.35)"  },
   HIELO:         { color: "#0ff",   glow: "rgba(0, 255, 255, 0.45)"   },
   ESPACIO:       { color: "#fff",  glow: "rgba(255, 255, 255, 0.45)", bg: "rgba(126, 200, 227, 0.20)" },
   INFRAMUNDO:    { color: "#a0f",   glow: "rgba(170, 0, 255, 0.35)"   },
-  CASTILLO_FINAL:{ color: "#fc4",   glow: "rgba(255, 204, 68, 0.35)"  },
+  MAZMORRA:{ color: "#fc4",   glow: "rgba(255, 204, 68, 0.35)"  },
 };
 
 function applySelectorColor(world) {
@@ -176,7 +287,7 @@ function applySelectorColor(world) {
   if (c.bg) {
     document.documentElement.style.setProperty('--sel-bg', c.bg);
   } else {
-    document.documentElement.style.setProperty('--sel-bg', c.glow.replace('0.35', '0.08').replace('0.45', '0.08'));
+    document.documentElement.style.setProperty('--sel-bg', c.glow.replace('0.35', '0.18').replace('0.45', '0.18'));
   }
 }
 
@@ -195,7 +306,7 @@ function updateDots() {
 }
 
 async function main() {
-  const res = await fetch('/api/worlds');
+  const res = await fetch(`${BASE}/api/worlds?t=` + Date.now());
   worlds = await res.json();
   buildDots();
   loadWorld(0);
@@ -207,35 +318,235 @@ function loadWorld(idx) {
   cols = detection.boardSize[0];
   rows = detection.boardSize[1];
   ba = { ...detection.boardArea };
-  selCol = 0;
-  selRow = 0;
+  // avatarArea propio del mundo; si no existe, parte del boardArea
+  avatarBa = detection.avatarArea ? { ...detection.avatarArea } : { ...detection.boardArea };
+  selCol = Math.floor(cols / 2);
+  selRow = Math.floor(rows / 2);
 
   applySelectorColor(detection.world);
 
-  worldLabel.textContent = `Mundo: ${detection.world} (${idx + 1}/${worlds.length})`;
+  // Cargar sonido de paso del mundo (si existe)
+  // Cargar sonido de paso del mundo (si existe); si no, usar el de AGUA como fallback
+  fetch(`${BASE}/assets/sounds/${detection.world}/paso.mp3`, { method: 'HEAD' })
+    .then(r => { stepAudio.src = r.ok ? `${BASE}/assets/sounds/${detection.world}/paso.mp3` : `${BASE}/assets/sounds/AGUA/paso.mp3`; })
+    .catch(() => { stepAudio.src = `${BASE}/assets/sounds/AGUA/paso.mp3`; });
+
+  worldLabel.textContent = `Mundo: ${detection.world} (${idx + 1}/${worlds.length}) — MODO ${showAvatars ? 'AVATAR' : 'LOSAS'}`;
   metaLabel.textContent = `${detection.image} · ${detection.width}x${detection.height} · tablero ${cols}x${rows}`;
 
   img.classList.add('fade');
   setTimeout(() => {
-    img.src = '/' + detection.image;
+    img.src = `${BASE}/` + detection.image + '?t=' + Date.now();
     img.onload = () => {
+      console.log('Imagen cargada:', detection.image);
       img.classList.remove('fade');
       layout();
       positionSelector();
+      placeEntities();
+    };
+    img.onerror = () => {
+      console.error('Error al cargar imagen:', detection.image);
+      img.classList.remove('fade');
+      metaLabel.textContent = 'ERROR al cargar: ' + detection.image;
     };
   }, 200);
 
   updateDots();
 }
 
-function layout() {
+// === Enemigos y obstaculos por mundo ===
+const ENTITIES = {
+  AGUA: {
+    enemies: ['/assets/enemys/AGUA/enemy_01.png'],
+    traps: ['/assets/trampas/AGUA/trampa_01.png'],
+  },
+};
+
+// Cache de obstáculos por mundo (se carga desde /api/obstacles)
+const obstacleCache = {};
+
+async function getObstaclesForWorld(world) {
+  if (obstacleCache[world]) return obstacleCache[world];
+  try {
+    const res = await fetch(`${BASE}/api/obstacles?world=${encodeURIComponent(world)}&t=${Date.now()}`);
+    const data = await res.json();
+    obstacleCache[world] = (data.images && data.images.length > 0) ? data.images : null;
+  } catch (e) {
+    obstacleCache[world] = null;
+  }
+  return obstacleCache[world];
+}
+
+// Elegir N imágenes sin repetir si es posible; si N > disponibles, repite lo necesario
+function pickRandomImages(pool, n) {
+  if (!pool || pool.length === 0) return [];
+  const available = [...pool];
+  const result = [];
+  for (let i = 0; i < n; i++) {
+    if (available.length === 0) {
+      // Sin reemplazo agotado: repetir del pool original
+      result.push(pool[Math.floor(Math.random() * pool.length)]);
+    } else {
+      const idx = Math.floor(Math.random() * available.length);
+      result.push(available.splice(idx, 1)[0]);
+    }
+  }
+  return result;
+}
+
+// Posiciones ocupadas por obstaculos en el mundo actual
+let obstacleCells = new Set();
+// Posiciones de trampas en el mundo actual
+let trapCells = new Set();
+// Mostrar avatares en las casillas (modo calibración)
+let showAvatars = false;
+
+function randomCell(occupied) {
+  for (let i = 0; i < 100; i++) {
+    const c = Math.floor(Math.random() * cols);
+    const r = Math.floor(Math.random() * rows);
+    // No poner en la casilla del avatar ni en ocupadas
+    if (c === selCol && r === selRow) continue;
+    const key = `${c},${r}`;
+    if (occupied.has(key)) continue;
+    occupied.add(key);
+    return { c, r };
+  }
+  return null;
+}
+
+function placeEntities() {
+  const container = document.getElementById('entities');
+  container.innerHTML = '';
+  obstacleCells = new Set();
+  trapCells = new Set();
+  const world = detection.world;
+
+  // MODO AVATAR: solo avatares, uno por casilla (calibra avatarArea)
+  if (showAvatars) {
+    let i = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const el = document.createElement('img');
+        el.className = 'entity';
+        el.src = `${BASE}` + AVATARS[i++ % AVATARS.length] + '?t=' + Date.now();
+        el.dataset.col = c;
+        el.dataset.row = r;
+        el.dataset.type = 'avatar';
+        container.appendChild(el);
+      }
+    }
+    positionEntities();
+    return;
+  }
+
+  // MODO LOSAS: solo obstáculos (calibra boardArea)
+  getObstaclesForWorld(world).then((obstacles) => {
+    if (!obstacles) return;
+    let i = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const el = document.createElement('img');
+        el.className = 'entity';
+        el.src = `${BASE}` + obstacles[i++ % obstacles.length] + '?t=' + Date.now();
+        el.dataset.col = c;
+        el.dataset.row = r;
+        el.dataset.type = 'obstacle';
+        container.appendChild(el);
+        obstacleCells.add(`${c},${r}`);
+      }
+    }
+    positionEntities();
+  });
+}
+
+function positionEntities() {
+  document.querySelectorAll('.entity').forEach(el => {
+    const c = parseInt(el.dataset.col, 10);
+    const r = parseInt(el.dataset.row, 10);
+    // Los avatares usan su propia calibración (avatarBoard)
+    const b = el.dataset.type === 'avatar' ? avatarBoard : board;
+    const cw = b.w / cols;
+    const ch = b.h / rows;
+    el.style.left = (b.left + c * cw) + 'px';
+    el.style.top = (b.top + r * ch) + 'px';
+    el.style.width = cw + 'px';
+    el.style.height = ch + 'px';
+  });
+  positionCellRef();
+}
+
+// Rect de la imagen VISIBLE (descartando el letterbox del object-fit: contain)
+function visibleImageRect() {
   const rect = img.getBoundingClientRect();
+  const iw = detection ? detection.width : 7680;
+  const ih = detection ? detection.height : 4320;
+  if (!iw || !ih) return rect;
+  const scale = Math.min(rect.width / iw, rect.height / ih);
+  const w = iw * scale;
+  const h = ih * scale;
+  return {
+    left: rect.left + (rect.width - w) / 2,
+    top: rect.top + (rect.height - h) / 2,
+    width: w,
+    height: h,
+  };
+}
+
+function layout() {
+  const rect = visibleImageRect();
   board = {
     left: rect.left + ba.x * rect.width,
     top: rect.top + ba.y * rect.height,
     w: ba.width * rect.width,
     h: ba.height * rect.height,
   };
+  avatarBoard = {
+    left: rect.left + avatarBa.x * rect.width,
+    top: rect.top + avatarBa.y * rect.height,
+    w: avatarBa.width * rect.width,
+    h: avatarBa.height * rect.height,
+  };
+  drawOverlay();
+  positionCellRef();
+  // Mostrar info de calibracion en la etiqueta
+  metaLabel.textContent = `IMG ${detection.width}x${detection.height} · rect ${Math.round(rect.left)},${Math.round(rect.top)} ${Math.round(rect.width)}x${Math.round(rect.height)} · tablero ${cols}x${rows}`;
+}
+
+function drawOverlay() {
+  const overlay = document.getElementById('grid-overlay');
+  if (!overlay) return;
+  overlay.innerHTML = '';
+  // La rejilla sigue el modo activo (avatar o losas)
+  const b = showAvatars ? avatarBoard : board;
+  const cw = b.w / cols;
+  const ch = b.h / rows;
+  // Borde del tablero
+  const border = document.createElement('div');
+  border.className = 'grid-border';
+  border.style.left = b.left + 'px';
+  border.style.top = b.top + 'px';
+  border.style.width = b.w + 'px';
+  border.style.height = b.h + 'px';
+  overlay.appendChild(border);
+  // Líneas verticales
+  for (let c = 1; c < cols; c++) {
+    const line = document.createElement('div');
+    line.className = 'grid-line v';
+    line.style.left = (b.left + c * cw) + 'px';
+    line.style.top = b.top + 'px';
+    line.style.height = b.h + 'px';
+    overlay.appendChild(line);
+  }
+  // Líneas horizontales
+  for (let r = 1; r < rows; r++) {
+    const line = document.createElement('div');
+    line.className = 'grid-line h';
+    line.style.left = b.left + 'px';
+    line.style.top = (b.top + r * ch) + 'px';
+    line.style.width = b.w + 'px';
+    overlay.appendChild(line);
+  }
 }
 
 function positionSelector() {
@@ -250,47 +561,395 @@ function positionSelector() {
   posLabel.textContent = `casilla [${selCol}, ${selRow}]`;
 }
 
+// Posicionar el marcador de la casilla 1x1 (col 1, fila 1)
+function positionCellRef() {
+  const el = document.getElementById('cellref');
+  if (!el) return;
+  const cw = board.w / cols;
+  const ch = board.h / rows;
+  el.style.left = (board.left + 1 * cw) + 'px';
+  el.style.top = (board.top + 1 * ch) + 'px';
+  el.style.width = cw + 'px';
+  el.style.height = ch + 'px';
+}
+
 function canEnter(c, r) {
   if (c < 0 || c >= cols || r < 0 || r >= rows) return false;
   return true;
 }
 
+let moving = false;
+
 function moveSelector(dc, dr) {
+  if (moving) return;
   const nc = selCol + dc;
   const nr = selRow + dr;
-  if (!canEnter(nc, nr)) return;
+  // Fuera del tablero: rebote + sonido de choque
+  if (!canEnter(nc, nr)) {
+    moving = true;
+    bounceSelector(dc, dr);
+    playBounceSound();
+    return;
+  }
+  // Colision con obstaculo: rebote + sonido de choque
+  if (obstacleCells.has(`${nc},${nr}`)) {
+    moving = true;
+    bounceSelector(dc, dr);
+    playBounceSound();
+    return;
+  }
+  moving = true;
   selCol = nc;
   selRow = nr;
   positionSelector();
+  // Si cae en trampa: sonido + efecto remolino
+  if (trapCells.has(`${nc},${nr}`)) {
+    playTrapSound();
+    trapEffect();
+    setTimeout(() => { moving = false; }, 600);
+  } else {
+    playStepSound();
+    setTimeout(() => { moving = false; }, 250);
+  }
+}
+
+// Efecto rebote: el selector se mueve ligeramente hacia el obstaculo y vuelve
+function bounceSelector(dc, dr) {
+  const cw = board.w / cols;
+  const ch = board.h / rows;
+  const insetX = cw * SELECTOR_INSET;
+  const insetY = ch * SELECTOR_INSET;
+  const baseLeft = board.left + selCol * cw + insetX;
+  const baseTop = board.top + selRow * ch + insetY;
+  const bounceDist = 0.25; // fraccion del tamaño de casilla
+  const dx = dc * cw * bounceDist;
+  const dy = dr * ch * bounceDist;
+
+  selector.style.transition = 'left 0.08s ease-out, top 0.08s ease-out';
+  selector.style.left = (baseLeft + dx) + 'px';
+  selector.style.top = (baseTop + dy) + 'px';
+
+  setTimeout(() => {
+    selector.style.transition = 'left 0.15s ease-in, top 0.15s ease-in';
+    selector.style.left = baseLeft + 'px';
+    selector.style.top = baseTop + 'px';
+    // restaurar transicion normal despues
+    setTimeout(() => {
+      selector.style.transition = 'left 0.25s ease-in-out, top 0.25s ease-in-out';
+      moving = false;
+    }, 160);
+  }, 90);
+}
+
+// Sonido de paso — se reinicia en cada movimiento
+const stepAudio = document.getElementById('step-sound');
+// Sonido de choque (comun a todos los mundos)
+const bounceAudio = new Audio(`${BASE}/assets/sounds/comun/choque.wav`);
+bounceAudio.preload = true;
+// Sonido de trampa (comun a todos los mundos)
+const trapAudio = new Audio(`${BASE}/assets/sounds/comun/trampa.wav`);
+trapAudio.preload = true;
+
+function unlockAudio() {
+  // No-op: las pulsaciones de tecla ya desbloquean el audio en el navegador
+}
+
+function playStepSound() {
+  if (!detection || !stepAudio.src) return;
+  stepAudio.pause();
+  stepAudio.currentTime = 0;
+  stepAudio.play().catch((e) => console.warn('audio error:', e));
+}
+
+function playBounceSound() {
+  bounceAudio.pause();
+  bounceAudio.currentTime = 0;
+  bounceAudio.play().catch((e) => console.warn('bounce audio error:', e));
+}
+
+function playTrapSound() {
+  trapAudio.pause();
+  trapAudio.currentTime = 0;
+  trapAudio.play().catch((e) => console.warn('trap audio error:', e));
+}
+
+// Efecto remolino: el avatar tiembla y gira brevemente
+function trapEffect() {
+  const av = document.getElementById('avatar');
+  av.style.animation = 'none';
+  void av.offsetWidth; // forzar reflow
+  av.style.animation = 'trapShake 0.6s ease-out';
+  setTimeout(() => { av.style.animation = ''; }, 600);
 }
 
 function nextWorld() {
   loadWorld((currentIdx + 1) % worlds.length);
 }
 
+function nextAvatar() {
+  avatarIdx = (avatarIdx + 1) % AVATARS.length;
+  localStorage.setItem('Runika 2D-avatar-idx', String(avatarIdx));
+  avatarImg.src = `${BASE}` + AVATARS[avatarIdx] + '?t=' + Date.now();
+}
+
+// === Calibración manual de la rejilla ===
+// Mueve la rejilla (ba.x/ba.y) o la escala (ba.width/ba.height) en pasos finos.
+// Área activa según el modo (avatar o losas)
+function activeArea() { return showAvatars ? avatarBa : ba; }
+
+function refreshCalib() {
+  layout();
+  positionSelector();
+  positionEntities();
+  const a = activeArea();
+  const label = showAvatars ? 'avatarArea' : 'boardArea';
+  metaLabel.textContent = `${label} = x:${a.x.toFixed(6)} y:${a.y.toFixed(6)} w:${a.width.toFixed(6)} h:${a.height.toFixed(6)} — G para guardar`;
+}
+
+// Mover todo el conjunto
+function nudgeGrid(dxPx, dyPx) {
+  const rect = visibleImageRect();
+  const a = activeArea();
+  a.x += dxPx / rect.width;
+  a.y += dyPx / rect.height;
+  refreshCalib();
+}
+
+// Aumentar/reducir el conjunto manteniendo el centro
+function zoomGrid(deltaPx) {
+  const rect = visibleImageRect();
+  const a = activeArea();
+  const dw = deltaPx / rect.width;
+  const dh = (deltaPx * (a.height / a.width)) / rect.width;
+  a.x -= dw / 2;
+  a.y -= dh / 2;
+  a.width += dw;
+  a.height += dh;
+  refreshCalib();
+}
+
+function scaleGrid(dwPx, dhPx) {
+  const rect = visibleImageRect();
+  const a = activeArea();
+  a.width += dwPx / rect.width;
+  a.height += dhPx / rect.height;
+  refreshCalib();
+}
+
+// T: calibrar a partir de UNA casilla (esquina superior izquierda)
+// Mides left/top/width/height de la casilla (0,0) y calcula el tablero 8x6.
+function calibrateFromCell() {
+  const rect = visibleImageRect();
+  const left = parseFloat(prompt('left (px) de la casilla (0,0):', Math.round(board.left)));
+  if (Number.isNaN(left)) return;
+  const top = parseFloat(prompt('top (px) de la casilla (0,0):', Math.round(board.top)));
+  if (Number.isNaN(top)) return;
+  const w = parseFloat(prompt('ancho (px) de la casilla:', Math.round(board.w / cols)));
+  if (Number.isNaN(w)) return;
+  const h = parseFloat(prompt('alto (px) de la casilla:', Math.round(board.h / rows)));
+  if (Number.isNaN(h)) return;
+  ba = {
+    x: (left - rect.left) / rect.width,
+    y: (top - rect.top) / rect.height,
+    width: (w * cols) / rect.width,
+    height: (h * rows) / rect.height,
+  };
+  layout();
+  positionSelector();
+  positionEntities();
+  metaLabel.textContent = `ba = x:${ba.x.toFixed(6)} y:${ba.y.toFixed(6)} w:${ba.width.toFixed(6)} h:${ba.height.toFixed(6)}`;
+}
+
+// C: introducir píxeles exactos del tablero (left, top, width, height)
+function calibrateExactPixels() {
+  const rect = visibleImageRect();
+  const left = parseFloat(prompt('left (px) del tablero:', Math.round(board.left)));
+  if (Number.isNaN(left)) return;
+  const top = parseFloat(prompt('top (px) del tablero:', Math.round(board.top)));
+  if (Number.isNaN(top)) return;
+  const width = parseFloat(prompt('width (px) del tablero:', Math.round(board.w)));
+  if (Number.isNaN(width)) return;
+  const height = parseFloat(prompt('height (px) del tablero:', Math.round(board.h)));
+  if (Number.isNaN(height)) return;
+  ba = {
+    x: (left - rect.left) / rect.width,
+    y: (top - rect.top) / rect.height,
+    width: width / rect.width,
+    height: height / rect.height,
+  };
+  layout();
+  positionSelector();
+  positionEntities();
+  metaLabel.textContent = `ba = x:${ba.x.toFixed(6)} y:${ba.y.toFixed(6)} w:${ba.width.toFixed(6)} h:${ba.height.toFixed(6)}`;
+}
+
+// G: guardar la calibración del modo activo, solo para el mundo actual.
+// Modo avatar → guarda avatarArea. Modo losas → guarda boardArea.
+async function saveCalibration() {
+  const area = showAvatars ? avatarBa : ba;
+  const payload = showAvatars
+    ? { world: detection.world, avatarArea: area }
+    : { world: detection.world, boardArea: area };
+  const res = await fetch(`${BASE}/api/save-calibration`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  const label = showAvatars ? 'avatarArea' : 'boardArea';
+  if (data.ok) {
+    // Reflejar en la copia en memoria del mundo
+    if (showAvatars) detection.avatarArea = { ...area }; else detection.boardArea = { ...area };
+    metaLabel.textContent = `Guardado ${label} de ${detection.world}: x:${area.x.toFixed(6)} y:${area.y.toFixed(6)} w:${area.width.toFixed(6)} h:${area.height.toFixed(6)}`;
+  } else {
+    metaLabel.textContent = 'Error al guardar: ' + data.error;
+  }
+}
+
 document.addEventListener('keydown', (e) => {
+  unlockAudio();
+
+  // Calibración: C = píxeles exactos, G = guardar
+  // L: mostrar/ocultar rejilla
+  if (e.key === 'l' || e.key === 'L') {
+    e.preventDefault();
+    const overlay = document.getElementById('grid-overlay');
+    overlay.style.display = (overlay.style.display === 'none' || !overlay.style.display) ? 'block' : 'none';
+    return;
+  }
+
+  // A: alternar modo AVATAR (calibra avatarArea) / modo LOSAS (calibra boardArea)
+  if (e.key === 'a' || e.key === 'A') {
+    e.preventDefault();
+    showAvatars = !showAvatars;
+    placeEntities();
+    layout();
+    metaLabel.textContent = showAvatars
+      ? 'MODO AVATAR — arrastra y pulsa G (guarda avatarArea)'
+      : 'MODO LOSAS — arrastra y pulsa G (guarda boardArea)';
+    return;
+  }
+
+  if (e.key === 't' || e.key === 'T') {
+    e.preventDefault();
+    calibrateFromCell();
+    return;
+  }
+
+  if (e.key === 'c' || e.key === 'C') {
+    e.preventDefault();
+    calibrateExactPixels();
+    return;
+  }
+  if (e.key === 'g' || e.key === 'G') {
+    e.preventDefault();
+    saveCalibration();
+    return;
+  }
+
   if (e.code === 'Space') {
     e.preventDefault();
     nextWorld();
     return;
   }
+  if (e.code === 'Enter') {
+    e.preventDefault();
+    nextAvatar();
+    return;
+  }
+
+  // Flechas = mover TODO el conjunto (avatares o losas según el modo)
   const dirs = {
     'ArrowUp': [0, -1], 'ArrowDown': [0, 1],
     'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0],
-    'w': [0, -1], 's': [0, 1], 'a': [-1, 0], 'd': [1, 0],
-    'W': [0, -1], 'S': [0, 1], 'A': [-1, 0], 'D': [1, 0],
   };
-  const d = dirs[e.key];
-  if (d) {
+  if (dirs[e.key]) {
     e.preventDefault();
-    moveSelector(d[0], d[1]);
+    const [dx, dy] = dirs[e.key];
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl+flechas = cambiar ancho/alto
+      const step = e.shiftKey ? 1 : 5;
+      scaleGrid(dx * step, dy * step);
+    } else {
+      // Flechas (o Shift+flechas = paso fino) = mover
+      const step = e.shiftKey ? 1 : 5;
+      nudgeGrid(dx * step, dy * step);
+    }
+    return;
   }
+
+  // + / - = aumentar / reducir el tamaño del conjunto (desde el centro)
+  if (e.key === '+' || e.key === '=') {
+    e.preventDefault();
+    zoomGrid(e.shiftKey ? 1 : 5);
+    return;
+  }
+  if (e.key === '-' || e.key === '_') {
+    e.preventDefault();
+    zoomGrid(e.shiftKey ? -1 : -5);
+    return;
+  }
+});
+
+// === Calibración por arrastre del ratón ===
+// Arrastra desde la esquina superior-izquierda del tablero hasta la inferior-derecha.
+const dragRectEl = document.getElementById('drag-rect');
+let dragOn = false;
+let dragStart = { x: 0, y: 0 };
+
+document.addEventListener('mousedown', (e) => {
+  if (e.target.closest('#hud') || e.target.closest('#help') || e.target.closest('#dots')) return;
+  dragOn = true;
+  dragStart = { x: e.clientX, y: e.clientY };
+  dragRectEl.style.display = 'block';
+  dragRectEl.style.left = e.clientX + 'px';
+  dragRectEl.style.top = e.clientY + 'px';
+  dragRectEl.style.width = '0px';
+  dragRectEl.style.height = '0px';
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!dragOn) return;
+  const x = Math.min(dragStart.x, e.clientX);
+  const y = Math.min(dragStart.y, e.clientY);
+  const w = Math.abs(e.clientX - dragStart.x);
+  const h = Math.abs(e.clientY - dragStart.y);
+  dragRectEl.style.left = x + 'px';
+  dragRectEl.style.top = y + 'px';
+  dragRectEl.style.width = w + 'px';
+  dragRectEl.style.height = h + 'px';
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (!dragOn) return;
+  dragOn = false;
+  dragRectEl.style.display = 'none';
+  const x = Math.min(dragStart.x, e.clientX);
+  const y = Math.min(dragStart.y, e.clientY);
+  const w = Math.abs(e.clientX - dragStart.x);
+  const h = Math.abs(e.clientY - dragStart.y);
+  if (w < 5 || h < 5) return; // click sin arrastrar: ignorar
+  const rect = visibleImageRect();
+  const area = {
+    x: (x - rect.left) / rect.width,
+    y: (y - rect.top) / rect.height,
+    width: w / rect.width,
+    height: h / rect.height,
+  };
+  // Solo afecta al modo activo: avatar → avatarBa, losas → ba
+  if (showAvatars) avatarBa = area; else ba = area;
+  layout();
+  positionSelector();
+  positionEntities();
+  const label = showAvatars ? 'avatarArea' : 'boardArea';
+  metaLabel.textContent = `${label} = x:${area.x.toFixed(6)} y:${area.y.toFixed(6)} w:${area.width.toFixed(6)} h:${area.height.toFixed(6)} — pulsa G para guardar`;
 });
 
 window.addEventListener('resize', () => {
   if (detection) {
     layout();
     positionSelector();
+    positionEntities();
   }
 });
 

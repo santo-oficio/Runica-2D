@@ -87,7 +87,7 @@ def grid_score(image: np.ndarray, mask: np.ndarray, cols: int, rows: int) -> flo
     return float(score)
 
 
-def generate_boxes(w: int, h: int):
+def generate_boxes(w: int, h: int, cols: int = 6, rows: int = 6):
     """Genera cajas candidatas centradas con diferentes tamaños."""
     boxes = []
     for height_pct in [0.45, 0.5, 0.55, 0.6, 0.65, 0.7]:
@@ -95,7 +95,7 @@ def generate_boxes(w: int, h: int):
             for y_off in [-0.05, 0, 0.05]:
                 for x_off in [-0.05, 0, 0.05]:
                     bh = int(h * height_pct)
-                    bw = int(bh * 6 / 5)
+                    bw = int(bh * cols / rows)
                     if bw > w or bh > h:
                         continue
                     cx = w / 2 + w * x_off
@@ -116,7 +116,7 @@ def best_board_mask(predictor, image: np.ndarray, cols: int, rows: int):
     h, w = image.shape[:2]
     predictor.set_image(image)
 
-    boxes = generate_boxes(w, h)
+    boxes = generate_boxes(w, h, cols, rows)
     print(f"Probando {len(boxes)} cajas candidatas...", file=sys.stderr)
 
     best = None

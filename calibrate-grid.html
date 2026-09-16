@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D — Calibrar grid</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
+  }
+  #overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 10; pointer-events: none;
+  }
+  .grid-line {
+    position: absolute; z-index: 11;
+    background: rgba(0, 255, 255, 0.6);
+    pointer-events: none;
+  }
+  .grid-line.v { width: 2px; }
+  .grid-line.h { height: 2px; }
+  .grid-border {
+    position: absolute; z-index: 11;
+    border: 3px solid rgba(0, 255, 255, 0.8);
+    pointer-events: none;
+  }
+  .cell-label {
+    position: absolute; z-index: 11;
+    font-size: 11px; color: rgba(0, 255, 255, 0.7);
+    pointer-events: none;
+    font-weight: bold;
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.85em; line-height: 1.7;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  select {
+    background: #1a1a2e; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 4px 8px; font-size: 0.9em; cursor: pointer;
+    margin: 2px 0;
+  }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+  #btn-save {
+    position: absolute; z-index: 20;
+    bottom: 12px; right: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em; padding: 6px 14px;
+    background: rgba(20,40,20,0.9); color: #e0e0e0;
+    border: 1px solid #0f0; border-radius: 3px;
+    cursor: pointer;
+  }
+  #btn-save:hover { background: rgba(40,80,40,0.9); }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="image" src="" />
+  <div id="overlay"></div>
+</div>
+
+<div id="hud">
+  <b>Calibrar grid</b><br>
+  Mundo: <select id="world-select"></select><br>
+  <br>
+  <span class="key">Flechas</span> = mover grid (Shift = fino)<br>
+  <span class="key">Ctrl+Flechas</span> = cambiar tamano<br>
+  <span class="key">Espacio</span> = cambiar mundo<br>
+  <span class="key">G</span> = guardar<br>
+  <br>
+  <span id="grid-info" style="color:#0f0">Grid: --</span>
+</div>
+
+<button id="btn-save">Guardar (G)</button>
+<div id="status">Mueve el grid con las flechas</div>
+
+<script>
+const MUNDOS = ['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+const COLS = 8;
+const ROWS = 6;
+
+const img = document.getElementById('image');
+const overlay = document.getElementById('overlay');
+const gridInfo = document.getElementById('grid-info');
+const statusEl = document.getElementById('status');
+const worldSelect = document.getElementById('world-select');
+
+let currentWorld = 0;
+let boardArea = { x: 0.2, y: 0.2, w: 0.6, h: 0.6 };
+
+function visibleImageRect() { return img.getBoundingClientRect(); }
+
+MUNDOS.forEach((w, i) => {
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = w;
+  worldSelect.appendChild(opt);
+});
+
+worldSelect.addEventListener('change', (e) => {
+  currentWorld = parseInt(e.target.value);
+  loadWorld();
+});
+
+async function loadBoardDetection(world) {
+  try {
+    const r = await fetch('/api/worlds?t=' + Date.now());
+    const worlds = await r.json();
+    const det = worlds.find(d => d.world === world);
+    if (det && det.boardArea) {
+      boardArea = {
+        x: det.boardArea.x,
+        y: det.boardArea.y,
+        w: det.boardArea.width || det.boardArea.w,
+        h: det.boardArea.height || det.boardArea.h
+      };
+    }
+  } catch {}
+}
+
+async function loadWorld() {
+  const world = MUNDOS[currentWorld];
+  const src = '/assets/backgrounds/' + world + '/bg_01.png?t=' + Date.now();
+  await new Promise((resolve) => {
+    const preload = new Image();
+    preload.onload = resolve;
+    preload.onerror = resolve;
+    preload.src = src;
+  });
+  img.src = src;
+  await loadBoardDetection(world);
+  render();
+}
+
+function render() {
+  overlay.innerHTML = '';
+  const rect = visibleImageRect();
+  const cw = boardArea.w / COLS;
+  const ch = boardArea.h / ROWS;
+  for (let c = 0; c <= COLS; c++) {
+    const line = document.createElement('div');
+    line.className = 'grid-line v';
+    line.style.left = (rect.left + (boardArea.x + c * cw) * rect.width) + 'px';
+    line.style.top = (rect.top + boardArea.y * rect.height) + 'px';
+    line.style.height = (boardArea.h * rect.height) + 'px';
+    overlay.appendChild(line);
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    const line = document.createElement('div');
+    line.className = 'grid-line h';
+    line.style.left = (rect.left + boardArea.x * rect.width) + 'px';
+    line.style.top = (rect.top + (boardArea.y + r * ch) * rect.height) + 'px';
+    line.style.width = (boardArea.w * rect.width) + 'px';
+    overlay.appendChild(line);
+  }
+  const border = document.createElement('div');
+  border.className = 'grid-border';
+  border.style.left = (rect.left + boardArea.x * rect.width) + 'px';
+  border.style.top = (rect.top + boardArea.y * rect.height) + 'px';
+  border.style.width = (boardArea.w * rect.width) + 'px';
+  border.style.height = (boardArea.h * rect.height) + 'px';
+  overlay.appendChild(border);
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const label = document.createElement('div');
+      label.className = 'cell-label';
+      label.style.left = (rect.left + (boardArea.x + c * cw + 0.005) * rect.width) + 'px';
+      label.style.top = (rect.top + (boardArea.y + r * ch + 0.005) * rect.height) + 'px';
+      label.textContent = (r + 1) + 'x' + (c + 1);
+      overlay.appendChild(label);
+    }
+  }
+  updateInfo();
+}
+
+function updateInfo() {
+  gridInfo.textContent = `Grid: x=${boardArea.x.toFixed(3)} y=${boardArea.y.toFixed(3)} w=${boardArea.w.toFixed(3)} h=${boardArea.h.toFixed(3)}`;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'SELECT') return;
+  if (e.key === 'g' || e.key === 'G') { e.preventDefault(); saveGrid(); return; }
+  if (e.code === 'Space') { e.preventDefault(); currentWorld = (currentWorld + 1) % MUNDOS.length; worldSelect.value = currentWorld; loadWorld(); return; }
+  const step = e.shiftKey ? 0.0005 : 0.002;
+  if (e.ctrlKey || e.metaKey) {
+    switch (e.key) {
+      case 'ArrowLeft': e.preventDefault(); boardArea.w = Math.max(0.01, boardArea.w - step); render(); break;
+      case 'ArrowRight': e.preventDefault(); boardArea.w = Math.min(1 - boardArea.x, boardArea.w + step); render(); break;
+      case 'ArrowUp': e.preventDefault(); boardArea.h = Math.max(0.01, boardArea.h - step); render(); break;
+      case 'ArrowDown': e.preventDefault(); boardArea.h = Math.min(1 - boardArea.y, boardArea.h + step); render(); break;
+    }
+  } else {
+    switch (e.key) {
+      case 'ArrowLeft': e.preventDefault(); boardArea.x = Math.max(0, boardArea.x - step); render(); break;
+      case 'ArrowRight': e.preventDefault(); boardArea.x = Math.min(1 - boardArea.w, boardArea.x + step); render(); break;
+      case 'ArrowUp': e.preventDefault(); boardArea.y = Math.max(0, boardArea.y - step); render(); break;
+      case 'ArrowDown': e.preventDefault(); boardArea.y = Math.min(1 - boardArea.h, boardArea.y + step); render(); break;
+    }
+  }
+});
+
+function saveGrid() {
+  const world = MUNDOS[currentWorld];
+  fetch('/api/save-calibration', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ world, boardArea: { x: boardArea.x, y: boardArea.y, width: boardArea.w, height: boardArea.h } })
+  }).then(r => r.json()).then(() => {
+    statusEl.innerHTML = '<span class="ok">Grid guardado: ' + world + '</span>';
+  }).catch(() => {
+    statusEl.innerHTML = '<span class="err">Error al guardar</span>';
+  });
+}
+
+document.getElementById('btn-save').addEventListener('click', saveGrid);
+
+img.addEventListener('load', () => render());
+window.addEventListener('resize', () => { if (img.complete) render(); });
+
+(async () => { await loadWorld(); })();
+</script>
+
+</body>
+</html>

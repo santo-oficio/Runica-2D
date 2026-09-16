@@ -73,6 +73,7 @@ export function isValidMove(
   if (ch === "#") return { valid: false, reason: "pared", target };
   // Obstáculo
   if (ch === "X") return { valid: false, reason: "obstáculo", target };
+  // Trampa: el jugador PUEDE entrar (no le bloquea)
   // Puerta cerrada
   if (ch === "D" && !state.doorsOpen.some(([c, r]) => c === target[0] && r === target[1])) {
     return { valid: false, reason: "puerta cerrada (falta llave)", target };
@@ -125,6 +126,11 @@ export function playerMove(state: GameState, direction: Direction): MoveResult {
 
   // Mover jugador
   state.player = target;
+
+  // Trampa: quien la pisa queda aturdido 3 turnos (jugador o enemigo).
+  if (ch === "T") {
+    state.playerStunnedTurns = 3;
+  }
 
   return { moved: true, reason: null, pickedKey, openedDoor };
 }
@@ -190,29 +196,26 @@ function movePatrol(state: GameState, idx: number): void {
   if (!route || route.length === 0) return; // sin ruta, no se mueve
   const nextStep = (enemy.step + 1) % route.length;
   const nextPos = route[nextStep]!;
-  // Solo se mueve si la celda es transitable y no hay otro enemigo
+  // Solo se mueve si la celda es transitable
   if (isWalkableForEnemy(state, nextPos[0], nextPos[1], idx)) {
     enemy.pos = nextPos;
     enemy.step = nextStep;
   }
 }
 
-/** Persecución simple: un paso hacia el jugador (Manhattan), bordeando si puede. */
+/** Persecución simple: un paso hacia el jugador, preferencia horizontal primero (regla Wappo).
+ *  Si no puede avanzar directamente hacia el jugador, NO se mueve.
+ *  Esto es intencional: el jugador explota la estupidez del enemigo. */
 function moveChase(state: GameState, idx: number): void {
   const enemy = state.enemies[idx]!;
   const [ec, er] = enemy.pos;
   const [pc, pr] = state.player;
-  // Priorizar el eje con mayor distancia
   const dx = Math.sign(pc - ec);
   const dy = Math.sign(pr - er);
+  // Wappo: siempre intenta horizontal primero, luego vertical
   const candidates: CellPos[] = [];
-  if (Math.abs(pc - ec) >= Math.abs(pr - er)) {
-    if (dx !== 0) candidates.push([ec + dx, er]);
-    if (dy !== 0) candidates.push([ec, er + dy]);
-  } else {
-    if (dy !== 0) candidates.push([ec, er + dy]);
-    if (dx !== 0) candidates.push([ec + dx, er]);
-  }
+  if (dx !== 0) candidates.push([ec + dx, er]);
+  if (dy !== 0) candidates.push([ec, er + dy]);
   for (const c of candidates) {
     if (isWalkableForEnemy(state, c[0], c[1], idx)) {
       enemy.pos = c;
@@ -234,18 +237,19 @@ function moveRandom(state: GameState, idx: number, rng: Rng): void {
   enemy.pos = rng.pick(options);
 }
 
-/** true si la celda es transitable para un enemigo (suelo, objetivo, o celda del jugador = captura). */
-function isWalkableForEnemy(state: GameState, col: number, row: number, selfIdx: number): boolean {
+/** true si la celda es transitable para un enemigo (suelo, objetivo, trampa, o celda del jugador = captura).
+ *  Los enemigos SÍ pueden solaparse entre sí durante el movimiento (cuando
+ *  el movimiento los obliga a ello), pero nunca al empezar un nivel. */
+function isWalkableForEnemy(state: GameState, col: number, row: number, _selfIdx: number): boolean {
   if (row < 0 || row >= state.height || col < 0 || col >= state.width) return false;
   // El enemigo puede moverse onto el jugador (eso es la captura).
   if (col === state.player[0] && row === state.player[1]) return true;
   const ch = cellAt(state, col, row);
-  if (ch !== "." && ch !== "G") return false;
-  // No moverse onto otro enemigo
-  for (let i = 0; i < state.enemies.length; i++) {
-    if (i === selfIdx) continue;
-    if (state.enemies[i]!.pos[0] === col && state.enemies[i]!.pos[1] === row) return false;
-  }
+  // "P" y "E" son marcadores de posición inicial (suelo real tras moverse la entidad).
+  if (ch !== "." && ch !== "G" && ch !== "T" && ch !== "P" && ch !== "E") return false;
+  // Los enemigos pueden solaparse entre sí: no bloqueamos el movimiento
+  // hacia celdas ocupadas por otros enemigos. El solapamiento solo ocurre
+  // dinámicamente, nunca en la posición inicial (lo garantiza el generador).
   return true;
 }
 
@@ -322,13 +326,15 @@ export function isLevelFailed(state: GameState): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Ejecuta un turno completo del juego:
+ * Ejecuta un turno completo del juego (reglas Wappo originales):
  *  1. Input del jugador → playerMove(direction)
- *  2. Comprobar recogida de objetos (ya en playerMove)
- *  3. enemyMove para cada enemigo
- *  4. Comprobar colisión jugador-enemigo → isLevelFailed
- *  5. Comprobar isLevelSolved
- *  6. Si ni victoria ni derrota → turno++
+ *     - Si el jugador está aturdido (trampa), el input se ignora pero el turno avanza.
+ *  2. ¿Jugador en salida? → VICTORIA (antes de que se mueva el enemigo)
+ *  3. El enemigo hace 2 pasos hacia el jugador (Wappo: 2 casillas/turno)
+ *     - Tras cada paso, comprueba colisión → DERROTA
+ *     - Si una entidad (jugador o enemigo) cae en trampa (T), queda aturdida 3 turnos.
+ *  4. ¿Jugador en salida? → VICTORIA (recheck tras movimiento enemigo)
+ *  5. Si ni victoria ni derrota → turno++
  *
  * Mutación in-place del `state`. Devuelve el estado actualizado para
  * encadenar. El `rng` se usa para enemigos aleatorios (debe ser determinista
@@ -341,34 +347,70 @@ export function playTurn(
 ): GameState {
   if (state.solved || state.failed) return state;
 
-  // 1. Player move
-  playerMove(state, direction);
+  // 1. Player move — si no se puede mover (pared/obstáculo/límites),
+  //    NO cuenta como movimiento: el turno no avanza, los enemigos no se mueven.
+  //    Excepción: si el jugador está aturdido (trampa), el input se ignora pero
+  //    el turno SÍ avanza (los enemigos se mueven con normalidad).
+  if (state.playerStunnedTurns > 0) {
+    state.playerStunnedTurns -= 1;
+  } else {
+    const result = playerMove(state, direction);
+    if (!result.moved) {
+      return state;
+    }
+  }
 
-  // 2. Check victoria inmediata (jugador en G)
+  // 2. Check victoria inmediata (jugador en G, antes de que se mueva el enemigo)
   if (isLevelSolved(state)) {
     state.solved = true;
     return state;
   }
 
-  // 3. Enemy moves
+  // 3. Enemy moves — cada enemigo hace 2 sub-pasos (regla Wappo).
+  //    Procesamos un enemigo a la vez (ambos sub-pasos) para que el orden
+  //    coincida con el simulador de referencia (wappo_simulator.py):
+  //    enemigo 0 hace sub-paso 0 + sub-paso 1, luego enemigo 1, etc.
   for (let i = 0; i < state.enemies.length; i++) {
-    enemyMove(state, i, rng);
+    // Aturdimiento: decrementar 1 vez por turno y saltar todo el turno
+    // (ambos sub-pasos). Esto da 3 turnos completos de inmovilización,
+    // no 3 sub-pasos (= 1.5 turnos) como antes.
+    if ((state.enemyStunnedTurns[i] ?? 0) > 0) {
+      state.enemyStunnedTurns[i] = (state.enemyStunnedTurns[i] ?? 0) - 1;
+      continue; // aturdido: salta los 2 sub-pasos de este turno
+    }
+    for (let step = 0; step < 2; step++) {
+      const before = state.enemies[i]!.pos;
+      enemyMove(state, i, rng);
+
+      // Check derrota tras cada sub-paso (colisión jugador-enemigo)
+      // Va antes del trap check: si el enemigo captura al jugador
+      // pisando simultáneamente una trampa, la captura tiene prioridad.
+      if (isLevelFailed(state)) {
+        state.failed = true;
+        state.failureReason = "colisión con enemigo";
+        return state;
+      }
+
+      // Solo aturde al ENTRAR en una trampa (si realmente se movió a ella).
+      // Un enemigo atascado sobre una trampa no se re-atarde.
+      const after = state.enemies[i]!.pos;
+      if (before[0] !== after[0] || before[1] !== after[1]) {
+        const ch = cellAt(state, after[0], after[1]);
+        if (ch === "T") {
+          state.enemyStunnedTurns[i] = 3;
+          break; // pisó trampa: para de moverse este turno
+        }
+      }
+    }
   }
 
-  // 4. Check derrota (colisión jugador-enemigo)
-  if (isLevelFailed(state)) {
-    state.failed = true;
-    state.failureReason = "colisión con enemigo";
-    return state;
-  }
-
-  // 5. Check victoria (tras movimiento de enemigos, por si el jugador llegó a G)
+  // 4. Check victoria (tras movimiento de enemigos)
   if (isLevelSolved(state)) {
     state.solved = true;
     return state;
   }
 
-  // 6. Turno++
+  // 5. Turno++
   state.turn++;
   return state;
 }

@@ -1,21 +1,23 @@
 {
   "world": "HIELO",
-  "image": "assets/backgrounds/HIELO/bg_01.jpg",
-  "width": 1376,
-  "height": 768,
+  "image": "assets/backgrounds/HIELO/bg_01.png",
+  "width": 7680,
+  "height": 4320,
   "boardArea": {
-    "x": 0.2979622093023256,
-    "y": 0.25911458333333334,
-    "width": 0.40334302325581395,
-    "height": 0.609375
+    "x": 0.2980019631137957,
+    "y": 0.1730224146542263,
+    "width": 0.39813718244420143,
+    "height": 0.6466251174533468
   },
   "boardSize": [
-    6,
-    5
+    8,
+    6
   ],
-  "cellSize": 83.51666666666667,
-  "arScore": 0.6986522911051212,
-  "rectangularity": 0.5646005023058646,
-  "gridScore": 2326.3682739199357,
-  "totalScore": 24526.935532610343
+  "cellSize": 390.77,
+  "avatarArea": {
+    "x": 0.26012173630168317,
+    "y": 0.23212886937431376,
+    "width": 0.47274809549945174,
+    "height": 0.5466230515916575
+  }
 }

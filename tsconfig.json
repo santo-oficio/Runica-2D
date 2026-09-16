@@ -33,7 +33,9 @@
     "engine/**/*.ts",
     "worlds/**/*.ts",
     "schemas/**/*.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "db/**/*.ts",
+    "demo-server.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

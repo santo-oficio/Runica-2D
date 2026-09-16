@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D — Instrucciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #0a0806; font-family: 'MedievalSharp', cursive;
+  }
+  /* Pantalla de carga */
+  #loading-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 100; background: #0a0806;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #e8d4a8;
+  }
+  #loading-screen .title {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 2.5em; color: #f0d890;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    margin-bottom: 30px; letter-spacing: 3px;
+  }
+  #loading-bar-bg {
+    width: 300px; height: 8px;
+    background: rgba(60, 42, 20, 0.5);
+    border: 1px solid rgba(180, 150, 80, 0.4);
+    border-radius: 4px; overflow: hidden;
+  }
+  #loading-bar {
+    width: 0%; height: 100%;
+    background: linear-gradient(90deg, #c4a050, #f0d890);
+    transition: width 0.2s ease;
+  }
+  #loading-text {
+    margin-top: 12px; font-size: 0.9em; color: #a08850;
+    font-family: 'Courier New', monospace;
+  }
+  #transition-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 90; background: #000;
+    opacity: 0; pointer-events: none; display: none;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #bg {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
+  }
+  #text-area {
+    position: absolute;
+    z-index: 11;
+    pointer-events: auto;
+    overflow-y: auto;
+    padding: 15px 25px;
+    transition: box-shadow 0.3s ease;
+  }
+  #text-area.focused {
+    box-shadow: inset 0 0 0 2px rgba(138, 96, 48, 0.5);
+  }
+  #text-area::-webkit-scrollbar { width: 6px; }
+  #text-area::-webkit-scrollbar-track { background: rgba(100,80,40,0.15); border-radius: 3px; }
+  #text-area::-webkit-scrollbar-thumb { background: rgba(100,70,30,0.4); border-radius: 3px; }
+  h1 {
+    font-family: 'MedievalSharp', cursive;
+    font-size: clamp(1.3em, 2.5vw, 2em);
+    color: #3a2810;
+    text-align: center;
+    text-shadow: 1px 1px 0 rgba(255,240,200,0.5);
+    margin-bottom: 15px;
+    letter-spacing: 1px;
+  }
+  .section { margin-bottom: 18px; }
+  .section-title {
+    font-family: 'MedievalSharp', cursive;
+    font-size: clamp(1.1em, 2vw, 1.3em);
+    color: #5a3a18;
+    text-shadow: 1px 1px 0 rgba(255,240,200,0.4);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(90, 58, 24, 0.3);
+  }
+  .item {
+    font-family: 'MedievalSharp', cursive;
+    font-size: clamp(0.85em, 1.5vw, 1em);
+    color: #4a3018;
+    line-height: 1.6;
+    padding: 4px 0 4px 18px;
+    position: relative;
+  }
+  .item::before {
+    content: '◆';
+    position: absolute; left: 0;
+    color: #8a6030;
+    font-size: 0.7em;
+  }
+  .item-icon {
+    display: flex; align-items: center;
+    padding: 6px 0 6px 18px;
+    position: relative;
+    font-family: 'MedievalSharp', cursive;
+    font-size: clamp(0.85em, 1.5vw, 1em);
+    color: #4a3018;
+    line-height: 1.5;
+  }
+  .item-icon::before {
+    content: '◆';
+    position: absolute; left: 0;
+    color: #8a6030;
+    font-size: 0.7em;
+  }
+  .item-icon img {
+    width: 40px; height: 40px;
+    margin-right: 10px;
+    object-fit: contain;
+    flex-shrink: 0;
+    filter: drop-shadow(2px 2px 3px rgba(60,40,10,0.4));
+  }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  #nav {
+    position: absolute; bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    gap: 20px;
+    pointer-events: auto;
+  }
+  .btn3d {
+    font-family: 'MedievalSharp', cursive;
+    font-size: clamp(0.9em, 1.5vw, 1.05em);
+    color: #e8d4a8;
+    padding: 10px 30px;
+    background: linear-gradient(180deg, rgba(60, 42, 20, 0.9), rgba(35, 24, 10, 0.95));
+    border: 2px solid rgba(180, 150, 80, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow:
+      0 4px 0 rgba(20, 12, 4, 0.8),
+      0 6px 10px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255, 220, 150, 0.15);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    user-select: none;
+  }
+  .btn3d:hover {
+    background: linear-gradient(180deg, rgba(80, 58, 28, 0.9), rgba(50, 34, 14, 0.95));
+    border-color: rgba(232, 212, 168, 0.7);
+    color: #fff8e0;
+    box-shadow:
+      0 4px 0 rgba(20, 12, 4, 0.8),
+      0 6px 15px rgba(232, 212, 168, 0.2),
+      inset 0 1px 0 rgba(255, 220, 150, 0.2);
+  }
+  .btn3d.focused {
+    border-color: rgba(232, 212, 168, 0.9);
+    box-shadow:
+      0 4px 0 rgba(20, 12, 4, 0.8),
+      0 0 20px rgba(232, 212, 168, 0.4),
+      inset 0 1px 0 rgba(255, 220, 150, 0.2);
+  }
+  .btn3d:active {
+    transform: translateY(3px);
+    box-shadow:
+      0 1px 0 rgba(20, 12, 4, 0.8),
+      0 2px 5px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255, 220, 150, 0.1);
+  }
+  #page-info {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 0.9em;
+    color: #e8d4a8;
+    min-width: 50px;
+    text-align: center;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+  }
+  #lang-bar {
+    position: absolute; bottom: 12px; right: 12px; z-index: 20;
+    background: rgba(0,0,0,0.7); padding: 6px 12px;
+    border-radius: 4px; font-family: 'Courier New', monospace;
+    font-size: 0.8em; color: #aaa;
+    pointer-events: auto;
+  }
+  #lang-bar select {
+    background: #1a1a2e; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 2px 6px; font-size: 0.9em; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- Pantalla de carga -->
+<div id="loading-screen">
+  <div class="title">RUNIKA 2D</div>
+  <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+  <div id="loading-text">Cargando... 0%</div>
+</div>
+
+<!-- Overlay de transicion -->
+<div id="transition-overlay"></div>
+
+<div id="stage">
+  <img id="bg" src="/assets/menu%20principal/opciones%20del%20juego%20e%20instrucciones.png" />
+</div>
+
+<div id="text-area">
+  <h1 data-i18n="instructions.title"></h1>
+  <div class="section">
+    <div class="section-title" data-i18n="instructions.controls"></div>
+    <div class="item" data-i18n="instructions.controlsMove"></div>
+    <div class="item" data-i18n="instructions.controlsBack"></div>
+  </div>
+  <div class="section">
+    <div class="section-title" data-i18n="instructions.rules"></div>
+    <div class="item" data-i18n="instructions.rule1"></div>
+    <div class="item" data-i18n="instructions.rule2"></div>
+    <div class="item" data-i18n="instructions.rule3"></div>
+    <div class="item" data-i18n="instructions.rule4"></div>
+    <div class="item" data-i18n="instructions.rule5"></div>
+    <div class="item" data-i18n="instructions.rule6"></div>
+    <div class="item" data-i18n="instructions.rule7"></div>
+  </div>
+  <div class="section">
+    <div class="section-title" data-i18n="instructions.objects"></div>
+    <div class="item-icon"><img src="/assets/avatars/avatar_06.png" alt=""><span data-i18n="instructions.objAvatar"></span></div>
+    <div class="item-icon"><img src="/assets/enemys/ESPACIO/enemigo_espacio_1900.png" alt=""><span data-i18n="instructions.objEnemy"></span></div>
+    <div class="item-icon"><img src="/assets/obstaculos/ESPACIO/losa_03.png" alt=""><span data-i18n="instructions.objObstacle"></span></div>
+    <div class="item-icon"><img src="/assets/trampas/AGUA/trampa_01.png" alt=""><span data-i18n="instructions.objTrap"></span></div>
+    <div class="item-icon"><img src="/assets/salida/ESPACIO/salida.png" alt=""><span data-i18n="instructions.objGoal"></span></div>
+  </div>
+</div>
+
+<div id="nav">
+  <button class="btn3d" id="btn-back" data-i18n="instructions.back"></button>
+</div>
+
+<div id="lang-bar">
+  <select id="lang-select">
+    <option value="es">Español</option>
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+    <option value="it">Italiano</option>
+  </select>
+</div>
+
+<script src="/assets-cache.js"></script>
+<script>
+  let translations = {};
+  let fallback = {};
+  const TEXT_AREA = { x: 0.365625, y: 0.391877, w: 0.272396, h: 0.357849 };
+
+  // Foco: 'scroll' (pergamino) o 'button' (boton volver)
+  let focus = 'scroll';
+
+  async function loadLang(lang) {
+    const r = await fetch('/api/i18n/' + lang);
+    if (!r.ok) return {};
+    return await r.json();
+  }
+  function t(key) { return translations[key] ?? fallback[key] ?? key; }
+
+  function applyI18n() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      el.textContent = t(key);
+    });
+    document.title = t('instructions.title') + ' — Runika 2D';
+  }
+
+  function positionTextArea() {
+    const bg = document.getElementById('bg');
+    const r = bg.getBoundingClientRect();
+    const ta = document.getElementById('text-area');
+    ta.style.left = (r.left + TEXT_AREA.x * r.width) + 'px';
+    ta.style.top = (r.top + TEXT_AREA.y * r.height) + 'px';
+    ta.style.width = (TEXT_AREA.w * r.width) + 'px';
+    ta.style.height = (TEXT_AREA.h * r.height) + 'px';
+  }
+
+  function updateFocus() {
+    const ta = document.getElementById('text-area');
+    const btn = document.getElementById('btn-back');
+    ta.classList.toggle('focused', focus === 'scroll');
+    btn.classList.toggle('focused', focus === 'button');
+  }
+
+  function isScrolledToBottom() {
+    const ta = document.getElementById('text-area');
+    return ta.scrollTop + ta.clientHeight >= ta.scrollHeight - 2;
+  }
+
+  // Sonidos desde cache (Web Audio API)
+  AssetsCache.unlockAudio();
+  document.addEventListener('click', () => AssetsCache.unlockAudio(), { once: true });
+  document.addEventListener('keydown', () => AssetsCache.unlockAudio(), { once: true });
+
+  function playMove() {
+    AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.5);
+  }
+  function playSelect() {
+    AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.7);
+  }
+
+  function goBack() { AssetsCache.transitionTo('/demo-menu.html'); }
+
+  // Boton volver
+  document.getElementById('btn-back').addEventListener('click', () => {
+    playSelect();
+    goBack();
+  });
+
+  // Teclado
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { playMove(); goBack(); return; }
+
+    if (focus === 'scroll') {
+      // Foco en el pergamino
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        const ta = document.getElementById('text-area');
+        const step = ta.clientHeight * 0.8;
+        ta.scrollBy({ top: step, behavior: 'smooth' });
+        // Si ya esta al fondo, pasar foco al boton
+        setTimeout(() => {
+          if (isScrolledToBottom()) {
+            focus = 'button';
+            updateFocus();
+            playMove();
+          }
+        }, 300);
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const ta = document.getElementById('text-area');
+        if (ta.scrollTop <= 0) {
+          // Ya arriba, no hace nada
+          return;
+        }
+        const step = ta.clientHeight * 0.8;
+        ta.scrollBy({ top: -step, behavior: 'smooth' });
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        // Si esta al fondo, Enter activa el boton
+        if (isScrolledToBottom()) {
+          playSelect();
+          goBack();
+        } else {
+          // Sino, avanza scroll
+          const ta = document.getElementById('text-area');
+          const step = ta.clientHeight * 0.8;
+          ta.scrollBy({ top: step, behavior: 'smooth' });
+          setTimeout(() => {
+            if (isScrolledToBottom()) {
+              focus = 'button';
+              updateFocus();
+              playMove();
+            }
+          }, 300);
+        }
+      }
+    } else {
+      // Foco en el boton volver
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        focus = 'scroll';
+        updateFocus();
+        playMove();
+        // Subir scroll para mostrar el final del texto
+        const ta = document.getElementById('text-area');
+        ta.scrollTo({ top: Math.max(0, ta.scrollTop - ta.clientHeight * 0.8), behavior: 'smooth' });
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        // No hace nada en el boton, solo Enter/Espacio activan
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        playSelect();
+        goBack();
+      }
+    }
+  });
+
+  // Click en el pergamino recupera el foco
+  document.getElementById('text-area').addEventListener('click', () => {
+    if (focus !== 'scroll') {
+      focus = 'scroll';
+      updateFocus();
+    }
+  });
+
+  // Scroll manual: si llega al fondo, foco al boton
+  document.getElementById('text-area').addEventListener('scroll', () => {
+    if (focus === 'scroll' && isScrolledToBottom()) {
+      // No auto-cambiar foco en scroll manual, solo con teclado
+    }
+  });
+
+  document.getElementById('lang-select').addEventListener('change', async (e) => {
+    translations = await loadLang(e.target.value);
+    applyI18n();
+  });
+
+  // --- Init con cache + transicion ---
+  (async () => {
+    if (sessionStorage.getItem('runika-session') === 'active') {
+      // Ya en sesion, ir directo
+      fallback = await loadLang('es');
+      translations = fallback;
+      applyI18n();
+      positionTextArea();
+      focus = 'scroll';
+      updateFocus();
+      AssetsCache.hideLoading();
+      setTimeout(() => AssetsCache.transitionIn(), 100);
+      return;
+    }
+
+    AssetsCache.showLoading();
+    const loadingBar = document.getElementById('loading-bar');
+    const loadingText = document.getElementById('loading-text');
+
+    await AssetsCache.preloadAll((loaded, total) => {
+      const pct = Math.round((loaded / total) * 100);
+      loadingBar.style.width = pct + '%';
+      loadingText.textContent = 'Cargando... ' + pct + '%';
+    });
+
+    fallback = await loadLang('es');
+    translations = fallback;
+    applyI18n();
+    positionTextArea();
+    focus = 'scroll';
+    updateFocus();
+
+    AssetsCache.hideLoading();
+    setTimeout(() => AssetsCache.transitionIn(), 500);
+  })();
+
+  document.getElementById('bg').addEventListener('load', positionTextArea);
+  window.addEventListener('resize', positionTextArea);
+</script>
+
+</body>
+</html>

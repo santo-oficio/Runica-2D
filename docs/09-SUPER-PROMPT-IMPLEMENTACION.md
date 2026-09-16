@@ -1,4 +1,4 @@
-# 🚀 Super Prompt — Loop de Implementación con IA de Código
+﻿# 🚀 Super Prompt — Loop de Implementación con IA de Código
 
 Este documento contiene un **prompt maestro** pensado para pegarlo en una IA de
 código con acceso a herramientas (Claude Code, Cursor, Windsurf, un agente con
@@ -15,10 +15,10 @@ JS/TS/Python). Sustituye los placeholders entre `<...>` antes de enviarlo.
 
 ## Repositorio y ubicación de los fondos
 
-- **Repositorio del proyecto**: `https://github.com/santo-oficio/Grido.git`
+- **Repositorio del proyecto**: `https://github.com/santo-oficio/Runika 2D.git`
 - **Fondos de imagen**: ya existen en **`assets/backgrounds/<MUNDO>/bg_01.jpg`**
   (un archivo por mundo, 1376×768 px). Hay 8 mundos: ESPACIO, AGUA, TIERRA,
-  FUEGO, HIELO, VIENTO, INFRAMUNDO y CASTILLO_FINAL.
+  FUEGO, HIELO, VIENTO, INFRAMUNDO y MAZMORRA.
 - **Detección de tableros**: los fondos ya tienen el tablero **6×5 dibujado**.
   La detección de `boardArea` se hace con **MobileSAM**
   (`background/sam-detect.py`) y el resultado se guarda en
@@ -29,7 +29,7 @@ JS/TS/Python). Sustituye los placeholders entre `<...>` antes de enviarlo.
 
 ## Cómo usar este prompt
 
-1. Clona el repositorio `https://github.com/santo-oficio/Grido.git` y trabaja
+1. Clona el repositorio `https://github.com/santo-oficio/Runika 2D.git` y trabaja
    sobre él (o ábrelo directamente en Windsurf).
 2. Asegúrate de que los documentos (`00` a `10`) están accesibles para la IA
    (en el mismo repositorio/carpeta, o pegados como contexto).
@@ -99,7 +99,7 @@ la "regla de oro" repetida en varios documentos:
    alineación y resolubilidad."
 
 STACK Y RESTRICCIONES TÉCNICAS
-- Repositorio del proyecto: https://github.com/santo-oficio/Grido.git
+- Repositorio del proyecto: https://github.com/santo-oficio/Runika 2D.git
 - Stack a usar: <STACK_ELEGIDO> (ej. "Godot 4 + GDScript", "TypeScript + Canvas/
   PixiJS", "Unity + C#"). Si no se especifica, usa TypeScript puro (sin
   frameworks pesados) para máxima portabilidad y facilidad de testear.
@@ -204,7 +204,7 @@ FASE 5 — Integración y banco de niveles
 
 FASE 6 — Mundos (07-MUNDOS-TEMATICAS.md)
 - Implementa los WorldConfigs de los 8 mundos (ESPACIO, AGUA, TIERRA, FUEGO,
-  HIELO, VIENTO, INFRAMUNDO, CASTILLO_FINAL) con sus tileAssets, tablero fijo
+  HIELO, VIENTO, INFRAMUNDO, MAZMORRA) con sus tileAssets, tablero fijo
   [6,5] y tabla de dificultad.
 - Verifica que añadir un WorldConfig nuevo NO requiere tocar código del
   generador, solver o motor de reglas (solo configuración/datos). Escríbelo

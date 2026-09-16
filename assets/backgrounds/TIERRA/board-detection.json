@@ -1,21 +1,23 @@
 {
   "world": "TIERRA",
-  "image": "assets/backgrounds/TIERRA/bg_01.jpg",
-  "width": 1376,
-  "height": 768,
+  "image": "assets/backgrounds/TIERRA/bg_01.png",
+  "width": 7680,
+  "height": 4320,
   "boardArea": {
-    "x": 0.2979622093023256,
-    "y": 0.25911458333333334,
-    "width": 0.40334302325581395,
-    "height": 0.609375
+    "x": 0.2980019631137957,
+    "y": 0.1730224146542263,
+    "width": 0.39813718244420143,
+    "height": 0.6466251174533468
   },
   "boardSize": [
-    6,
-    5
+    8,
+    6
   ],
-  "cellSize": 92.03333333333333,
-  "arScore": 0.964882226980728,
-  "rectangularity": 0.7415173510517697,
-  "gridScore": 942.8862729438354,
-  "totalScore": 11135.26230747085
+  "cellSize": 390.77,
+  "avatarArea": {
+    "x": 0.2781220692242961,
+    "y": 0.25818377579582863,
+    "width": 0.43197614146359364,
+    "height": 0.5258896619099888
+  }
 }

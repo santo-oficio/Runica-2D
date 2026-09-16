@@ -1,0 +1,23 @@
+{
+  "world": "MAZMORRA",
+  "image": "assets/backgrounds/MAZMORRA/bg_01.png",
+  "width": 7680,
+  "height": 4320,
+  "boardArea": {
+    "x": 0.2980019631137957,
+    "y": 0.1730224146542263,
+    "width": 0.39813718244420143,
+    "height": 0.6466251174533468
+  },
+  "boardSize": [
+    8,
+    6
+  ],
+  "cellSize": 390.77,
+  "avatarArea": {
+    "x": 0.2257470265047567,
+    "y": 0.23580900109769484,
+    "width": 0.5529416895353088,
+    "height": 0.5331308452250274
+  }
+}

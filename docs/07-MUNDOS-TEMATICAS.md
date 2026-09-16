@@ -1,4 +1,4 @@
-# 🌍 Mundos y Temáticas
+﻿# 🌍 Mundos y Temáticas
 
 ## Estructura general
 
@@ -39,7 +39,7 @@ INFRAMUNDO
   ├── plantilla de fondo propia
   └── banco de niveles propio
 
-CASTILLO_FINAL
+MAZMORRA
   ├── plantilla de fondo propia
   └── banco de niveles propio
 ```
@@ -70,7 +70,7 @@ Los 8 mundos usan la misma `boardArea`:
 | HIELO | 1376×768 | ✅ |
 | VIENTO | 1376×768 | ✅ |
 | INFRAMUNDO | 1376×768 | ✅ |
-| CASTILLO_FINAL | 1376×768 | ✅ |
+| MAZMORRA | 1376×768 | ✅ |
 
 ## Colores temáticos del selector (demo visual)
 
@@ -83,7 +83,7 @@ La demo usa un selector de casilla retro con color por mundo:
 - HIELO → cian brillante
 - VIENTO → verde claro
 - INFRAMUNDO → morado
-- CASTILLO_FINAL → dorado
+- MAZMORRA → dorado
 
 ## Por qué por mundo y no todo junto
 

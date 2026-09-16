@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar caminos del mapamundi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 12; pointer-events: none; }
+  .marker {
+    position: absolute; z-index: 14; pointer-events: auto; cursor: pointer;
+    border: 3px solid #0f0;
+    border-radius: 50%;
+    background: rgba(0, 255, 0, 0.10);
+    transition: all 0.15s ease;
+  }
+  .marker:hover { transform: scale(1.15); }
+  .marker.selected {
+    border-color: #fc0;
+    box-shadow: 0 0 25px rgba(255, 204, 0, 0.6);
+    background: rgba(255, 204, 0, 0.20);
+  }
+  .marker.dest {
+    border-color: #0ff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    background: rgba(0, 255, 255, 0.15);
+  }
+  .marker .tag {
+    position: absolute; top: -22px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px; padding: 2px 8px; border-radius: 2px;
+    background: #0f0; color: #000; white-space: nowrap;
+  }
+  .marker.selected .tag { background: #fc0; }
+  .marker.dest .tag { background: #0ff; }
+  .marker .dir-label {
+    position: absolute; bottom: -20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px; padding: 1px 6px; border-radius: 2px;
+    background: #0ff; color: #000; white-space: nowrap;
+    display: none;
+  }
+  .marker.dest .dir-label { display: block; }
+  .path-line { position: absolute; z-index: 13; pointer-events: none; }
+  #avatar-display {
+    position: absolute; z-index: 15; pointer-events: none;
+  }
+  #avatar-display img {
+    width: 100%; height: 100%; object-fit: contain;
+    filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.8));
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.80); padding: 12px 18px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.85em; line-height: 1.8;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  #hud .green { color: #0f0; }
+  #hud .cyan { color: #0ff; }
+  #hud .yellow { color: #fc0; }
+  select {
+    background: #1a1a2e; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 4px 8px; font-size: 1em; cursor: pointer;
+    margin: 4px 0;
+  }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+  #status .info { color: #fc4; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="image" src="/assets/mapamundi/mapamundi.png" />
+  <div id="overlay"></div>
+  <div id="avatar-display"><img src="" alt="" /></div>
+</div>
+
+<div id="hud">
+  <b>Calibrar caminos</b><br>
+  <br>
+  Mundo origen:<br>
+  <select id="world-select"></select><br>
+  <br>
+  Click en otro mundo = marcar camino<br>
+  (direccion = segun posicion relativa)<br>
+  Click en destino = borrar camino<br>
+  <br>
+  <span class="key">G</span> = guardar ese mundo<br>
+  <br>
+  <span class="yellow">Amarillo</span> = seleccionado<br>
+  <span class="cyan">Cyan</span> = destino marcado<br>
+  <span class="green">Verde</span> = sin camino<br>
+</div>
+
+<div id="status">Elige un mundo y click en los destinos</div>
+
+<script>
+  const img = document.getElementById('image');
+  const overlay = document.getElementById('overlay');
+  const statusEl = document.getElementById('status');
+  const avatarDisplay = document.getElementById('avatar-display');
+  const avatarImg = avatarDisplay.querySelector('img');
+  const worldSelect = document.getElementById('world-select');
+
+  const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
+  const DIRS = ['up', 'down', 'left', 'right'];
+  const DIR_LABELS = { up: '↑', down: '↓', left: '←', right: '→' };
+
+  const WORLD_AVATARS = {
+    ESPACIO: '/assets/avatars/avatar_06.png',
+    AGUA: '/assets/avatars/avatar_agua.png',
+    TIERRA: '/assets/avatars/avatar_tierra.png',
+    FUEGO: '/assets/avatars/avatar_fuego.png',
+    HIELO: '/assets/avatars/avatar_hielo.png',
+    VIENTO: '/assets/avatars/avatar_viento.png',
+    INFRAMUNDO: '/assets/avatars/avatar_07.png',
+    MAZMORRA: '/assets/avatars/avatar_08.png',
+  };
+
+  let positions = {};
+  let paths = {};
+  let avatarSize = 0.06;
+  let selectedWorld = 0;
+
+  async function loadPositions() {
+    try {
+      const r = await fetch('/api/load-avatar-positions');
+      if (r.ok) {
+        const data = await r.json();
+        if (data.positions) Object.assign(positions, data.positions);
+        if (data.avatarSize) avatarSize = data.avatarSize;
+      }
+    } catch {}
+    WORLD_ORDER.forEach(w => {
+      if (!positions[w]) positions[w] = { x: 0.5, y: 0.5 };
+    });
+  }
+
+  WORLD_ORDER.forEach(w => {
+    paths[w] = { up: null, down: null, left: null, right: null };
+  });
+
+  // Llenar desplegable
+  WORLD_ORDER.forEach((w, i) => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = w;
+    worldSelect.appendChild(opt);
+  });
+
+  worldSelect.addEventListener('change', (e) => {
+    selectedWorld = parseInt(e.target.value);
+    render();
+  });
+
+  function getImgRect() { return img.getBoundingClientRect(); }
+
+  // Determinar direccion segun posicion relativa
+  function getDirection(from, to) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      return dx > 0 ? 'right' : 'left';
+    } else {
+      return dy > 0 ? 'down' : 'up';
+    }
+  }
+
+  function render() {
+    overlay.innerHTML = '';
+    const r = getImgRect();
+    const sz = avatarSize * r.width;
+    const world = WORLD_ORDER[selectedWorld];
+    const worldPaths = paths[world] || {};
+
+    // Lineas de camino
+    DIRS.forEach(d => {
+      const target = worldPaths[d];
+      if (!target || !positions[target]) return;
+      drawLine(positions[world], positions[target], r, sz, '#fc0');
+    });
+
+    // Marcadores
+    WORLD_ORDER.forEach((w, i) => {
+      const pos = positions[w];
+      const div = document.createElement('div');
+      let cls = 'marker';
+      if (i === selectedWorld) cls += ' selected';
+      const dirForThis = DIRS.find(d => worldPaths[d] === w);
+      if (dirForThis) cls += ' dest';
+      div.className = cls;
+      div.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
+      div.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
+      div.style.width = sz + 'px';
+      div.style.height = sz + 'px';
+
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = w;
+      div.appendChild(tag);
+
+      // Etiqueta de direccion si es destino
+      if (dirForThis) {
+        const dl = document.createElement('div');
+        dl.className = 'dir-label';
+        dl.textContent = DIR_LABELS[dirForThis];
+        div.appendChild(dl);
+      }
+
+      div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (i === selectedWorld) return; // No click en si mismo
+
+        const dirForThis = DIRS.find(d => worldPaths[d] === w);
+        if (dirForThis) {
+          // Ya es destino, borrar
+          paths[world][dirForThis] = null;
+          statusEl.innerHTML = '<span class="info">Borrado: ' + world + ' ' + DIR_LABELS[dirForThis] + ' → ' + w + '</span>';
+        } else {
+          // Marcar camino: direccion segun posicion relativa
+          const dir = getDirection(positions[world], positions[w]);
+          // Si ya hay un camino en esa direccion, sobreescribir
+          const old = worldPaths[dir];
+          paths[world][dir] = w;
+          if (old) {
+            statusEl.innerHTML = '<span class="ok">' + world + ' ' + DIR_LABELS[dir] + ' → ' + w + ' (antes era ' + old + ')</span>';
+          } else {
+            statusEl.innerHTML = '<span class="ok">' + world + ' ' + DIR_LABELS[dir] + ' → ' + w + '</span>';
+          }
+        }
+        render();
+      });
+
+      overlay.appendChild(div);
+    });
+
+    // Avatar del mundo seleccionado
+    const pos = positions[world];
+    avatarImg.src = WORLD_AVATARS[world];
+    avatarDisplay.style.display = 'block';
+    avatarDisplay.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
+    avatarDisplay.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
+    avatarDisplay.style.width = sz + 'px';
+    avatarDisplay.style.height = sz + 'px';
+  }
+
+  function drawLine(from, to, r, sz, color) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'path-line');
+    svg.style.left = '0'; svg.style.top = '0';
+    svg.style.width = '100%'; svg.style.height = '100%';
+    svg.setAttribute('width', r.width);
+    svg.setAttribute('height', r.height);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', from.x * r.width);
+    line.setAttribute('y1', from.y * r.height);
+    line.setAttribute('x2', to.x * r.width);
+    line.setAttribute('y2', to.y * r.height);
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('stroke-dasharray', '8,4');
+    line.setAttribute('opacity', '0.7');
+    const angle = Math.atan2(to.y * r.height - from.y * r.height, to.x * r.width - from.x * r.width);
+    const arrowLen = 15;
+    const ax = to.x * r.width - Math.cos(angle) * (sz / 2 + 5);
+    const ay = to.y * r.height - Math.sin(angle) * (sz / 2 + 5);
+    const a1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    a1.setAttribute('x1', ax); a1.setAttribute('y1', ay);
+    a1.setAttribute('x2', ax - Math.cos(angle - 0.4) * arrowLen);
+    a1.setAttribute('y2', ay - Math.sin(angle - 0.4) * arrowLen);
+    a1.setAttribute('stroke', color); a1.setAttribute('stroke-width', '3');
+    const a2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    a2.setAttribute('x1', ax); a2.setAttribute('y1', ay);
+    a2.setAttribute('x2', ax - Math.cos(angle + 0.4) * arrowLen);
+    a2.setAttribute('y2', ay - Math.sin(angle + 0.4) * arrowLen);
+    a2.setAttribute('stroke', color); a2.setAttribute('stroke-width', '3');
+    svg.appendChild(line); svg.appendChild(a1); svg.appendChild(a2);
+    overlay.appendChild(svg);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'SELECT') return;
+    if (e.key === 'g' || e.key === 'G') { saveJson(); }
+    else if (e.key === 'c' || e.key === 'C') { loadJson(); }
+  });
+
+  function saveJson() {
+    const world = WORLD_ORDER[selectedWorld];
+    const worldPaths = {};
+    worldPaths[world] = paths[world];
+    const json = JSON.stringify({ paths: worldPaths }, null, 2);
+    fetch('/api/save-world-paths', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
+    }).then(() => {
+      statusEl.innerHTML = '<span class="ok">Guardado: ' + world + '</span>';
+    }).catch(() => {
+      statusEl.innerHTML = '<span class="err">Error al guardar</span>';
+    });
+  }
+
+  async function loadJson() {
+    try {
+      const r = await fetch('/api/load-world-paths');
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (data.paths) {
+        Object.keys(data.paths).forEach(w => {
+          if (paths[w]) Object.assign(paths[w], data.paths[w]);
+        });
+      }
+      render();
+      statusEl.innerHTML = '<span class="ok">Caminos cargados</span>';
+    } catch {
+      statusEl.innerHTML = '<span class="err">No hay guardado</span>';
+    }
+  }
+
+  (async () => {
+    await loadPositions();
+    await loadJson();
+    render();
+  })();
+
+  img.addEventListener('load', render);
+  window.addEventListener('resize', render);
+</script>
+
+</body>
+</html>

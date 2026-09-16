@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Recortes enemigo/obstaculo</title>
+<style>
+  body { background: #111; color: #eee; font-family: sans-serif; padding: 20px; }
+  .checker {
+    background-image:
+      linear-gradient(45deg, #444 25%, transparent 25%),
+      linear-gradient(-45deg, #444 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #444 75%),
+      linear-gradient(-45deg, transparent 75%, #444 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+  h2 { color: #8cf; margin-top: 20px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+  .cell { text-align: center; }
+  .cell img { max-width: 200px; max-height: 200px; display: block; border: 1px solid #333; }
+  .label { font-size: 0.8em; color: #aaa; margin-top: 4px; }
+</style>
+</head>
+<body>
+  <h2>Enemigo — candidatos</h2>
+  <div class="row">
+    <div class="cell"><img src="/debug/extract/enemy_overlay.png" style="max-width:500px"></div>
+  </div>
+  <div class="row">
+    <div class="cell"><div class="checker"><img src="/debug/extract/enemy_0.png"></div><div class="label">enemy_0 (613x559)</div></div>
+    <div class="cell"><div class="checker"><img src="/debug/extract/enemy_1.png"></div><div class="label">enemy_1 (83x67)</div></div>
+  </div>
+
+  <h2>Obstaculo (coral) — candidatos</h2>
+  <div class="row">
+    <div class="cell"><img src="/debug/extract/obstacle_overlay.png" style="max-width:500px"></div>
+  </div>
+  <div class="row">
+    <div class="cell"><div class="checker"><img src="/debug/extract/obstacle_0.png"></div><div class="label">obstacle_0 (580x503)</div></div>
+    <div class="cell"><div class="checker"><img src="/debug/extract/obstacle_1.png"></div><div class="label">obstacle_1 (219x165)</div></div>
+    <div class="cell"><div class="checker"><img src="/debug/extract/obstacle_2.png"></div><div class="label">obstacle_2 (81x121)</div></div>
+  </div>
+</body>
+</html>

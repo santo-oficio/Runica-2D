@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar menu (rectangulos rotados + poligonos)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 12; pointer-events: none;
+  }
+  #drag-rect {
+    position: absolute; z-index: 15; pointer-events: none;
+    border: 3px solid #0ff; background: rgba(0, 255, 255, 0.12); display: none;
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.85); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.82em; line-height: 1.6; max-width: 360px;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  #hud .new { color: #0f0; }
+  #hud .mode-btn {
+    display: inline-block; padding: 3px 10px; margin: 2px 4px 2px 0;
+    background: #222; border: 1px solid #555; border-radius: 3px;
+    cursor: pointer; color: #ccc; font-size: 0.95em;
+  }
+  #hud .mode-btn.active { background: #0f0; color: #000; border-color: #0f0; }
+  #panel {
+    position: absolute; top: 12px; right: 12px; z-index: 20;
+    background: rgba(0,0,0,0.85); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.8em; min-width: 300px; max-height: 88vh; overflow-y: auto;
+  }
+  #panel h3 { color: #fc4; margin-bottom: 8px; }
+  #panel .btn-entry {
+    margin: 4px 0; padding: 6px 8px;
+    background: rgba(255,255,255,0.05); border-radius: 3px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  #panel .btn-entry:hover { background: rgba(0,255,255,0.15); }
+  #panel .btn-entry.selected { background: rgba(0,255,0,0.15); border-left: 3px solid #0f0; }
+  #panel .btn-entry .del { color: #f44; cursor: pointer; float: right; font-weight: bold; }
+  #panel .btn-entry .del:hover { color: #f88; }
+  #panel .btn-entry .badge { font-size: 0.75em; padding: 1px 4px; border-radius: 2px; margin-left: 4px; }
+  #panel .btn-entry .badge.poly { background: #fc4; color: #000; }
+  #panel .btn-entry .badge.rect { background: #0af; color: #fff; }
+  #panel .btn-entry .badge.text { background: #0f0; color: #000; }
+  #panel .btn-entry .badge.miss { background: #f44; color: #fff; }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.85); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa; text-align: center;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+  #status .info { color: #fc4; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="image" src="/assets/menu%20principal/menu%20principal.png" />
+  <canvas id="overlay"></canvas>
+  <div id="drag-rect"></div>
+</div>
+
+<div id="hud">
+  <b>Calibracion menu</b><br>
+  Modo:
+  <span class="mode-btn active" data-mode="poly">Boton</span>
+  <span class="mode-btn" data-mode="text">Texto</span>
+  <br>
+  <br>
+  <b id="mode-title">Modo BOTON</b><br>
+  <span id="mode-help">
+    <span class="key">Arrastrar</span> = dibujar rectangulo (reemplaza poligono)<br>
+    Se asigna al boton seleccionado
+  </span>
+  <br>
+  <span class="key">0-9</span> = seleccionar boton<br>
+  <span class="key">Flechas</span> = mover (Shift = fino)<br>
+  <span class="key">Q / E</span> = rotar rect (Shift = fino)<br>
+  <span class="key">+ / -</span> = tamano rect<br>
+  <span class="key">Supr</span> = borrar boton<br>
+  <span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
+  <span class="key">N</span> = nuevo boton vacio<br>
+  <br>
+  <span id="coords" style="color:#0ff">Sin seleccion</span>
+</div>
+
+<div id="panel">
+  <h3>Botones (0)</h3>
+  <div id="btn-list"><i style="color:#888">Arrastra para crear el primer boton</i></div>
+</div>
+
+<div id="status">Arrastra sobre la imagen para marcar el primer boton</div>
+
+<script>
+  const img = document.getElementById('image');
+  const canvas = document.getElementById('overlay');
+  const ctx = canvas.getContext('2d');
+  const dragRect = document.getElementById('drag-rect');
+  const coordsEl = document.getElementById('coords');
+  const btnList = document.getElementById('btn-list');
+  const btnPanelH3 = document.querySelector('#panel h3');
+  const statusEl = document.getElementById('status');
+  const modeTitle = document.getElementById('mode-title');
+  const modeHelp = document.getElementById('mode-help');
+
+  // Estado: cada boton puede tener polygon (formato antiguo) o rect (formato nuevo)
+  // buttons: [{ label, polygon:[[x,y]...]|null, rect:{x,y,w,h,angle}|null,
+  //              textPolygon:[[x,y]...]|null, text:{x,y,w,h,angle}|null }]
+  let buttons = [];
+  let selectedIdx = -1;
+  let mode = 'poly';       // 'poly' (boton) | 'text'
+  let dragging = false;
+  let dragStart = null;
+  let currentRect = null;
+
+  function getImgRect() { return img.getBoundingClientRect(); }
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    render();
+  }
+
+  function pxToNorm(x, y) {
+    const r = getImgRect();
+    return {
+      x: Math.max(0, Math.min(1, (x - r.left) / r.width)),
+      y: Math.max(0, Math.min(1, (y - r.top) / r.height))
+    };
+  }
+  function normToPx(nx, ny) {
+    const r = getImgRect();
+    return { x: r.left + nx * r.width, y: r.top + ny * r.height };
+  }
+  function normToSize(nw, nh) {
+    const r = getImgRect();
+    return { w: nw * r.width, h: nh * r.height };
+  }
+
+  function setMode(m) {
+    mode = m;
+    dragRect.style.display = 'none';
+    dragging = false;
+    document.querySelectorAll('.mode-btn').forEach(el => {
+      el.classList.toggle('active', el.dataset.mode === m);
+    });
+    if (m === 'poly') {
+      modeTitle.textContent = 'Modo BOTON';
+      modeHelp.innerHTML =
+        '<span class="key">Arrastrar</span> = dibujar rectangulo (reemplaza poligono)<br>' +
+        'Si el boton ya tiene area, pregunta: ¿texto o nuevo boton?';
+      statusEl.innerHTML = '<span class="info">Modo boton: arrastra para crear/marcar</span>';
+    } else {
+      modeTitle.textContent = 'Modo TEXTO';
+      modeHelp.innerHTML =
+        '<span class="key">Arrastrar</span> = dibujar area de texto<br>' +
+        'Se asigna al boton seleccionado';
+      statusEl.innerHTML = '<span class="info">Modo texto: arrastra dentro del boton seleccionado</span>';
+    }
+    render();
+  }
+
+  document.querySelectorAll('.mode-btn').forEach(el => {
+    el.onclick = () => setMode(el.dataset.mode);
+  });
+
+  // ---- Render: poligono ----
+  function drawPolygon(poly, strokeColor, lineWidth, dashed) {
+    if (!poly || poly.length < 2) return;
+    const r = getImgRect();
+    ctx.beginPath();
+    poly.forEach((p, j) => {
+      const px = r.left + p[0] * r.width;
+      const py = r.top + p[1] * r.height;
+      if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    if (poly.length >= 3) ctx.closePath();
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = lineWidth;
+    if (dashed) ctx.setLineDash([6, 4]); else ctx.setLineDash([]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ---- Render: rect rotado ----
+  function drawRotRect(rect, strokeColor, lineWidth, dashed) {
+    if (!rect || rect.w <= 0 || rect.h <= 0) return;
+    const r = getImgRect();
+    const cx = r.left + (rect.x + rect.w / 2) * r.width;
+    const cy = r.top + (rect.y + rect.h / 2) * r.height;
+    const w = rect.w * r.width;
+    const h = rect.h * r.height;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rect.angle || 0);
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = lineWidth;
+    if (dashed) ctx.setLineDash([6, 4]); else ctx.setLineDash([]);
+    ctx.strokeRect(-w / 2, -h / 2, w, h);
+    ctx.setLineDash([]);
+    ctx.fillStyle = strokeColor;
+    ctx.beginPath(); ctx.arc(-w/2, -h/2, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(w/2, -h/2, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(w/2, h/2, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-w/2, h/2, 3, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Dibuja el area (boton o texto) de un boton, soportando polygon y rect
+  function drawArea(b, key, strokeColor, lineWidth, dashed) {
+    const rectKey = key === 'polygon' ? 'rect' : 'text';
+    if (b[rectKey] && b[rectKey].w > 0) {
+      drawRotRect(b[rectKey], strokeColor, lineWidth, dashed);
+    } else if (b[key] && b[key].length >= 2) {
+      drawPolygon(b[key], strokeColor, lineWidth, dashed);
+    }
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (selectedIdx >= 0 && selectedIdx < buttons.length) {
+      const b = buttons[selectedIdx];
+      // Boton (verde solido)
+      drawArea(b, 'polygon', '#0f0', 3, false);
+      // Etiqueta
+      const r = getImgRect();
+      let lx, ly;
+      if (b.rect) { lx = r.left + b.rect.x * r.width; ly = r.top + b.rect.y * r.height; }
+      else if (b.polygon && b.polygon.length > 0) { lx = r.left + b.polygon[0][0] * r.width; ly = r.top + b.polygon[0][1] * r.height; }
+      if (lx !== undefined) {
+        ctx.fillStyle = '#0f0';
+        ctx.font = 'bold 12px Courier New';
+        ctx.fillText(selectedIdx + ': ' + (b.label || ''), lx, ly - 8);
+      }
+      // Texto (verde punteado)
+      drawArea(b, 'textPolygon', '#0f0', 2, true);
+    }
+
+    renderPanel();
+  }
+
+  function renderPanel() {
+    btnPanelH3.textContent = 'Botones (' + buttons.length + ')';
+    if (buttons.length === 0) {
+      btnList.innerHTML = '<i style="color:#888">Arrastra para crear el primer boton</i>';
+      return;
+    }
+    btnList.innerHTML = buttons.map((b, i) => {
+      const hasRect = b.rect && b.rect.w > 0;
+      const hasPoly = b.polygon && b.polygon.length >= 3;
+      const hasTextRect = b.text && b.text.w > 0;
+      const hasTextPoly = b.textPolygon && b.textPolygon.length >= 3;
+      const hasBtn = hasRect || hasPoly;
+      const hasText = hasTextRect || hasTextPoly;
+      const typeTag = hasRect ? '<span class="badge rect">R</span>' : (hasPoly ? '<span class="badge poly">P' + b.polygon.length + '</span>' : '<span class="badge miss">sin boton</span>');
+      return '<div class="btn-entry' + (i === selectedIdx ? ' selected' : '') + '" data-idx="' + i + '">' +
+        '<span class="del" data-del="' + i + '">x</span>' +
+        i + ': ' + (b.label || 'sin nombre') + ' ' +
+        typeTag +
+        (hasText ? '<span class="badge text">T</span>' : '<span class="badge miss">sin texto</span>') +
+        '</div>';
+    }).join('');
+    btnList.querySelectorAll('.btn-entry').forEach(el => {
+      el.onclick = (e) => {
+        if (e.target.classList.contains('del')) return;
+        selectedIdx = parseInt(el.dataset.idx);
+        render();
+        updateCoords();
+      };
+    });
+    btnList.querySelectorAll('.del').forEach(el => {
+      el.onclick = (e) => {
+        e.stopPropagation();
+        const idx = parseInt(el.dataset.del);
+        buttons.splice(idx, 1);
+        if (selectedIdx >= buttons.length) selectedIdx = buttons.length - 1;
+        render();
+      };
+    });
+  }
+
+  function updateCoords() {
+    if (selectedIdx < 0 || selectedIdx >= buttons.length) {
+      coordsEl.textContent = 'Sin seleccion';
+      return;
+    }
+    const b = buttons[selectedIdx];
+    const hasRect = b.rect && b.rect.w > 0;
+    const hasPoly = b.polygon && b.polygon.length >= 3;
+    const hasTextRect = b.text && b.text.w > 0;
+    const hasTextPoly = b.textPolygon && b.textPolygon.length >= 3;
+    let s = 'btn ' + selectedIdx;
+    if (hasRect) {
+      const ang = Math.round((b.rect.angle || 0) * 180 / Math.PI);
+      s += ' | boton R ' + (b.rect.w*100|0) + 'x' + (b.rect.h*100|0) + ' ' + ang + '°';
+    } else if (hasPoly) {
+      s += ' | boton P' + b.polygon.length + 'pts';
+    } else {
+      s += ' | sin boton';
+    }
+    if (hasTextRect) {
+      const ang = Math.round((b.text.angle || 0) * 180 / Math.PI);
+      s += ' | texto R ' + (b.text.w*100|0) + 'x' + (b.text.h*100|0) + ' ' + ang + '°';
+    } else if (hasTextPoly) {
+      s += ' | texto P' + b.textPolygon.length + 'pts';
+    } else {
+      s += ' | sin texto';
+    }
+    coordsEl.textContent = s;
+  }
+
+  // ---- Arrastrar para crear rectangulo ----
+  document.addEventListener('mousedown', (e) => {
+    const r = getImgRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    if (e.target.closest('#hud') || e.target.closest('#panel') || e.target.closest('#status')) return;
+
+    dragging = true;
+    dragStart = pxToNorm(e.clientX, e.clientY);
+    currentRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0, angle: 0 };
+    dragRect.style.display = 'block';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const pos = pxToNorm(e.clientX, e.clientY);
+    currentRect.x = Math.min(dragStart.x, pos.x);
+    currentRect.y = Math.min(dragStart.y, pos.y);
+    currentRect.w = Math.abs(pos.x - dragStart.x);
+    currentRect.h = Math.abs(pos.y - dragStart.y);
+    const px = normToPx(currentRect.x, currentRect.y);
+    const sz = normToSize(currentRect.w, currentRect.h);
+    dragRect.style.left = px.x + 'px';
+    dragRect.style.top = px.y + 'px';
+    dragRect.style.width = sz.w + 'px';
+    dragRect.style.height = sz.h + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    dragRect.style.display = 'none';
+    if (currentRect.w > 0.005 && currentRect.h > 0.005) {
+      asignarRectangulo(currentRect);
+    }
+    currentRect = null;
+  });
+
+  function asignarRectangulo(rect) {
+    if (mode === 'text') {
+      if (selectedIdx < 0 || selectedIdx >= buttons.length) {
+        statusEl.innerHTML = '<span class="err">Selecciona un boton (0-9) antes de marcar su texto</span>';
+        return;
+      }
+      buttons[selectedIdx].text = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, angle: 0 };
+      buttons[selectedIdx].textPolygon = null;  // reemplaza poligono
+      render();
+      updateCoords();
+      statusEl.innerHTML = '<span class="ok">Texto asignado al boton ' + selectedIdx + '. Usa Q/E para rotar.</span>';
+      return;
+    }
+    // modo poly
+    const hasBtn = (selectedIdx >= 0 && selectedIdx < buttons.length &&
+                    ((buttons[selectedIdx].rect && buttons[selectedIdx].rect.w > 0) ||
+                     (buttons[selectedIdx].polygon && buttons[selectedIdx].polygon.length >= 3)));
+    if (hasBtn) {
+      const r = confirm('El boton ' + selectedIdx + ' ya tiene area.\n\n¿Asignar este rectangulo como AREA DE TEXTO del boton ' + selectedIdx + '?\n\nAceptar = texto · Cancelar = crear boton nuevo');
+      if (r) {
+        buttons[selectedIdx].text = { x: rect.x, y: rect.y, w: rect.w, h: rect.h, angle: 0 };
+        buttons[selectedIdx].textPolygon = null;
+        render();
+        updateCoords();
+        statusEl.innerHTML = '<span class="ok">Texto asignado al boton ' + selectedIdx + '. Usa Q/E para rotar.</span>';
+        return;
+      }
+    }
+    // crear boton nuevo (reemplaza poligono si existia)
+    const label = prompt('Nombre del boton:', 'boton ' + buttons.length);
+    if (label) {
+      buttons.push({ label, polygon: null, rect: { x: rect.x, y: rect.y, w: rect.w, h: rect.h, angle: 0 }, textPolygon: null, text: null });
+      selectedIdx = buttons.length - 1;
+      render();
+      updateCoords();
+      statusEl.innerHTML = '<span class="ok">Boton ' + selectedIdx + ' creado. Usa Q/E para rotar, Tab para modo texto.</span>';
+    }
+  }
+
+  // ---- Teclado ----
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const step = e.shiftKey ? 0.001 : 0.005;
+    const rotStep = e.shiftKey ? 0.005 : 0.02;
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      setMode(mode === 'poly' ? 'text' : 'poly');
+      return;
+    }
+    if (e.key === 'n' || e.key === 'N') {
+      buttons.push({ label: 'boton ' + buttons.length, polygon: null, rect: null, textPolygon: null, text: null });
+      selectedIdx = buttons.length - 1;
+      render();
+      statusEl.innerHTML = '<span class="info">Boton vacio ' + selectedIdx + '. Arrastra en modo BOTON para marcar su area.</span>';
+      return;
+    }
+    if (e.key === 'z' || e.key === 'Z') {
+      buttons.pop();
+      if (selectedIdx >= buttons.length) selectedIdx = buttons.length - 1;
+      render();
+      return;
+    }
+    if (e.key === 'Delete') {
+      if (selectedIdx >= 0 && selectedIdx < buttons.length) {
+        buttons.splice(selectedIdx, 1);
+        if (selectedIdx >= buttons.length) selectedIdx = buttons.length - 1;
+        render();
+        statusEl.innerHTML = '<span class="ok">Boton borrado</span>';
+      }
+      return;
+    }
+    if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
+    if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
+
+    const num = parseInt(e.key);
+    if (!isNaN(num) && num >= 0 && num <= 9 && num < buttons.length) {
+      selectedIdx = num;
+      render();
+      updateCoords();
+      return;
+    }
+
+    if (selectedIdx < 0 || selectedIdx >= buttons.length) return;
+    const b = buttons[selectedIdx];
+
+    // Determinar el target: rect (preferido) o poligono
+    let target;
+    if (mode === 'text') {
+      target = (b.text && b.text.w > 0) ? b.text : null;
+    } else {
+      target = (b.rect && b.rect.w > 0) ? b.rect : null;
+    }
+
+    // Si no hay rect, operar sobre el poligono (mover vertices)
+    if (!target) {
+      let poly;
+      if (mode === 'text') {
+        poly = b.textPolygon;
+      } else {
+        poly = b.polygon;
+      }
+      if (!poly || poly.length === 0) return;
+      let dx = 0, dy = 0;
+      switch (e.key) {
+        case 'ArrowLeft': dx = -step; break;
+        case 'ArrowRight': dx = step; break;
+        case 'ArrowUp': dy = -step; break;
+        case 'ArrowDown': dy = step; break;
+        default: return;
+      }
+      e.preventDefault();
+      for (let i = 0; i < poly.length; i++) {
+        poly[i][0] = Math.max(0, Math.min(1, poly[i][0] + dx));
+        poly[i][1] = Math.max(0, Math.min(1, poly[i][1] + dy));
+      }
+      render();
+      updateCoords();
+      return;
+    }
+
+    // Operar sobre rect
+    let changed = false;
+    switch (e.key) {
+      case 'ArrowLeft': target.x = Math.max(0, target.x - step); changed = true; break;
+      case 'ArrowRight': target.x = Math.min(1 - target.w, target.x + step); changed = true; break;
+      case 'ArrowUp': target.y = Math.max(0, target.y - step); changed = true; break;
+      case 'ArrowDown': target.y = Math.min(1 - target.h, target.y + step); changed = true; break;
+      case '+': case '=':
+        target.w = Math.min(1 - target.x, target.w + step);
+        target.h = Math.min(1 - target.y, target.h + step);
+        changed = true; break;
+      case '-': case '_':
+        target.w = Math.max(0.01, target.w - step);
+        target.h = Math.max(0.01, target.h - step);
+        changed = true; break;
+      case 'q': case 'Q':
+        target.angle = (target.angle || 0) - rotStep;
+        changed = true; break;
+      case 'e': case 'E':
+        target.angle = (target.angle || 0) + rotStep;
+        changed = true; break;
+      default: return;
+    }
+    e.preventDefault();
+    if (changed) {
+      render();
+      updateCoords();
+    }
+  });
+
+  // ---- Guardar/cargar ----
+  function saveJson() {
+    const data = { buttons };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'menu-buttons.json';
+    a.click();
+    fetch('/api/save-menu-buttons', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
+    }).then(() => {
+      statusEl.innerHTML = '<span class="ok">Guardado: ' + buttons.length + ' botones</span>';
+    }).catch(() => {
+      statusEl.innerHTML = '<span class="ok">Descargado menu-buttons.json (guardar en assets/menu principal/)</span>';
+    });
+  }
+
+  async function loadJson() {
+    try {
+      const r = await fetch('/api/load-menu-buttons');
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (data.buttons) {
+        buttons = data.buttons.map((b) => {
+          // Preservar polygon y textPolygon tal cual
+          let polygon = b.polygon || null;
+          let textPolygon = b.textPolygon || null;
+          // Rect: nuevo formato, o migrar formato rectangular antiguo
+          let rect = b.rect || null;
+          if (!rect && b.x !== undefined) {
+            rect = { x: b.x, y: b.y, w: b.w, h: b.h, angle: 0 };
+            polygon = null;  // era rectangular, no poligono
+          }
+          if (rect && rect.angle === undefined) rect.angle = 0;
+          let text = b.text || null;
+          if (text && text.angle === undefined) text.angle = 0;
+          return {
+            label: b.label || 'boton',
+            polygon, rect,
+            textPolygon, text
+          };
+        });
+        selectedIdx = buttons.length > 0 ? 0 : -1;
+        render();
+        updateCoords();
+        statusEl.innerHTML = '<span class="ok">Cargados ' + buttons.length + ' botones (poligonos preservados)</span>';
+      }
+    } catch {
+      statusEl.innerHTML = '<span class="err">No hay guardado previo</span>';
+    }
+  }
+
+  // Init
+  img.addEventListener('load', () => { resizeCanvas(); loadJson(); });
+  window.addEventListener('resize', resizeCanvas);
+  if (img.complete) { resizeCanvas(); loadJson(); }
+</script>
+
+</body>
+</html>

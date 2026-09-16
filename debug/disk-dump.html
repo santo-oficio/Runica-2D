@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D — Demo Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schoolbell&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --glow-x: 14px;
+    --glow-y: 0px;
+    --glow-op: 0.6;
+    --glow-blur: 8px;
+  }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; font-family: 'Schoolbell', cursive;
+  }
+  /* Pantalla de carga */
+  #loading-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 100;
+    background: #0a0806;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #e8d4a8;
+    cursor: pointer;
+  }
+  #loading-screen .title {
+    font-family: 'Schoolbell', cursive;
+    font-size: 2.5em; color: #f0d890;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    margin-bottom: 30px; letter-spacing: 3px;
+  }
+  #loading-bar-bg {
+    width: 300px; height: 8px;
+    background: rgba(60, 42, 20, 0.5);
+    border: 1px solid rgba(180, 150, 80, 0.4);
+    border-radius: 4px; overflow: hidden;
+  }
+  #loading-bar {
+    width: 0%; height: 100%;
+    background: linear-gradient(90deg, #c4a050, #f0d890);
+    transition: width 0.2s ease;
+  }
+  #loading-text {
+    margin-top: 12px; font-size: 0.9em; color: #a08850;
+    font-family: 'Courier New', monospace;
+  }
+  #start-hint {
+    margin-top: 20px; font-size: 1em; color: #e8d4a8;
+    font-family: 'Schoolbell', cursive;
+    display: none;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  /* Transicion */
+  #transition-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 90; background: #000;
+    opacity: 0; pointer-events: none; display: none;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #bg {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
+  }
+  #overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10; pointer-events: none;
+  }
+  .btn {
+    position: absolute;
+    cursor: pointer;
+    pointer-events: auto;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 11;
+    border-radius: 6px;
+    background: rgba(20, 12, 8, 0.55);
+  }
+  .btn-text {
+    font-family: 'Schoolbell', cursive;
+    color: #e8d4a8;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+    text-align: center;
+    transition: all 0.25s ease;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: rgba(40, 28, 12, 0.7);
+    box-shadow:
+      var(--glow-x) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      calc(-1 * var(--glow-x)) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      0 var(--glow-y) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      0 calc(-1 * var(--glow-y)) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op));
+  }
+  .btn:hover .btn-text {
+    color: #fff8e0;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.9), 0 0 12px rgba(255, 200, 80, 0.6), 0 0 24px rgba(255, 180, 60, 0.4);
+    transform: scale(1.08);
+  }
+  .btn.active {
+    background: rgba(30, 50, 25, 0.7);
+    box-shadow:
+      var(--glow-x) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      calc(-1 * var(--glow-x)) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      0 var(--glow-y) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      0 calc(-1 * var(--glow-y)) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op));
+    animation: btnPulse 1.5s ease-in-out infinite;
+  }
+  .btn.active .btn-text {
+    color: #fff8e0;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.9), 0 0 16px rgba(232, 212, 168, 0.8), 0 0 32px rgba(232, 212, 168, 0.5);
+    transform: scale(1.12);
+  }
+  @keyframes btnPulse {
+    0%, 100% {
+      box-shadow:
+        var(--glow-x) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+        calc(-1 * var(--glow-x)) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+        0 var(--glow-y) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+        0 calc(-1 * var(--glow-y)) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op));
+    }
+    50% {
+      box-shadow:
+        calc(var(--glow-x) * 1.4) 0 calc(var(--glow-blur) * 1.5) -2px rgba(232, 212, 168, calc(var(--glow-op) * 1.3)),
+        calc(-1 * var(--glow-x) * 1.4) 0 calc(var(--glow-blur) * 1.5) -2px rgba(232, 212, 168, calc(var(--glow-op) * 1.3)),
+        0 calc(var(--glow-y) * 1.4) calc(var(--glow-blur) * 1.5) -2px rgba(232, 212, 168, calc(var(--glow-op) * 1.3)),
+        0 calc(-1 * var(--glow-y) * 1.4) calc(var(--glow-blur) * 1.5) -2px rgba(232, 212, 168, calc(var(--glow-op) * 1.3));
+    }
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.7); padding: 8px 14px;
+    border-radius: 4px; font-family: 'Courier New', monospace;
+    font-size: 0.8em; color: #aaa;
+  }
+  #hud .key { color: #fc4; }
+  #hud b { color: #0ff; }
+  #lang-bar {
+    position: absolute; bottom: 12px; right: 12px; z-index: 20;
+    background: rgba(0,0,0,0.7); padding: 6px 12px;
+    border-radius: 4px; font-family: 'Courier New', monospace;
+    font-size: 0.8em; color: #aaa;
+  }
+  #lang-bar select {
+    background: #1a1a2e; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 2px 6px; font-size: 0.9em; cursor: pointer;
+  }
+  #lang-bar select:focus { outline: none; }
+</style>
+</head>
+<body>
+
+<!-- Pantalla de carga -->
+<div id="loading-screen">
+  <div class="title">RUNIKA 2D</div>
+  <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+  <div id="loading-text">Cargando... 0%</div>
+  <div id="start-hint">Pulsa para empezar</div>
+</div>
+
+<!-- Overlay de transicion -->
+<div id="transition-overlay"></div>
+
+<div id="stage">
+  <img id="bg" src="/assets/menu%20principal/menu%20principal.png" />
+  <div id="overlay"></div>
+</div>
+
+<div id="hud">
+  <b>Demo Menu</b><br>
+  <span class="key">Raton</span> = hover<br>
+  <span class="key">Flechas ↑↓</span> = cambiar seleccion<br>
+  <span class="key">Enter</span> = activar boton<br>
+  <br>
+  <b>Ajustar glow</b><br>
+  <span class="key">A/D</span> = ancho · <span class="key">W/S</span> = alto<br>
+  <span class="key">Q/E</span> = opacidad · <span class="key">Z/X</span> = blur<br>
+  <span class="key">G</span> = guardar<br>
+  <br>
+  <span id="glow-info" style="color:#0ff">ancho:14 alto:0 op:0.6</span>
+</div>
+
+<div id="lang-bar">
+  <select id="lang-select">
+    <option value="es">Español</option>
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+    <option value="it">Italiano</option>
+  </select>
+</div>
+
+<script src="/assets-cache.js"></script>
+<script>
+  // --- Desbloquear audio al primer gesto ---
+  let audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    AssetsCache.unlockAudio();
+  }
+  document.addEventListener('click', unlockAudio, { once: true });
+  document.addEventListener('keydown', unlockAudio, { once: true });
+  document.addEventListener('touchstart', unlockAudio, { once: true });
+  document.addEventListener('mouseenter', unlockAudio, { once: true });
+  document.addEventListener('mousemove', unlockAudio, { once: true });
+
+  // --- Sonidos (desde cache, Web Audio API) ---
+  function playMove() {
+    AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.5);
+  }
+  function playSelect() {
+    AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.7);
+  }
+
+  // Coordenadas calibradas: se cargan desde /api/load-menu-buttons
+  let BUTTONS = [];      // [{ label, polygon|rect, textPolygon|text }]
+  let I18N_KEYS = [
+    'menu.newGame', 'menu.continue', 'menu.instructions',
+    'menu.settings', 'menu.credits', 'menu.exit'
+  ];
+
+  let translations = {};
+  let fallback = {};
+  let selectedIdx = 0;
+
+  async function loadLang(lang) {
+    const r = await fetch('/api/i18n/' + lang);
+    if (!r.ok) return {};
+    return await r.json();
+  }
+  function t(key) { return translations[key] ?? fallback[key] ?? key; }
+
+  async function loadButtons() {
+    try {
+      const r = await fetch('/api/load-menu-buttons');
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data.buttons) {
+        BUTTONS = data.buttons.map((b, i) => ({
+          label: b.label || ('boton ' + i),
+          polygon: b.polygon || null,
+          rect: b.rect || null,
+          textPolygon: b.textPolygon || null,
+          text: b.text || null
+        }));
+      }
+    } catch (e) { console.error('No se pudieron cargar botones', e); }
+  }
+
+  // Devuelve el bounding box normalizado de un area (polygon o rect)
+  function areaBBox(area, poly) {
+    if (area && area.w > 0) {
+      return { x: area.x, y: area.y, w: area.w, h: area.h, angle: area.angle || 0 };
+    }
+    if (poly && poly.length >= 2) {
+      const xs = poly.map(p => p[0]);
+      const ys = poly.map(p => p[1]);
+      return {
+        x: Math.min(...xs), y: Math.min(...ys),
+        w: Math.max(...xs) - Math.min(...xs),
+        h: Math.max(...ys) - Math.min(...ys),
+        angle: 0
+      };
+    }
+    return null;
+  }
+
+  const bg = document.getElementById('bg');
+  const overlay = document.getElementById('overlay');
+
+  function getImgRect() { return bg.getBoundingClientRect(); }
+
+  function render() {
+    overlay.innerHTML = '';
+    const r = getImgRect();
+    BUTTONS.forEach((b, i) => {
+      const btnBBox = areaBBox(b.rect, b.polygon);
+      if (!btnBBox) return;
+      const div = document.createElement('div');
+      div.className = 'btn' + (i === selectedIdx ? ' active' : '');
+      div.style.left = (r.left + btnBBox.x * r.width) + 'px';
+      div.style.top = (r.top + btnBBox.y * r.height) + 'px';
+      div.style.width = (btnBBox.w * r.width) + 'px';
+      div.style.height = (btnBBox.h * r.height) + 'px';
+
+      // Si es rectangulo rotado, aplicar transform
+      if (b.rect && b.rect.angle) {
+        div.style.transformOrigin = 'center center';
+        div.style.transform = 'rotate(' + b.rect.angle + 'rad)';
+      }
+
+      // Si es poligono, usar clip-path para recortar la forma
+      if (b.polygon && b.polygon.length >= 3 && !b.rect) {
+        const clipPoints = b.polygon.map(p => {
+          const cx = ((p[0] - btnBBox.x) / btnBBox.w * 100).toFixed(2);
+          const cy = ((p[1] - btnBBox.y) / btnBBox.h * 100).toFixed(2);
+          return cx + '% ' + cy + '%';
+        }).join(', ');
+        div.style.clipPath = 'polygon(' + clipPoints + ')';
+      }
+
+      // Area de texto
+      const textBBox = areaBBox(b.text, b.textPolygon);
+      if (textBBox) {
+        const textDiv = document.createElement('div');
+        textDiv.className = 'btn-text';
+        textDiv.textContent = t(I18N_KEYS[i] || b.label);
+        const txOffset = (textBBox.x - btnBBox.x) / btnBBox.w;
+        const tyOffset = (textBBox.y - btnBBox.y) / btnBBox.h;
+        const twRel = textBBox.w / btnBBox.w;
+        const thRel = textBBox.h / btnBBox.h;
+        textDiv.style.position = 'absolute';
+        textDiv.style.left = (txOffset * 100) + '%';
+        textDiv.style.top = (tyOffset * 100) + '%';
+        textDiv.style.width = (twRel * 100) + '%';
+        textDiv.style.height = (thRel * 100) + '%';
+        textDiv.style.display = 'flex';
+        textDiv.style.alignItems = 'center';
+        textDiv.style.justifyContent = 'center';
+        const fontSize = textBBox.h * r.height * 0.55;
+        textDiv.style.fontSize = fontSize + 'px';
+        // Si el texto tiene rotacion, aplicarla (contrarrestar la del boton si ambos rotan)
+        if (b.text && b.text.angle) {
+          textDiv.style.transform = 'rotate(' + b.text.angle + 'rad)';
+          textDiv.style.transformOrigin = 'center center';
+        }
+        div.appendChild(textDiv);
+      }
+
+      div.addEventListener('mouseenter', () => {
+        selectedIdx = i; updateActive(); playMove();
+      });
+      div.addEventListener('click', () => {
+        selectedIdx = i; updateActive(); playSelect(); activate(i);
+      });
+      div.addEventListener('touchstart', (e) => {
+        e.preventDefault(); selectedIdx = i; updateActive(); playSelect(); activate(i);
+      });
+      overlay.appendChild(div);
+    });
+  }
+
+  function updateActive() {
+    overlay.querySelectorAll('.btn').forEach((el, i) => {
+      el.classList.toggle('active', i === selectedIdx);
+    });
+  }
+
+  function activate(i) {
+    if (i === 0) AssetsCache.transitionTo('/mapamundi.html');
+    if (i === 2) AssetsCache.transitionTo('/instructions.html');
+    if (i === 5) AssetsCache.transitionTo('/exit.html');
+  }
+
+  // --- Ajustes de glow ---
+  let glowX = 14, glowY = 0, glowOp = 0.6, glowBlur = 8;
+  const glowInfo = document.getElementById('glow-info');
+
+  function applyGlow() {
+    document.documentElement.style.setProperty('--glow-x', glowX + 'px');
+    document.documentElement.style.setProperty('--glow-y', glowY + 'px');
+    document.documentElement.style.setProperty('--glow-op', glowOp);
+    document.documentElement.style.setProperty('--glow-blur', glowBlur + 'px');
+    glowInfo.textContent = 'ancho:' + glowX + ' alto:' + glowY + ' op:' + glowOp.toFixed(2) + ' blur:' + glowBlur;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault(); selectedIdx = (selectedIdx + 1) % BUTTONS.length; updateActive(); playMove();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault(); selectedIdx = (selectedIdx - 1 + BUTTONS.length) % BUTTONS.length; updateActive(); playMove();
+    } else if (e.key === 'Enter') {
+      e.preventDefault(); playSelect(); activate(selectedIdx);
+    } else if (e.key === 'a' || e.key === 'A') { glowX = Math.max(0, glowX - 2); applyGlow(); }
+    else if (e.key === 'd' || e.key === 'D') { glowX = Math.min(80, glowX + 2); applyGlow(); }
+    else if (e.key === 'w' || e.key === 'W') { glowY = Math.max(0, glowY - 2); applyGlow(); }
+    else if (e.key === 's' || e.key === 'S') { glowY = Math.min(80, glowY + 2); applyGlow(); }
+    else if (e.key === 'q' || e.key === 'Q') { glowOp = Math.max(0, glowOp - 0.05); applyGlow(); }
+    else if (e.key === 'e' || e.key === 'E') { glowOp = Math.min(1, glowOp + 0.05); applyGlow(); }
+    else if (e.key === 'z' || e.key === 'Z') { glowBlur = Math.max(0, glowBlur - 2); applyGlow(); }
+    else if (e.key === 'x' || e.key === 'X') { glowBlur = Math.min(60, glowBlur + 2); applyGlow(); }
+    else if (e.key === 'g' || e.key === 'G') {
+      fetch('/api/save-glow', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glowX, glowY, glowOp, glowBlur })
+      }).then(() => alert('Guardado'));
+    }
+  });
+
+  document.getElementById('lang-select').addEventListener('change', async (e) => {
+    translations = await loadLang(e.target.value);
+    render();
+  });
+
+  // --- Init con cache + transicion ---
+  (async () => {
+    // Si ya estamos en sesion (venimos de otra pantalla), no recargar
+    if (sessionStorage.getItem('runika-session') === 'active') {
+      // Audio ya desbloqueado, ir directo al menu
+      fallback = await loadLang('es');
+      translations = fallback;
+      await loadButtons();
+      try {
+        const r = await fetch('/api/load-glow');
+        if (r.ok) {
+          const cfg = await r.json();
+          if (cfg.glowX !== undefined) glowX = cfg.glowX;
+          if (cfg.glowY !== undefined) glowY = cfg.glowY;
+          if (cfg.glowOp !== undefined) glowOp = cfg.glowOp;
+          if (cfg.glowBlur !== undefined) glowBlur = cfg.glowBlur;
+          applyGlow();
+        }
+      } catch {}
+      audioUnlocked = true;
+      AssetsCache.unlockAudio();
+      render();
+      AssetsCache.hideLoading();
+      setTimeout(() => AssetsCache.transitionIn(), 100);
+      return;
+    }
+
+    // Primera vez: mostrar pantalla de carga
+    AssetsCache.showLoading();
+    const loadingBar = document.getElementById('loading-bar');
+    const loadingText = document.getElementById('loading-text');
+
+    // Precargar todo
+    await AssetsCache.preloadAll((loaded, total) => {
+      const pct = Math.round((loaded / total) * 100);
+      loadingBar.style.width = pct + '%';
+      loadingText.textContent = 'Cargando... ' + pct + '%';
+    });
+
+    // Cargar idioma
+    fallback = await loadLang('es');
+    translations = fallback;
+
+    // Cargar botones calibrados
+    await loadButtons();
+
+    // Cargar glow guardado
+    try {
+      const r = await fetch('/api/load-glow');
+      if (r.ok) {
+        const cfg = await r.json();
+        if (cfg.glowX !== undefined) glowX = cfg.glowX;
+        if (cfg.glowY !== undefined) glowY = cfg.glowY;
+        if (cfg.glowOp !== undefined) glowOp = cfg.glowOp;
+        if (cfg.glowBlur !== undefined) glowBlur = cfg.glowBlur;
+        applyGlow();
+      }
+    } catch {}
+
+    // Renderizar menu
+    render();
+
+    // Mostrar "Pulsa para empezar" y esperar click para desbloquear audio
+    const startHint = document.getElementById('start-hint');
+    startHint.style.display = 'block';
+    const loadingScreen = document.getElementById('loading-screen');
+    loadingScreen.addEventListener('click', () => {
+      unlockAudio();
+      sessionStorage.setItem('runika-session', 'active');
+      AssetsCache.hideLoading();
+      setTimeout(() => AssetsCache.transitionIn(), 500);
+    }, { once: true });
+  })();
+
+  bg.addEventListener('load', render);
+  window.addEventListener('resize', render);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,736 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D — Wappo Infinito (Nivel 1)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000; overflow: hidden;
+    font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
+  }
+  #selector {
+    position: absolute; z-index: 15; pointer-events: none;
+    background: rgba(0, 255, 255, 0.18);
+    transition: left 0.15s ease-in-out, top 0.15s ease-in-out;
+  }
+  #avatar {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  }
+  #entities {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 13;
+  }
+  .entity {
+    position: absolute; pointer-events: none;
+    image-rendering: pixelated;
+    transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  }
+  .entity.trap { animation: spin 3s linear infinite; }
+  .entity.wall {
+    background: rgba(20, 20, 30, 0.85);
+    border: 2px solid rgba(80, 80, 100, 0.6);
+    border-radius: 4px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+    filter: none;
+    transition: none;
+  }
+  .entity.goal {
+    filter: drop-shadow(0 0 8px #ff0) drop-shadow(0 0 4px #ff0);
+    animation: goalPulse 1s ease-in-out infinite;
+  }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes goalPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  @keyframes trapShake {
+    0% { transform: rotate(0deg) scale(1); }
+    20% { transform: rotate(-15deg) scale(0.9) translateX(3px); }
+    40% { transform: rotate(15deg) scale(1.1) translateX(-3px); }
+    60% { transform: rotate(-10deg) scale(0.95) translateY(2px); }
+    80% { transform: rotate(10deg) scale(1.05) translateY(-2px); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.65); padding: 8px 14px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.8em;
+  }
+  #hud .world { color: #7ec8e3; font-weight: bold; }
+  #hud .meta { color: #888; }
+  #hud .pos { color: #0ff; }
+  #hud .turn { color: #fc4; }
+  #help {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.65); padding: 6px 14px;
+    border-radius: 4px; font-size: 0.72em; color: #aaa;
+    text-align: center; line-height: 1.5;
+  }
+  #help .key { color: #0ff; }
+
+  /* Overlay victoria/derrota */
+  #overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%; z-index: 30;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.7); flex-direction: column;
+  }
+  #overlay.show { display: flex; }
+  #overlay .title {
+    font-size: 2.5em; font-weight: bold; margin-bottom: 10px;
+    text-shadow: 0 0 20px currentColor;
+  }
+  #overlay.win .title { color: #ff0; }
+  #overlay.lose .title { color: #f44; }
+  #overlay .subtitle { font-size: 1em; color: #aaa; margin-bottom: 20px; }
+  #overlay .restart {
+    font-size: 0.9em; color: #0ff; cursor: pointer;
+    border: 1px solid #0ff; padding: 8px 20px; border-radius: 4px;
+  }
+  #overlay .restart:hover { background: rgba(0,255,255,0.1); }
+</style>
+</head>
+<body>
+  <div id="stage"><img id="image" alt="fondo"></div>
+  <div id="selector">
+    <img id="avatar" src="/assets/avatars/avatar_01.png" alt="avatar">
+  </div>
+  <div id="entities"></div>
+  <audio id="step-sound" preload="auto"></audio>
+
+  <div id="hud">
+    <div class="world" id="world-label">Runika 2D — AGUA · Nivel 1</div>
+    <div class="meta" id="meta-label"></div>
+    <div class="turn" id="turn-label">Turno: 0</div>
+    <div class="pos" id="pos-label"></div>
+  </div>
+
+  <div id="help">
+    <span class="key">Flechas/WASD</span>: mover &nbsp;·&nbsp;
+    <span class="key">Enter</span>: cambiar avatar &nbsp;·&nbsp;
+    <span class="key">R</span>: reiniciar &nbsp;·&nbsp;
+    <span class="key">N/B</span>: nivel siguiente/anterior
+  </div>
+
+  <div id="overlay">
+    <div class="title" id="overlay-title"></div>
+    <div class="subtitle" id="overlay-subtitle"></div>
+    <div class="restart" id="overlay-restart">Continuar (R)</div>
+  </div>
+
+<script>
+const img = document.getElementById('image');
+const selector = document.getElementById('selector');
+const avatarImg = document.getElementById('avatar');
+const posLabel = document.getElementById('pos-label');
+const turnLabel = document.getElementById('turn-label');
+const metaLabel = document.getElementById('meta-label');
+const overlay = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlay-title');
+const overlaySubtitle = document.getElementById('overlay-subtitle');
+
+const AVATARS = [
+  '/assets/avatars/avatar_01.png','/assets/avatars/avatar_02.png',
+  '/assets/avatars/avatar_03.png','/assets/avatars/avatar_04.png',
+  '/assets/avatars/avatar_05.png','/assets/avatars/avatar_06.png',
+  '/assets/avatars/avatar_07.png','/assets/avatars/avatar_08.png',
+  '/assets/avatars/avatar_09.png',
+];
+let avatarIdx = parseInt(localStorage.getItem('Runika 2D-avatar-idx') ?? '0', 10) || 0;
+avatarImg.src = AVATARS[avatarIdx] + '?t=' + Date.now();
+
+// === Config del mundo (AGUA) ===
+const WORLD = 'AGUA';
+const BG_IMAGE = '/assets/backgrounds/AGUA/bg_01.png';
+const COLS = 8, ROWS = 6;
+const SELECTOR_INSET = 0.02;
+
+// Cache de obstáculos por mundo (cargado desde /api/obstacles)
+const obstacleCache = {};
+async function getObstaclesForWorld(world) {
+  if (obstacleCache[world]) return obstacleCache[world];
+  try {
+    const res = await fetch(`/api/obstacles?world=${encodeURIComponent(world)}`);
+    const data = await res.json();
+    obstacleCache[world] = (data.images && data.images.length > 0) ? data.images : null;
+  } catch (e) {
+    obstacleCache[world] = null;
+  }
+  return obstacleCache[world];
+}
+// Elegir N imágenes sin repetir si es posible; si N > disponibles, repite lo necesario
+function pickRandomImages(pool, n) {
+  if (!pool || pool.length === 0) return [];
+  const available = [...pool];
+  const result = [];
+  for (let i = 0; i < n; i++) {
+    if (available.length === 0) {
+      result.push(pool[Math.floor(Math.random() * pool.length)]);
+    } else {
+      const idx = Math.floor(Math.random() * available.length);
+      result.push(available.splice(idx, 1)[0]);
+    }
+  }
+  return result;
+}
+
+// Detección del tablero (del board-detection.json de AGUA)
+let ba = { x: 0, y: 0, width: 0, height: 0 };
+let board = { left: 0, top: 0, w: 0, h: 0 };
+let IMG_W = 7680, IMG_H = 4320;
+
+// Rect de la imagen VISIBLE (descartando el letterbox del object-fit: contain)
+function visibleImageRect() {
+  const rect = img.getBoundingClientRect();
+  if (!IMG_W || !IMG_H) return rect;
+  const scale = Math.min(rect.width / IMG_W, rect.height / IMG_H);
+  const w = IMG_W * scale;
+  const h = IMG_H * scale;
+  return {
+    left: rect.left + (rect.width - w) / 2,
+    top: rect.top + (rect.height - h) / 2,
+    width: w,
+    height: h,
+  };
+}
+
+// === Estado del juego ===
+let player = { c: 0, r: 0 };
+let goal = { c: 0, r: 0 };
+let enemies = []; // [{c, r, pattern, stunnedTurns}]
+let playerStunnedTurns = 0;
+let obstacleCells = new Set();
+let wallCells = new Set();
+let trapCells = new Set();
+let turn = 0;
+let gameOver = false;
+let won = false;
+let moving = false;
+
+// === Sonidos ===
+const stepAudio = document.getElementById('step-sound');
+const bounceAudio = new Audio('/assets/sounds/comun/choque.wav');
+const trapAudio = new Audio('/assets/sounds/comun/trampa.wav');
+const victoryAudio = new Audio('/assets/sounds/comun/victoria.mp3');
+const defeatAudio = new Audio('/assets/sounds/comun/derrota.wav');
+bounceAudio.preload = true;
+trapAudio.preload = true;
+victoryAudio.preload = true;
+defeatAudio.preload = true;
+stepAudio.src = `/assets/sounds/${WORLD}/paso.mp3`;
+
+function playStep() { stepAudio.pause(); stepAudio.currentTime = 0; stepAudio.play().catch(()=>{}); }
+function playBounce() { bounceAudio.pause(); bounceAudio.currentTime = 0; bounceAudio.play().catch(()=>{}); }
+function playTrap() { trapAudio.pause(); trapAudio.currentTime = 0; trapAudio.play().catch(()=>{}); }
+function playVictory() { victoryAudio.pause(); victoryAudio.currentTime = 0; victoryAudio.play().catch(()=>{}); }
+function playDefeat() { defeatAudio.pause(); defeatAudio.currentTime = 0; defeatAudio.play().catch(()=>{}); }
+
+let currentTier = 1;         // tier de dificultad de la pantalla en curso (1..14)
+let currentStage = 1;        // etapa global (1..120)
+let currentScreenId = null;  // id de la pantalla en curso
+
+// === Cargar pantalla del banco local (API) ===
+async function loadScreen() {
+  const res = await fetch('/api/next-screen');
+  const data = await res.json();
+  const s = data.screen;
+  currentScreenId = s.id;
+  currentTier = data.tier;
+  currentStage = data.stage;
+
+  player = { c: s.player[0], r: s.player[1] };
+  goal = { c: s.goal[0], r: s.goal[1] };
+  enemies = s.enemies.map((e) => ({
+    c: e.pos[0], r: e.pos[1], pattern: e.pattern, stunnedTurns: 0,
+  }));
+  playerStunnedTurns = 0;
+  // Paredes (#) y obstáculos (X) por separado; ambos bloquean movimiento
+  wallCells = new Set();
+  obstacleCells = new Set();
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const ch = s.grid[r][c];
+      if (ch === '#') wallCells.add(`${c},${r}`);
+      else if (ch === 'X') obstacleCells.add(`${c},${r}`);
+    }
+  }
+  trapCells = new Set(s.traps.map(([c, r]) => `${c},${r}`));
+
+  turn = 0;
+  gameOver = false;
+  won = false;
+  moving = false;
+  selector.style.zIndex = '';
+  overlay.classList.remove('show', 'win', 'lose');
+  positionSelector();
+  await renderEntities();
+  const p = data.player;
+  document.getElementById('world-label').textContent =
+    `Runika 2D — ${data.world} · Tier ${data.tier}/14 · ${p.currentSubLevel}/15`;
+}
+
+// === Layout ===
+function layout() {
+  const rect = visibleImageRect();
+  board = {
+    left: rect.left + ba.x * rect.width,
+    top: rect.top + ba.y * rect.height,
+    w: ba.width * rect.width,
+    h: ba.height * rect.height,
+  };
+}
+
+function cellPos(c, r) {
+  const cw = board.w / COLS;
+  const ch = board.h / ROWS;
+  const insetX = cw * SELECTOR_INSET;
+  const insetY = ch * SELECTOR_INSET;
+  return {
+    left: board.left + c * cw + insetX,
+    top: board.top + r * ch + insetY,
+    w: cw - insetX * 2,
+    h: ch - insetY * 2,
+  };
+}
+
+function positionSelector() {
+  const p = cellPos(player.c, player.r);
+  selector.style.left = p.left + 'px';
+  selector.style.top = p.top + 'px';
+  selector.style.width = p.w + 'px';
+  selector.style.height = p.h + 'px';
+  posLabel.textContent = `casilla [${player.c}, ${player.r}]`;
+  turnLabel.textContent = `Turno: ${turn}`;
+}
+
+async function renderEntities() {
+  const container = document.getElementById('entities');
+  container.innerHTML = '';
+
+  // Salida (puerta)
+  const goalEl = document.createElement('img');
+  goalEl.className = 'entity goal';
+  goalEl.src = '/assets/salida/AGUA/salida.png';
+  goalEl.dataset.col = goal.c;
+  goalEl.dataset.row = goal.r;
+  goalEl.dataset.type = 'goal';
+  const gp = cellPos(goal.c, goal.r);
+  goalEl.style.left = gp.left + 'px';
+  goalEl.style.top = gp.top + 'px';
+  goalEl.style.width = gp.w + 'px';
+  goalEl.style.height = gp.h + 'px';
+  container.appendChild(goalEl);
+
+  // Enemigos
+  enemies.forEach((e, i) => {
+    const el = document.createElement('img');
+    el.className = 'entity';
+    el.src = '/assets/enemys/AGUA/enemy_01.png';
+    el.dataset.col = e.c;
+    el.dataset.row = e.r;
+    el.dataset.type = 'enemy';
+    el.dataset.idx = i;
+    const ep = cellPos(e.c, e.r);
+    el.style.left = ep.left + 'px';
+    el.style.top = ep.top + 'px';
+    el.style.width = ep.w + 'px';
+    el.style.height = ep.h + 'px';
+    container.appendChild(el);
+  });
+
+  // Paredes (#): bloques visuales
+  wallCells.forEach(key => {
+    const [c, r] = key.split(',').map(Number);
+    const el = document.createElement('div');
+    el.className = 'entity wall';
+    el.dataset.col = c;
+    el.dataset.row = r;
+    el.dataset.type = 'wall';
+    const p = cellPos(c, r);
+    el.style.left = p.left + 'px';
+    el.style.top = p.top + 'px';
+    el.style.width = p.w + 'px';
+    el.style.height = p.h + 'px';
+    container.appendChild(el);
+  });
+
+  // Obstáculos — imágenes del mundo actual, al azar sin repetir si es posible
+  const obstacleImgs = await getObstaclesForWorld(WORLD);
+  const obstaclePicks = pickRandomImages(obstacleImgs, obstacleCells.size);
+  let obstacleIdx = 0;
+  obstacleCells.forEach(key => {
+    const [c, r] = key.split(',').map(Number);
+    const el = document.createElement('img');
+    el.className = 'entity';
+    el.src = obstaclePicks[obstacleIdx++] || '/assets/obstaculos/AGUA/obstaculo_01.png';
+    el.dataset.col = c;
+    el.dataset.row = r;
+    el.dataset.type = 'obstacle';
+    const p = cellPos(c, r);
+    el.style.left = p.left + 'px';
+    el.style.top = p.top + 'px';
+    el.style.width = p.w + 'px';
+    el.style.height = p.h + 'px';
+    container.appendChild(el);
+  });
+
+  // Trampas
+  trapCells.forEach(key => {
+    const [c, r] = key.split(',').map(Number);
+    const el = document.createElement('img');
+    el.className = 'entity trap';
+    el.src = '/assets/trampas/AGUA/trampa_01.png';
+    el.dataset.col = c;
+    el.dataset.row = r;
+    el.dataset.type = 'trap';
+    const p = cellPos(c, r);
+    el.style.left = p.left + 'px';
+    el.style.top = p.top + 'px';
+    el.style.width = p.w + 'px';
+    el.style.height = p.h + 'px';
+    container.appendChild(el);
+  });
+}
+
+function updateEnemyPositions() {
+  enemies.forEach((e, i) => {
+    const el = document.querySelector(`.entity[data-idx="${i}"]`);
+    if (el) {
+      const p = cellPos(e.c, e.r);
+      el.style.left = p.left + 'px';
+      el.style.top = p.top + 'px';
+      // Si el enemigo está sobre el jugador, ponerlo por delante (z-index mayor que el selector)
+      if (e.c === player.c && e.r === player.r) {
+        el.style.zIndex = 20;
+      } else {
+        el.style.zIndex = '';
+      }
+    }
+  });
+}
+
+// === Lógica del juego (reglas Wappo) ===
+function isBlocked(c, r) {
+  return wallCells.has(`${c},${r}`) || obstacleCells.has(`${c},${r}`);
+}
+function canEnter(c, r) {
+  if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+  if (isBlocked(c, r)) return false;
+  return true;
+}
+
+function enemyAt(c, r) {
+  return enemies.some(e => e.c === c && e.r === r);
+}
+
+function movePlayer(dc, dr) {
+  if (moving || gameOver) return;
+
+  // Jugador aturdido: input ignorado, pero el turno SÍ avanza (enemigos se mueven).
+  if (playerStunnedTurns > 0) {
+    moving = true;
+    playerStunnedTurns--;
+    moveEnemiesAnimated().then((captured) => {
+      if (captured) {
+        setTimeout(() => { loseGame(); }, 600);
+        return;
+      }
+      turn++;
+      turnLabel.textContent = `Turno: ${turn}`;
+      moving = false;
+    });
+    return;
+  }
+
+  const nc = player.c + dc;
+  const nr = player.r + dr;
+
+  // Movimiento inválido: rebote, NO cuenta como turno
+  if (!canEnter(nc, nr)) {
+    moving = true;
+    bounceSelector(dc, dr);
+    playBounce();
+    return;
+  }
+
+  moving = true;
+  player.c = nc;
+  player.r = nr;
+  positionSelector();
+
+  // ¿Trampa? Sonido + efecto + aturdimiento de 3 turnos
+  if (trapCells.has(`${nc},${nr}`)) {
+    playTrap();
+    trapEffect();
+    playerStunnedTurns = 3;
+  } else {
+    playStep();
+  }
+
+  // ¿Jugador se mueve onto un enemigo? Derrota — jugador por encima
+  if (enemyAt(player.c, player.r)) {
+    // Poner al jugador (selector) por encima del enemigo
+    selector.style.zIndex = 20;
+    setTimeout(() => { loseGame(); }, 600);
+    return;
+  }
+
+  // ¿Victoria? (antes de que se mueva el enemigo)
+  if (player.c === goal.c && player.r === goal.r) {
+    setTimeout(() => { winGame(); }, 300);
+    return;
+  }
+
+  // Enemigos se mueven (después de la animación del jugador)
+  setTimeout(() => {
+    moveEnemiesAnimated().then((captured) => {
+      if (captured) {
+        // El enemigo ya está visualmente sobre el jugador
+        // Esperar un momento para que se vea, luego mostrar derrota
+        setTimeout(() => { loseGame(); }, 600);
+        return;
+      }
+      // ¿Victoria? (recheck)
+      if (player.c === goal.c && player.r === goal.r) {
+        winGame();
+        return;
+      }
+      turn++;
+      turnLabel.textContent = `Turno: ${turn}`;
+      moving = false;
+    });
+  }, 80);
+}
+
+// === Movimiento de enemigos animado paso a paso ===
+// Reglas Wappo: 2 pasos por turno, horizontal primero, luego vertical
+// Si no puede avanzar hacia el jugador, NO se mueve (intencional del Wappo)
+function moveEnemiesAnimated() {
+  return new Promise((resolve) => {
+    let step = 0;
+    function doStep() {
+      if (step >= 2) { resolve(false); return; }
+      let anyMoved = false;
+      for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        // Aturdido por trampa: no se mueve, decrementar
+        if (e.stunnedTurns > 0) {
+          e.stunnedTurns--;
+          continue;
+        }
+        // Persecución Wappo: horizontal primero, luego vertical
+        const dx = Math.sign(player.c - e.c);
+        const dy = Math.sign(player.r - e.r);
+        const candidates = [];
+        if (dx !== 0) candidates.push([e.c + dx, e.r]);
+        if (dy !== 0) candidates.push([e.c, e.r + dy]);
+        for (const [c, r] of candidates) {
+          if (canEnemyEnter(c, r, i)) {
+            e.c = c;
+            e.r = r;
+            anyMoved = true;
+            // ¿Cae en trampa?
+            if (trapCells.has(`${c},${r}`)) {
+              e.stunnedTurns = 3;
+            }
+            break;
+          }
+        }
+      }
+      // Actualizar posiciones visuales tras este paso
+      updateEnemyPositions();
+      // ¿El enemigo está sobre el jugador? (captura)
+      if (enemyAt(player.c, player.r)) {
+        resolve(true);
+        return;
+      }
+      step++;
+      // Si ningún enemigo se movió en este paso, no esperar pausa
+      if (anyMoved) {
+        setTimeout(doStep, 350);
+      } else {
+        doStep(); // sin pausa
+      }
+    }
+    doStep();
+  });
+}
+
+function canEnemyEnter(c, r, selfIdx) {
+  if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+  if (isBlocked(c, r)) return false;
+  // No moverse onto otro enemigo
+  for (let i = 0; i < enemies.length; i++) {
+    if (i === selfIdx) continue;
+    if (enemies[i].c === c && enemies[i].r === r) return false;
+  }
+  return true; // Puede moverse onto el jugador (captura)
+}
+
+// === Efectos visuales ===
+function bounceSelector(dc, dr) {
+  const p = cellPos(player.c, player.r);
+  const cw = board.w / COLS;
+  const ch = board.h / ROWS;
+  const bounceDist = 0.25;
+  const dx = dc * cw * bounceDist;
+  const dy = dr * ch * bounceDist;
+
+  selector.style.transition = 'left 0.08s ease-out, top 0.08s ease-out';
+  selector.style.left = (p.left + dx) + 'px';
+  selector.style.top = (p.top + dy) + 'px';
+
+  setTimeout(() => {
+    selector.style.transition = 'left 0.15s ease-in, top 0.15s ease-in';
+    selector.style.left = p.left + 'px';
+    selector.style.top = p.top + 'px';
+    setTimeout(() => {
+      selector.style.transition = 'left 0.25s ease-in-out, top 0.25s ease-in-out';
+      moving = false;
+    }, 160);
+  }, 90);
+}
+
+function trapEffect() {
+  const av = document.getElementById('avatar');
+  av.style.animation = 'none';
+  void av.offsetWidth;
+  av.style.animation = 'trapShake 0.6s ease-out';
+  setTimeout(() => { av.style.animation = ''; }, 600);
+}
+
+// === Victoria / Derrota ===
+function winGame() {
+  gameOver = true;
+  won = true;
+  playVictory();
+  overlay.classList.add('show', 'win');
+  const isLast = currentStage >= 120;
+  overlayTitle.textContent = 'VICTORIA';
+  overlaySubtitle.textContent = isLast
+    ? `¡Completaste el juego! ${turn} turnos en la pantalla final`
+    : `Etapa ${currentStage} completada en ${turn} turnos`;
+  document.getElementById('overlay-restart').textContent = isLast ? 'Reiniciar (R)' : 'Siguiente (R)';
+  // Marcar como completada en el banco local
+  if (currentScreenId) {
+    fetch('/api/complete-screen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ screenId: currentScreenId, turns: turn }),
+    }).catch(() => {});
+  }
+}
+
+function loseGame() {
+  gameOver = true;
+  won = false;
+  playDefeat();
+  overlay.classList.add('show', 'lose');
+  overlayTitle.textContent = 'DERROTA';
+  overlaySubtitle.textContent = 'El enemigo te atrapó';
+  document.getElementById('overlay-restart').textContent = 'Reintentar (R)';
+  // Registrar reintento
+  if (currentScreenId) {
+    fetch('/api/fail-screen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ screenId: currentScreenId }),
+    }).catch(() => {});
+  }
+}
+
+// === Nueva partida ===
+function newGame() {
+  loadScreen();
+}
+
+// === Cambiar de nivel ===
+// La posición (mundo/subnivel) la gestiona el servidor: tras completar una
+// pantalla, la siguiente ya es la correcta. Estas funciones solo recargan.
+function nextLevel() {
+  newGame();
+}
+
+function prevLevel() {
+  newGame();
+}
+
+// === Avatar ===
+function nextAvatar() {
+  avatarIdx = (avatarIdx + 1) % AVATARS.length;
+  localStorage.setItem('Runika 2D-avatar-idx', String(avatarIdx));
+  avatarImg.src = AVATARS[avatarIdx] + '?t=' + Date.now();
+}
+
+// === Teclado ===
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Enter') { e.preventDefault(); nextAvatar(); return; }
+  if (e.key === 'r' || e.key === 'R') { e.preventDefault(); newGame(); return; }
+  if (e.key === 'n' || e.key === 'N') { e.preventDefault(); nextLevel(); return; }
+  if (e.key === 'b' || e.key === 'B') { e.preventDefault(); prevLevel(); return; }
+  if (gameOver) {
+    // Tras victoria: N pasa al siguiente nivel; R reinicia
+    if (won && (e.key === ' ' || e.code === 'Space')) { e.preventDefault(); nextLevel(); }
+    return;
+  }
+  const dirs = {
+    'ArrowUp': [0, -1], 'ArrowDown': [0, 1],
+    'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0],
+    'w': [0, -1], 's': [0, 1], 'a': [-1, 0], 'd': [1, 0],
+    'W': [0, -1], 'S': [0, 1], 'A': [-1, 0], 'D': [1, 0],
+  };
+  const d = dirs[e.key];
+  if (d) {
+    e.preventDefault();
+    movePlayer(d[0], d[1]);
+  }
+});
+
+document.getElementById('overlay-restart').addEventListener('click', () => {
+  if (won) nextLevel();
+  else newGame();
+});
+
+window.addEventListener('resize', () => {
+  layout();
+  positionSelector();
+  renderEntities();
+});
+
+// === Init ===
+async function init() {
+  // Cargar detección del tablero de AGUA
+  const res = await fetch('/assets/backgrounds/AGUA/board-detection.json?t=' + Date.now());
+  const det = await res.json();
+  ba = det.boardArea;
+  IMG_W = det.width || 7680;
+  IMG_H = det.height || 4320;
+  metaLabel.textContent = `AGUA · tablero ${COLS}x${ROWS}`;
+
+  img.src = '/assets/backgrounds/AGUA/bg_01.png';
+  img.onload = () => {
+    layout();
+    newGame();
+  };
+}
+
+init();
+</script>
+</body>
+</html>

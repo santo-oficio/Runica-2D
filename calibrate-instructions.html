@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar area de instrucciones</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 12; pointer-events: none; }
+  #drag-rect {
+    position: absolute; z-index: 15; pointer-events: none;
+    border: 3px solid #0ff; background: rgba(0, 255, 255, 0.12); display: none;
+  }
+  .area-rect {
+    position: absolute; z-index: 14; pointer-events: none;
+    border: 3px solid #0f0;
+    background: rgba(0, 255, 0, 0.10);
+  }
+  .area-rect.active {
+    border-color: #0f0; box-shadow: 0 0 20px rgba(0,255,0,0.4);
+    background: rgba(0, 255, 0, 0.15);
+  }
+  .area-rect .tag {
+    position: absolute; top: -22px; left: 0;
+    font-size: 12px; padding: 2px 8px; border-radius: 2px;
+    background: #0f0; color: #000; white-space: nowrap;
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.85em; line-height: 1.7;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  #hud .new { color: #0f0; }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+  #status .info { color: #fc4; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="image" src="/assets/menu%20principal/opciones%20del%20juego%20e%20instrucciones.png" />
+  <div id="overlay"></div>
+  <div id="drag-rect"></div>
+</div>
+
+<div id="hud">
+  <b>Calibrar area de instrucciones</b><br>
+  Marca las zonas donde ira el texto<br>
+  <br>
+  <span class="key">Arrastrar</span> = marcar area<br>
+  <span class="new">Espacio</span> = clonar (mismo tamano)<br>
+  <span class="key">Flechas</span> = mover seleccion (Shift = fino)<br>
+  <span class="key">+ / -</span> = agrandar / reducir<br>
+  <span class="key">0-9</span> = seleccionar area<br>
+  <span class="key">Z</span> = deshacer ultimo<br>
+  <span class="key">G</span> = guardar JSON<br>
+  <span class="key">C</span> = cargar guardado<br>
+  <br>
+  <span id="coords" style="color:#0f0">Sin seleccion</span>
+</div>
+
+<div id="status">Arrastra sobre la imagen para marcar un area de texto</div>
+
+<script>
+  const img = document.getElementById('image');
+  const overlay = document.getElementById('overlay');
+  const dragRect = document.getElementById('drag-rect');
+  const coordsEl = document.getElementById('coords');
+  const statusEl = document.getElementById('status');
+
+  let areas = [];
+  let selectedIdx = -1;
+  let dragging = false;
+  let dragStart = null;
+  let currentRect = null;
+
+  function getImgRect() { return img.getBoundingClientRect(); }
+
+  function pxToNorm(x, y) {
+    const r = getImgRect();
+    return {
+      x: Math.max(0, Math.min(1, (x - r.left) / r.width)),
+      y: Math.max(0, Math.min(1, (y - r.top) / r.height))
+    };
+  }
+  function normToPx(nx, ny) {
+    const r = getImgRect();
+    return { x: r.left + nx * r.width, y: r.top + ny * r.height };
+  }
+  function normToSize(nw, nh) {
+    const r = getImgRect();
+    return { w: nw * r.width, h: nh * r.height };
+  }
+
+  function render() {
+    overlay.innerHTML = '';
+    areas.forEach((a, i) => {
+      const div = document.createElement('div');
+      div.className = 'area-rect' + (i === selectedIdx ? ' active' : '');
+      const pos = normToPx(a.x, a.y);
+      const size = normToSize(a.w, a.h);
+      div.style.left = pos.x + 'px';
+      div.style.top = pos.y + 'px';
+      div.style.width = size.w + 'px';
+      div.style.height = size.h + 'px';
+      div.style.display = 'block';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = a.label;
+      div.appendChild(tag);
+      overlay.appendChild(div);
+    });
+  }
+
+  function updateCoords(a) {
+    if (!a) { coordsEl.textContent = 'Sin seleccion'; return; }
+    coordsEl.textContent = 'x:' + a.x.toFixed(4) + ' y:' + a.y.toFixed(4) +
+      ' w:' + a.w.toFixed(4) + ' h:' + a.h.toFixed(4);
+  }
+
+  document.addEventListener('mousedown', (e) => {
+    const r = getImgRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    if (e.target.closest('#hud') || e.target.closest('#status')) return;
+    dragging = true;
+    dragStart = pxToNorm(e.clientX, e.clientY);
+    currentRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+    dragRect.style.display = 'block';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const pos = pxToNorm(e.clientX, e.clientY);
+    currentRect.x = Math.min(dragStart.x, pos.x);
+    currentRect.y = Math.min(dragStart.y, pos.y);
+    currentRect.w = Math.abs(pos.x - dragStart.x);
+    currentRect.h = Math.abs(pos.y - dragStart.y);
+    const px = normToPx(currentRect.x, currentRect.y);
+    const sz = normToSize(currentRect.w, currentRect.h);
+    dragRect.style.left = px.x + 'px';
+    dragRect.style.top = px.y + 'px';
+    dragRect.style.width = sz.w + 'px';
+    dragRect.style.height = sz.h + 'px';
+    updateCoords(currentRect);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    dragRect.style.display = 'none';
+    if (currentRect.w > 0.01 && currentRect.h > 0.01) {
+      const label = prompt('Nombre del area:', 'area ' + areas.length);
+      if (label) {
+        areas.push({ label, x: currentRect.x, y: currentRect.y, w: currentRect.w, h: currentRect.h });
+        selectedIdx = areas.length - 1;
+        render();
+        updateCoords(areas[selectedIdx]);
+        statusEl.innerHTML = '<span class="ok">Area ' + selectedIdx + ' creada. Pulsa Espacio para clonar.</span>';
+      }
+    }
+    currentRect = null;
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    const step = e.shiftKey ? 0.001 : 0.005;
+
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (areas.length === 0) {
+        statusEl.innerHTML = '<span class="err">Primero arrastra para crear un area</span>';
+        return;
+      }
+      const src = areas[selectedIdx >= 0 ? selectedIdx : areas.length - 1];
+      areas.push({ label: 'area ' + areas.length, x: src.x, y: src.y, w: src.w, h: src.h });
+      selectedIdx = areas.length - 1;
+      render();
+      updateCoords(areas[selectedIdx]);
+      statusEl.innerHTML = '<span class="info">Area ' + selectedIdx + ' clonada. Usa flechas para moverla.</span>';
+      return;
+    }
+
+    if (e.key === 'z' || e.key === 'Z') {
+      areas.pop();
+      if (selectedIdx >= areas.length) selectedIdx = areas.length - 1;
+      render();
+      return;
+    }
+    if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
+    if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
+
+    const num = parseInt(e.key);
+    if (!isNaN(num) && num >= 0 && num < areas.length) {
+      selectedIdx = num;
+      render();
+      updateCoords(areas[selectedIdx]);
+      return;
+    }
+
+    if (selectedIdx < 0 || selectedIdx >= areas.length) return;
+    const a = areas[selectedIdx];
+    let changed = false;
+
+    switch (e.key) {
+      case 'ArrowLeft': a.x = Math.max(0, a.x - step); changed = true; break;
+      case 'ArrowRight': a.x = Math.min(1 - a.w, a.x + step); changed = true; break;
+      case 'ArrowUp': a.y = Math.max(0, a.y - step); changed = true; break;
+      case 'ArrowDown': a.y = Math.min(1 - a.h, a.y + step); changed = true; break;
+      case '+': case '=':
+        a.w = Math.min(1 - a.x, a.w + step);
+        a.h = Math.min(1 - a.y, a.h + step);
+        changed = true; break;
+      case '-': case '_':
+        a.w = Math.max(0.02, a.w - step);
+        a.h = Math.max(0.02, a.h - step);
+        changed = true; break;
+      default: return;
+    }
+
+    e.preventDefault();
+    if (changed) {
+      render();
+      updateCoords(a);
+    }
+  });
+
+  function saveJson() {
+    const data = { areas };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'instructions-areas.json';
+    a.click();
+    fetch('/api/save-instructions-areas', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
+    }).then(() => {
+      statusEl.innerHTML = '<span class="ok">Guardado: ' + areas.length + ' areas</span>';
+    }).catch(() => {
+      statusEl.innerHTML = '<span class="ok">Descargado instructions-areas.json</span>';
+    });
+  }
+
+  async function loadJson() {
+    try {
+      const r = await fetch('/api/load-instructions-areas');
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (data.areas) {
+        areas = data.areas;
+        selectedIdx = 0;
+        render();
+        if (areas.length > 0) updateCoords(areas[0]);
+        statusEl.innerHTML = '<span class="ok">Cargadas ' + areas.length + ' areas</span>';
+      }
+    } catch {
+      statusEl.innerHTML = '<span class="err">No hay guardado</span>';
+    }
+  }
+
+  loadJson();
+  img.addEventListener('load', render);
+  window.addEventListener('resize', render);
+</script>
+
+</body>
+</html>

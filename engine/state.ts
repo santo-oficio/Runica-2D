@@ -74,6 +74,10 @@ export interface GameState {
   doorsOpen: CellPos[];
   /** Turno actual (incrementa en cada ciclo completo). */
   turn: number;
+  /** Turnos restantes de inmovilización del jugador (trampa: 3 turnos). */
+  playerStunnedTurns: number;
+  /** Turnos restantes de inmovilización por enemigo (trampas: 3 turnos). */
+  enemyStunnedTurns: number[];
   /** true si el nivel está resuelto (jugador en G con requisitos). */
   solved: boolean;
   /** true si el nivel está fallido (colisión con enemigo, etc.). */
@@ -124,6 +128,8 @@ export function createInitialState(level: LevelMap): GameState {
     keysCollected: [],
     doorsOpen: [],
     turn: 0,
+    playerStunnedTurns: 0,
+    enemyStunnedTurns: enemies.map(() => 0),
     solved: false,
     failed: false,
     failureReason: null,
@@ -155,6 +161,8 @@ export function cloneState(state: GameState): GameState {
     keysCollected: [...state.keysCollected],
     doorsOpen: [...state.doorsOpen],
     turn: state.turn,
+    playerStunnedTurns: state.playerStunnedTurns,
+    enemyStunnedTurns: [...state.enemyStunnedTurns],
     solved: state.solved,
     failed: state.failed,
     failureReason: state.failureReason,
@@ -166,8 +174,8 @@ export function cloneState(state: GameState): GameState {
  * Dos estados con la misma clave son equivalentes para la búsqueda.
  */
 export function stateKey(state: GameState): string {
-  const p = `${state.player[0]},${state.player[1]}`;
-  const e = state.enemies.map((en) => `${en.pos[0]},${en.pos[1]},${en.step}`).join("|");
+  const p = `${state.player[0]},${state.player[1]},${state.playerStunnedTurns}`;
+  const e = state.enemies.map((en, i) => `${en.pos[0]},${en.pos[1]},${en.step},${state.enemyStunnedTurns[i] ?? 0}`).join("|");
   const k = state.keysCollected.map((c) => `${c[0]},${c[1]}`).join("|");
   const d = state.doorsOpen.map((c) => `${c[0]},${c[1]}`).join("|");
   const g = state.grid.join("");

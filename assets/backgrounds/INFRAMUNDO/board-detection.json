@@ -1,21 +1,23 @@
 {
   "world": "INFRAMUNDO",
-  "image": "assets/backgrounds/INFRAMUNDO/bg_01.jpg",
-  "width": 1376,
-  "height": 768,
+  "image": "assets/backgrounds/INFRAMUNDO/bg_01.png",
+  "width": 7680,
+  "height": 4320,
   "boardArea": {
-    "x": 0.2979622093023256,
-    "y": 0.25911458333333334,
-    "width": 0.40334302325581395,
-    "height": 0.609375
+    "x": 0.2980019631137957,
+    "y": 0.1730224146542263,
+    "width": 0.39813718244420143,
+    "height": 0.6466251174533468
   },
   "boardSize": [
-    6,
-    5
+    8,
+    6
   ],
-  "cellSize": 95.78333333333333,
-  "arScore": 0.9846473029045644,
-  "rectangularity": 0.9796854902587729,
-  "gridScore": 683.1585663745482,
-  "totalScore": 8795.91845690882
+  "cellSize": 390.77,
+  "avatarArea": {
+    "x": 0.2926676692974764,
+    "y": 0.24281604802414902,
+    "width": 0.42507095485547075,
+    "height": 0.5456481690450056
+  }
 }

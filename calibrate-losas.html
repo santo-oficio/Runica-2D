@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D — Calibrar losas</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
+  }
+  #overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 10; pointer-events: none;
+  }
+  canvas { position: absolute; z-index: 11; pointer-events: none; }
+  .losa {
+    position: absolute; z-index: 14;
+    cursor: grab; pointer-events: auto;
+    object-fit: contain;
+    transition: outline 0.15s;
+  }
+  .losa.dragging { cursor: grabbing; }
+  .losa.selected {
+    outline: 3px solid #fc0;
+    outline-offset: 2px;
+    z-index: 15;
+  }
+  .losa .label {
+    position: absolute; top: -16px; left: 2px;
+    font-size: 10px; color: rgba(255,255,255,0.7);
+    pointer-events: none;
+    background: rgba(0,0,0,0.7); padding: 1px 4px; border-radius: 2px;
+    white-space: nowrap;
+  }
+  .losa.selected .label { color: #fc0; background: rgba(40,30,0,0.8); }
+  #palette {
+    position: absolute; top: 12px; right: 12px; width: 180px;
+    max-height: 70vh;
+    background: rgba(15,15,25,0.92); z-index: 25;
+    border: 1px solid rgba(126,200,227,0.3); border-radius: 4px;
+    overflow-y: auto; padding: 10px;
+  }
+  #palette h3 {
+    color: #0ff; font-size: 0.85em; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .palette-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px; margin-bottom: 4px;
+    border: 1px solid #333; border-radius: 4px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .palette-item:hover { background: rgba(40,40,60,0.8); border-color: #0ff; }
+  .palette-item.active { background: rgba(40,60,40,0.8); border-color: #0f0; }
+  .palette-item img {
+    width: 40px; height: 40px; object-fit: contain;
+    background: rgba(0,0,0,0.3); border-radius: 2px;
+  }
+  .palette-item .name {
+    font-size: 0.7em; color: #ccc; word-break: break-all;
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.85em; line-height: 1.7;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  select {
+    background: #1a1a2e; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 4px 8px; font-size: 0.9em; cursor: pointer;
+    margin: 2px 0;
+  }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+  #status .info { color: #fc4; }
+  #btn-del, #btn-save, #btn-grid {
+    position: absolute; z-index: 20;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em; padding: 6px 14px;
+    background: rgba(20,20,40,0.9); color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    cursor: pointer;
+  }
+  #btn-add { bottom: 12px; left: 12px; }
+  #btn-fill { bottom: 12px; left: 72px; }
+  #btn-del { bottom: 12px; left: 142px; }
+  #btn-grid { bottom: 12px; left: 192px; }
+  #btn-save { bottom: 12px; right: 12px; }
+  #btn-save:hover { background: rgba(40,80,40,0.9); border-color: #0f0; }
+  #btn-del:hover { background: rgba(80,40,40,0.9); border-color: #f44; }
+  #btn-grid:hover { background: rgba(40,60,40,0.9); border-color: #0f0; }
+</style>
+</head>
+<body>
+
+<div id="palette">
+  <h3>Losas</h3>
+  <div id="palette-list"></div>
+  <div style="margin-top: 12px; font-size: 0.75em; color: #888;">
+    Click en una losa para seleccionarla.<br>
+    Luego click en el tablero para colocarla.
+  </div>
+</div>
+
+<div id="stage">
+  <img id="image" src="" />
+  <div id="overlay">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
+
+<div id="hud">
+  <b>Calibrar losas</b><br>
+  Mundo: <select id="world-select"></select><br>
+  <br>
+  <span class="key">Click losa</span> = seleccionar · <span class="key">Click tablero</span> = colocar<br>
+  <span class="key">Arrastrar</span> = mover · <span class="key">Flechas</span> = mover (Shift = fino)<br>
+  <span class="key">Ctrl+Flechas</span> = tamano · <span class="key">Tab</span> = siguiente<br>
+  <span class="key">Del</span> = borrar · <span class="key">G</span> = guardar<br>
+  <span class="key">Espacio</span> = mundo · <span class="key">L</span> = grid<br>
+  <br>
+  <span id="losa-info" style="color:#0f0">Losa: --</span>
+</div>
+
+<button id="btn-add">+ Add</button>
+<button id="btn-fill">Fill 48</button>
+<button id="btn-del">Del</button>
+<button id="btn-grid">Grid</button>
+<button id="btn-save">Guardar (G)</button>
+<div id="status">Selecciona una losa y click en el tablero</div>
+
+<script>
+const MUNDOS = ['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+const COLS = 8;
+const ROWS = 6;
+
+const img = document.getElementById('image');
+const overlay = document.getElementById('overlay');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const losaInfo = document.getElementById('losa-info');
+const statusEl = document.getElementById('status');
+const worldSelect = document.getElementById('world-select');
+const paletteList = document.getElementById('palette-list');
+
+let currentWorld = 0;
+let selectedLosa = -1;
+let selectedPaletteImage = null;
+let obstacleImages = [];
+let showGrid = true;
+let lastW = 0.08;
+let lastH = 0.08;
+let defaultW = 0.08;
+let defaultH = 0.08;
+let corners = [
+  { x: 0.3, y: 0.3 },
+  { x: 0.7, y: 0.3 },
+  { x: 0.3, y: 0.8 },
+  { x: 0.7, y: 0.8 },
+];
+let hCoeffs = null;
+let losas = [];
+
+function visibleImageRect() { return img.getBoundingClientRect(); }
+
+MUNDOS.forEach((w, i) => {
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = w;
+  worldSelect.appendChild(opt);
+});
+
+worldSelect.addEventListener('change', (e) => {
+  currentWorld = parseInt(e.target.value);
+  loadWorld();
+});
+
+function computeHomography() {
+  const [tl, tr, bl, br] = corners;
+  const src = [[0,0],[1,0],[0,1],[1,1]];
+  const dst = [[tl.x,tl.y],[tr.x,tr.y],[bl.x,bl.y],[br.x,br.y]];
+  const A = [];
+  const B = [];
+  for (let i = 0; i < 4; i++) {
+    const [u, v] = src[i];
+    const [x, y] = dst[i];
+    A.push([u, v, 1, 0, 0, 0, -x*u, -x*v]); B.push(x);
+    A.push([0, 0, 0, u, v, 1, -y*u, -y*v]); B.push(y);
+  }
+  const n = A.length;
+  const aug = A.map((row, i) => [...row, B[i]]);
+  for (let col = 0; col < n; col++) {
+    let maxRow = col;
+    for (let r = col + 1; r < n; r++) {
+      if (Math.abs(aug[r][col]) > Math.abs(aug[maxRow][col])) maxRow = r;
+    }
+    [aug[col], aug[maxRow]] = [aug[maxRow], aug[col]];
+    const pivot = aug[col][col];
+    if (Math.abs(pivot) < 1e-12) continue;
+    for (let c = col; c <= n; c++) aug[col][c] /= pivot;
+    for (let r = 0; r < n; r++) {
+      if (r === col) continue;
+      const f = aug[r][col];
+      for (let c = col; c <= n; c++) aug[r][c] -= f * aug[col][c];
+    }
+  }
+  return aug.map(row => row[n]);
+}
+
+function perspective(u, v) {
+  if (!hCoeffs) hCoeffs = computeHomography();
+  const [a,b,c,d,e,f,g,h] = hCoeffs;
+  const denom = g*u + h*v + 1;
+  return { x: (a*u + b*v + c) / denom, y: (d*u + e*v + f) / denom };
+}
+
+function getCellAt(x, y) {
+  // Buscar la casilla cuyo centro esta mas cercano al punto
+  let best = null;
+  let bestDist = Infinity;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const p = perspective((c + 0.5) / COLS, (r + 0.5) / ROWS);
+      const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+      if (d < bestDist) {
+        bestDist = d;
+        best = { col: c, row: r };
+      }
+    }
+  }
+  return best;
+}
+
+async function loadCorners(world) {
+  try {
+    const r = await fetch('/api/load-corners?world=' + encodeURIComponent(world));
+    if (r.ok) {
+      const data = await r.json();
+      if (data.corners && data.corners.length === 4) {
+        corners = data.corners;
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
+async function loadObstacles(world) {
+  try {
+    const r = await fetch('/api/obstacles?world=' + encodeURIComponent(world) + '&t=' + Date.now());
+    const data = await r.json();
+    obstacleImages = data.images || [];
+  } catch { obstacleImages = []; }
+  // Renderizar paleta
+  paletteList.innerHTML = '';
+  obstacleImages.forEach((src, i) => {
+    const item = document.createElement('div');
+    item.className = 'palette-item';
+    item.dataset.idx = i;
+    const thumb = document.createElement('img');
+    thumb.src = src + '?t=' + Date.now();
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = src.split('/').pop();
+    item.appendChild(thumb);
+    item.appendChild(name);
+    item.addEventListener('click', () => {
+      selectedPaletteImage = src;
+      document.querySelectorAll('.palette-item').forEach(p => p.classList.remove('active'));
+      item.classList.add('active');
+      statusEl.innerHTML = '<span class="info">Losa seleccionada. Click en el tablero para colocar.</span>';
+    });
+    paletteList.appendChild(item);
+  });
+}
+
+async function loadLosas(world) {
+  try {
+    const r = await fetch('/api/load-losas?world=' + encodeURIComponent(world));
+    if (r.ok) {
+      const data = await r.json();
+      if (data.losas) {
+        losas = data.losas;
+        if (losas.length > 0) {
+          lastW = losas[losas.length - 1].w;
+          lastH = losas[losas.length - 1].h;
+        }
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
+async function loadLosaSize() {
+  try {
+    const r = await fetch('/api/load-losa-size');
+    if (r.ok) {
+      const data = await r.json();
+      if (data.w && data.h) {
+        defaultW = data.w;
+        defaultH = data.h;
+        lastW = data.w;
+        lastH = data.h;
+      }
+    }
+  } catch {}
+}
+
+async function saveLosaSize() {
+  fetch('/api/save-losa-size', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ w: lastW, h: lastH })
+  });
+}
+
+async function loadWorld() {
+  const world = MUNDOS[currentWorld];
+  const src = '/assets/backgrounds/' + world + '/bg_01.png?t=' + Date.now();
+  await new Promise((resolve) => {
+    const preload = new Image();
+    preload.onload = resolve;
+    preload.onerror = resolve;
+    preload.src = src;
+  });
+  img.src = src;
+  await loadCorners(world);
+  hCoeffs = null; // Invalidar antes de generar losas
+  console.log('Corners cargados:', corners);
+  await loadObstacles(world);
+  console.log('Obstaculos:', obstacleImages);
+  const loaded = await loadLosas(world);
+  if (!loaded) {
+    // No auto-generar. El usuario las anade con + de una en una.
+    losas = [];
+  }
+  selectedLosa = -1;
+  selectedPaletteImage = null;
+  hCoeffs = null;
+  render();
+}
+
+function renderGrid() {
+  if (!showGrid) return;
+  const rect = visibleImageRect();
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(0, 255, 255, 0.4)';
+  ctx.lineWidth = 1.5;
+  for (let c = 0; c <= COLS; c++) {
+    const u = c / COLS;
+    ctx.beginPath();
+    for (let r = 0; r <= ROWS; r++) {
+      const p = perspective(u, r / ROWS);
+      const px = rect.left + p.x * rect.width;
+      const py = rect.top + p.y * rect.height;
+      if (r === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  for (let r = 0; r <= ROWS; r++) {
+    const v = r / ROWS;
+    ctx.beginPath();
+    for (let c = 0; c <= COLS; c++) {
+      const p = perspective(c / COLS, v);
+      const px = rect.left + p.x * rect.width;
+      const py = rect.top + p.y * rect.height;
+      if (c === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+  ctx.font = 'bold 10px Courier New';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const p = perspective((c + 0.5) / COLS, (r + 0.5) / ROWS);
+      const px = rect.left + p.x * rect.width;
+      const py = rect.top + p.y * rect.height;
+      ctx.fillText((r + 1) + 'x' + (c + 1), px - 7, py + 3);
+    }
+  }
+}
+
+function render() {
+  hCoeffs = null;
+  renderGrid();
+  const existing = overlay.querySelectorAll('.losa');
+  existing.forEach(e => e.remove());
+  const rect = visibleImageRect();
+  losas.forEach((l, i) => {
+    const div = document.createElement('div');
+    div.className = 'losa' + (i === selectedLosa ? ' selected' : '');
+    div.style.left = (rect.left + l.x * rect.width) + 'px';
+    div.style.top = (rect.top + l.y * rect.height) + 'px';
+    div.style.width = (l.w * rect.width) + 'px';
+    div.style.height = (l.h * rect.height) + 'px';
+    const imgEl = document.createElement('img');
+    imgEl.style.width = '100%';
+    imgEl.style.height = '100%';
+    imgEl.style.objectFit = 'contain';
+    imgEl.draggable = false;
+    imgEl.onload = () => { console.log('Losa cargada:', l.image); };
+    imgEl.onerror = () => { console.error('Error cargando losa:', l.image); };
+    imgEl.src = l.image + '?t=' + Date.now();
+    div.appendChild(imgEl);
+    const name = l.image.split('/').pop();
+    const label = document.createElement('div');
+    label.className = 'label';
+    if (i === selectedLosa) {
+      const cell = getCellAt(l.x + l.w / 2, l.y + l.h / 2);
+      const cellStr = cell ? (cell.row + 1) + 'x' + (cell.col + 1) : '?';
+      label.textContent = name + ' @ ' + cellStr;
+    } else {
+      label.textContent = '';
+    }
+    div.appendChild(label);
+    div.addEventListener('mousedown', (e) => startDrag(e, i));
+    overlay.appendChild(div);
+  });
+  updateInfo();
+}
+
+function updateInfo() {
+  if (selectedLosa < 0 || !losas[selectedLosa]) {
+    losaInfo.textContent = 'Losa: --';
+    return;
+  }
+  const l = losas[selectedLosa];
+  const name = l.image.split('/').pop();
+  const cell = getCellAt(l.x + l.w / 2, l.y + l.h / 2);
+  const cellStr = cell ? (cell.row + 1) + 'x' + (cell.col + 1) : '?';
+  losaInfo.textContent = `${name} @ ${cellStr}: x=${l.x.toFixed(3)} y=${l.y.toFixed(3)} w=${l.w.toFixed(3)} h=${l.h.toFixed(3)}`;
+}
+
+// Click en cualquier sitio: si es fuera de una losa, deseleccionar
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.losa')) return;
+  if (e.target.closest('#palette')) return;
+  if (e.target.closest('#hud')) return;
+  if (e.target.closest('button')) return;
+  if (e.target.closest('select')) return;
+  selectedLosa = -1;
+  selectedPaletteImage = null;
+  document.querySelectorAll('.palette-item').forEach(p => p.classList.remove('active'));
+  render();
+});
+
+// Arrastre
+let dragInfo = null;
+
+function startDrag(e, idx) {
+  e.preventDefault();
+  e.stopPropagation();
+  selectedLosa = idx;
+  const rect = visibleImageRect();
+  const l = losas[idx];
+  dragInfo = { idx, startMX: e.clientX, startMY: e.clientY, startX: l.x, startY: l.y, rect };
+  render();
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
+}
+
+function onDrag(e) {
+  if (!dragInfo) return;
+  const l = losas[dragInfo.idx];
+  if (!l) return;
+  const rect = dragInfo.rect;
+  const dx = (e.clientX - dragInfo.startMX) / rect.width;
+  const dy = (e.clientY - dragInfo.startMY) / rect.height;
+  l.x = Math.max(0, Math.min(1 - l.w, dragInfo.startX + dx));
+  l.y = Math.max(0, Math.min(1 - l.h, dragInfo.startY + dy));
+  render();
+}
+
+function endDrag() {
+  dragInfo = null;
+  document.removeEventListener('mousemove', onDrag);
+  document.removeEventListener('mouseup', endDrag);
+}
+
+function delLosa() {
+  if (selectedLosa < 0) return;
+  losas.splice(selectedLosa, 1);
+  selectedLosa = -1;
+  render();
+}
+
+function addLosa() {
+  if (obstacleImages.length === 0) return;
+  const imgSrc = selectedPaletteImage || obstacleImages[0];
+  // Siguiente casilla por orden: 1x1, 1x2, ... 1x8, 2x1, ...
+  const nextCol = losas.length % COLS;
+  const nextRow = Math.floor(losas.length / COLS) % ROWS;
+  // Centro horizontal de la casilla
+  const p = perspective((nextCol + 0.5) / COLS, (nextRow + 0.5) / ROWS);
+  // Heredar tamano de la ultima losa seleccionada o de la ultima anadida
+  let w = lastW, h = lastH;
+  let yOffset = 0;
+  if (selectedLosa >= 0 && losas[selectedLosa]) {
+    w = losas[selectedLosa].w;
+    h = losas[selectedLosa].h;
+    const sel = losas[selectedLosa];
+    const selCol = selectedLosa % COLS;
+    const selRow = Math.floor(selectedLosa / COLS) % ROWS;
+    const selCenter = perspective((selCol + 0.5) / COLS, (selRow + 0.5) / ROWS);
+    yOffset = (sel.y + sel.h / 2) - selCenter.y;
+  }
+  losas.push({ image: imgSrc, x: p.x - w / 2, y: p.y - h / 2 + yOffset, w, h });
+  lastW = w;
+  lastH = h;
+  selectedLosa = losas.length - 1;
+  render();
+  const cell = (nextRow + 1) + 'x' + (nextCol + 1);
+  statusEl.innerHTML = '<span class="info">Losa anadida en ' + cell + '</span>';
+}
+
+function fillLosas() {
+  if (obstacleImages.length === 0) return;
+  losas = [];
+  const imgSrc = obstacleImages[0];
+  // Heredar tamano de la losa seleccionada si hay
+  let w = lastW, h = lastH;
+  let yOffset = 0;
+  if (selectedLosa >= 0 && losas[selectedLosa]) {
+    w = losas[selectedLosa].w;
+    h = losas[selectedLosa].h;
+  }
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const p = perspective((c + 0.5) / COLS, (r + 0.5) / ROWS);
+      losas.push({ image: imgSrc, x: p.x - w / 2, y: p.y - h / 2, w, h });
+    }
+  }
+  selectedLosa = -1;
+  render();
+  statusEl.innerHTML = '<span class="info">48 losas colocadas. Ajusta las que necesites.</span>';
+}
+
+function moveLosa(dx, dy) {
+  const l = losas[selectedLosa];
+  if (!l) return;
+  l.x = Math.max(0, Math.min(1 - l.w, l.x + dx));
+  l.y = Math.max(0, Math.min(1 - l.h, l.y + dy));
+  render();
+}
+
+function resizeLosa(dw, dh) {
+  const l = losas[selectedLosa];
+  if (!l) return;
+  l.w = Math.max(0.01, Math.min(1 - l.x, l.w + dw));
+  l.h = Math.max(0.01, Math.min(1 - l.y, l.h + dh));
+  lastW = l.w;
+  lastH = l.h;
+  render();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'SELECT') return;
+  if (e.key === '+' || e.key === '=') { e.preventDefault(); addLosa(); return; }
+  if (e.key === 'g' || e.key === 'G') { e.preventDefault(); saveLosas(); return; }
+  if (e.code === 'Space') { e.preventDefault(); currentWorld = (currentWorld + 1) % MUNDOS.length; worldSelect.value = currentWorld; loadWorld(); return; }
+  if (e.key === 'Delete') { e.preventDefault(); delLosa(); return; }
+  if (e.key === 'l' || e.key === 'L') { e.preventDefault(); showGrid = !showGrid; render(); return; }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    if (losas.length === 0) return;
+    selectedLosa = (selectedLosa + (e.shiftKey ? -1 : 1) + losas.length) % losas.length;
+    render();
+    return;
+  }
+  const step = e.shiftKey ? 0.0005 : 0.002;
+  if (e.ctrlKey || e.metaKey) {
+    switch (e.key) {
+      case 'ArrowLeft': e.preventDefault(); resizeLosa(-step, 0); break;
+      case 'ArrowRight': e.preventDefault(); resizeLosa(step, 0); break;
+      case 'ArrowUp': e.preventDefault(); resizeLosa(0, -step); break;
+      case 'ArrowDown': e.preventDefault(); resizeLosa(0, step); break;
+    }
+  } else {
+    switch (e.key) {
+      case 'ArrowLeft': e.preventDefault(); moveLosa(-step, 0); break;
+      case 'ArrowRight': e.preventDefault(); moveLosa(step, 0); break;
+      case 'ArrowUp': e.preventDefault(); moveLosa(0, -step); break;
+      case 'ArrowDown': e.preventDefault(); moveLosa(0, step); break;
+    }
+  }
+});
+
+function saveLosas() {
+  const world = MUNDOS[currentWorld];
+  fetch('/api/save-losas?world=' + encodeURIComponent(world), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ world, losas })
+  }).then(r => r.json()).then(() => {
+    // Guardar tambien el tamano por defecto (de la losa seleccionada o la ultima)
+    let w = lastW, h = lastH;
+    if (selectedLosa >= 0 && losas[selectedLosa]) {
+      w = losas[selectedLosa].w;
+      h = losas[selectedLosa].h;
+    }
+    defaultW = w;
+    defaultH = h;
+    saveLosaSize();
+    statusEl.innerHTML = '<span class="ok">Guardado: ' + world + ' (' + losas.length + ' losas) tamano ' + w.toFixed(3) + 'x' + h.toFixed(3) + '</span>';
+  }).catch(() => {
+    statusEl.innerHTML = '<span class="err">Error al guardar</span>';
+  });
+}
+
+document.getElementById('btn-add').addEventListener('click', addLosa);
+document.getElementById('btn-fill').addEventListener('click', fillLosas);
+document.getElementById('btn-del').addEventListener('click', delLosa);
+document.getElementById('btn-save').addEventListener('click', saveLosas);
+document.getElementById('btn-grid').addEventListener('click', () => { showGrid = !showGrid; render(); });
+
+img.addEventListener('load', () => render());
+window.addEventListener('resize', () => { if (img.complete) render(); });
+
+(async () => { await loadLosaSize(); await loadWorld(); })();
+</script>
+
+</body>
+</html>

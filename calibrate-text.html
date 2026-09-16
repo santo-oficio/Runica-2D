@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar area de texto</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 12; pointer-events: none; }
+  #drag-rect {
+    position: absolute; z-index: 15; pointer-events: none;
+    border: 3px solid #0ff; background: rgba(0, 255, 255, 0.12); display: none;
+  }
+  .btn-rect {
+    position: absolute; z-index: 13; pointer-events: none;
+    border: 2px dashed rgba(255, 204, 68, 0.4);
+  }
+  .btn-rect .tag {
+    position: absolute; top: -18px; left: 0;
+    font-size: 10px; padding: 1px 5px; border-radius: 2px;
+    background: rgba(255,204,68,0.7); color: #000;
+  }
+  .text-rect {
+    position: absolute; z-index: 16; pointer-events: none;
+    border: 3px solid #0f0; background: rgba(0, 255, 0, 0.12);
+  }
+  .text-rect.active {
+    border-color: #0f0; box-shadow: 0 0 20px rgba(0,255,0,0.5);
+    background: rgba(0, 255, 0, 0.20);
+  }
+  .text-rect .tag {
+    position: absolute; top: -20px; left: 0;
+    font-size: 11px; padding: 1px 6px; border-radius: 2px;
+    background: #0f0; color: #000; white-space: nowrap;
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.85em; line-height: 1.7;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  #hud .new { color: #0f0; }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+  #status .info { color: #fc4; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="image" src="/assets/menu%20principal/menu%20principal.png" />
+  <div id="overlay"></div>
+  <div id="drag-rect"></div>
+</div>
+
+<div id="hud">
+  <b>Area de texto por boton</b><br>
+  Botones en amarillo | Area texto en verde<br>
+  <br>
+  <span class="key">Arrastrar</span> = marcar area texto<br>
+  <span class="new">Espacio</span> = clonar (mismo tamano)<br>
+  <span class="key">Flechas</span> = mover seleccion (Shift = fino)<br>
+  <span class="key">+ / -</span> = agrandar / reducir<br>
+  <span class="key">0-5</span> = seleccionar area<br>
+  <span class="key">Z</span> = deshacer ultimo<br>
+  <span class="key">G</span> = guardar JSON<br>
+  <span class="key">C</span> = cargar guardado<br>
+  <br>
+  <span id="coords" style="color:#0f0">Sin seleccion</span>
+</div>
+
+<div id="status">Arrastra dentro de un boton para marcar el area de texto</div>
+
+<script>
+  const img = document.getElementById('image');
+  const overlay = document.getElementById('overlay');
+  const dragRect = document.getElementById('drag-rect');
+  const coordsEl = document.getElementById('coords');
+  const statusEl = document.getElementById('status');
+
+  // Botones guardados
+  const buttons = [
+    { label: "boton 0", x: 0.3880, y: 0.2404, w: 0.2198, h: 0.1054 },
+    { label: "boton 1", x: 0.3880, y: 0.3654, w: 0.2198, h: 0.1054 },
+    { label: "boton 2", x: 0.3880, y: 0.4854, w: 0.2198, h: 0.1054 },
+    { label: "boton 3", x: 0.3880, y: 0.6054, w: 0.2198, h: 0.1054 },
+    { label: "boton 4", x: 0.3880, y: 0.7254, w: 0.2198, h: 0.1054 },
+    { label: "boton 5", x: 0.3880, y: 0.8454, w: 0.2198, h: 0.1054 },
+  ];
+
+  // Areas de texto: una por boton, coordenadas absolutas normalizadas
+  let textAreas = [];  // [{ x, y, w, h }, ...]
+  let selectedIdx = -1;
+  let dragging = false;
+  let dragStart = null;
+  let currentRect = null;
+
+  function getImgRect() { return img.getBoundingClientRect(); }
+
+  function pxToNorm(x, y) {
+    const r = getImgRect();
+    return {
+      x: Math.max(0, Math.min(1, (x - r.left) / r.width)),
+      y: Math.max(0, Math.min(1, (y - r.top) / r.height))
+    };
+  }
+  function normToPx(nx, ny) {
+    const r = getImgRect();
+    return { x: r.left + nx * r.width, y: r.top + ny * r.height };
+  }
+  function normToSize(nw, nh) {
+    const r = getImgRect();
+    return { w: nw * r.width, h: nh * r.height };
+  }
+
+  function render() {
+    overlay.innerHTML = '';
+
+    // Botones (amarillo punteado)
+    buttons.forEach((b, i) => {
+      const div = document.createElement('div');
+      div.className = 'btn-rect';
+      const pos = normToPx(b.x, b.y);
+      const size = normToSize(b.w, b.h);
+      div.style.left = pos.x + 'px';
+      div.style.top = pos.y + 'px';
+      div.style.width = size.w + 'px';
+      div.style.height = size.h + 'px';
+      div.style.display = 'block';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = 'btn ' + i;
+      div.appendChild(tag);
+      overlay.appendChild(div);
+    });
+
+    // Areas de texto (verde)
+    textAreas.forEach((t, i) => {
+      const div = document.createElement('div');
+      div.className = 'text-rect' + (i === selectedIdx ? ' active' : '');
+      const pos = normToPx(t.x, t.y);
+      const size = normToSize(t.w, t.h);
+      div.style.left = pos.x + 'px';
+      div.style.top = pos.y + 'px';
+      div.style.width = size.w + 'px';
+      div.style.height = size.h + 'px';
+      div.style.display = 'block';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = 'texto ' + i;
+      div.appendChild(tag);
+      overlay.appendChild(div);
+    });
+  }
+
+  function updateCoords(t) {
+    if (!t) { coordsEl.textContent = 'Sin seleccion'; return; }
+    coordsEl.textContent = 'x:' + t.x.toFixed(4) + ' y:' + t.y.toFixed(4) +
+      ' w:' + t.w.toFixed(4) + ' h:' + t.h.toFixed(4);
+  }
+
+  // --- Arrastrar para crear ---
+  document.addEventListener('mousedown', (e) => {
+    const r = getImgRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    if (e.target.closest('#hud') || e.target.closest('#status')) return;
+
+    dragging = true;
+    dragStart = pxToNorm(e.clientX, e.clientY);
+    currentRect = { x: dragStart.x, y: dragStart.y, w: 0, h: 0 };
+    dragRect.style.display = 'block';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const pos = pxToNorm(e.clientX, e.clientY);
+    currentRect.x = Math.min(dragStart.x, pos.x);
+    currentRect.y = Math.min(dragStart.y, pos.y);
+    currentRect.w = Math.abs(pos.x - dragStart.x);
+    currentRect.h = Math.abs(pos.y - dragStart.y);
+    const px = normToPx(currentRect.x, currentRect.y);
+    const sz = normToSize(currentRect.w, currentRect.h);
+    dragRect.style.left = px.x + 'px';
+    dragRect.style.top = px.y + 'px';
+    dragRect.style.width = sz.w + 'px';
+    dragRect.style.height = sz.h + 'px';
+    updateCoords(currentRect);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    dragRect.style.display = 'none';
+
+    if (currentRect.w > 0.005 && currentRect.h > 0.005) {
+      textAreas.push({ x: currentRect.x, y: currentRect.y, w: currentRect.w, h: currentRect.h });
+      selectedIdx = textAreas.length - 1;
+      render();
+      updateCoords(textAreas[selectedIdx]);
+      statusEl.innerHTML = '<span class="ok">Area ' + selectedIdx + ' creada. Pulsa <b>Espacio</b> para clonar.</span>';
+    }
+    currentRect = null;
+  });
+
+  // --- Teclado ---
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    const step = e.shiftKey ? 0.001 : 0.005;
+
+    // Espacio = clonar area seleccionada (mismo tamano, misma posicion)
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (textAreas.length === 0) {
+        statusEl.innerHTML = '<span class="err">Primero arrastra para crear un area</span>';
+        return;
+      }
+      const src = textAreas[selectedIdx >= 0 ? selectedIdx : textAreas.length - 1];
+      textAreas.push({ x: src.x, y: src.y, w: src.w, h: src.h });
+      selectedIdx = textAreas.length - 1;
+      render();
+      updateCoords(textAreas[selectedIdx]);
+      statusEl.innerHTML = '<span class="info">Area ' + selectedIdx + ' clonada. Usa flechas para moverla.</span>';
+      return;
+    }
+
+    if (e.key === 'z' || e.key === 'Z') {
+      textAreas.pop();
+      if (selectedIdx >= textAreas.length) selectedIdx = textAreas.length - 1;
+      render();
+      return;
+    }
+    if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
+    if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
+
+    // Seleccionar por numero
+    const num = parseInt(e.key);
+    if (!isNaN(num) && num >= 0 && num < textAreas.length) {
+      selectedIdx = num;
+      render();
+      updateCoords(textAreas[selectedIdx]);
+      return;
+    }
+
+    // Mover/redimensionar
+    if (selectedIdx < 0 || selectedIdx >= textAreas.length) return;
+    const t = textAreas[selectedIdx];
+    let changed = false;
+
+    switch (e.key) {
+      case 'ArrowLeft': t.x = Math.max(0, t.x - step); changed = true; break;
+      case 'ArrowRight': t.x = Math.min(1 - t.w, t.x + step); changed = true; break;
+      case 'ArrowUp': t.y = Math.max(0, t.y - step); changed = true; break;
+      case 'ArrowDown': t.y = Math.min(1 - t.h, t.y + step); changed = true; break;
+      case '+': case '=':
+        t.w = Math.min(1 - t.x, t.w + step);
+        t.h = Math.min(1 - t.y, t.h + step);
+        changed = true; break;
+      case '-': case '_':
+        t.w = Math.max(0.01, t.w - step);
+        t.h = Math.max(0.01, t.h - step);
+        changed = true; break;
+      default: return;
+    }
+
+    e.preventDefault();
+    if (changed) {
+      render();
+      updateCoords(t);
+    }
+  });
+
+  // --- Guardar/cargar ---
+  function saveJson() {
+    const data = { buttons, textAreas };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'menu-buttons.json';
+    a.click();
+    fetch('/api/save-menu-buttons', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
+    }).then(() => {
+      statusEl.innerHTML = '<span class="ok">Guardado: ' + buttons.length + ' botones + ' + textAreas.length + ' areas de texto</span>';
+    }).catch(() => {
+      statusEl.innerHTML = '<span class="ok">Descargado menu-buttons.json</span>';
+    });
+  }
+
+  async function loadJson() {
+    try {
+      const r = await fetch('/api/load-menu-buttons');
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (data.textAreas) {
+        textAreas = data.textAreas;
+        selectedIdx = 0;
+        render();
+        if (textAreas.length > 0) updateCoords(textAreas[0]);
+        statusEl.innerHTML = '<span class="ok">Cargadas ' + textAreas.length + ' areas de texto</span>';
+      } else {
+        statusEl.innerHTML = '<span class="err">No hay areas guardadas</span>';
+      }
+    } catch {
+      statusEl.innerHTML = '<span class="err">No hay guardado</span>';
+    }
+  }
+
+  // Cargar al inicio
+  loadJson();
+  img.addEventListener('load', render);
+  window.addEventListener('resize', render);
+</script>
+
+</body>
+</html>

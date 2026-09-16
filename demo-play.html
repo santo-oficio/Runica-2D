@@ -1,0 +1,648 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D — Demo jugable (Nivel 1)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000; overflow: hidden;
+    font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #selector {
+    position: absolute; z-index: 15; pointer-events: none;
+    transition: left 0.15s ease-in-out, top 0.15s ease-in-out;
+  }
+  #avatar {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  }
+  #entities {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 13;
+  }
+  .entity {
+    position: absolute; pointer-events: none;
+    transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+  }
+  .entity.trap { animation: spin 3s linear infinite; }
+  .entity.wall {
+    background: rgba(20, 20, 30, 0.85);
+    border: 2px solid rgba(80, 80, 100, 0.6);
+    border-radius: 4px;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+    filter: none;
+    transition: none;
+  }
+  .entity.goal {
+    filter: drop-shadow(0 0 8px #ff0) drop-shadow(0 0 4px #ff0);
+    animation: goalPulse 1s ease-in-out infinite;
+  }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes goalPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  @keyframes trapShake {
+    0% { transform: rotate(0deg) scale(1); }
+    20% { transform: rotate(-15deg) scale(0.9) translateX(3px); }
+    40% { transform: rotate(15deg) scale(1.1) translateX(-3px); }
+    60% { transform: rotate(-10deg) scale(0.95) translateY(2px); }
+    80% { transform: rotate(10deg) scale(1.05) translateY(-2px); }
+    100% { transform: rotate(0deg) scale(1); }
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.65); padding: 8px 14px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.8em;
+  }
+  #hud .world { color: #7ec8e3; font-weight: bold; }
+  #hud .meta { color: #888; }
+  #hud .pos { color: #0ff; }
+  #hud .turn { color: #fc4; }
+  #help {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.65); padding: 6px 14px;
+    border-radius: 4px; font-size: 0.72em; color: #aaa;
+    text-align: center; line-height: 1.5;
+  }
+  #help .key { color: #0ff; }
+  #demo-tag {
+    position: absolute; top: 12px; right: 12px; z-index: 20;
+    background: rgba(255,204,68,0.15); color: #fc4;
+    border: 1px solid rgba(255,204,68,0.5);
+    padding: 6px 12px; border-radius: 4px; font-size: 0.72em;
+  }
+  #overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%; z-index: 30;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.7); flex-direction: column;
+  }
+  #overlay.show { display: flex; }
+  #overlay .title {
+    font-size: 2.5em; font-weight: bold; margin-bottom: 10px;
+    text-shadow: 0 0 20px currentColor;
+  }
+  #overlay.win .title { color: #ff0; }
+  #overlay.lose .title { color: #f44; }
+  #overlay .subtitle { font-size: 1em; color: #aaa; margin-bottom: 20px; }
+  #overlay .restart {
+    font-size: 0.9em; color: #0ff; cursor: pointer;
+    border: 1px solid #0ff; padding: 8px 20px; border-radius: 4px;
+  }
+  #overlay .restart:hover { background: rgba(0,255,255,0.1); }
+</style>
+</head>
+<body>
+  <div id="stage"><img id="image" alt="fondo"></div>
+  <div id="selector"><img id="avatar" alt="avatar"></div>
+  <div id="entities"></div>
+  <audio id="step-sound" preload="auto"></audio>
+
+  <div id="hud">
+    <div class="world" id="world-label">Cargando…</div>
+    <div class="meta" id="meta-label"></div>
+    <div class="turn" id="turn-label">Turno: 0</div>
+    <div class="pos" id="pos-label"></div>
+  </div>
+
+  <div id="demo-tag">DEMO · no se guarda nada</div>
+
+  <div id="help">
+    <span class="key">Flechas/WASD</span>: mover &nbsp;·&nbsp;
+    <span class="key">R</span>: otra pantalla al azar &nbsp;·&nbsp;
+    <span class="key">[ ]</span>: tier − / + &nbsp;·&nbsp;
+    <span class="key">Enter</span>: cambiar avatar &nbsp;·&nbsp;
+    <span class="key">Espacio</span>: cambiar mundo
+  </div>
+
+  <div id="overlay">
+    <div class="title" id="overlay-title"></div>
+    <div class="subtitle" id="overlay-subtitle"></div>
+    <div class="restart" id="overlay-restart">Otra pantalla (R)</div>
+  </div>
+
+<script>
+// Base URL: si estamos en un preview proxy (puerto != 3000), apuntar al 3000.
+const BASE = (window.location.port && window.location.port !== '3000') ? 'http://localhost:3000' : '';
+
+const img = document.getElementById('image');
+const selector = document.getElementById('selector');
+const avatarImg = document.getElementById('avatar');
+const posLabel = document.getElementById('pos-label');
+const turnLabel = document.getElementById('turn-label');
+const metaLabel = document.getElementById('meta-label');
+const worldLabel = document.getElementById('world-label');
+const overlay = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlay-title');
+const overlaySubtitle = document.getElementById('overlay-subtitle');
+
+// === Demo: tier seleccionable, pantalla al azar en cada recarga ===
+let currentTier = 1;
+const COLS = 8, ROWS = 6;
+
+const AVATARS = [
+  '/assets/avatars/avatar_01.png','/assets/avatars/avatar_02.png',
+  '/assets/avatars/avatar_03.png','/assets/avatars/avatar_04.png',
+  '/assets/avatars/avatar_05.png','/assets/avatars/avatar_06.png',
+  '/assets/avatars/avatar_07.png','/assets/avatars/avatar_08.png',
+  '/assets/avatars/avatar_09.png',
+];
+let avatarIdx = parseInt(localStorage.getItem('Runika 2D-avatar-idx') ?? '0', 10) || 0;
+avatarImg.src = BASE + AVATARS[avatarIdx];
+
+// === Mundo actual y calibración ===
+let worlds = [];
+let worldIdx = 0;
+let detection = null;
+let ba = { x: 0, y: 0, width: 0, height: 0 };       // losas/obstáculos
+let avatarBa = { x: 0, y: 0, width: 0, height: 0 }; // avatar/enemigos/meta
+let board = { left: 0, top: 0, w: 0, h: 0 };
+let avatarBoard = { left: 0, top: 0, w: 0, h: 0 };
+let IMG_W = 7680, IMG_H = 4320;
+
+// Rect de la imagen visible (descartando el letterbox de object-fit: contain)
+function visibleImageRect() {
+  const rect = img.getBoundingClientRect();
+  if (!IMG_W || !IMG_H) return rect;
+  const scale = Math.min(rect.width / IMG_W, rect.height / IMG_H);
+  const w = IMG_W * scale;
+  const h = IMG_H * scale;
+  return {
+    left: rect.left + (rect.width - w) / 2,
+    top: rect.top + (rect.height - h) / 2,
+    width: w, height: h,
+  };
+}
+
+function layout() {
+  const rect = visibleImageRect();
+  board = {
+    left: rect.left + ba.x * rect.width,
+    top: rect.top + ba.y * rect.height,
+    w: ba.width * rect.width,
+    h: ba.height * rect.height,
+  };
+  avatarBoard = {
+    left: rect.left + avatarBa.x * rect.width,
+    top: rect.top + avatarBa.y * rect.height,
+    w: avatarBa.width * rect.width,
+    h: avatarBa.height * rect.height,
+  };
+}
+
+// Posición de celda según el tipo de entidad
+function cellPos(c, r, useAvatarArea) {
+  const b = useAvatarArea ? avatarBoard : board;
+  const cw = b.w / COLS;
+  const ch = b.h / ROWS;
+  return { left: b.left + c * cw, top: b.top + r * ch, w: cw, h: ch };
+}
+
+// === Estado del juego ===
+let player = { c: 0, r: 0 };
+let goal = { c: 0, r: 0 };
+let enemies = [];
+let playerStunnedTurns = 0;
+let obstacleCells = new Set();
+let wallCells = new Set();
+let trapCells = new Set();
+let turn = 0;
+let gameOver = false;
+let won = false;
+let moving = false;
+let currentScreenId = null;
+
+// === Sonidos ===
+const stepAudio = document.getElementById('step-sound');
+const bounceAudio = new Audio(`${BASE}/assets/sounds/comun/choque.wav`);
+const trapAudio = new Audio(`${BASE}/assets/sounds/comun/trampa.wav`);
+const victoryAudio = new Audio(`${BASE}/assets/sounds/comun/victoria.mp3`);
+const defeatAudio = new Audio(`${BASE}/assets/sounds/comun/derrota.wav`);
+[bounceAudio, trapAudio, victoryAudio, defeatAudio].forEach(a => a.preload = true);
+
+function play(a) { a.pause(); a.currentTime = 0; a.play().catch(()=>{}); }
+function playStep() { play(stepAudio); }
+
+// === Assets por mundo (con fallback a AGUA si el mundo no los tiene) ===
+const assetCache = {};
+async function exists(path) {
+  try { const r = await fetch(BASE + path, { method: 'HEAD' }); return r.ok; }
+  catch (e) { return false; }
+}
+async function worldAsset(world, rel, fallbackWorld) {
+  const key = world + '|' + rel;
+  if (assetCache[key] !== undefined) return assetCache[key];
+  const p = `/assets/${rel.replace('{W}', world)}`;
+  assetCache[key] = (await exists(p)) ? BASE + p : BASE + `/assets/${rel.replace('{W}', fallbackWorld)}`;
+  return assetCache[key];
+}
+
+// Obstáculos del mundo (lista de imágenes)
+const obstacleCache = {};
+async function getObstacles(world) {
+  if (obstacleCache[world] !== undefined) return obstacleCache[world];
+  try {
+    const res = await fetch(`${BASE}/api/obstacles?world=${encodeURIComponent(world)}`);
+    const data = await res.json();
+    obstacleCache[world] = (data.images && data.images.length) ? data.images : null;
+  } catch (e) { obstacleCache[world] = null; }
+  return obstacleCache[world];
+}
+
+// Elegir N imágenes al azar sin repetir mientras sea posible (regla a fuego)
+function pickRandomImages(pool, n) {
+  if (!pool || !pool.length) return [];
+  const avail = [...pool];
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    if (!avail.length) out.push(pool[Math.floor(Math.random() * pool.length)]);
+    else out.push(avail.splice(Math.floor(Math.random() * avail.length), 1)[0]);
+  }
+  return out;
+}
+
+// === Cargar pantalla de demo (aleatoria del tier 1, sin bbdd) ===
+async function loadScreen() {
+  const res = await fetch(`${BASE}/api/demo-screen?tier=${currentTier}&t=${Date.now()}`);
+  const data = await res.json();
+  if (!data.ok) { worldLabel.textContent = 'Error: ' + data.error; return; }
+  const s = data.screen;
+  currentScreenId = s.id;
+
+  player = { c: s.player[0], r: s.player[1] };
+  goal = { c: s.goal[0], r: s.goal[1] };
+  enemies = s.enemies.map(e => ({ c: e.pos[0], r: e.pos[1], pattern: e.pattern, stunnedTurns: 0 }));
+  playerStunnedTurns = 0;
+  // Paredes (#) y obstáculos (X) por separado; ambos bloquean movimiento
+  wallCells = new Set();
+  obstacleCells = new Set();
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const ch = s.grid[r][c];
+      if (ch === '#') wallCells.add(`${c},${r}`);
+      else if (ch === 'X') obstacleCells.add(`${c},${r}`);
+    }
+  }
+  trapCells = new Set(s.traps.map(([c, r]) => `${c},${r}`));
+
+  turn = 0;
+  gameOver = false;
+  won = false;
+  moving = false;
+  selector.style.zIndex = '';
+  overlay.classList.remove('show', 'win', 'lose');
+
+  const world = detection.world;
+  worldLabel.textContent = `Runika 2D DEMO — ${world} · Tier ${currentTier}`;
+  metaLabel.textContent = `pantalla ${s.id} · min. ${s.minMoves} mov. · tablero ${COLS}x${ROWS}`;
+
+  positionSelector();
+  await renderEntities();
+}
+
+function positionSelector() {
+  const p = cellPos(player.c, player.r, true);
+  selector.style.left = p.left + 'px';
+  selector.style.top = p.top + 'px';
+  selector.style.width = p.w + 'px';
+  selector.style.height = p.h + 'px';
+  posLabel.textContent = `casilla [${player.c}, ${player.r}]`;
+  turnLabel.textContent = `Turno: ${turn}`;
+}
+
+function place(el, c, r, useAvatarArea) {
+  const p = cellPos(c, r, useAvatarArea);
+  el.style.left = p.left + 'px';
+  el.style.top = p.top + 'px';
+  el.style.width = p.w + 'px';
+  el.style.height = p.h + 'px';
+}
+
+async function renderEntities() {
+  const container = document.getElementById('entities');
+  container.innerHTML = '';
+  const world = detection.world;
+
+  // Meta (salida)
+  const goalEl = document.createElement('img');
+  goalEl.className = 'entity goal';
+  goalEl.src = await worldAsset(world, 'salida/{W}/salida.png', 'AGUA');
+  goalEl.dataset.col = goal.c; goalEl.dataset.row = goal.r; goalEl.dataset.type = 'goal';
+  place(goalEl, goal.c, goal.r, true);
+  container.appendChild(goalEl);
+
+  // Enemigos
+  const enemySrc = await worldAsset(world, 'enemys/{W}/enemy_01.png', 'AGUA');
+  enemies.forEach((e, i) => {
+    const el = document.createElement('img');
+    el.className = 'entity';
+    el.src = enemySrc;
+    el.dataset.col = e.c; el.dataset.row = e.r;
+    el.dataset.type = 'enemy'; el.dataset.idx = i;
+    place(el, e.c, e.r, true);
+    container.appendChild(el);
+  });
+
+  // Paredes (#): bloques visuales
+  wallCells.forEach(key => {
+    const [c, r] = key.split(',').map(Number);
+    const el = document.createElement('div');
+    el.className = 'entity wall';
+    el.dataset.col = c; el.dataset.row = r; el.dataset.type = 'wall';
+    place(el, c, r, false);
+    container.appendChild(el);
+  });
+
+  // Obstáculos: imágenes del mundo, al azar sin repetir si se puede
+  const pool = await getObstacles(world);
+  const picks = pickRandomImages(pool, obstacleCells.size);
+  let i = 0;
+  obstacleCells.forEach(key => {
+    const [c, r] = key.split(',').map(Number);
+    const src = picks[i++];
+    if (!src) return;
+    const el = document.createElement('img');
+    el.className = 'entity';
+    el.src = BASE + src;
+    el.dataset.col = c; el.dataset.row = r; el.dataset.type = 'obstacle';
+    place(el, c, r, false);
+    container.appendChild(el);
+  });
+
+  // Trampas
+  if (trapCells.size) {
+    const trapSrc = await worldAsset(world, 'trampas/{W}/trampa_01.png', 'AGUA');
+    trapCells.forEach(key => {
+      const [c, r] = key.split(',').map(Number);
+      const el = document.createElement('img');
+      el.className = 'entity trap';
+      el.src = trapSrc;
+      el.dataset.col = c; el.dataset.row = r; el.dataset.type = 'trap';
+      place(el, c, r, false);
+      container.appendChild(el);
+    });
+  }
+}
+
+function repositionAll() {
+  document.querySelectorAll('.entity').forEach(el => {
+    const c = parseInt(el.dataset.col, 10);
+    const r = parseInt(el.dataset.row, 10);
+    const t = el.dataset.type;
+    place(el, c, r, t === 'goal' || t === 'enemy');
+  });
+}
+
+function updateEnemyPositions() {
+  enemies.forEach((e, i) => {
+    const el = document.querySelector(`.entity[data-idx="${i}"]`);
+    if (!el) return;
+    place(el, e.c, e.r, true);
+    el.dataset.col = e.c; el.dataset.row = e.r;
+    el.style.zIndex = (e.c === player.c && e.r === player.r) ? 20 : '';
+  });
+}
+
+// === Reglas Wappo (idénticas al motor) ===
+function isBlocked(c, r) {
+  return wallCells.has(`${c},${r}`) || obstacleCells.has(`${c},${r}`);
+}
+function canEnter(c, r) {
+  if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+  if (isBlocked(c, r)) return false;
+  return true;
+}
+function enemyAt(c, r) { return enemies.some(e => e.c === c && e.r === r); }
+
+function canEnemyEnter(c, r, selfIdx) {
+  if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+  if (isBlocked(c, r)) return false;
+  for (let i = 0; i < enemies.length; i++) {
+    if (i === selfIdx) continue;
+    if (enemies[i].c === c && enemies[i].r === r) return false;
+  }
+  return true;
+}
+
+function movePlayer(dc, dr) {
+  if (moving || gameOver) return;
+
+  // Aturdido: input ignorado pero el turno avanza
+  if (playerStunnedTurns > 0) {
+    moving = true;
+    playerStunnedTurns--;
+    moveEnemiesAnimated().then(captured => {
+      if (captured) { setTimeout(loseGame, 600); return; }
+      turn++; turnLabel.textContent = `Turno: ${turn}`;
+      moving = false;
+    });
+    return;
+  }
+
+  const nc = player.c + dc, nr = player.r + dr;
+
+  // Movimiento inválido: rebote, NO cuenta turno
+  if (!canEnter(nc, nr)) {
+    moving = true;
+    bounceSelector(dc, dr);
+    play(bounceAudio);
+    return;
+  }
+
+  moving = true;
+  player.c = nc; player.r = nr;
+  positionSelector();
+
+  if (trapCells.has(`${nc},${nr}`)) {
+    play(trapAudio); trapEffect(); playerStunnedTurns = 3;
+  } else {
+    playStep();
+  }
+
+  if (enemyAt(player.c, player.r)) {
+    selector.style.zIndex = 20;
+    setTimeout(loseGame, 600);
+    return;
+  }
+  if (player.c === goal.c && player.r === goal.r) {
+    setTimeout(winGame, 300);
+    return;
+  }
+
+  setTimeout(() => {
+    moveEnemiesAnimated().then(captured => {
+      if (captured) { setTimeout(loseGame, 600); return; }
+      if (player.c === goal.c && player.r === goal.r) { winGame(); return; }
+      turn++; turnLabel.textContent = `Turno: ${turn}`;
+      moving = false;
+    });
+  }, 80);
+}
+
+// 2 pasos por turno, horizontal primero, luego vertical
+function moveEnemiesAnimated() {
+  return new Promise(resolve => {
+    let step = 0;
+    function doStep() {
+      if (step >= 2) { resolve(false); return; }
+      let anyMoved = false;
+      for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (e.stunnedTurns > 0) { e.stunnedTurns--; continue; }
+        const dx = Math.sign(player.c - e.c);
+        const dy = Math.sign(player.r - e.r);
+        const cands = [];
+        if (dx !== 0) cands.push([e.c + dx, e.r]);
+        if (dy !== 0) cands.push([e.c, e.r + dy]);
+        for (const [c, r] of cands) {
+          if (canEnemyEnter(c, r, i)) {
+            e.c = c; e.r = r; anyMoved = true;
+            if (trapCells.has(`${c},${r}`)) e.stunnedTurns = 3;
+            break;
+          }
+        }
+      }
+      updateEnemyPositions();
+      if (enemyAt(player.c, player.r)) { resolve(true); return; }
+      step++;
+      anyMoved ? setTimeout(doStep, 350) : doStep();
+    }
+    doStep();
+  });
+}
+
+// === Efectos ===
+function bounceSelector(dc, dr) {
+  const p = cellPos(player.c, player.r, true);
+  const dx = dc * p.w * 0.25;
+  const dy = dr * p.h * 0.25;
+  selector.style.transition = 'left 0.08s ease-out, top 0.08s ease-out';
+  selector.style.left = (p.left + dx) + 'px';
+  selector.style.top = (p.top + dy) + 'px';
+  setTimeout(() => {
+    selector.style.transition = 'left 0.15s ease-in, top 0.15s ease-in';
+    selector.style.left = p.left + 'px';
+    selector.style.top = p.top + 'px';
+    setTimeout(() => {
+      selector.style.transition = 'left 0.15s ease-in-out, top 0.15s ease-in-out';
+      moving = false;
+    }, 160);
+  }, 90);
+}
+
+function trapEffect() {
+  avatarImg.style.animation = 'none';
+  void avatarImg.offsetWidth;
+  avatarImg.style.animation = 'trapShake 0.6s ease-out';
+  setTimeout(() => { avatarImg.style.animation = ''; }, 600);
+}
+
+// === Fin de partida (DEMO: no se guarda nada) ===
+function winGame() {
+  gameOver = true; won = true;
+  play(victoryAudio);
+  overlay.classList.add('show', 'win');
+  overlayTitle.textContent = 'VICTORIA';
+  overlaySubtitle.textContent = `Completada en ${turn} turnos (demo, no se guarda)`;
+  document.getElementById('overlay-restart').textContent = 'Otra pantalla (R)';
+}
+
+function loseGame() {
+  gameOver = true; won = false;
+  play(defeatAudio);
+  overlay.classList.add('show', 'lose');
+  overlayTitle.textContent = 'DERROTA';
+  overlaySubtitle.textContent = 'El enemigo te atrapó (demo, no se guarda)';
+  document.getElementById('overlay-restart').textContent = 'Reintentar (R)';
+}
+
+// === Mundo ===
+async function loadWorld(idx) {
+  worldIdx = ((idx % worlds.length) + worlds.length) % worlds.length;
+  detection = worlds[worldIdx];
+  ba = { ...detection.boardArea };
+  avatarBa = detection.avatarArea ? { ...detection.avatarArea } : { ...detection.boardArea };
+  IMG_W = detection.width || 7680;
+  IMG_H = detection.height || 4320;
+
+  // Sonido de paso del mundo (fallback a AGUA)
+  stepAudio.src = await worldAsset(detection.world, 'sounds/{W}/paso.mp3', 'AGUA');
+
+  await new Promise(res => {
+    img.onload = res;
+    img.onerror = res;
+    img.src = `${BASE}/` + detection.image;
+  });
+  layout();
+  await loadScreen();
+}
+
+function nextAvatar() {
+  avatarIdx = (avatarIdx + 1) % AVATARS.length;
+  localStorage.setItem('Runika 2D-avatar-idx', String(avatarIdx));
+  avatarImg.src = BASE + AVATARS[avatarIdx];
+}
+
+// === Teclado ===
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Enter') { e.preventDefault(); nextAvatar(); return; }
+  if (e.key === 'r' || e.key === 'R') { e.preventDefault(); loadScreen(); return; }
+  // Cambiar tier: [ ] o - / +
+  if (e.key === '[' || e.key === '-') {
+    e.preventDefault();
+    currentTier = Math.max(1, currentTier - 1);
+    loadScreen();
+    return;
+  }
+  if (e.key === ']' || e.key === '+' || e.key === '=') {
+    e.preventDefault();
+    currentTier = Math.min(14, currentTier + 1);
+    loadScreen();
+    return;
+  }
+  if (e.code === 'Space') { e.preventDefault(); loadWorld(worldIdx + 1); return; }
+  if (gameOver) return;
+  const dirs = {
+    'ArrowUp': [0, -1], 'ArrowDown': [0, 1],
+    'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0],
+    'w': [0, -1], 's': [0, 1], 'a': [-1, 0], 'd': [1, 0],
+    'W': [0, -1], 'S': [0, 1], 'A': [-1, 0], 'D': [1, 0],
+  };
+  const d = dirs[e.key];
+  if (d) { e.preventDefault(); movePlayer(d[0], d[1]); }
+});
+
+document.getElementById('overlay-restart').addEventListener('click', () => loadScreen());
+
+window.addEventListener('resize', () => {
+  if (!detection) return;
+  layout();
+  positionSelector();
+  repositionAll();
+});
+
+// === Init ===
+async function init() {
+  const res = await fetch(`${BASE}/api/worlds?t=${Date.now()}`);
+  worlds = await res.json();
+  // Mundo al azar en cada recarga
+  await loadWorld(Math.floor(Math.random() * worlds.length));
+}
+
+init();
+</script>
+</body>
+</html>

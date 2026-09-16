@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D — Calibrar casillas</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
+  }
+  #overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 10; pointer-events: none;
+  }
+  .cell {
+    position: absolute; z-index: 11;
+    pointer-events: auto; cursor: pointer;
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    background: rgba(0, 255, 255, 0.05);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .cell:hover {
+    border-color: rgba(0, 255, 255, 0.6);
+    background: rgba(0, 255, 255, 0.1);
+  }
+  .cell.selected {
+    border-color: #fc0;
+    background: rgba(255, 204, 0, 0.15);
+    box-shadow: 0 0 12px rgba(255, 204, 0, 0.4);
+    z-index: 12;
+  }
+  .cell .label {
+    position: absolute; top: 2px; left: 4px;
+    font-size: 10px; color: rgba(255,255,255,0.6);
+    pointer-events: none;
+  }
+  .cell.selected .label { color: #fc0; }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.85em; line-height: 1.7;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  select {
+    background: #1a1a2e; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 4px 8px; font-size: 0.9em; cursor: pointer;
+    margin: 2px 0;
+  }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+  #status .info { color: #fc4; }
+  #btn-reset, #btn-auto, #btn-save {
+    position: absolute; z-index: 20;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em; padding: 6px 14px;
+    background: rgba(20,20,40,0.9); color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    cursor: pointer;
+  }
+  #btn-auto { bottom: 12px; left: 12px; }
+  #btn-reset { bottom: 12px; left: 100px; }
+  #btn-save { bottom: 12px; right: 12px; }
+  #btn-save:hover { background: rgba(40,80,40,0.9); border-color: #0f0; }
+  #btn-reset:hover { background: rgba(80,40,40,0.9); border-color: #f44; }
+  #btn-auto:hover { background: rgba(40,40,80,0.9); border-color: #0ff; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="image" src="" />
+  <div id="overlay"></div>
+</div>
+
+<div id="hud">
+  <b>Calibrar casillas individuales</b><br>
+  Mundo: <select id="world-select"></select><br>
+  <br>
+  <span class="key">Click</span> = seleccionar casilla<br>
+  <span class="key">Flechas</span> = mover casilla (Shift = fino)<br>
+  <span class="key">Ctrl+Flechas</span> = cambiar tamano<br>
+  <span class="key">Tab</span> = siguiente casilla<br>
+  <span class="key">G</span> = guardar<br>
+  <span class="key">Espacio</span> = cambiar mundo<br>
+  <br>
+  <span id="cell-info" style="color:#0f0">Casilla: --</span>
+</div>
+
+<button id="btn-auto">Auto-grid</button>
+<button id="btn-reset">Reset</button>
+<button id="btn-save">Guardar (G)</button>
+<div id="status">Elige mundo y ajusta las casillas</div>
+
+<script>
+const MUNDOS = ['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+const COLS = 8;
+const ROWS = 6;
+const NUM_CELLS = COLS * ROWS;
+
+const img = document.getElementById('image');
+const overlay = document.getElementById('overlay');
+const cellInfo = document.getElementById('cell-info');
+const statusEl = document.getElementById('status');
+const worldSelect = document.getElementById('world-select');
+
+let currentWorld = 0;
+let selectedCell = 0;
+// cells[i] = { x, y, w, h } en coordenadas normalizadas (0-1)
+let cells = [];
+
+function visibleImageRect() { return img.getBoundingClientRect(); }
+
+// Inicializar selects
+MUNDOS.forEach((w, i) => {
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = w;
+  worldSelect.appendChild(opt);
+});
+
+worldSelect.addEventListener('change', (e) => {
+  currentWorld = parseInt(e.target.value);
+  loadWorld();
+});
+
+async function loadBoardArea(world) {
+  try {
+    const r = await fetch('/api/load-cells?world=' + encodeURIComponent(world));
+    if (r.ok) {
+      const data = await r.json();
+      if (data.cells && data.cells.length === NUM_CELLS) {
+        cells = data.cells;
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
+async function loadBoardDetection(world) {
+  try {
+    const r = await fetch('/api/worlds?t=' + Date.now());
+    const worlds = await r.json();
+    const det = worlds.find(d => d.world === world);
+    if (det && det.boardArea) return det;
+  } catch {}
+  return null;
+}
+
+function autoGrid() {
+  // Generar grid automatico desde boardArea del board-detection.json
+  loadBoardDetection(MUNDOS[currentWorld]).then(det => {
+    if (!det) {
+      // Sin deteccion, grid centrado
+      const ba = { x: 0.2, y: 0.2, w: 0.6, h: 0.6 };
+      makeGridFromArea(ba);
+    } else {
+      const ba = { x: det.boardArea.x, y: det.boardArea.y, w: det.boardArea.width, h: det.boardArea.height };
+      makeGridFromArea(ba);
+    }
+    render();
+    statusEl.innerHTML = '<span class="info">Auto-grid generado</span>';
+  });
+}
+
+function makeGridFromArea(ba) {
+  cells = [];
+  const cw = ba.w / COLS;
+  const ch = ba.h / ROWS;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      cells.push({
+        x: ba.x + c * cw,
+        y: ba.y + r * ch,
+        w: cw,
+        h: ch
+      });
+    }
+  }
+}
+
+function resetCells() {
+  autoGrid();
+}
+
+async function loadWorld() {
+  const world = MUNDOS[currentWorld];
+  img.src = '/assets/backgrounds/' + world + '/bg_01.png?t=' + Date.now();
+  // Intentar cargar casillas guardadas
+  const loaded = await loadBoardArea(world);
+  if (!loaded) {
+    autoGrid();
+  } else {
+    render();
+  }
+  selectedCell = 0;
+}
+
+function render() {
+  overlay.innerHTML = '';
+  const rect = visibleImageRect();
+  for (let i = 0; i < NUM_CELLS; i++) {
+    const c = cells[i];
+    if (!c) continue;
+    const div = document.createElement('div');
+    div.className = 'cell' + (i === selectedCell ? ' selected' : '');
+    div.style.left = (rect.left + c.x * rect.width) + 'px';
+    div.style.top = (rect.top + c.y * rect.height) + 'px';
+    div.style.width = (c.w * rect.width) + 'px';
+    div.style.height = (c.h * rect.height) + 'px';
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = (col + 1) + ',' + (row + 1);
+    div.appendChild(label);
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedCell = i;
+      render();
+      updateInfo();
+    });
+    overlay.appendChild(div);
+  }
+  updateInfo();
+}
+
+function updateInfo() {
+  const c = cells[selectedCell];
+  if (!c) { cellInfo.textContent = 'Casilla: --'; return; }
+  const col = selectedCell % COLS;
+  const row = Math.floor(selectedCell / COLS);
+  cellInfo.textContent = `Casilla ${col+1},${row+1} (${selectedCell+1}/${NUM_CELLS}): x=${c.x.toFixed(3)} y=${c.y.toFixed(3)} w=${c.w.toFixed(3)} h=${c.h.toFixed(3)}`;
+}
+
+function moveCell(dx, dy) {
+  const c = cells[selectedCell];
+  if (!c) return;
+  c.x = Math.max(0, Math.min(1 - c.w, c.x + dx));
+  c.y = Math.max(0, Math.min(1 - c.h, c.y + dy));
+  render();
+}
+
+function resizeCell(dw, dh) {
+  const c = cells[selectedCell];
+  if (!c) return;
+  c.w = Math.max(0.01, Math.min(1 - c.x, c.w + dw));
+  c.h = Math.max(0.01, Math.min(1 - c.y, c.h + dh));
+  render();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'SELECT') return;
+
+  if (e.key === 'g' || e.key === 'G') { e.preventDefault(); saveCells(); return; }
+  if (e.code === 'Space') { e.preventDefault(); currentWorld = (currentWorld + 1) % MUNDOS.length; worldSelect.value = currentWorld; loadWorld(); return; }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    selectedCell = (selectedCell + (e.shiftKey ? -1 : 1) + NUM_CELLS) % NUM_CELLS;
+    render();
+    return;
+  }
+
+  const step = e.shiftKey ? 0.001 : 0.005;
+  if (e.ctrlKey || e.metaKey) {
+    switch (e.key) {
+      case 'ArrowLeft': e.preventDefault(); resizeCell(-step, 0); break;
+      case 'ArrowRight': e.preventDefault(); resizeCell(step, 0); break;
+      case 'ArrowUp': e.preventDefault(); resizeCell(0, -step); break;
+      case 'ArrowDown': e.preventDefault(); resizeCell(0, step); break;
+    }
+  } else {
+    switch (e.key) {
+      case 'ArrowLeft': e.preventDefault(); moveCell(-step, 0); break;
+      case 'ArrowRight': e.preventDefault(); moveCell(step, 0); break;
+      case 'ArrowUp': e.preventDefault(); moveCell(0, -step); break;
+      case 'ArrowDown': e.preventDefault(); moveCell(0, step); break;
+    }
+  }
+});
+
+function saveCells() {
+  const world = MUNDOS[currentWorld];
+  const data = { world, cells };
+  fetch('/api/save-cells?world=' + encodeURIComponent(world), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(r => r.json()).then(() => {
+    statusEl.innerHTML = '<span class="ok">Guardado: ' + world + ' (' + NUM_CELLS + ' casillas)</span>';
+  }).catch(() => {
+    statusEl.innerHTML = '<span class="err">Error al guardar</span>';
+  });
+}
+
+document.getElementById('btn-save').addEventListener('click', saveCells);
+document.getElementById('btn-auto').addEventListener('click', autoGrid);
+document.getElementById('btn-reset').addEventListener('click', resetCells);
+
+img.addEventListener('load', () => render());
+window.addEventListener('resize', () => { if (img.complete) render(); });
+
+// Init
+(async () => {
+  await loadWorld();
+})();
+</script>
+
+</body>
+</html>

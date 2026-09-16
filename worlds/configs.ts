@@ -15,7 +15,7 @@ import type { BackgroundTemplate, WorldConfig } from "../schemas/types.js";
 export const SPACE_BACKGROUND_01: BackgroundTemplate = {
   id: "SPACE_01",
   world: "ESPACIO",
-  image: "assets/backgrounds/ESPACIO/bg_01.jpg",
+  image: "assets/backgrounds/ESPACIO/bg_01.png",
   safeArea: { x: 0.0, y: 0.0, width: 1.0, height: 1.0 },
   boardArea: { x: 0.25, y: 0.28, width: 0.5, height: 0.48 },
   marginPx: 3,
@@ -33,7 +33,7 @@ export const SPACE_BACKGROUND_01: BackgroundTemplate = {
 export const SPACE_BACKGROUND_02: BackgroundTemplate = {
   id: "SPACE_02",
   world: "ESPACIO",
-  image: "assets/backgrounds/ESPACIO/bg_01.jpg",
+  image: "assets/backgrounds/ESPACIO/bg_01.png",
   safeArea: { x: 0.0, y: 0.0, width: 1.0, height: 1.0 },
   boardArea: { x: 0.2, y: 0.25, width: 0.6, height: 0.55 },
   marginPx: 4,
@@ -72,7 +72,7 @@ export const SPACE_WORLD: WorldConfig = {
     door: "space_door.png",
     obstacle: "space_obstacle.png",
   },
-  allowedBoardSizes: [[6, 5], [7, 6], [8, 6], [8, 8], [10, 8]],
+  allowedBoardSizes: [[8, 6]],
   difficultyTable: [
     { range: [1, 10], stars: 1, maxEnemies: 1 },
     { range: [11, 25], stars: 2, maxEnemies: 1 },
@@ -94,7 +94,7 @@ export const SPACE_BACKGROUNDS: readonly BackgroundTemplate[] = [
 export const FIRE_BACKGROUND_01: BackgroundTemplate = {
   id: "FIRE_01",
   world: "FUEGO",
-  image: "assets/backgrounds/FUEGO/bg_01.jpg",
+  image: "assets/backgrounds/FUEGO/bg_01.png",
   safeArea: { x: 0.0, y: 0.0, width: 1.0, height: 1.0 },
   boardArea: { x: 0.22, y: 0.3, width: 0.56, height: 0.5 },
   marginPx: 4,
@@ -133,7 +133,7 @@ export const FIRE_WORLD: WorldConfig = {
     door: "fire_door.png",
     obstacle: "fire_obstacle.png",
   },
-  allowedBoardSizes: [[7, 6], [8, 6], [8, 8], [10, 8], [12, 10]],
+  allowedBoardSizes: [[8, 6]],
   difficultyTable: [
     { range: [1, 10], stars: 2, maxEnemies: 1 }, // FUEGO empieza más difícil
     { range: [11, 25], stars: 3, maxEnemies: 2 },

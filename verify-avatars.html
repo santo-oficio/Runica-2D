@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificación de avatares</title>
+<style>
+  body {
+    background: #111;
+    color: #eee;
+    font-family: 'Segoe UI', sans-serif;
+    padding: 20px;
+  }
+  h1 { font-size: 1.2em; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 160px);
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .cell {
+    text-align: center;
+  }
+  .avatar {
+    width: 128px;
+    height: 128px;
+    /* fondo de ajedrez para ver transparencia */
+    background-image:
+      linear-gradient(45deg, #ccc 25%, transparent 25%),
+      linear-gradient(-45deg, #ccc 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #ccc 75%),
+      linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    image-rendering: pixelated;
+    border: 1px solid #333;
+  }
+  .avatar img {
+    width: 128px;
+    height: 128px;
+    image-rendering: pixelated;
+  }
+  .name { font-size: 0.8em; color: #aaa; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <h1>Avatares recortados (9)</h1>
+  <div class="grid" id="grid"></div>
+<script>
+  const grid = document.getElementById('grid');
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const name = `avatar_${String(i).padStart(2, '0')}.png`;
+    cell.innerHTML = `
+      <div class="avatar"><img src="/assets/avatars/${name}"></div>
+      <div class="name">${name}</div>
+    `;
+    grid.appendChild(cell);
+  }
+</script>
+</body>
+</html>

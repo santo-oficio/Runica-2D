@@ -25,7 +25,7 @@ type Detection = {
   cellSize: number;
 };
 
-const MUNDOS = ["ESPACIO", "AGUA", "CASTILLO_FINAL", "FUEGO", "HIELO", "INFRAMUNDO", "TIERRA", "VIENTO"];
+const MUNDOS = ["ESPACIO", "AGUA", "MAZMORRA", "FUEGO", "HIELO", "INFRAMUNDO", "TIERRA", "VIENTO"];
 
 function loadDetection(world: string): Detection | null {
   const path = join(process.cwd(), "assets", "backgrounds", world, "board-detection.json");

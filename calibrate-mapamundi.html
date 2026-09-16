@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar posiciones de avatar en mapamundi</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 12; pointer-events: none; }
+  .marker {
+    position: absolute; z-index: 14; pointer-events: none;
+    border: 3px solid #0f0;
+    border-radius: 50%;
+    background: rgba(0, 255, 0, 0.15);
+  }
+  .marker.active {
+    border-color: #fc0;
+    box-shadow: 0 0 20px rgba(255, 204, 0, 0.5);
+    background: rgba(255, 204, 0, 0.15);
+  }
+  .marker .tag {
+    position: absolute; top: -22px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px; padding: 2px 8px; border-radius: 2px;
+    background: #0f0; color: #000; white-space: nowrap;
+  }
+  .marker.active .tag { background: #fc0; }
+  #avatar-previews {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 13; pointer-events: none;
+  }
+  .island-avatar {
+    position: absolute;
+    pointer-events: none;
+    display: block;
+    overflow: visible;
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  .island-avatar img {
+    width: 100%; height: 100%; object-fit: contain;
+    opacity: 0.9;
+    image-rendering: auto;
+    filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.85));
+  }
+  .island-avatar.selected {
+    transform: scale(1.15);
+    z-index: 2;
+  }
+  .island-avatar.selected img {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(255,210,80,0.95)) drop-shadow(2px 2px 6px rgba(0,0,0,0.85));
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.85em; line-height: 1.7;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  #hud .new { color: #0f0; }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.75); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+  #status .info { color: #fc4; }
+  select {
+    background: #1a1a2e; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 2px 6px; font-size: 0.9em; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="image" src="/assets/mapamundi/mapamundi.png" />
+  <div id="overlay"></div>
+  <div id="avatar-previews"></div>
+</div>
+
+<div id="hud">
+  <b>Calibrar posiciones de avatar en mapamundi</b><br>
+  Coloca cada mundo y la posicion inicial del avatar<br>
+  <br>
+  Mundo: <select id="world-select"></select><br>
+  <br>
+  <span class="key">Flechas</span> = mover seleccion (Shift = fino)<br>
+  <span class="key">+ / -</span> = tamano del avatar<br>
+  <span class="key">Tab</span> = siguiente mundo<br>
+  <span class="key">G</span> = guardar JSON<br>
+  <span class="key">C</span> = cargar guardado<br>
+  <br>
+  <span id="coords" style="color:#0f0">Sin seleccion</span>
+</div>
+
+<div id="status">Selecciona un mundo y muevelo con las flechas</div>
+
+<script>
+  const img = document.getElementById('image');
+  const overlay = document.getElementById('overlay');
+  const avatarPreviews = document.getElementById('avatar-previews');
+  const coordsEl = document.getElementById('coords');
+  const statusEl = document.getElementById('status');
+  const worldSelect = document.getElementById('world-select');
+
+  const WORLD_AVATARS = {
+    ESPACIO:    '/assets/avatars/avatar_01.png',
+    AGUA:       '/assets/avatars/avatar_02.png',
+    TIERRA:     '/assets/avatars/avatar_03.png',
+    FUEGO:      '/assets/avatars/avatar_04.png',
+    HIELO:      '/assets/avatars/avatar_05.png',
+    VIENTO:     '/assets/avatars/avatar_06.png',
+    INFRAMUNDO: '/assets/avatars/avatar_07.png',
+    MAZMORRA:   '/assets/avatars/avatar_08.png',
+  };
+
+  const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
+
+  let positions = {};
+  WORLD_ORDER.forEach(w => { positions[w] = { x: 0.5, y: 0.5 }; });
+
+  let avatarSize = 0.04;
+  let selectedWorld = 0;
+
+  // Llenar select
+  WORLD_ORDER.forEach((w, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = w;
+    worldSelect.appendChild(opt);
+  });
+
+  worldSelect.addEventListener('change', (e) => {
+    selectedWorld = parseInt(e.target.value);
+    render();
+    updateCoords();
+  });
+
+  function getImgRect() { return img.getBoundingClientRect(); }
+
+  function render() {
+    overlay.innerHTML = '';
+    const r = getImgRect();
+    const sz = avatarSize * r.width;
+
+    // Marcadores de mundos
+    WORLD_ORDER.forEach((world, i) => {
+      const pos = positions[world];
+      const div = document.createElement('div');
+      div.className = 'marker' + (i === selectedWorld ? ' active' : '');
+      div.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
+      div.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
+      div.style.width = sz + 'px';
+      div.style.height = sz + 'px';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = world;
+      div.appendChild(tag);
+      overlay.appendChild(div);
+    });
+
+    // Mostrar un avatar de referencia sobre cada isla.
+    // Se usa avatar_01 en todas para comparar las posiciones con la misma silueta.
+    avatarPreviews.innerHTML = '';
+    WORLD_ORDER.forEach((world, i) => {
+      const pos = positions[world];
+      const preview = document.createElement('div');
+      preview.className = 'island-avatar' + (i === selectedWorld ? ' selected' : '');
+      preview.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
+      preview.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
+      preview.style.width = sz + 'px';
+      preview.style.height = sz + 'px';
+      const avatarImg = document.createElement('img');
+      avatarImg.src = '/assets/avatars/avatar_01.png';
+      avatarImg.alt = world;
+      avatarImg.onerror = () => {
+        statusEl.innerHTML = '<span class="err">No se pudo cargar el avatar de referencia</span>';
+      };
+      preview.appendChild(avatarImg);
+      avatarPreviews.appendChild(preview);
+    });
+  }
+
+  function updateCoords() {
+    const world = WORLD_ORDER[selectedWorld];
+    const pos = positions[world];
+    coordsEl.textContent = world + ': x=' + pos.x.toFixed(4) + ' y=' + pos.y.toFixed(4) +
+      ' | avatar de este mundo | sz=' + avatarSize.toFixed(3);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'SELECT') return;
+    const step = e.shiftKey ? 0.001 : 0.01;
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      selectedWorld = (selectedWorld + (e.shiftKey ? -1 : 1) + WORLD_ORDER.length) % WORLD_ORDER.length;
+      worldSelect.value = selectedWorld;
+      render(); updateCoords();
+      return;
+    }
+    if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
+    if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
+    if (e.key === '+' || e.key === '=') { avatarSize = Math.min(0.1, avatarSize + 0.005); render(); updateCoords(); return; }
+    if (e.key === '-' || e.key === '_') { avatarSize = Math.max(0.01, avatarSize - 0.005); render(); updateCoords(); return; }
+
+    const world = WORLD_ORDER[selectedWorld];
+    const pos = positions[world];
+    let changed = false;
+
+    switch (e.key) {
+      case 'ArrowLeft': pos.x = Math.max(0, pos.x - step); changed = true; break;
+      case 'ArrowRight': pos.x = Math.min(1, pos.x + step); changed = true; break;
+      case 'ArrowUp': pos.y = Math.max(0, pos.y - step); changed = true; break;
+      case 'ArrowDown': pos.y = Math.min(1, pos.y + step); changed = true; break;
+      default: return;
+    }
+
+    e.preventDefault();
+    if (changed) { render(); updateCoords(); }
+  });
+
+  // Click para mover el mundo seleccionado
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#hud') || e.target.closest('#status') || e.target.closest('select')) return;
+    const r = getImgRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    const x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top) / r.height;
+    const world = WORLD_ORDER[selectedWorld];
+    positions[world] = { x, y };
+    render(); updateCoords();
+    statusEl.innerHTML = '<span class="ok">' + world + ' movido a x=' + x.toFixed(3) + ' y=' + y.toFixed(3) + '</span>';
+  });
+
+  function saveJson() {
+    const data = { positions, avatarSize };
+    const json = JSON.stringify(data, null, 2);
+    fetch('/api/save-avatar-positions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
+    }).then(() => {
+      statusEl.innerHTML = '<span class="ok">Guardado: ' + WORLD_ORDER.length + ' mundos + avatar</span>';
+    }).catch(() => {
+      statusEl.innerHTML = '<span class="err">Error al guardar</span>';
+    });
+  }
+
+  async function loadJson() {
+    try {
+      const r = await fetch('/api/load-avatar-positions');
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (data.positions) Object.assign(positions, data.positions);
+      if (data.avatarSize) avatarSize = data.avatarSize;
+      render(); updateCoords();
+      statusEl.innerHTML = '<span class="ok">Cargado</span>';
+    } catch {
+      statusEl.innerHTML = '<span class="err">No hay guardado</span>';
+    }
+  }
+
+  loadJson();
+  img.addEventListener('load', render);
+  window.addEventListener('resize', render);
+</script>
+
+</body>
+</html>

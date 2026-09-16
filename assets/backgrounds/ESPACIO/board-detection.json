@@ -1,21 +1,23 @@
 {
   "world": "ESPACIO",
-  "image": "assets/backgrounds/ESPACIO/bg_01.jpg",
-  "width": 1376,
-  "height": 768,
+  "image": "assets/backgrounds/ESPACIO/bg_01.png",
+  "width": 7680,
+  "height": 4320,
   "boardArea": {
-    "x": 0.2979622093023256,
-    "y": 0.25911458333333334,
-    "width": 0.40334302325581395,
-    "height": 0.609375
+    "x": 0.2980019631137957,
+    "y": 0.1730224146542263,
+    "width": 0.39813718244420143,
+    "height": 0.6466251174533468
   },
   "boardSize": [
-    6,
-    5
+    8,
+    6
   ],
-  "cellSize": 94.05,
-  "arScore": 0.9610878661087867,
-  "rectangularity": 0.8897131441064495,
-  "gridScore": 1904.852272970691,
-  "totalScore": 20899.323739922147
+  "cellSize": 390.77,
+  "avatarArea": {
+    "x": 0.2868510300731811,
+    "y": 0.2647699448408344,
+    "width": 0.40887538222466246,
+    "height": 0.5017403754116347
+  }
 }

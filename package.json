@@ -1,8 +1,8 @@
 {
-  "name": "grido-wappo",
+  "name": "runika-2d",
   "version": "0.1.0",
   "private": true,
-  "description": "Wappo Infinito — puzzle con niveles infinitos generados proceduralmente y validados matemáticamente.",
+  "description": "Runika 2D — Wappo Infinito, puzzle con niveles infinitos generados proceduralmente y validados matemáticamente.",
   "type": "module",
   "engines": {
     "node": ">=20"

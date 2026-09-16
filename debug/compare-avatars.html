@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparación de avatares</title>
+<style>
+  body { background: #111; color: #eee; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+  h1 { font-size: 1.2em; }
+  h2 { font-size: 1em; color: #8cf; margin-top: 28px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+  .checker {
+    background-image:
+      linear-gradient(45deg, #444 25%, transparent 25%),
+      linear-gradient(-45deg, #444 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #444 75%),
+      linear-gradient(-45deg, transparent 75%, #444 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+  .cell { text-align: center; }
+  .avatar { width: 128px; height: 128px; border: 1px solid #333; image-rendering: pixelated; }
+  .avatar img { width: 128px; height: 128px; image-rendering: pixelated; display: block; }
+  .name { font-size: 0.75em; color: #aaa; margin-top: 6px; }
+  .label { font-size: 0.7em; color: #fc6; margin-top: 2px; }
+  .current { outline: 2px solid #fc6; }
+</style>
+</head>
+<body>
+  <h1>Comparación de avatares — variantes generadas</h1>
+  <p style="color:#aaa;font-size:0.85em">El borde amarillo marca el avatar actual en <code>assets/avatars/</code>. El resto son variantes en <code>debug/fix/</code>.</p>
+
+  <h2>Avatar 02 (variantes)</h2>
+  <div class="row">
+    <div class="cell"><div class="avatar checker current"><img src="/assets/avatars/avatar_02.png"></div><div class="name">avatar_02.png</div><div class="label">actual</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_02_box_only_full.png"></div><div class="name">box_only</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_02_box+point_full.png"></div><div class="name">box+point</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_02_box+2pts_full.png"></div><div class="name">box+2pts</div></div>
+  </div>
+
+  <h2>Avatar 03 (variantes)</h2>
+  <div class="row">
+    <div class="cell"><div class="avatar checker current"><img src="/assets/avatars/avatar_03.png"></div><div class="name">avatar_03.png</div><div class="label">actual</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_03_box_only_full.png"></div><div class="name">box_only</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_03_box+point_full.png"></div><div class="name">box+point</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_03_box+2pts_full.png"></div><div class="name">box+2pts</div></div>
+  </div>
+
+  <h2>Avatar 04 (variantes)</h2>
+  <div class="row">
+    <div class="cell"><div class="avatar checker current"><img src="/assets/avatars/avatar_04.png"></div><div class="name">avatar_04.png</div><div class="label">actual</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_04_big_box_full.png"></div><div class="name">big_box</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_04_box+low_pt_full.png"></div><div class="name">box+low_pt</div></div>
+    <div class="cell"><div class="avatar checker"><img src="/debug/fix/avatar_04_box+3pts_full.png"></div><div class="name">box+3pts</div></div>
+  </div>
+
+  <h2>Todos los avatares actuales</h2>
+  <div class="row" id="all"></div>
+
+  <h2>Imagen original con cajas (overlay)</h2>
+  <div class="row">
+    <div class="cell"><img src="/debug/diag/avatar_02_overlay.png" style="max-width:400px;border:1px solid #333"></div>
+    <div class="cell"><img src="/debug/diag/avatar_03_overlay.png" style="max-width:400px;border:1px solid #333"></div>
+    <div class="cell"><img src="/debug/diag/avatar_04_overlay.png" style="max-width:400px;border:1px solid #333"></div>
+  </div>
+  <p style="color:#888;font-size:0.8em">Verde = caja prompt, Azul = bbox de la máscara, Rojo = máscara SAM.</p>
+
+<script>
+  const all = document.getElementById('all');
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const name = `avatar_${String(i).padStart(2, '0')}.png`;
+    cell.innerHTML = `<div class="avatar checker"><img src="/assets/avatars/${name}"></div><div class="name">${name}</div>`;
+    all.appendChild(cell);
+  }
+</script>
+</body>
+</html>

@@ -239,7 +239,7 @@ describe("enemyMove", () => {
     expect(state.enemies[0]!.pos).toEqual([3, 1]);
   });
 
-  it("no se mueve onto otro enemigo", () => {
+  it("puede solaparse con otro enemigo durante el movimiento", () => {
     const level = mkLevel(["#######", "#P.EE.#", "#######"], {
       enemies: [
         { pos: [3, 1], pattern: "PERSECUCION_SIMPLE" },
@@ -347,18 +347,30 @@ describe("playTurn — bucle de turno", () => {
     expect(state.failed).toBe(false);
   });
 
-  it("derrota: enemigo alcanza al jugador", () => {
+  it("derrota: enemigo alcanza al jugador (2 pasos/turno)", () => {
     const level = mkLevel(["#######", "#P.E..#", "#######"], {
       enemies: [{ pos: [3, 1], pattern: "PERSECUCION_SIMPLE" }],
     });
     const state = createInitialState(level);
-    // Jugador no se mueve (LEFT contra pared), enemigo persigue
-    playTurn(state, "LEFT"); // P no se mueve, E avanza a [2,1]
-    expect(state.enemies[0]!.pos).toEqual([2, 1]);
-    expect(state.failed).toBe(false);
-    playTurn(state, "LEFT"); // P no se mueve, E avanza a [1,1] = P → derrota
+    // Jugador se mueve RIGHT (válido), enemigo persigue 2 pasos
+    // P: [1,1]→[2,1], E: [3,1]→[2,1] (paso1) → captura en paso 1
+    playTurn(state, "RIGHT");
     expect(state.failed).toBe(true);
     expect(state.failureReason).toContain("enemigo");
+  });
+
+  it("enemigo 2 pasos: primer paso intermedio sin derrota", () => {
+    // Tablero mas largo para ver los 2 pasos por separado
+    const level = mkLevel(["#########", "#P....E.#", "#########"], {
+      enemies: [{ pos: [6, 1], pattern: "PERSECUCION_SIMPLE" }],
+    });
+    const state = createInitialState(level);
+    // P se mueve LEFT (válido, hay suelo a la izquierda dentro del borde)
+    // P: [1,1]→[0,1] no, [0,1] es pared. Usar RIGHT en su lugar.
+    // P: [1,1]→[2,1], E: [6,1]→[5,1] (paso1), [4,1] (paso2)
+    playTurn(state, "RIGHT");
+    expect(state.enemies[0]!.pos).toEqual([4, 1]);
+    expect(state.failed).toBe(false);
   });
 
   it("no procesa más turnos tras victoria", () => {
@@ -376,6 +388,108 @@ describe("playTurn — bucle de turno", () => {
     const state = createInitialState(level);
     playTurn(state, "RIGHT");
     expect(state.turn).toBe(1);
+  });
+
+  it("movimiento inválido (pared) NO cuenta como turno ni mueve enemigos", () => {
+    // Jugador en [1,1], pared a la izquierda, enemigo en [5,1]
+    const level = mkLevel(["#######", "#P...E#", "#######"], {
+      enemies: [{ pos: [5, 1], pattern: "PERSECUCION_SIMPLE" }],
+    });
+    const state = createInitialState(level);
+    const enemyPosBefore = [...state.enemies[0]!.pos] as [number, number];
+    // Intentar mover LEFT (pared) — no debe contar
+    playTurn(state, "LEFT");
+    expect(state.player).toEqual([1, 1]); // no se movió
+    expect(state.turn).toBe(0); // turno no avanzó
+    expect(state.enemies[0]!.pos).toEqual(enemyPosBefore); // enemigo no se movió
+    expect(state.failed).toBe(false);
+  });
+
+  it("movimiento inválido (obstáculo) NO cuenta como turno ni mueve enemigos", () => {
+    // Jugador en [2,1], obstáculo a la derecha en [3,1], enemigo en [5,1]
+    const level = mkLevel(["#######", "#P.X.E#", "#######"], {
+      enemies: [{ pos: [5, 1], pattern: "PERSECUCION_SIMPLE" }],
+    });
+    const state = createInitialState(level);
+    // Mover RIGHT primero (válido, a [2,1])
+    playTurn(state, "RIGHT");
+    expect(state.player).toEqual([2, 1]);
+    const enemyPosAfter1 = [...state.enemies[0]!.pos] as [number, number];
+    // Ahora intentar RIGHT otra vez (obstáculo en [3,1]) — no debe contar
+    playTurn(state, "RIGHT");
+    expect(state.player).toEqual([2, 1]); // no se movió
+    expect(state.enemies[0]!.pos).toEqual(enemyPosAfter1); // enemigo no se movió
+  });
+
+  it("movimiento inválido (fuera del tablero) NO cuenta como turno", () => {
+    const level = mkLevel(["#######", "#P...E#", "#######"], {
+      enemies: [{ pos: [5, 1], pattern: "PERSECUCION_SIMPLE" }],
+    });
+    const state = createInitialState(level);
+    const enemyPosBefore = [...state.enemies[0]!.pos] as [number, number];
+    // Intentar UP (pared en [1,0]) — no debe contar
+    playTurn(state, "UP");
+    expect(state.player).toEqual([1, 1]); // no se movió
+    expect(state.turn).toBe(0); // turno no avanzó
+    expect(state.enemies[0]!.pos).toEqual(enemyPosBefore); // enemigo no se movió
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Aturdimiento del jugador por trampa (regla "a fuego": 3 turnos)
+// ---------------------------------------------------------------------------
+
+describe("aturdimiento del jugador (trampa)", () => {
+  it("pisar trampa aturde 3 turnos (no puede moverse, pero el turno avanza)", () => {
+    const level = mkLevel(["#########", "#PT..E..#", "#########"], {
+      enemies: [{ pos: [6, 1], pattern: "VIGILANCIA_ZONA" }],
+      player: [1, 1],
+    });
+    const state = createInitialState(level);
+
+    // Turno 1: P se mueve a la trampa [2,1] → queda aturdido 3 turnos.
+    playTurn(state, "RIGHT");
+    expect(state.player).toEqual([2, 1]);
+    expect(state.playerStunnedTurns).toBe(3);
+    expect(state.turn).toBe(1);
+
+    // Turnos 2-4: input ignorado, no se mueve, pero el turno avanza.
+    playTurn(state, "RIGHT");
+    expect(state.player).toEqual([2, 1]);
+    expect(state.playerStunnedTurns).toBe(2);
+    expect(state.turn).toBe(2);
+
+    playTurn(state, "RIGHT");
+    expect(state.player).toEqual([2, 1]);
+    expect(state.playerStunnedTurns).toBe(1);
+    expect(state.turn).toBe(3);
+
+    playTurn(state, "RIGHT");
+    expect(state.player).toEqual([2, 1]);
+    expect(state.playerStunnedTurns).toBe(0);
+    expect(state.turn).toBe(4);
+
+    // Turno 5: ya no está aturdido, se mueve con normalidad.
+    playTurn(state, "RIGHT");
+    expect(state.player).toEqual([3, 1]);
+    expect(state.turn).toBe(5);
+  });
+
+  it("jugador aturdido sigue siendo capturable por el enemigo", () => {
+    // P pisa trampa en [2,1] y queda aturdido. Un enemigo perseguidor cercano
+    // se mueve hacia él y lo captura aunque esté aturdido.
+    const level = mkLevel(["#########", "#PTE....#", "#########"], {
+      enemies: [{ pos: [3, 1], pattern: "PERSECUCION_SIMPLE" }],
+      player: [1, 1],
+    });
+    const state = createInitialState(level);
+
+    // Turno 1: P→[2,1] trampa (aturdido). E en [3,1] persigue: paso1 → [2,1] captura.
+    playTurn(state, "RIGHT");
+    expect(state.player).toEqual([2, 1]);
+    expect(state.playerStunnedTurns).toBe(3);
+    expect(state.failed).toBe(true);
+    expect(state.failureReason).toContain("enemigo");
   });
 });
 
@@ -396,7 +510,9 @@ describe("replayMoves", () => {
       enemies: [{ pos: [3, 1], pattern: "PERSECUCION_SIMPLE" }],
     });
     const state = createInitialState(level);
-    replayMoves(state, ["LEFT", "LEFT", "LEFT", "LEFT"], createRng(0));
+    // P se mueve RIGHT hacia el enemigo. E persigue 2 pasos.
+    // Turno 1: P→[2,1], E: [3,1]→[2,1] captura en paso 1
+    replayMoves(state, ["RIGHT"], createRng(0));
     expect(state.failed).toBe(true);
   });
 });

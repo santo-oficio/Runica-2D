@@ -1,21 +1,23 @@
 {
   "world": "AGUA",
-  "image": "assets/backgrounds/AGUA/bg_01.jpg",
-  "width": 1376,
-  "height": 768,
+  "image": "assets/backgrounds/AGUA/bg_01.png",
+  "width": 7680,
+  "height": 4320,
   "boardArea": {
-    "x": 0.2979622093023256,
-    "y": 0.25911458333333334,
-    "width": 0.40334302325581395,
-    "height": 0.609375
+    "x": 0.2980019631137957,
+    "y": 0.1730224146542263,
+    "width": 0.39813718244420143,
+    "height": 0.6466251174533468
   },
   "boardSize": [
-    6,
-    5
+    8,
+    6
   ],
-  "cellSize": 92.5,
-  "arScore": 0.9870967741935484,
-  "rectangularity": 0.6854565996571607,
-  "gridScore": 1035.2116503265065,
-  "totalScore": 12024.669877115773
+  "cellSize": 390.77,
+  "avatarArea": {
+    "x": 0.2612986324551772,
+    "y": 0.19888254665203073,
+    "width": 0.4957443889498725,
+    "height": 0.6557214050493962
+  }
 }
