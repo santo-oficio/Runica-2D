@@ -60,6 +60,22 @@
     width: 100%; height: 100%;
     z-index: 10; pointer-events: none;
   }
+  #dynamic-text {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 13; pointer-events: none;
+  }
+  .world-text {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    color: #fff8df;
+    font-family: 'MedievalSharp', cursive;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.95), 0 0 10px rgba(255,200,80,0.75);
+  }
   .cell-marker {
     position: absolute;
     z-index: 11;
@@ -166,6 +182,7 @@
 <div id="stage">
   <img id="bg" src="" />
   <div id="overlay"></div>
+  <div id="dynamic-text"></div>
   <div id="avatar"><img src="/assets/avatars/avatar_06.png" alt="" /></div>
 </div>
 
@@ -240,6 +257,10 @@
   };
 
   let positions = {};
+  let textAreas = {
+    worldName: { x: 0.35, y: 0.08, w: 0.3, h: 0.08 },
+    level: { x: 0.4, y: 0.18, w: 0.2, h: 0.07 },
+  };
   let avatarSize = 0.06;
   let currentWorld = 'ESPACIO';
   let currentLevel = 0; // Siempre empieza en el nivel 1 (indice 0)
@@ -271,6 +292,7 @@
 
   const bg = document.getElementById('bg');
   const overlay = document.getElementById('overlay');
+  const dynamicText = document.getElementById('dynamic-text');
   const avatarEl = document.getElementById('avatar');
   const avatarImg = avatarEl.querySelector('img');
 
@@ -289,6 +311,16 @@
     for (let i = 0; i < NUM_LEVELS; i++) {
       if (!positions[i]) positions[i] = { x: 0.5, y: 0.5 };
     }
+  }
+
+  async function loadTextAreas(world) {
+    try {
+      const r = await fetch('/api/load-subworld-text-areas?world=' + encodeURIComponent(world));
+      if (r.ok) {
+        const data = await r.json();
+        if (data.areas) textAreas = { ...textAreas, ...data.areas };
+      }
+    } catch {}
   }
 
   function render() {
@@ -319,6 +351,25 @@
       avatarEl.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
       avatarEl.style.width = sz + 'px';
       avatarEl.style.height = sz + 'px';
+    }
+
+    dynamicText.innerHTML = '';
+    const dynamicValues = {
+      worldName: currentWorld,
+      level: 'Nivel: ' + (currentLevel + 1) + '/' + NUM_LEVELS,
+    };
+    for (const type of ['worldName', 'level']) {
+      const area = textAreas[type];
+      if (!area) continue;
+      const text = document.createElement('div');
+      text.className = 'world-text';
+      text.textContent = dynamicValues[type];
+      text.style.left = (r.left + area.x * r.width) + 'px';
+      text.style.top = (r.top + area.y * r.height) + 'px';
+      text.style.width = (area.w * r.width) + 'px';
+      text.style.height = (area.h * r.height) + 'px';
+      text.style.fontSize = Math.max(14, area.h * r.height * 0.62) + 'px';
+      dynamicText.appendChild(text);
     }
 
     document.getElementById('pos-info').textContent = 'Nivel: ' + (currentLevel + 1) + '/' + NUM_LEVELS;
@@ -443,6 +494,7 @@
       applyI18n();
       bg.src = WORLD_IMAGES[currentWorld];
       await loadPositions(currentWorld);
+      await loadTextAreas(currentWorld);
       bg.addEventListener('load', () => {
         render();
         AssetsCache.hideLoading();
@@ -466,6 +518,7 @@
     applyI18n();
     bg.src = WORLD_IMAGES[currentWorld];
     await loadPositions(currentWorld);
+    await loadTextAreas(currentWorld);
 
     bg.addEventListener('load', () => {
       render();

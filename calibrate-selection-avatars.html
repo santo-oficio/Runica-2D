@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calibrar casillas de avatares</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px 'Courier New',monospace}
+#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#image{width:100%;height:100%;object-fit:contain;display:block}
+#slots{position:absolute;inset:0;pointer-events:none;z-index:10}
+.slot{position:absolute;overflow:hidden;border:3px solid rgba(255,210,60,.9)}
+.slot img{position:absolute;width:100%;height:100%;object-fit:cover}
+.slot.selected{border-color:#0ff;box-shadow:0 0 14px #0ff}
+#drag{position:absolute;border:3px dashed #0ff;background:rgba(0,220,255,.12);display:none;z-index:11;pointer-events:none}
+#hud{position:absolute;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.86);padding:12px 16px;line-height:1.7;border:1px solid #567;border-radius:4px}
+#hud b{color:#0ff}.key{color:#fc4}
+select,button{background:#18202a;color:#fff;border:1px solid #789;padding:4px 7px;border-radius:3px}button{cursor:pointer;margin-top:4px}
+.status{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.86);padding:7px 15px}.ok{color:#0f0}.err{color:#f66}
+</style>
+</head>
+<body>
+<div id="stage"><img id="image" src="/assets/menu%20principal/seleccion_personaje.png?v=slots" alt=""><div id="slots"></div><div id="drag"></div></div>
+<div id="hud"><b>Casillas de avatares</b><br>
+Avatar: <select id="avatar-select"></select><br>
+<span class="key">Arrastrar</span> = dibujar casilla del avatar<br>
+<span class="key">Flechas</span> = mover (Shift = fino)<br>
+<span class="key">+ / -</span> = cambiar tamaño<br>
+<span class="key">G</span> = guardar y pasar al siguiente · <span class="key">C</span> = cargar<br>
+<button id="save">Guardar</button> <button id="load">Cargar</button><br>
+<span id="coords" style="color:#0f0"></span></div>
+<div class="status" id="status">Arrastra para marcar la casilla de cada avatar</div>
+<script>
+const N=8,image=document.getElementById('image'),slotsEl=document.getElementById('slots'),dragEl=document.getElementById('drag'),select=document.getElementById('avatar-select'),coords=document.getElementById('coords'),status=document.getElementById('status');
+const DEFAULTS=[{x:.324,y:.283,w:.081,h:.107},{x:.421,y:.281,w:.081,h:.108},{x:.513,y:.279,w:.076,h:.108},{x:.605,y:.279,w:.078,h:.109},{x:.325,y:.403,w:.080,h:.111},{x:.420,y:.403,w:.080,h:.112},{x:.513,y:.401,w:.076,h:.112},{x:.603,y:.401,w:.078,h:.112}];
+let selected=0,slots=Array.from({length:N},()=>null),dragging=false,dragStart=null,dragCur=null;
+const AVATAR_SRCS=Array.from({length:N},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.png?v=512`);
+function preload(srcs){return Promise.all(srcs.map(s=>new Promise(r=>{const im=new Image();im.onload=im.onerror=()=>r();im.src=s})))}
+const slotEls=[];
+for(let i=0;i<N;i++){const o=document.createElement('option');o.value=i;o.textContent='Avatar '+(i+1);select.appendChild(o);const d=document.createElement('div');d.className='slot';const img=document.createElement('img');img.src=AVATAR_SRCS[i];d.appendChild(img);slotsEl.appendChild(d);slotEls.push(d)}
+function rect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,height=w/ratio;if(height>h){height=h;width=h*ratio}return{left:(w-width)/2,top:(h-height)/2,width,height,right:(w+width)/2,bottom:(h+height)/2}}
+function norm(x,y){const r=rect();return[Math.max(0,Math.min(1,(x-r.left)/r.width)),Math.max(0,Math.min(1,(y-r.top)/r.height))]}
+function place(el,a,r){el.style.left=(r.left+a.x*r.width)+'px';el.style.top=(r.top+a.y*r.height)+'px';el.style.width=(a.w*r.width)+'px';el.style.height=(a.h*r.height)+'px'}
+function render(){const r=rect();slots.forEach((s,i)=>{const box=s||DEFAULTS[i];place(slotEls[i],box,r);slotEls[i].classList.toggle('selected',i===selected)});const c=slots[selected];coords.textContent=`Avatar ${selected+1}`+(c?` · x:${c.x.toFixed(4)} y:${c.y.toFixed(4)} w:${c.w.toFixed(4)} h:${c.h.toFixed(4)}`:' · sin calibrar')}
+function move(dx,dy,fine){const s=slots[selected]||(slots[selected]={...DEFAULTS[selected]});const step=fine?.001:.015;s.x=Math.max(0,Math.min(1-s.w,s.x+dx*step));s.y=Math.max(0,Math.min(1-s.h,s.y+dy*step));render()}
+function resize(dw,dh,fine){const s=slots[selected]||(slots[selected]={...DEFAULTS[selected]});const step=fine?.001:.015;s.w=Math.max(.01,Math.min(1-s.x,s.w+dw*step));s.h=Math.max(.01,Math.min(1-s.y,s.h+dh*step));render()}
+async function save(){try{const r=await fetch('/api/save-character-positions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coordinateSpace:'image-content',slots:slots.map((s,i)=>s||DEFAULTS[i])},null,2)});if(!r.ok)throw Error();selected=(selected+1)%N;select.value=selected;render();status.innerHTML='<span class="ok">Guardado. Siguiente: Avatar '+(selected+1)+'</span>'}catch{status.innerHTML='<span class="err">Error al guardar</span>'}}
+async function load(){try{const r=await fetch('/api/load-character-positions');if(!r.ok)throw Error();const d=await r.json();if(d.slots)slots=d.slots;else if(d.polygons)slots=d.polygons.map(p=>p?.length?({x:Math.min(...p.map(q=>q[0])),y:Math.min(...p.map(q=>q[1])),w:Math.max(...p.map(q=>q[0]))-Math.min(...p.map(q=>q[0])),h:Math.max(...p.map(q=>q[1]))-Math.min(...p.map(q=>q[1]))}):null);render();status.innerHTML='<span class="ok">Casillas cargadas</span>'}catch{render()}}
+document.addEventListener('mousedown',e=>{const r=rect();if(e.target.closest('#hud')||e.target.closest('.status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;dragging=true;dragStart=norm(e.clientX,e.clientY);dragCur=dragStart;e.preventDefault()});
+document.addEventListener('mousemove',e=>{if(!dragging)return;dragCur=norm(e.clientX,e.clientY);const a={x:Math.min(dragStart[0],dragCur[0]),y:Math.min(dragStart[1],dragCur[1]),w:Math.abs(dragCur[0]-dragStart[0]),h:Math.abs(dragCur[1]-dragStart[1])};dragEl.style.display='block';place(dragEl,a,rect())});
+document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;dragEl.style.display='none';const a={x:Math.min(dragStart[0],dragCur[0]),y:Math.min(dragStart[1],dragCur[1]),w:Math.abs(dragCur[0]-dragStart[0]),h:Math.abs(dragCur[1]-dragStart[1])};if(a.w>.005&&a.h>.005){slots[selected]=a;render();status.innerHTML='<span class="ok">Casilla del avatar '+(selected+1)+' marcada. Pulsa Guardar.</span>'}});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();e.stopPropagation();move(-1,0,e.shiftKey)}else if(e.key==='ArrowRight'){e.preventDefault();e.stopPropagation();move(1,0,e.shiftKey)}else if(e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();move(0,-1,e.shiftKey)}else if(e.key==='ArrowDown'){e.preventDefault();e.stopPropagation();move(0,1,e.shiftKey)}else if(e.key==='+'||e.key==='='){e.preventDefault();resize(1,1,e.shiftKey)}else if(e.key==='-'){e.preventDefault();resize(-1,-1,e.shiftKey)}else if(e.key==='g'||e.key==='G')save();else if(e.key==='c'||e.key==='C')load();else if(e.key==='Tab'){e.preventDefault();selected=(selected+1)%N;select.value=selected;select.blur();render()}},true);
+select.onchange=()=>{selected=+select.value;select.blur();render()};document.getElementById('save').onclick=save;document.getElementById('load').onclick=load;window.addEventListener('resize',render);image.onload=render;preload(AVATAR_SRCS).then(load);
+</script>
+</body></html>

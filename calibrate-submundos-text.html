@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar textos de submundos</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px 'Courier New',monospace}
+#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}#image{width:100%;height:100%;object-fit:contain;display:block}
+#overlay{position:absolute;inset:0;pointer-events:none}.area{position:absolute;border:3px solid #fc4;background:rgba(255,190,40,.12);pointer-events:none}.area.active{border-color:#0ff;box-shadow:0 0 18px #0ff;background:rgba(0,220,255,.12)}.area label{position:absolute;top:-22px;left:0;padding:2px 6px;background:#fc4;color:#000;white-space:nowrap;font-size:11px}.area.active label{background:#0ff}
+.preview{position:absolute;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'MedievalSharp','Trebuchet MS',sans-serif;font-weight:bold;text-align:center;text-shadow:2px 2px 4px #000,0 0 10px #000;white-space:nowrap;overflow:hidden}.preview.active{color:#ffe38a;text-shadow:2px 2px 4px #000,0 0 10px #ffd34e,0 0 22px #ffb000}
+#drag{position:absolute;border:3px solid #0ff;background:rgba(0,220,255,.16);display:none;pointer-events:none}#hud{position:absolute;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.82);padding:12px 16px;line-height:1.7;border:1px solid #567;border-radius:4px}#hud b{color:#0ff}.key{color:#fc4}select{background:#18202a;color:#fff;border:1px solid #789;padding:3px 6px}.status{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.82);padding:7px 15px}.ok{color:#0f0}.err{color:#f66}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="stage"><img id="image" src="" alt=""><div id="overlay"></div><div id="drag"></div></div>
+<div id="hud"><b>Calibrar textos de submundos</b><br>
+Submundo: <select id="world"></select><br>
+Modo: <select id="kind"><option value="worldName">Nombre del mundo</option><option value="level">Nivel actual</option></select><br>
+<span class="key">Arrastrar</span> = crear área · <span class="key">Tab</span> = cambiar texto<br>
+<span class="key">Flechas</span> = mover · <span class="key">Shift</span> = fino<br>
+<span class="key">+ / -</span> = tamaño · <span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
+<button id="save-btn">Guardar este mundo</button> <button id="load-btn">Cargar</button><br>
+<span id="coords" style="color:#0f0"></span></div>
+<div id="status">Selecciona un submundo y arrastra un área</div>
+<script>
+const WORLD_ORDER=['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+const WORLD_IMAGES={ESPACIO:'/assets/submundos/ESPACIO/submundo-espacio.png?v=8k-v3',AGUA:'/assets/submundos/AGUA/submundo agua.png?v=8k-v3',TIERRA:'/assets/submundos/TIERRA/submundo tierra.png?v=8k-v3',FUEGO:'/assets/submundos/FUEGO/submundo fuego.png?v=8k-v3',HIELO:'/assets/submundos/HIELO/submundo hielo.png?v=8k-v3',VIENTO:'/assets/submundos/VIENTO/submundo viento.png?v=8k-v3',INFRAMUNDO:'/assets/submundos/INFRAMUNDO/submundo inframundo.png?v=8k-v3',MAZMORRA:'/assets/submundos/MAZMORRA/submundo inframundo.png?v=8k-v3'};
+const img=document.getElementById('image'),overlay=document.getElementById('overlay'),drag=document.getElementById('drag'),worldSelect=document.getElementById('world'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status'),saveBtn=document.getElementById('save-btn'),loadBtn=document.getElementById('load-btn');
+let worldIndex=0,kind='worldName',areas={},dragging=false,start=null,current=null;
+WORLD_ORDER.forEach((w,i)=>{areas[w]={worldName:{x:.35,y:.08,w:.3,h:.08},level:{x:.4,y:.18,w:.2,h:.07}};const o=document.createElement('option');o.value=i;o.textContent=w;worldSelect.appendChild(o)});
+function rect(){return img.getBoundingClientRect()}function norm(x,y){const r=rect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}function px(a){const r=rect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
+function textFor(type,w){return type==='worldName'?w:'Nivel 1/12'}
+function render(){const w=WORLD_ORDER[worldIndex],r=rect();overlay.innerHTML='';for(const type of ['worldName','level']){const a=areas[w][type],p=px(a),active=type===kind;const box=document.createElement('div');box.className='area'+(active?' active':'');box.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;const label=document.createElement('label');label.textContent=type==='worldName'?'NOMBRE':'NIVEL';box.appendChild(label);overlay.appendChild(box);const preview=document.createElement('div');preview.className='preview'+(active?' active':'');preview.textContent=textFor(type,w);preview.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px;font-size:${Math.max(12,p.h*.62)}px`;overlay.appendChild(preview)}updateCoords()}
+function updateCoords(){const a=areas[WORLD_ORDER[worldIndex]][kind];coords.textContent=`${WORLD_ORDER[worldIndex]} · ${kind} x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)}`}
+worldSelect.onchange=()=>{worldIndex=+worldSelect.value;img.src=WORLD_IMAGES[WORLD_ORDER[worldIndex]];load();render()};kindSelect.onchange=()=>{kind=kindSelect.value;render()};
+document.addEventListener('mousedown',e=>{const r=rect();if(e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;dragging=true;start=norm(e.clientX,e.clientY);current={x:start.x,y:start.y,w:0,h:0};drag.style.display='block';e.preventDefault()});
+document.addEventListener('mousemove',e=>{if(!dragging)return;const p=norm(e.clientX,e.clientY);current={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};const q=px(current);drag.style.cssText=`display:block;left:${q.x}px;top:${q.y}px;width:${q.w}px;height:${q.h}px`;});
+document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;drag.style.display='none';if(current.w>.005&&current.h>.005){areas[WORLD_ORDER[worldIndex]][kind]=current;status.innerHTML='<span class="ok">Área actualizada. Pulsa G para guardar.</span>';render()}current=null});
+document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT')return;if(e.key==='Tab'){e.preventDefault();kind=kind==='worldName'?'level':'worldName';kindSelect.value=kind;render();return}if(e.key===' '){e.preventDefault();worldIndex=(worldIndex+1)%WORLD_ORDER.length;worldSelect.value=worldIndex;img.src=WORLD_IMAGES[WORLD_ORDER[worldIndex]];load();render();return}const a=areas[WORLD_ORDER[worldIndex]][kind],step=e.shiftKey?.001:.01;if(e.key==='g'||e.key==='G'){save();return}if(e.key==='c'||e.key==='C'){load();return}if(e.key==='+'||e.key==='='){a.w=Math.min(1-a.x,a.w+step);a.h=Math.min(1-a.y,a.h+step);render();return}if(e.key==='-'||e.key==='_'){a.w=Math.max(.01,a.w-step);a.h=Math.max(.01,a.h-step);render();return}let changed=false;if(e.key==='ArrowLeft'){a.x=Math.max(0,a.x-step);changed=true}if(e.key==='ArrowRight'){a.x=Math.min(1-a.w,a.x+step);changed=true}if(e.key==='ArrowUp'){a.y=Math.max(0,a.y-step);changed=true}if(e.key==='ArrowDown'){a.y=Math.min(1-a.h,a.y+step);changed=true}if(changed){e.preventDefault();render()}});
+async function save(){const w=WORLD_ORDER[worldIndex];const body=JSON.stringify({world:w,areas:areas[w]},null,2);try{const r=await fetch('/api/save-subworld-text-areas?world='+encodeURIComponent(w),{method:'POST',headers:{'Content-Type':'application/json'},body});if(!r.ok)throw Error();status.innerHTML='<span class="ok">Guardado '+w+'</span>'}catch{status.innerHTML='<span class="err">Error al guardar</span>'}}
+async function load(){const w=WORLD_ORDER[worldIndex];try{const r=await fetch('/api/load-subworld-text-areas?world='+encodeURIComponent(w));if(!r.ok)throw Error();const d=await r.json();if(d.areas)areas[w]=Object.assign(areas[w],d.areas);status.innerHTML='<span class=\"ok\">Cargado '+w+'</span>'}catch{status.innerHTML='<span class=\"err\">No hay guardado para '+w+'</span>'}render()}
+saveBtn.addEventListener('click',save);loadBtn.addEventListener('click',load);
+img.onerror=()=>status.innerHTML='<span class="err">No se pudo cargar el fondo</span>';img.onload=render;img.src=WORLD_IMAGES[WORLD_ORDER[0]];load();
+</script>
+</body></html>

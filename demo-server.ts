@@ -295,6 +295,42 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: guardar áreas de texto de submundo (POST /api/save-subworld-text-areas?world=XXX)
+  if (url.startsWith("/api/save-subworld-text-areas") && req.method === "POST") {
+    const u = new URL(url, "http://localhost");
+    const world = u.searchParams.get("world") || "";
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const dir = join(ROOT, "assets", "submundos", world);
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, "text-areas.json"), body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar áreas de texto de submundo (GET /api/load-subworld-text-areas?world=XXX)
+  if (url.startsWith("/api/load-subworld-text-areas")) {
+    const u = new URL(url, "http://localhost");
+    const world = u.searchParams.get("world") || "";
+    const loadPath = join(ROOT, "assets", "submundos", world, "text-areas.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
   // API: guardar caminos del mapamundi (POST /api/save-world-paths)
   if (url === "/api/save-world-paths" && req.method === "POST") {
     let body = "";
@@ -416,6 +452,99 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ ok: false, error: String(e) }));
       }
     });
+    return;
+  }
+
+  // API: guardar el área del nombre de selección de personaje
+  if (url === "/api/save-selection-name" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "menu principal", "selection-name-area.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar el área del nombre de selección de personaje
+  if (url === "/api/load-selection-name") {
+    const loadPath = join(ROOT, "assets", "menu principal", "selection-name-area.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
+  // API: guardar polígonos de los botones de selección de personaje
+  if (url === "/api/save-selection-buttons" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "menu principal", "selection-buttons.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar polígonos de los botones de selección de personaje
+  if (url === "/api/load-selection-buttons") {
+    const loadPath = join(ROOT, "assets", "menu principal", "selection-buttons.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
+  // API: guardar posiciones de selección de personaje (POST /api/save-character-positions)
+  if (url === "/api/save-character-positions" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "menu principal", "character-positions.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar posiciones de selección de personaje (GET /api/load-character-positions)
+  if (url === "/api/load-character-positions") {
+    const loadPath = join(ROOT, "assets", "menu principal", "character-positions.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
     return;
   }
 
