@@ -2,53 +2,87 @@
 <html lang="es">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Calibrar casillas de avatares</title>
+<title>Colocar avatares</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px 'Courier New',monospace}
-#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-#image{width:100%;height:100%;object-fit:contain;display:block}
-#slots{position:absolute;inset:0;pointer-events:none;z-index:10}
-.slot{position:absolute;overflow:hidden;border:3px solid rgba(255,210,60,.9)}
-.slot img{position:absolute;width:100%;height:100%;object-fit:cover}
-.slot.selected{border-color:#0ff;box-shadow:0 0 14px #0ff}
-#drag{position:absolute;border:3px dashed #0ff;background:rgba(0,220,255,.12);display:none;z-index:11;pointer-events:none}
-#hud{position:absolute;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.86);padding:12px 16px;line-height:1.7;border:1px solid #567;border-radius:4px}
-#hud b{color:#0ff}.key{color:#fc4}
-select,button{background:#18202a;color:#fff;border:1px solid #789;padding:4px 7px;border-radius:3px}button{cursor:pointer;margin-top:4px}
-.status{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.86);padding:7px 15px}.ok{color:#0f0}.err{color:#f66}
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#20252b;color:#eee;font:14px 'Courier New',monospace}
+#stage{position:absolute;inset:0;overflow:hidden;background:#000}#image{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}.av{position:absolute;z-index:5;display:block;max-width:none;max-height:none;cursor:move;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))}.av.sel{z-index:8}#body{position:absolute;z-index:7;display:none;max-width:none;max-height:none;pointer-events:none;filter:drop-shadow(0 10px 20px rgba(0,0,0,.6))}#guide{position:absolute;inset:0;width:100%;height:100%;z-index:9;pointer-events:none}
+#hud{position:absolute;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.9);padding:12px 16px;line-height:1.7;border:1px solid #567;border-radius:4px}#hud b{color:#0ff}.key{color:#fc4}
+select,button{background:#18202a;color:#fff;border:1px solid #789;padding:4px 7px;border-radius:3px}button{cursor:pointer;margin-top:4px}.status{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.9);padding:7px 15px}.ok{color:#0f0}.err{color:#f66}
 </style>
 </head>
 <body>
-<div id="stage"><img id="image" src="/assets/menu%20principal/seleccion_personaje.png?v=slots" alt=""><div id="slots"></div><div id="drag"></div></div>
-<div id="hud"><b>Casillas de avatares</b><br>
+<div id="stage"><img id="image" src="/assets/menu%20principal/seleccion_personaje.png?v=slots" alt=""><div id="avatars"></div><img id="body" alt=""><svg id="guide"></svg></div>
+<div id="hud"><b>Calibrar selección</b><br>
+Modo: <select id="mode"><option value="avatar">Avatares</option><option value="box">Cuadros</option><option value="border">Bordes de selección</option><option value="body">Cuerpo completo</option></select><br>
 Avatar: <select id="avatar-select"></select><br>
-<span class="key">Arrastrar</span> = dibujar casilla del avatar<br>
-<span class="key">Flechas</span> = mover (Shift = fino)<br>
-<span class="key">+ / -</span> = cambiar tamaño<br>
-<span class="key">G</span> = guardar y pasar al siguiente · <span class="key">C</span> = cargar<br>
-<button id="save">Guardar</button> <button id="load">Cargar</button><br>
+<div id="help-avatar">El contorno azul marca el cuadro de destino.<br>
+<button id="clip">Recorte: ON</button> <button id="center">Ajustar al cuadro</button><br>
+<span class="key">Arrastrar el avatar</span> = moverlo<br>
+<span class="key">Flechas</span> = mover · <span class="key">Shift + flechas</span> = fino<br>
+<span class="key">+ / -</span> = cambiar tamaño</div>
+<div id="help-box" style="display:none"><span class="key">Clic</span> = añadir punto (mínimo 4)<br>
+<span class="key">Doble clic</span> o botón = cerrar<br>
+<span class="key">Flechas</span> = mover el cuadro · <span class="key">Shift</span> = fino<br>
+<span class="key">Z</span> = deshacer punto · <span class="key">Esc</span> = cancelar<br>
+<button id="close-poly">Cerrar polígono</button> <button id="clear-poly">Borrar cuadro</button></div>
+<div id="help-border" style="display:none">Dibuja el borde que se ilumina al seleccionar.<br>
+<span class="key">Clic</span> = añadir punto (mínimo 4)<br>
+<span class="key">Doble clic</span> o botón = cerrar<br>
+<span class="key">Flechas</span> = mover · <span class="key">Z</span> = deshacer · <span class="key">Esc</span> = cancelar<br>
+<button id="close-border">Cerrar borde</button> <button id="clear-border">Borrar borde</button> <button id="border-from-box">Copiar del cuadro</button></div>
+<div id="help-body" style="display:none">Zona compartida del avatar a cuerpo completo.<br>
+<span class="key">Arrastrar</span> = dibujar la zona<br>
+<span class="key">Flechas</span> = mover · <span class="key">Shift</span> = fino<br>
+<span class="key">+ / -</span> = cambiar tamaño</div>
+<button id="save">Guardar y siguiente</button> <button id="load">Cargar</button><br>
 <span id="coords" style="color:#0f0"></span></div>
-<div class="status" id="status">Arrastra para marcar la casilla de cada avatar</div>
+<div class="status" id="status">Coloca el Avatar 1</div>
 <script>
-const N=8,image=document.getElementById('image'),slotsEl=document.getElementById('slots'),dragEl=document.getElementById('drag'),select=document.getElementById('avatar-select'),coords=document.getElementById('coords'),status=document.getElementById('status');
-const DEFAULTS=[{x:.324,y:.283,w:.081,h:.107},{x:.421,y:.281,w:.081,h:.108},{x:.513,y:.279,w:.076,h:.108},{x:.605,y:.279,w:.078,h:.109},{x:.325,y:.403,w:.080,h:.111},{x:.420,y:.403,w:.080,h:.112},{x:.513,y:.401,w:.076,h:.112},{x:.603,y:.401,w:.078,h:.112}];
-let selected=0,slots=Array.from({length:N},()=>null),dragging=false,dragStart=null,dragCur=null;
-const AVATAR_SRCS=Array.from({length:N},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.png?v=512`);
-function preload(srcs){return Promise.all(srcs.map(s=>new Promise(r=>{const im=new Image();im.onload=im.onerror=()=>r();im.src=s})))}
-const slotEls=[];
-for(let i=0;i<N;i++){const o=document.createElement('option');o.value=i;o.textContent='Avatar '+(i+1);select.appendChild(o);const d=document.createElement('div');d.className='slot';const img=document.createElement('img');img.src=AVATAR_SRCS[i];d.appendChild(img);slotsEl.appendChild(d);slotEls.push(d)}
-function rect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,height=w/ratio;if(height>h){height=h;width=h*ratio}return{left:(w-width)/2,top:(h-height)/2,width,height,right:(w+width)/2,bottom:(h+height)/2}}
-function norm(x,y){const r=rect();return[Math.max(0,Math.min(1,(x-r.left)/r.width)),Math.max(0,Math.min(1,(y-r.top)/r.height))]}
-function place(el,a,r){el.style.left=(r.left+a.x*r.width)+'px';el.style.top=(r.top+a.y*r.height)+'px';el.style.width=(a.w*r.width)+'px';el.style.height=(a.h*r.height)+'px'}
-function render(){const r=rect();slots.forEach((s,i)=>{const box=s||DEFAULTS[i];place(slotEls[i],box,r);slotEls[i].classList.toggle('selected',i===selected)});const c=slots[selected];coords.textContent=`Avatar ${selected+1}`+(c?` · x:${c.x.toFixed(4)} y:${c.y.toFixed(4)} w:${c.w.toFixed(4)} h:${c.h.toFixed(4)}`:' · sin calibrar')}
-function move(dx,dy,fine){const s=slots[selected]||(slots[selected]={...DEFAULTS[selected]});const step=fine?.001:.015;s.x=Math.max(0,Math.min(1-s.w,s.x+dx*step));s.y=Math.max(0,Math.min(1-s.h,s.y+dy*step));render()}
-function resize(dw,dh,fine){const s=slots[selected]||(slots[selected]={...DEFAULTS[selected]});const step=fine?.001:.015;s.w=Math.max(.01,Math.min(1-s.x,s.w+dw*step));s.h=Math.max(.01,Math.min(1-s.y,s.h+dh*step));render()}
-async function save(){try{const r=await fetch('/api/save-character-positions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coordinateSpace:'image-content',slots:slots.map((s,i)=>s||DEFAULTS[i])},null,2)});if(!r.ok)throw Error();selected=(selected+1)%N;select.value=selected;render();status.innerHTML='<span class="ok">Guardado. Siguiente: Avatar '+(selected+1)+'</span>'}catch{status.innerHTML='<span class="err">Error al guardar</span>'}}
-async function load(){try{const r=await fetch('/api/load-character-positions');if(!r.ok)throw Error();const d=await r.json();if(d.slots)slots=d.slots;else if(d.polygons)slots=d.polygons.map(p=>p?.length?({x:Math.min(...p.map(q=>q[0])),y:Math.min(...p.map(q=>q[1])),w:Math.max(...p.map(q=>q[0]))-Math.min(...p.map(q=>q[0])),h:Math.max(...p.map(q=>q[1]))-Math.min(...p.map(q=>q[1]))}):null);render();status.innerHTML='<span class="ok">Casillas cargadas</span>'}catch{render()}}
-document.addEventListener('mousedown',e=>{const r=rect();if(e.target.closest('#hud')||e.target.closest('.status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;dragging=true;dragStart=norm(e.clientX,e.clientY);dragCur=dragStart;e.preventDefault()});
-document.addEventListener('mousemove',e=>{if(!dragging)return;dragCur=norm(e.clientX,e.clientY);const a={x:Math.min(dragStart[0],dragCur[0]),y:Math.min(dragStart[1],dragCur[1]),w:Math.abs(dragCur[0]-dragStart[0]),h:Math.abs(dragCur[1]-dragStart[1])};dragEl.style.display='block';place(dragEl,a,rect())});
-document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;dragEl.style.display='none';const a={x:Math.min(dragStart[0],dragCur[0]),y:Math.min(dragStart[1],dragCur[1]),w:Math.abs(dragCur[0]-dragStart[0]),h:Math.abs(dragCur[1]-dragStart[1])};if(a.w>.005&&a.h>.005){slots[selected]=a;render();status.innerHTML='<span class="ok">Casilla del avatar '+(selected+1)+' marcada. Pulsa Guardar.</span>'}});
-document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();e.stopPropagation();move(-1,0,e.shiftKey)}else if(e.key==='ArrowRight'){e.preventDefault();e.stopPropagation();move(1,0,e.shiftKey)}else if(e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();move(0,-1,e.shiftKey)}else if(e.key==='ArrowDown'){e.preventDefault();e.stopPropagation();move(0,1,e.shiftKey)}else if(e.key==='+'||e.key==='='){e.preventDefault();resize(1,1,e.shiftKey)}else if(e.key==='-'){e.preventDefault();resize(-1,-1,e.shiftKey)}else if(e.key==='g'||e.key==='G')save();else if(e.key==='c'||e.key==='C')load();else if(e.key==='Tab'){e.preventDefault();selected=(selected+1)%N;select.value=selected;select.blur();render()}},true);
-select.onchange=()=>{selected=+select.value;select.blur();render()};document.getElementById('save').onclick=save;document.getElementById('load').onclick=load;window.addEventListener('resize',render);image.onload=render;preload(AVATAR_SRCS).then(load);
+const N=8,stage=document.getElementById('stage'),avatarsEl=document.getElementById('avatars'),guide=document.getElementById('guide'),select=document.getElementById('avatar-select'),coords=document.getElementById('coords'),status=document.getElementById('status'),modeSel=document.getElementById('mode'),clipBtn=document.getElementById('clip'),bodyEl=document.getElementById('body');
+const HELP={avatar:document.getElementById('help-avatar'),box:document.getElementById('help-box'),border:document.getElementById('help-border'),body:document.getElementById('help-body')};
+const SOURCES=Array.from({length:N},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.png?v=avatars-5`);
+const DEFAULTS=[{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28}];
+let selected=0,polygons=Array.from({length:N},()=>[]),borders=Array.from({length:N},()=>[]),transforms=Array.from({length:N},()=>null),bodyAreas=Array.from({length:N},()=>null),dragging=false,dragOffset=[0,0],mode='avatar',clipOn=true,draft=[],bodyDraw=null;
+const BODY_DEFAULT={x:.68,y:.24,w:.20,h:.44};
+function getBody(i){if(!bodyAreas[i])bodyAreas[i]={...BODY_DEFAULT};return bodyAreas[i]}
+const polyStore=()=>mode==='border'?borders:polygons;
+for(let i=0;i<N;i++){const o=document.createElement('option');o.value=i;o.textContent='Avatar '+(i+1);select.appendChild(o)}
+const avatarEls=SOURCES.map((src,i)=>{const img=document.createElement('img');img.src=src;img.className='av';img.draggable=false;img.dataset.index=i;avatarsEl.appendChild(img);return img});
+function rect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,height=w/ratio;if(height>h){height=h;width=h*ratio}return{left:(w-width)/2,top:(h-height)/2,width,height}}
+function bbox(poly){const xs=poly.map(p=>p[0]),ys=poly.map(p=>p[1]);return{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)}}
+function getTransform(i){const poly=polygons[i],box=poly?.length>=3?bbox(poly):{...DEFAULTS[i]};if(!transforms[i])transforms[i]={...box};return transforms[i]}
+function fitToBox(i){const p=polygons[i];if(!p||p.length<3)return null;return{...bbox(p)}}
+function clipFor(i){const poly=polygons[i];if(!clipOn||!poly||poly.length<3)return '';const t=getTransform(i);return `polygon(${poly.map(p=>`${((p[0]-t.x)/t.w*100).toFixed(3)}% ${((p[1]-t.y)/t.h*100).toFixed(3)}%`).join(',')})`}
+function render(){const r=rect();for(let i=0;i<N;i++){const t=getTransform(i),img=avatarEls[i];img.style.left=(r.left+t.x*r.width)+'px';img.style.top=(r.top+t.y*r.height)+'px';img.style.width=(t.w*r.width)+'px';img.style.height=(t.h*r.height)+'px';img.style.clipPath=clipFor(i);img.classList.toggle('sel',i===selected)}avatarsEl.style.pointerEvents=mode==='avatar'?'auto':'none';
+bodyEl.style.display=mode==='body'?'block':'none';if(mode==='body'){const a=getBody(selected);bodyEl.src=SOURCES[selected];bodyEl.style.left=(r.left+a.x*r.width)+'px';bodyEl.style.top=(r.top+a.y*r.height)+'px';bodyEl.style.width=(a.w*r.width)+'px';bodyEl.style.height=(a.h*r.height)+'px'}
+const sx=p=>r.left+p[0]*r.width,sy=p=>r.top+p[1]*r.height,pts=a=>a.map(p=>`${sx(p)},${sy(p)}`).join(' ');
+const box=polygons[selected]||[],border=borders[selected]||[];let svg='';
+if(box.length>=3)svg+=`<polygon points="${pts(box)}" fill="none" stroke="#00eaff" stroke-width="${mode==='border'?1.5:3}" stroke-dasharray="8 5" opacity="${mode==='border'?.5:1}"></polygon>`;
+if(border.length>=3)svg+=`<polygon points="${pts(border)}" fill="rgba(255,196,64,.12)" stroke="#fc4" stroke-width="3"></polygon>`;
+if(mode==='body'){const a=getBody(selected);svg+=`<rect x="${r.left+a.x*r.width}" y="${r.top+a.y*r.height}" width="${a.w*r.width}" height="${a.h*r.height}" fill="none" stroke="#5f6" stroke-width="3" stroke-dasharray="10 6"></rect>`}
+if(draft.length)svg+=`<polyline points="${pts(draft)}" fill="none" stroke="#f6f" stroke-width="3"></polyline>`+draft.map(p=>`<circle cx="${sx(p)}" cy="${sy(p)}" r="5" fill="#f6f"></circle>`).join('');
+guide.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);guide.innerHTML=svg;
+const t=transforms[selected];
+coords.textContent=mode==='body'?(a=>`Cuerpo ${selected+1} · x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)}`)(getBody(selected)):mode==='border'?`Borde ${selected+1} · ${draft.length?draft.length+' puntos en curso':border.length+' puntos guardados'}`:mode==='box'?`Cuadro ${selected+1} · ${draft.length?draft.length+' puntos en curso':box.length+' puntos guardados'}`:`Avatar ${selected+1} · x:${t.x.toFixed(4)} y:${t.y.toFixed(4)} w:${t.w.toFixed(4)} h:${t.h.toFixed(4)}`}
+function movePoly(dx,dy,fine){const pts=draft.length?draft:polyStore()[selected];if(!pts||!pts.length)return;const step=fine?.0005:.003;pts.forEach(p=>{p[0]+=dx*step;p[1]+=dy*step});render()}
+function closePolygon(){if(draft.length<4){status.innerHTML='<span class="err">Hacen falta al menos 4 puntos</span>';return}polyStore()[selected]=draft.slice();draft=[];render();status.innerHTML='<span class="ok">'+(mode==='border'?'Borde cerrado':'Cuadro cerrado')+'. Pulsa Guardar</span>'}
+function move(dx,dy,fine){const t=mode==='body'?getBody(selected):getTransform(selected),step=fine?.0005:.003;t.x=Math.max(0,Math.min(1-t.w,t.x+dx*step));t.y=Math.max(0,Math.min(1-t.h,t.y+dy*step));render()}
+function resize(amount,fine){const t=mode==='body'?getBody(selected):getTransform(selected),step=fine?.0005:.003;t.w=Math.max(.01,Math.min(1-t.x,t.w+amount*step));t.h=Math.max(.01,Math.min(1-t.y,t.h+amount*step));render()}
+async function load(){try{const r=await fetch('/api/load-character-positions',{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();polygons=d.polygons||Array.from({length:N},()=>[]);borders=d.borderPolygons||Array.from({length:N},()=>[]);transforms=d.avatarTransforms||d.slots?.map(s=>s?{...s}:null)||transforms;bodyAreas=Array.isArray(d.fullBodyAreas)&&d.fullBodyAreas.length===N?d.fullBodyAreas.map(a=>a?.w>0?{...a}:null):d.fullBodyArea?.w>0?Array.from({length:N},()=>({...d.fullBodyArea})):bodyAreas;render();status.textContent='Calibración cargada sin modificar.'}catch{render()}}
+async function save(){try{for(let i=0;i<N;i++){getTransform(i);getBody(i)}const payload={coordinateSpace:'image-content',polygons:polygons.map(p=>p?.map(q=>[...q])||[]),borderPolygons:borders.map(p=>p?.map(q=>[...q])||[]),avatarTransforms:transforms.map(t=>({...t})),fullBodyAreas:bodyAreas.map(a=>({...a})),fullBodyArea:{...getBody(selected)}};const r=await fetch('/api/save-character-positions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!r.ok)throw Error();const check=await (await fetch('/api/load-character-positions',{cache:'no-store'})).json();const written=mode==='body'?(check.fullBodyAreas||[]).map(a=>a?a.x.toFixed(3):'--').join(' '):(check.avatarTransforms||[]).map(t=>t?t.x.toFixed(3):'--').join(' ');selected=(selected+1)%N;select.value=selected;render();status.innerHTML='<span class="ok">Guardado. X escritas: '+written+'</span>'}catch{status.innerHTML='<span class="err">Error al guardar</span>'}}
+avatarEls.forEach(img=>{img.addEventListener('pointerdown',e=>{selected=+img.dataset.index;select.value=selected;dragging=true;const t=getTransform(selected),r=rect();dragOffset=[e.clientX-(r.left+t.x*r.width),e.clientY-(r.top+t.y*r.height)];img.setPointerCapture?.(e.pointerId);e.preventDefault()});img.addEventListener('pointermove',e=>{if(!dragging||selected!==+img.dataset.index)return;const t=getTransform(selected),r=rect();t.x=Math.max(0,Math.min(1-t.w,(e.clientX-dragOffset[0]-r.left)/r.width));t.y=Math.max(0,Math.min(1-t.h,(e.clientY-dragOffset[1]-r.top)/r.height));render()});img.addEventListener('pointerup',()=>{dragging=false});img.addEventListener('pointercancel',()=>{dragging=false})});select.onchange=()=>{selected=+select.value;draft=[];render()};document.getElementById('save').onclick=save;document.getElementById('load').onclick=load;document.getElementById('center').onclick=()=>{const t=fitToBox(selected);if(t){transforms[selected]=t;render();status.innerHTML='<span class="ok">Avatar ajustado a su cuadro</span>'}};
+clipBtn.onclick=()=>{clipOn=!clipOn;clipBtn.textContent='Recorte: '+(clipOn?'ON':'OFF');render()};
+modeSel.onchange=()=>{mode=modeSel.value;draft=[];bodyDraw=null;Object.entries(HELP).forEach(([k,el])=>{el.style.display=k===mode?'':'none'});status.textContent={avatar:'Coloca el Avatar '+(selected+1),box:'Dibuja el cuadro '+(selected+1),border:'Dibuja el borde '+(selected+1),body:'Define la zona de cuerpo completo'}[mode];render()};
+document.getElementById('close-poly').onclick=closePolygon;document.getElementById('clear-poly').onclick=()=>{polygons[selected]=[];draft=[];render();status.innerHTML='<span class="ok">Cuadro borrado</span>'};
+document.getElementById('close-border').onclick=closePolygon;document.getElementById('clear-border').onclick=()=>{borders[selected]=[];draft=[];render();status.innerHTML='<span class="ok">Borde borrado</span>'};
+document.getElementById('border-from-box').onclick=()=>{const p=polygons[selected];if(p?.length>=3){borders[selected]=p.map(q=>[q[0],q[1]]);draft=[];render();status.innerHTML='<span class="ok">Borde copiado del cuadro</span>'}else status.innerHTML='<span class="err">Ese cuadro no tiene polígono</span>'};
+stage.addEventListener('pointerdown',e=>{const r=rect(),nx=(e.clientX-r.left)/r.width,ny=(e.clientY-r.top)/r.height;
+if(mode==='body'){bodyDraw=[nx,ny];stage.setPointerCapture?.(e.pointerId);e.preventDefault();return}
+if(mode!=='box'&&mode!=='border')return;
+if(draft.length>=4){const f=draft[0];if(Math.abs(nx-f[0])*r.width<12&&Math.abs(ny-f[1])*r.height<12){closePolygon();return}}draft.push([nx,ny]);render()});
+stage.addEventListener('pointermove',e=>{if(!bodyDraw)return;const r=rect(),nx=(e.clientX-r.left)/r.width,ny=(e.clientY-r.top)/r.height;bodyAreas[selected]={x:Math.min(bodyDraw[0],nx),y:Math.min(bodyDraw[1],ny),w:Math.abs(nx-bodyDraw[0]),h:Math.abs(ny-bodyDraw[1])};render()});
+stage.addEventListener('pointerup',()=>{if(bodyDraw){bodyDraw=null;const a=getBody(selected);if(a.w<.01||a.h<.01)status.innerHTML='<span class="err">Zona demasiado pequeña</span>'}});
+stage.addEventListener('dblclick',e=>{if(mode==='box'||mode==='border'){e.preventDefault();closePolygon()}});
+window.addEventListener('resize',render);document.addEventListener('keydown',e=>{const poly=mode==='box'||mode==='border';if(e.key==='Escape'&&poly){e.preventDefault();draft=[];render();return}if((e.key==='z'||e.key==='Z')&&poly){e.preventDefault();draft.pop();render();return}const arrows={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(arrows[e.key]){e.preventDefault();const[dx,dy]=arrows[e.key];if(poly)movePoly(dx,dy,e.shiftKey);else move(dx,dy,e.shiftKey);return}if(mode==='avatar'||mode==='body'){if(e.key==='+'||e.key==='='){e.preventDefault();resize(1,e.shiftKey)}else if(e.key==='-'){e.preventDefault();resize(-1,e.shiftKey)}}},true);load();
 </script>
 </body></html>

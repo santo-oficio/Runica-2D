@@ -7,7 +7,8 @@
 
 import http from "node:http";
 import { readFileSync, existsSync, writeFileSync, readdirSync, createReadStream, statSync, mkdirSync } from "node:fs";
-import { join, extname } from "node:path";
+import { dirname, join, extname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   loadDb,
   getNextScreen,
@@ -20,7 +21,7 @@ import {
 } from "./db/db.js";
 
 const PORT = 3000;
-const ROOT = process.cwd();
+const ROOT = dirname(fileURLToPath(import.meta.url));
 
 // Cargar banco de pantallas + progreso en memoria
 loadDb();
