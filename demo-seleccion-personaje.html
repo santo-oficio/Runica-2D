@@ -28,13 +28,13 @@ const KEY_ROWS=[
 ];
 const LEFT_ARROW={x:.214,y:.818,w:.079,h:.117},RIGHT_ARROW={x:.727,y:.818,w:.074,h:.114};
 let selected=null,typed='',focus={type:'avatar',index:0},nodes=[],verticalHistory=new Map(),borrarReturn=null,buttonPolygons=null,avatarSlotData=null,avatarPolygons=null,avatarTransforms=null,borderPolygons=null,fullBodyArea=null,fullBodyAreas=null,nameArea={x:.322,y:.565,w:.375,h:.1},legacyButtons=false,legacyAvatars=false,legacyName=false;
-const FULL_SRCS=Array.from({length:8},(_,i)=>`/assets/avatars/avatar_${String(i+1).padStart(2,'0')}.png?v=avatars-6`);
+const FULL_SRCS=Array.from({length:8},(_,i)=>`/assets/avatars/avatar_${String(i+1).padStart(2,'0')}.png?v=avatars-7`);
 const fullLoaded=new Set();
 const SOUND_SRCS=['/assets/sounds/comun/menu_mover.wav','/assets/sounds/comun/menu_seleccionar.wav','/assets/sounds/comun/pulsacion%20maquina%20escribir.mp3'];
 function requestFull(i){if(fullLoaded.has(i))return;const im=new Image();im.onload=()=>{fullLoaded.add(i);if(focus.type==='avatar'&&focus.index===i)render()};im.src=FULL_SRCS[i]}
 function preloadAudios(onProgress=()=>{}){let doneCount=0;return Promise.all(SOUND_SRCS.map(src=>new Promise(resolve=>{const audio=new Audio();let done=false;const finish=()=>{if(done)return;done=true;doneCount++;onProgress(doneCount,SOUND_SRCS.length);resolve()};audio.addEventListener('canplaythrough',finish,{once:true});audio.addEventListener('error',finish,{once:true});audio.src=src;audio.load();setTimeout(finish,10000)})))}
 nameDisplay.id='name-display';overlay.appendChild(nameDisplay);
-const AVATAR_SRCS=Array.from({length:8},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.png?v=avatars-6`);
+const AVATAR_SRCS=Array.from({length:8},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.png?v=avatars-7`);
 function preload(srcs,onProgress=()=>{}){let done=0;return Promise.all(srcs.map(s=>new Promise(r=>{const im=new Image();const finish=()=>{done++;onProgress(done,srcs.length);r()};im.onload=finish;im.onerror=finish;im.src=s})))}
 const avatarSlotEls=[],avatarImgEls=[];
 for(let i=0;i<8;i++){const slot=document.createElement('div');slot.className='avatar-slot';const img=document.createElement('img');img.src=AVATAR_SRCS[i];img.alt='';slot.appendChild(img);avatarSlotsEl.appendChild(slot);avatarSlotEls.push(slot);avatarImgEls.push(img)}

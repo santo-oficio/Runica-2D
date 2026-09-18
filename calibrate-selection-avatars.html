@@ -40,7 +40,7 @@ Avatar: <select id="avatar-select"></select><br>
 <script>
 const N=8,stage=document.getElementById('stage'),avatarsEl=document.getElementById('avatars'),guide=document.getElementById('guide'),select=document.getElementById('avatar-select'),coords=document.getElementById('coords'),status=document.getElementById('status'),modeSel=document.getElementById('mode'),clipBtn=document.getElementById('clip'),bodyEl=document.getElementById('body');
 const HELP={avatar:document.getElementById('help-avatar'),box:document.getElementById('help-box'),border:document.getElementById('help-border'),body:document.getElementById('help-body')};
-const SOURCES=Array.from({length:N},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.png?v=avatars-6`);
+const SOURCES=Array.from({length:N},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.png?v=avatars-7`);
 const DEFAULTS=[{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28},{x:.30,y:.20,w:.16,h:.28}];
 let selected=0,polygons=Array.from({length:N},()=>[]),borders=Array.from({length:N},()=>[]),transforms=Array.from({length:N},()=>null),bodyAreas=Array.from({length:N},()=>null),dragging=false,dragOffset=[0,0],mode='avatar',clipOn=true,draft=[],bodyDraw=null;
 const BODY_DEFAULT={x:.68,y:.24,w:.20,h:.44};
