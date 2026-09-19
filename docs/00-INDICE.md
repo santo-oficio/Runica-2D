@@ -34,6 +34,7 @@ estética retro/pixel-art de tus fondos artísticos, adaptados a pantalla panor�
 | `14-PROMPT-MIGRACION-DEMO-EXISTENTE.md` | 🔧 El prompt a usar en Windsurf cuando ya hay una demo empezada (no un proyecto nuevo): audita el código actual y lo migra a la especificación 00–13 |
 | `15-TABLA-CURVA-DIFICULTAD-120-JUEGOS.md` | 📈 Tabla generada `juego → tier → banda de dificultad` para los 120 juegos (8 mundos × 15 subniveles), con curva no lineal p=0.6 y las reglas "a fuego" |
 | `16-DISENADOR-NIVELES-TIERS.md` | 🎯 Definición de los 14 tiers de dificultad, reglas del generador (pruning, validación funcional) y formato del banco de pantallas |
+| `17-PANTALLA-SELECCION-PERSONAJE.md` | 🧑‍🎤 Pantalla de selección de personaje: demo, calibradores visuales, esquemas JSON (`character-positions`, `selection-buttons`, `selection-name-area`), espacio `image-content`, navegación por teclado y pipeline de avatares 8K |
 
 > Nota de orden de lectura: `10-ANALIZADOR-IA-FONDOS.md` amplía el punto 1 de
 > `02-MOTOR-GRAFICO.md`, así que léelos juntos. `11-ACTUALIZACION-NIVELES-DIFICULTAD-PROGRESO.md`

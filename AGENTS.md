@@ -58,6 +58,20 @@ Controles en `demo.html`:
 Las coordenadas se guardan normalizadas respecto a la **imagen visible** (se
 descuenta el letterbox de `object-fit: contain`).
 
+## Selección de personaje (demo + calibradores)
+
+- Demo: `http://localhost:3000/demo-seleccion-personaje.html`.
+- Calibradores: `calibrate-selection-avatars.html` (avatares / cuadros / bordes / cuerpo completo), `calibrate-selection-buttons.html` (teclas + flechas), `calibrate-selection-name.html` (zona del nombre).
+- Datos (todo es **data-driven**, el juego los consume dinámicamente):
+  - `assets/menu principal/character-positions.json` — `polygons` (clip), `borderPolygons` (marco), `avatarTransforms` (thumb en cuadro), `fullBodyAreas` (**por avatar**; `fullBodyArea` es legacy/fallback). Los 4 arrays tienen siempre 8 entradas.
+  - `assets/menu principal/selection-buttons.json` — 29 polígonos (A–Z, Borrar, Atrás, Adelante).
+  - `assets/menu principal/selection-name-area.json` — rectángulo del nombre.
+- Coordenadas normalizadas 0–1 en espacio **`image-content`** (se descuenta el letterbox del `object-fit: contain`, ratio 3:2). Nunca contra el viewport.
+- API: `/api/load-character-positions`, `/api/save-character-positions`, `/api/load-selection-buttons`, `/api/save-selection-buttons`, `/api/load-selection-name`, `/api/save-selection-name`. El servidor resuelve la raíz desde `demo-server.ts`, no `process.cwd()`.
+- Al guardar se reemplaza **solo la entrada del índice editado** — nunca se envían los otros 7 desde memoria.
+- Avatares: `assets/avatars/avatar_0N.png` 7680×7680 RGBA + `thumbs/` 512×512. Cache-busting `?v=avatars-N` (incrementar al regenerar). Para calidad extrema: Real-ESRGAN x4plus en `.sam-venv`.
+- Navegación y bordes: ver `docs/17-PANTALLA-SELECCION-PERSONAJE.md` (orden lineal, filas con memoria entre bloques, excepción Borrar R/S/T/Z→T, borde irregular feTurbulence, click=dorado fuerte / hover=suave, cuerpo completo por hover real).
+
 ## Mundos
 
 ESPACIO, AGUA, TIERRA, FUEGO, HIELO, VIENTO, INFRAMUNDO, MAZMORRA.
