@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calibrar posiciones de avatar en mapamundi</title>
+<title>Calibrar avatares en mapamundi</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -94,21 +94,25 @@
 </div>
 
 <div id="hud">
-  <b>Calibrar posiciones de avatar en mapamundi</b><br>
-  Coloca cada mundo y la posicion inicial del avatar<br>
+  <b>Calibrar avatares en mapamundi</b><br>
+  Posicion y tamano de cada avatar en cada mundo<br>
   <br>
   Mundo: <select id="world-select"></select><br>
+  Avatar: <select id="avatar-select"></select><br>
+  Modo: <span id="mode-label" class="new">Avatar</span><br>
   <br>
   <span class="key">Flechas</span> = mover seleccion (Shift = fino)<br>
-  <span class="key">+ / -</span> = tamano del avatar<br>
+  <span class="key">+ / -</span> = tamano del avatar (todos los mundos)<br>
   <span class="key">Tab</span> = siguiente mundo<br>
+  <span class="key">A</span> = siguiente avatar<br>
+  <span class="key">M</span> = modo Avatar / Isla (ancla)<br>
   <span class="key">G</span> = guardar JSON<br>
   <span class="key">C</span> = cargar guardado<br>
   <br>
   <span id="coords" style="color:#0f0">Sin seleccion</span>
 </div>
 
-<div id="status">Selecciona un mundo y muevelo con las flechas</div>
+<div id="status">Selecciona mundo y avatar, y colocalo</div>
 
 <script>
   const img = document.getElementById('image');
@@ -117,6 +121,8 @@
   const coordsEl = document.getElementById('coords');
   const statusEl = document.getElementById('status');
   const worldSelect = document.getElementById('world-select');
+  const avatarSelect = document.getElementById('avatar-select');
+  const modeLabel = document.getElementById('mode-label');
 
   const WORLD_AVATARS = {
     ESPACIO:    '/assets/avatars/avatar_01.png',
@@ -130,37 +136,56 @@
   };
 
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
+  const AVATAR_SRC = i => '/assets/avatars/thumbs/avatar_' + String(i + 1).padStart(2, '0') + '.png?v=avatars-9';
 
+  // Ancla de cada isla (posiciones[w]) + matriz de avatares (avatars[w][i])
   let positions = {};
-  WORLD_ORDER.forEach(w => { positions[w] = { x: 0.5, y: 0.5 }; });
+  let avatars = {};
+  WORLD_ORDER.forEach(w => {
+    positions[w] = { x: 0.5, y: 0.5 };
+    avatars[w] = Array.from({ length: 8 }, () => ({ x: 0.5, y: 0.5, size: 0.04 }));
+  });
 
-  let avatarSize = 0.04;
+  let avatarSize = 0.04; // tamano por defecto / legacy
   let selectedWorld = 0;
+  let selectedAvatar = 0;
+  let editMode = 'avatar'; // 'avatar' | 'isla'
 
-  // Llenar select
   WORLD_ORDER.forEach((w, i) => {
     const opt = document.createElement('option');
     opt.value = i;
     opt.textContent = w;
     worldSelect.appendChild(opt);
   });
+  for (let i = 0; i < 8; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = 'Avatar ' + (i + 1);
+    avatarSelect.appendChild(opt);
+  }
 
   worldSelect.addEventListener('change', (e) => {
     selectedWorld = parseInt(e.target.value);
-    render();
-    updateCoords();
+    e.target.blur();
+    render(); updateCoords();
+  });
+  avatarSelect.addEventListener('change', (e) => {
+    selectedAvatar = parseInt(e.target.value);
+    e.target.blur();
+    render(); updateCoords();
   });
 
   function getImgRect() { return img.getBoundingClientRect(); }
+  function ownAvatarIdx(w) { return WORLD_ORDER.indexOf(w); }
 
   function render() {
     overlay.innerHTML = '';
     const r = getImgRect();
-    const sz = avatarSize * r.width;
 
-    // Marcadores de mundos
+    // Marcadores de isla (anclas)
     WORLD_ORDER.forEach((world, i) => {
       const pos = positions[world];
+      const sz = (avatars[world][ownAvatarIdx(world)].size ?? avatarSize) * r.width;
       const div = document.createElement('div');
       div.className = 'marker' + (i === selectedWorld ? ' active' : '');
       div.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
@@ -174,33 +199,46 @@
       overlay.appendChild(div);
     });
 
-    // Mostrar un avatar de referencia sobre cada isla.
-    // Se usa avatar_01 en todas para comparar las posiciones con la misma silueta.
+    // Avatares: cada isla muestra su propio avatar calibrado.
+    // En la isla seleccionada se muestra solo el avatar que se esta editando.
     avatarPreviews.innerHTML = '';
     WORLD_ORDER.forEach((world, i) => {
-      const pos = positions[world];
-      const preview = document.createElement('div');
-      preview.className = 'island-avatar' + (i === selectedWorld ? ' selected' : '');
-      preview.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
-      preview.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
-      preview.style.width = sz + 'px';
-      preview.style.height = sz + 'px';
-      const avatarImg = document.createElement('img');
-      avatarImg.src = '/assets/avatars/avatar_01.png';
-      avatarImg.alt = world;
-      avatarImg.onerror = () => {
-        statusEl.innerHTML = '<span class="err">No se pudo cargar el avatar de referencia</span>';
-      };
-      preview.appendChild(avatarImg);
-      avatarPreviews.appendChild(preview);
+      const own = ownAvatarIdx(world);
+      const indices = [i === selectedWorld ? selectedAvatar : own];
+      indices.forEach(ai => {
+        const entry = avatars[world][ai];
+        const sz = (entry.size ?? avatarSize) * r.width;
+        const preview = document.createElement('div');
+        const isSel = i === selectedWorld && ai === selectedAvatar && editMode === 'avatar';
+        preview.className = 'island-avatar' + (isSel ? ' selected' : '');
+        preview.style.left = (r.left + entry.x * r.width - sz / 2) + 'px';
+        preview.style.top = (r.top + entry.y * r.height - sz / 2) + 'px';
+        preview.style.width = sz + 'px';
+        preview.style.height = sz + 'px';
+        const avatarImg = document.createElement('img');
+        avatarImg.src = AVATAR_SRC(ai);
+        avatarImg.alt = world;
+        avatarImg.onerror = () => {
+          statusEl.innerHTML = '<span class="err">No se pudo cargar el avatar</span>';
+        };
+        preview.appendChild(avatarImg);
+        avatarPreviews.appendChild(preview);
+      });
     });
   }
 
   function updateCoords() {
     const world = WORLD_ORDER[selectedWorld];
-    const pos = positions[world];
-    coordsEl.textContent = world + ': x=' + pos.x.toFixed(4) + ' y=' + pos.y.toFixed(4) +
-      ' | avatar de este mundo | sz=' + avatarSize.toFixed(3);
+    if (editMode === 'isla') {
+      const pos = positions[world];
+      coordsEl.textContent = world + ' (isla): x=' + pos.x.toFixed(4) + ' y=' + pos.y.toFixed(4);
+      modeLabel.textContent = 'Isla (ancla)';
+    } else {
+      const e = avatars[world][selectedAvatar];
+      coordsEl.textContent = world + ' / Avatar ' + (selectedAvatar + 1) +
+        ': x=' + e.x.toFixed(4) + ' y=' + e.y.toFixed(4) + ' sz=' + (e.size ?? avatarSize).toFixed(3);
+      modeLabel.textContent = 'Avatar';
+    }
   }
 
   document.addEventListener('keydown', (e) => {
@@ -214,20 +252,43 @@
       render(); updateCoords();
       return;
     }
+    if (e.key === 'a' || e.key === 'A') {
+      selectedAvatar = (selectedAvatar + (e.shiftKey ? -1 : 1) + 8) % 8;
+      avatarSelect.value = selectedAvatar;
+      render(); updateCoords();
+      return;
+    }
+    if (e.key === 'm' || e.key === 'M') {
+      editMode = editMode === 'avatar' ? 'isla' : 'avatar';
+      render(); updateCoords();
+      return;
+    }
     if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
     if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
-    if (e.key === '+' || e.key === '=') { avatarSize = Math.min(0.1, avatarSize + 0.005); render(); updateCoords(); return; }
-    if (e.key === '-' || e.key === '_') { avatarSize = Math.max(0.01, avatarSize - 0.005); render(); updateCoords(); return; }
 
     const world = WORLD_ORDER[selectedWorld];
-    const pos = positions[world];
+    const entry = avatars[world][selectedAvatar];
+
+    // El tamano es del avatar: se aplica al mismo avatar en todos los mundos
+    if (e.key === '+' || e.key === '=') {
+      const sz = Math.min(0.2, (entry.size ?? avatarSize) + 0.005);
+      WORLD_ORDER.forEach(w => { avatars[w][selectedAvatar].size = sz; });
+      render(); updateCoords(); return;
+    }
+    if (e.key === '-' || e.key === '_') {
+      const sz = Math.max(0.01, (entry.size ?? avatarSize) - 0.005);
+      WORLD_ORDER.forEach(w => { avatars[w][selectedAvatar].size = sz; });
+      render(); updateCoords(); return;
+    }
+
+    const target = editMode === 'isla' ? positions[world] : entry;
     let changed = false;
 
     switch (e.key) {
-      case 'ArrowLeft': pos.x = Math.max(0, pos.x - step); changed = true; break;
-      case 'ArrowRight': pos.x = Math.min(1, pos.x + step); changed = true; break;
-      case 'ArrowUp': pos.y = Math.max(0, pos.y - step); changed = true; break;
-      case 'ArrowDown': pos.y = Math.min(1, pos.y + step); changed = true; break;
+      case 'ArrowLeft': target.x = Math.max(0, target.x - step); changed = true; break;
+      case 'ArrowRight': target.x = Math.min(1, target.x + step); changed = true; break;
+      case 'ArrowUp': target.y = Math.max(0, target.y - step); changed = true; break;
+      case 'ArrowDown': target.y = Math.min(1, target.y + step); changed = true; break;
       default: return;
     }
 
@@ -235,7 +296,7 @@
     if (changed) { render(); updateCoords(); }
   });
 
-  // Click para mover el mundo seleccionado
+  // Click para mover la seleccion
   document.addEventListener('click', (e) => {
     if (e.target.closest('#hud') || e.target.closest('#status') || e.target.closest('select')) return;
     const r = getImgRect();
@@ -243,18 +304,20 @@
     const x = (e.clientX - r.left) / r.width;
     const y = (e.clientY - r.top) / r.height;
     const world = WORLD_ORDER[selectedWorld];
-    positions[world] = { x, y };
+    const target = editMode === 'isla' ? positions[world] : avatars[world][selectedAvatar];
+    target.x = x; target.y = y;
     render(); updateCoords();
-    statusEl.innerHTML = '<span class="ok">' + world + ' movido a x=' + x.toFixed(3) + ' y=' + y.toFixed(3) + '</span>';
+    const what = editMode === 'isla' ? world + ' (isla)' : world + ' / Avatar ' + (selectedAvatar + 1);
+    statusEl.innerHTML = '<span class="ok">' + what + ' movido a x=' + x.toFixed(3) + ' y=' + y.toFixed(3) + '</span>';
   });
 
   function saveJson() {
-    const data = { positions, avatarSize };
+    const data = { positions, avatars, avatarSize };
     const json = JSON.stringify(data, null, 2);
     fetch('/api/save-avatar-positions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
     }).then(() => {
-      statusEl.innerHTML = '<span class="ok">Guardado: ' + WORLD_ORDER.length + ' mundos + avatar</span>';
+      statusEl.innerHTML = '<span class="ok">Guardado: ' + WORLD_ORDER.length + ' mundos x 8 avatares</span>';
     }).catch(() => {
       statusEl.innerHTML = '<span class="err">Error al guardar</span>';
     });
@@ -267,6 +330,18 @@
       const data = await r.json();
       if (data.positions) Object.assign(positions, data.positions);
       if (data.avatarSize) avatarSize = data.avatarSize;
+      WORLD_ORDER.forEach(w => {
+        const anchor = positions[w] || { x: 0.5, y: 0.5 };
+        const saved = (data.avatars && data.avatars[w]) || null;
+        avatars[w] = Array.from({ length: 8 }, (_, i) => {
+          const e = saved && saved[i];
+          return {
+            x: e && e.x != null ? e.x : anchor.x,
+            y: e && e.y != null ? e.y : anchor.y,
+            size: e && e.size != null ? e.size : (anchor.size ?? data.avatarSize ?? avatarSize)
+          };
+        });
+      });
       render(); updateCoords();
       statusEl.innerHTML = '<span class="ok">Cargado</span>';
     } catch {

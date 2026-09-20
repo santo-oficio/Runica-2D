@@ -1,9 +1,19 @@
 """
-Convierte las imágenes de submundos a PNG 7680x4320 (8K) sin pérdida.
+Regenera las imágenes de submundos a 7680x5120 (8K, 3:2) SIN recortar.
 
-- Recorta a 16:9 centrado (para mantener la relación del target)
-- Escala con INTER_LANCZOS4 (máxima calidad de interpolación tradicional)
-- Guarda como PNG sin compresión con pérdida
+Pipeline de calidad extrema:
+  1. Real-ESRGAN x4plus (GPU, fp16, por tiles) -> escala 4x.
+  2. Lanczos (INTER_LANCZOS4) hasta el tamaño objetivo exacto.
+
+- No recorta la imagen: se conserva la relación de aspecto original (3:2).
+- Los fondos de submundos son 3:2, así que el objetivo es 7680x5120
+  (mismo tamaño que `submundo viento.png`, que ya está en 8K).
+- Si una imagen ya está en el tamaño objetivo, se omite.
+
+Uso:
+  .sam-venv/Scripts/python.exe tools/convert-submundos-8k.py [MUNDO ...]
+
+Sin argumentos procesa los mundos cuyas imágenes no estén aún en 7680x5120.
 """
 
 import cv2
@@ -14,61 +24,98 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUB_DIR = os.path.join(ROOT, "assets", "submundos")
 
 TARGET_W = 7680
-TARGET_H = 4320
-TARGET_RATIO = TARGET_W / TARGET_H  # 16:9 ≈ 1.778
+TARGET_H = 5120
 
-WORLDS = ["AGUA", "ESPACIO", "FUEGO", "HIELO", "INFRAMUNDO", "MAZMORRA", "TIERRA", "VIENTO"]
+# Nombre de archivo por mundo (la imagen editada actual).
+WORLD_FILES = {
+    "ESPACIO": "submundo-espacio.png",
+    "AGUA": "submundo agua.png",
+    "TIERRA": "submundo tierra.png",
+    "FUEGO": "submundo fuego.png",
+    "HIELO": "submundo hielo.png",
+    "VIENTO": "submundo viento.png",
+    "INFRAMUNDO": "submundo inframundo.png",
+    "MAZMORRA": "submundo mazmorra.png",
+}
 
-for world in WORLDS:
-    world_dir = os.path.join(SUB_DIR, world)
-    if not os.path.isdir(world_dir):
-        print(f"  [SKIP] {world}: carpeta no encontrada")
-        continue
 
-    files = [f for f in os.listdir(world_dir) if f.lower().endswith((".jpg", ".jpeg", ".png", ".bmp", ".webp"))]
-    if not files:
-        print(f"  [SKIP] {world}: sin imágenes")
-        continue
+def build_upsampler():
+    """Construye RealESRGANer con el modelo x4plus (fp16, GPU)."""
+    from basicsr.archs.rrdbnet_arch import RRDBNet
+    from realesrgan import RealESRGANer
 
-    for fname in files:
-        fpath = os.path.join(world_dir, fname)
-        img = cv2.imread(fpath, cv2.IMREAD_COLOR)
-        if img is None:
-            print(f"  [ERROR] {world}/{fname}: no se pudo leer")
+    weights = os.path.join(
+        ROOT, ".sam-venv", "Lib", "site-packages", "weights", "RealESRGAN_x4plus.pth"
+    )
+    if not os.path.isfile(weights):
+        # Fallback por si el entorno está instalado en otra ruta.
+        import realesrgan
+        weights = os.path.join(
+            os.path.dirname(realesrgan.__file__), "..", "weights", "RealESRGAN_x4plus.pth"
+        )
+        weights = os.path.abspath(weights)
+
+    if not os.path.isfile(weights):
+        raise FileNotFoundError("No se encontró RealESRGAN_x4plus.pth: " + weights)
+
+    model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+    return RealESRGANer(
+        scale=4,
+        model_path=weights,
+        model=model,
+        tile=256,
+        tile_pad=10,
+        pre_pad=0,
+        half=True,  # fp16: menos VRAM y más rápido
+        gpu_id=0,
+    )
+
+
+def process_file(world, fname, upsampler):
+    fpath = os.path.join(SUB_DIR, world, fname)
+    if not os.path.isfile(fpath):
+        print(f"  [SKIP] {world}/{fname}: no existe")
+        return
+
+    img = cv2.imread(fpath, cv2.IMREAD_COLOR)
+    if img is None:
+        print(f"  [ERROR] {world}/{fname}: no se pudo leer")
+        return
+
+    h, w = img.shape[:2]
+    if (w, h) == (TARGET_W, TARGET_H):
+        print(f"  [SKIP] {world}/{fname}: ya está en {TARGET_W}x{TARGET_H}")
+        return
+
+    print(f"  {world}/{fname}: {w}x{h} -> {TARGET_W}x{TARGET_H}", flush=True)
+
+    # 1) Real-ESRGAN 4x
+    out, _ = upsampler.enhance(img, outscale=4)
+
+    # 2) Lanczos hasta el tamaño objetivo exacto (sin recortar)
+    final = cv2.resize(out, (TARGET_W, TARGET_H), interpolation=cv2.INTER_LANCZOS4)
+
+    out_path = os.path.join(SUB_DIR, world, fname)
+    cv2.imwrite(out_path, final, [cv2.IMWRITE_PNG_COMPRESSION, 6])
+
+    size_mb = os.path.getsize(out_path) / (1024 * 1024)
+    print(f"      OK ({size_mb:.1f} MB)")
+
+
+def main():
+    worlds = sys.argv[1:]
+    if not worlds:
+        worlds = list(WORLD_FILES.keys())
+
+    upsampler = build_upsampler()
+    for world in worlds:
+        if world not in WORLD_FILES:
+            print(f"[ERROR] mundo desconocido: {world}")
             continue
+        process_file(world, WORLD_FILES[world], upsampler)
 
-        h, w = img.shape[:2]
-        src_ratio = w / h
+    print("\nDone.")
 
-        # Recortar a 16:9 centrado
-        if src_ratio > TARGET_RATIO:
-            # Más ancho que 16:9 → recortar laterales
-            new_w = int(h * TARGET_RATIO)
-            x0 = (w - new_w) // 2
-            img = img[:, x0:x0 + new_w]
-        elif src_ratio < TARGET_RATIO:
-            # Más alto que 16:9 → recortar arriba/abajo
-            new_h = int(w / TARGET_RATIO)
-            y0 = (h - new_h) // 2
-            img = img[y0:y0 + new_h, :]
 
-        h, w = img.shape[:2]
-        print(f"  {world}/{fname}: {w}x{h} -> {TARGET_W}x{TARGET_H}", end=" ... ", flush=True)
-
-        # Escalar con Lanczos (máxima calidad)
-        img_8k = cv2.resize(img, (TARGET_W, TARGET_H), interpolation=cv2.INTER_LANCZOS4)
-
-        # Guardar como PNG
-        base = os.path.splitext(fname)[0]
-        out_path = os.path.join(world_dir, f"{base}.png")
-        cv2.imwrite(out_path, img_8k, [cv2.IMWRITE_PNG_COMPRESSION, 6])
-
-        size_mb = os.path.getsize(out_path) / (1024 * 1024)
-        print(f"OK ({size_mb:.1f} MB)")
-
-        # Borrar el original si era JPG y el PNG es distinto
-        if fname.lower().endswith((".jpg", ".jpeg")) and os.path.abspath(fpath) != os.path.abspath(out_path):
-            os.remove(fpath)
-            print(f"         borrado original: {fname}")
-
-print("\nDone.")
+if __name__ == "__main__":
+    main()

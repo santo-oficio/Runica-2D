@@ -261,10 +261,19 @@
     worldName: { x: 0.35, y: 0.08, w: 0.3, h: 0.08 },
     level: { x: 0.4, y: 0.18, w: 0.2, h: 0.07 },
   };
-  let avatarSize = 0.06;
+  let avatarSize = 0.06;       // fallback legacy
+  let avatarSizes = {};        // avatarSizes[world] = [size0..size7]
   let currentWorld = 'ESPACIO';
   let currentLevel = 0; // Siempre empieza en el nivel 1 (indice 0)
   let isMoving = false;
+
+  function worldAvatarIdx(w) { return WORLD_ORDER.indexOf(w); }
+  function resolvedAvatarSize() {
+    const arr = avatarSizes[currentWorld];
+    const i = worldAvatarIdx(currentWorld);
+    if (arr && arr[i] != null) return arr[i];
+    return avatarSize;
+  }
 
   // El nivel inicial depende del progreso guardado
   // Si no hay progreso, siempre empieza en el nivel 1 (indice 0)
@@ -305,6 +314,9 @@
         const data = await r.json();
         if (data.positions) positions = data.positions;
         if (data.avatarSize) avatarSize = data.avatarSize;
+        if (data.avatars) {
+          avatarSizes[world] = data.avatars.map(e => (e && e.size != null) ? e.size : avatarSize);
+        }
       }
     } catch {}
     // Defaults
@@ -325,7 +337,7 @@
 
   function render() {
     const r = getImgRect();
-    const sz = avatarSize * r.width;
+    const sz = resolvedAvatarSize() * r.width;
     overlay.innerHTML = '';
 
     // Marcadores de casillas
@@ -412,7 +424,7 @@
 
     // Calcular duracion segun distancia
     const r = getImgRect();
-    const sz = avatarSize * r.width;
+    const sz = resolvedAvatarSize() * r.width;
     const oldX = parseFloat(avatarEl.style.left) || 0;
     const oldY = parseFloat(avatarEl.style.top) || 0;
     const pos = positions[currentLevel];
@@ -434,7 +446,7 @@
     const offsets = { up: [0, -0.05], down: [0, 0.05], left: [-0.05, 0], right: [0.05, 0] };
     const [dx, dy] = offsets[dir];
     const r = getImgRect();
-    const sz = avatarSize * r.width;
+    const sz = resolvedAvatarSize() * r.width;
     const pos = positions[currentLevel];
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;

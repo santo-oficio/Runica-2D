@@ -53,7 +53,6 @@
     filter: drop-shadow(2px 2px 8px rgba(0,0,0,0.85));
   }
   .phase-avatar.selected {
-    transform: scale(1.15);
     z-index: 2;
   }
   .phase-avatar.selected img {
@@ -96,12 +95,15 @@
 <div id="hud">
   <b>Calibrar posiciones de avatar</b><br>
   Submundo: <select id="world-select"></select><br>
+  Avatar: <select id="avatar-select"></select><br>
   Nivel: <select id="level-select"></select><br>
   <br>
-  <span class="key">Click</span> en el mapa = colocar avatar<br>
+  <span class="key">Click</span> en el mapa = colocar celda<br>
   <span class="key">Flechas</span> = mover (Shift = fino)<br>
-  <span class="key">+ / -</span> = tamano del avatar<br>
-  <span class="key">G</span> = guardar<br>
+  <span class="key">+ / -</span> = tamano del avatar seleccionado<br>
+  <span class="key">Tab</span> = siguiente submundo<br>
+  <span class="key">A</span> = siguiente avatar<br>
+  <span class="key">G</span> = guardar y pasar al siguiente nivel<br>
   <span class="key">C</span> = cargar<br>
   <br>
   <span id="coords" style="color:#0f0">Sin seleccion</span>
@@ -116,45 +118,39 @@
   const coordsEl = document.getElementById('coords');
   const statusEl = document.getElementById('status');
   const worldSelect = document.getElementById('world-select');
+  const avatarSelect = document.getElementById('avatar-select');
   const levelSelect = document.getElementById('level-select');
 
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
   const NUM_LEVELS = 12;
-  const AVATAR_SIZE = 0.04;
+  const NUM_AVATARS = 8;
 
   const WORLD_IMAGES = {
-    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.png?v=8k-v3',
-    AGUA: '/assets/submundos/AGUA/submundo agua.png?v=8k-v3',
-    TIERRA: '/assets/submundos/TIERRA/submundo tierra.png?v=8k-v3',
-    FUEGO: '/assets/submundos/FUEGO/submundo fuego.png?v=8k-v3',
-    HIELO: '/assets/submundos/HIELO/submundo hielo.png?v=8k-v3',
-    VIENTO: '/assets/submundos/VIENTO/submundo viento.png?v=8k-v3',
-    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.png?v=8k-v3',
-    MAZMORRA: '/assets/submundos/MAZMORRA/submundo inframundo.png?v=8k-v3',
+    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.png?v=8k-v4',
+    AGUA: '/assets/submundos/AGUA/submundo agua.png?v=8k-v4',
+    TIERRA: '/assets/submundos/TIERRA/submundo tierra.png?v=8k-v4',
+    FUEGO: '/assets/submundos/FUEGO/submundo fuego.png?v=8k-v4',
+    HIELO: '/assets/submundos/HIELO/submundo hielo.png?v=8k-v4',
+    VIENTO: '/assets/submundos/VIENTO/submundo viento.png?v=8k-v4',
+    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.png?v=8k-v4',
+    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.png?v=8k-v4',
   };
 
-  const WORLD_AVATARS = {
-    ESPACIO: '/assets/avatars/avatar_01.png',
-    AGUA: '/assets/avatars/avatar_02.png',
-    TIERRA: '/assets/avatars/avatar_03.png',
-    FUEGO: '/assets/avatars/avatar_04.png',
-    HIELO: '/assets/avatars/avatar_05.png',
-    VIENTO: '/assets/avatars/avatar_06.png',
-    INFRAMUNDO: '/assets/avatars/avatar_07.png',
-    MAZMORRA: '/assets/avatars/avatar_08.png',
-  };
+  const AVATAR_SRC = i => '/assets/avatars/thumbs/avatar_' + String(i + 1).padStart(2, '0') + '.png?v=avatars-9';
 
-  // positions[world][level] = { x, y }
+  // positions[world][level] = { x, y }  (celdas, compartidas entre avatares)
+  // avatars[world][avatarIdx] = { size } (tamano por avatar)
   let positions = {};
-  let avatarSizes = {};
-  let avatarSize = 0.06;
+  let avatars = {};
+  let avatarSize = 0.06; // legacy / fallback
   let selectedWorld = 0;
+  let selectedAvatar = 0;
   let selectedLevel = 0;
 
   // Inicializar
   WORLD_ORDER.forEach(w => {
     positions[w] = {};
-    avatarSizes[w] = 0.06;
+    avatars[w] = Array.from({ length: NUM_AVATARS }, () => ({ size: 0.06 }));
     for (let i = 0; i < NUM_LEVELS; i++) {
       positions[w][i] = { x: 0.5, y: 0.5 };
     }
@@ -166,16 +162,33 @@
     opt.value = i; opt.textContent = w;
     worldSelect.appendChild(opt);
   });
+  for (let i = 0; i < NUM_AVATARS; i++) {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = 'Avatar ' + (i + 1);
+    avatarSelect.appendChild(opt);
+  }
   for (let i = 0; i < NUM_LEVELS; i++) {
     const opt = document.createElement('option');
     opt.value = i; opt.textContent = 'Nivel ' + (i + 1);
     levelSelect.appendChild(opt);
   }
 
+  function currentSize() {
+    const world = WORLD_ORDER[selectedWorld];
+    const e = avatars[world][selectedAvatar];
+    return (e && e.size != null) ? e.size : avatarSize;
+  }
+
   worldSelect.addEventListener('change', (e) => {
     selectedWorld = parseInt(e.target.value);
-    avatarSize = avatarSizes[WORLD_ORDER[selectedWorld]] || 0.06;
+    e.target.blur();
     img.src = WORLD_IMAGES[WORLD_ORDER[selectedWorld]];
+    render(); updateCoords();
+  });
+
+  avatarSelect.addEventListener('change', (e) => {
+    selectedAvatar = parseInt(e.target.value);
+    e.target.blur();
     render(); updateCoords();
   });
 
@@ -189,7 +202,7 @@
   function render() {
     overlay.innerHTML = '';
     const r = getImgRect();
-    const sz = avatarSize * r.width;
+    const sz = currentSize() * r.width;
     const world = WORLD_ORDER[selectedWorld];
 
     // Marcadores de todos los niveles del submundo actual
@@ -208,8 +221,7 @@
       overlay.appendChild(div);
     }
 
-    // Mostrar un avatar de referencia en cada una de las 12 fases.
-    // Se usa avatar_01 para todas, facilitando comparar las posiciones.
+    // Avatar seleccionado en cada una de las 12 celdas
     avatarPreviews.innerHTML = '';
     for (let i = 0; i < NUM_LEVELS; i++) {
       const pos = positions[world][i];
@@ -220,8 +232,8 @@
       preview.style.width = sz + 'px';
       preview.style.height = sz + 'px';
       const avatarImg = document.createElement('img');
-      avatarImg.src = '/assets/avatars/avatar_01.png';
-      avatarImg.alt = 'Nivel ' + (i + 1);
+      avatarImg.src = AVATAR_SRC(selectedAvatar);
+      avatarImg.alt = 'Avatar ' + (selectedAvatar + 1);
       preview.appendChild(avatarImg);
       avatarPreviews.appendChild(preview);
     }
@@ -230,7 +242,8 @@
   function updateCoords() {
     const world = WORLD_ORDER[selectedWorld];
     const pos = positions[world][selectedLevel];
-    coordsEl.textContent = world + ' N' + (selectedLevel + 1) + ': x=' + pos.x.toFixed(4) + ' y=' + pos.y.toFixed(4) + ' sz=' + avatarSize.toFixed(3);
+    coordsEl.textContent = world + ' / Avatar ' + (selectedAvatar + 1) + ' / N' + (selectedLevel + 1) +
+      ': x=' + pos.x.toFixed(4) + ' y=' + pos.y.toFixed(4) + ' sz=' + currentSize().toFixed(3);
   }
 
   // Click para colocar
@@ -251,13 +264,35 @@
     if (e.target.tagName === 'SELECT') return;
     const step = e.shiftKey ? 0.001 : 0.01;
     const world = WORLD_ORDER[selectedWorld];
-    const pos = positions[world][selectedLevel];
 
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      selectedWorld = (selectedWorld + (e.shiftKey ? -1 : 1) + WORLD_ORDER.length) % WORLD_ORDER.length;
+      worldSelect.value = selectedWorld;
+      img.src = WORLD_IMAGES[world];
+      render(); updateCoords();
+      return;
+    }
+    if (e.key === 'a' || e.key === 'A') {
+      selectedAvatar = (selectedAvatar + (e.shiftKey ? -1 : 1) + NUM_AVATARS) % NUM_AVATARS;
+      avatarSelect.value = selectedAvatar;
+      render(); updateCoords();
+      return;
+    }
     if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
     if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
-    if (e.key === '+' || e.key === '=') { avatarSize = Math.min(0.1, avatarSize + 0.005); render(); updateCoords(); return; }
-    if (e.key === '-' || e.key === '_') { avatarSize = Math.max(0.01, avatarSize - 0.005); render(); updateCoords(); return; }
+    if (e.key === '+' || e.key === '=') {
+      const entry = avatars[world][selectedAvatar];
+      entry.size = Math.min(0.2, (entry.size ?? avatarSize) + 0.005);
+      render(); updateCoords(); return;
+    }
+    if (e.key === '-' || e.key === '_') {
+      const entry = avatars[world][selectedAvatar];
+      entry.size = Math.max(0.01, (entry.size ?? avatarSize) - 0.005);
+      render(); updateCoords(); return;
+    }
 
+    const pos = positions[world][selectedLevel];
     let changed = false;
     switch (e.key) {
       case 'ArrowLeft': pos.x = Math.max(0, pos.x - step); changed = true; break;
@@ -272,13 +307,32 @@
 
   function saveJson() {
     const world = WORLD_ORDER[selectedWorld];
-    avatarSizes[world] = avatarSize;
-    const data = { world, positions: positions[world], avatarSize };
+    const data = { world, positions: positions[world], avatarSize, avatars: avatars[world] };
     const json = JSON.stringify(data, null, 2);
     fetch('/api/save-subworld-positions?world=' + encodeURIComponent(world), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
     }).then(() => {
-      statusEl.innerHTML = '<span class="ok">Guardado: ' + world + ' (' + NUM_LEVELS + ' niveles)</span>';
+      // Avanzar automaticamente al siguiente nivel (y al siguiente avatar/submundo al llegar al final)
+      if (selectedLevel < NUM_LEVELS - 1) {
+        selectedLevel++;
+        levelSelect.value = selectedLevel;
+      } else {
+        selectedLevel = 0;
+        levelSelect.value = 0;
+        if (selectedAvatar < NUM_AVATARS - 1) {
+          selectedAvatar++;
+          avatarSelect.value = selectedAvatar;
+        } else {
+          selectedAvatar = 0;
+          avatarSelect.value = 0;
+          selectedWorld = (selectedWorld + 1) % WORLD_ORDER.length;
+          worldSelect.value = selectedWorld;
+          img.src = WORLD_IMAGES[WORLD_ORDER[selectedWorld]];
+        }
+      }
+      render(); updateCoords();
+      const nextWorld = WORLD_ORDER[selectedWorld];
+      statusEl.innerHTML = '<span class="ok">Guardado: ' + world + ' -> ' + nextWorld + ' / Avatar ' + (selectedAvatar + 1) + ' / Nivel ' + (selectedLevel + 1) + '</span>';
     }).catch(() => {
       statusEl.innerHTML = '<span class="err">Error al guardar</span>';
     });
@@ -291,12 +345,13 @@
       const data = await r.json();
       const world = WORLD_ORDER[selectedWorld];
       if (data.positions) Object.assign(positions[world], data.positions);
-      if (data.avatarSize) {
-        avatarSizes[world] = data.avatarSize;
-        avatarSize = data.avatarSize;
-      }
+      if (data.avatarSize) avatarSize = data.avatarSize;
+      avatars[world] = Array.from({ length: NUM_AVATARS }, (_, i) => {
+        const e = (data.avatars && data.avatars[i]) || null;
+        return { size: (e && e.size != null) ? e.size : (data.avatarSize ?? avatarSize) };
+      });
       render(); updateCoords();
-      statusEl.innerHTML = '<span class="ok">Cargado: ' + WORLD_ORDER[selectedWorld] + '</span>';
+      statusEl.innerHTML = '<span class="ok">Cargado: ' + world + '</span>';
     } catch {
       statusEl.innerHTML = '<span class="err">No hay guardado para ' + WORLD_ORDER[selectedWorld] + '</span>';
     }
@@ -310,7 +365,11 @@
         if (r.ok) {
           const data = await r.json();
           if (data.positions) Object.assign(positions[w], data.positions);
-          if (data.avatarSize) avatarSizes[w] = data.avatarSize;
+          if (data.avatarSize) avatarSize = data.avatarSize;
+          avatars[w] = Array.from({ length: NUM_AVATARS }, (_, i) => {
+            const e = (data.avatars && data.avatars[i]) || null;
+            return { size: (e && e.size != null) ? e.size : (data.avatarSize ?? avatarSize) };
+          });
         }
       } catch {}
     }
@@ -328,14 +387,9 @@
     // Asignar la imagen antes de cargar los JSON para que nunca aparezca el lienzo vacío.
     img.src = WORLD_IMAGES[WORLD_ORDER[selectedWorld]];
     await loadAll();
-    avatarSize = avatarSizes[WORLD_ORDER[selectedWorld]] || 0.06;
     render(); updateCoords();
   })();
 
-  const avatarImg = document.getElementById('avatar-img');
-  avatarImg.addEventListener('error', () => {
-    statusEl.innerHTML = '<span class="err">No se pudo cargar el avatar de ' + WORLD_ORDER[selectedWorld] + '</span>';
-  });
   window.addEventListener('resize', render);
 </script>
 

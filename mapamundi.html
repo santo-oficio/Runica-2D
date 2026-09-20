@@ -233,8 +233,12 @@
   const DIRS = ['up', 'down', 'left', 'right'];
 
   let WORLD_POSITIONS = {};
+  let WORLD_AVATAR_POS = {};
   let WORLD_PATHS = {};
   let avatarSize = 0.06;
+  function worldAvatarIdx(w) { return WORLD_ORDER.indexOf(w); }
+  function avatarPos(w) { const i = worldAvatarIdx(w); return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][i]) || WORLD_POSITIONS[w]; }
+  function worldSize(w) { const i = worldAvatarIdx(w); return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][i] && WORLD_AVATAR_POS[w][i].size) || (WORLD_POSITIONS[w] && WORLD_POSITIONS[w].size) || avatarSize; }
   let selectedWorld = 7; // MAZMORRA por defecto
 
   // Restaurar ultimo mundo visitado
@@ -267,13 +271,13 @@
   function render() {
     const r = getImgRect();
     overlay.innerHTML = '';
-    const sz = avatarSize * r.width;
     const world = WORLD_ORDER[selectedWorld];
     const paths = WORLD_PATHS[world] || {};
 
     WORLD_ORDER.forEach((w, i) => {
       const pos = WORLD_POSITIONS[w];
       if (!pos) return;
+      const sz = worldSize(w) * r.width;
       const div = document.createElement('div');
       let cls = 'world-marker';
       if (i === selectedWorld) cls += ' selected';
@@ -299,8 +303,8 @@
         sessionStorage.setItem('runika-last-world', String(selectedWorld));
         // Esperar a que termine el movimiento antes de entrar
         const r = getImgRect();
-        const pos = WORLD_POSITIONS[w];
-        const sz = avatarSize * r.width;
+        const pos = avatarPos(w);
+        const sz = worldSize(w) * r.width;
         const oldX = parseFloat(avatarEl.style.left) || 0;
         const oldY = parseFloat(avatarEl.style.top) || 0;
         const newX = r.left + pos.x * r.width - sz / 2;
@@ -317,7 +321,7 @@
     });
 
     // Mostrar avatar siempre (fijo, uno solo)
-    const pos = WORLD_POSITIONS[world];
+    const pos = avatarPos(world);
     if (pos) {
       avatarImg.src = AssetsCache.getCachedImageUrl(WORLD_AVATARS[world]);
       avatarImg.alt = world;
@@ -325,19 +329,20 @@
         avatarImg.src = WORLD_AVATARS[world];
       };
       avatarEl.style.display = 'block';
-      const newX = r.left + pos.x * r.width - sz / 2;
-      const newY = r.top + pos.y * r.height - sz / 2;
+      const asz = worldSize(world) * r.width;
+      const newX = r.left + pos.x * r.width - asz / 2;
+      const newY = r.top + pos.y * r.height - asz / 2;
       // Calcular duracion segun distancia para velocidad constante
       const oldX = parseFloat(avatarEl.style.left) || newX;
       const oldY = parseFloat(avatarEl.style.top) || newY;
       const dist = Math.hypot(newX - oldX, newY - oldY);
       const speed = 800; // px por segundo
       const duration = Math.max(0.3, Math.min(1.5, dist / speed));
-      avatarEl.style.transition = 'left ' + duration + 's linear, top ' + duration + 's linear';
+      avatarEl.style.transition = 'left ' + duration + 's linear, top ' + duration + 's linear, width ' + duration + 's linear, height ' + duration + 's linear';
       avatarEl.style.left = newX + 'px';
       avatarEl.style.top = newY + 'px';
-      avatarEl.style.width = sz + 'px';
-      avatarEl.style.height = sz + 'px';
+      avatarEl.style.width = asz + 'px';
+      avatarEl.style.height = asz + 'px';
     }
 
     document.getElementById('pos-info').textContent = 'Mundo: ' + world;
@@ -367,8 +372,8 @@
     render();
     // Calcular duracion segun distancia para velocidad constante
     const r = getImgRect();
-    const pos = WORLD_POSITIONS[targetWorld];
-    const sz = avatarSize * r.width;
+    const pos = avatarPos(targetWorld);
+    const sz = worldSize(targetWorld) * r.width;
     const oldX = parseFloat(avatarEl.style.left) || 0;
     const oldY = parseFloat(avatarEl.style.top) || 0;
     const newX = r.left + pos.x * r.width - sz / 2;
@@ -383,9 +388,9 @@
     const offsets = { up: [0, -0.08], down: [0, 0.08], left: [-0.08, 0], right: [0.08, 0] };
     const [dx, dy] = offsets[dir];
     const r = getImgRect();
-    const sz = avatarSize * r.width;
     const world = WORLD_ORDER[selectedWorld];
-    const pos = WORLD_POSITIONS[world];
+    const sz = worldSize(world) * r.width;
+    const pos = avatarPos(world);
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;
     const baseY = r.top + pos.y * r.height - sz / 2;
@@ -443,6 +448,7 @@
       if (r.ok) {
         const data = await r.json();
         if (data.positions) Object.assign(WORLD_POSITIONS, data.positions);
+        if (data.avatars) WORLD_AVATAR_POS = data.avatars;
         if (data.avatarSize) avatarSize = data.avatarSize;
       }
     } catch {}

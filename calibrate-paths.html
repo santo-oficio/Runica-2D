@@ -137,9 +137,16 @@
   };
 
   let positions = {};
+  let avatarMatrix = {};
   let paths = {};
   let avatarSize = 0.06;
   let selectedWorld = 0;
+
+  function worldSize(w) {
+    const i = WORLD_ORDER.indexOf(w);
+    const e = avatarMatrix[w] && avatarMatrix[w][i];
+    return (e && e.size) || (positions[w] && positions[w].size) || avatarSize;
+  }
 
   async function loadPositions() {
     try {
@@ -147,6 +154,7 @@
       if (r.ok) {
         const data = await r.json();
         if (data.positions) Object.assign(positions, data.positions);
+        if (data.avatars) avatarMatrix = data.avatars;
         if (data.avatarSize) avatarSize = data.avatarSize;
       }
     } catch {}
@@ -187,7 +195,6 @@
   function render() {
     overlay.innerHTML = '';
     const r = getImgRect();
-    const sz = avatarSize * r.width;
     const world = WORLD_ORDER[selectedWorld];
     const worldPaths = paths[world] || {};
 
@@ -195,12 +202,13 @@
     DIRS.forEach(d => {
       const target = worldPaths[d];
       if (!target || !positions[target]) return;
-      drawLine(positions[world], positions[target], r, sz, '#fc0');
+      drawLine(positions[world], positions[target], r, worldSize(world) * r.width, '#fc0');
     });
 
     // Marcadores
     WORLD_ORDER.forEach((w, i) => {
       const pos = positions[w];
+      const sz = worldSize(w) * r.width;
       const div = document.createElement('div');
       let cls = 'marker';
       if (i === selectedWorld) cls += ' selected';
