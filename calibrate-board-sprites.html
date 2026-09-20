@@ -131,7 +131,7 @@
   <span class="key">+ / -</span> = tamaño / escala<br>
   <span class="key">Tab</span> = siguiente submundo<br>
   <span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
-  En modo TABLERO: <span class="key">arrastrar</span> = definir área · <span class="key">A</span> = TABLERO/AVATAR · <span class="key">G</span> = guardar<br>
+  En modo TABLERO: <span class="key">arrastrar</span> = definir área · <span class="key">+ / -</span> = alto · <span class="key">[ ]</span> = ancho · <span class="key">flechas</span> = mover · <span class="key">A</span> = TABLERO/AVATAR · <span class="key">G</span> = guardar<br>
   <br>
   <span id="coords" style="color:#0f0">Sin seleccion</span>
 </div>
@@ -346,6 +346,10 @@
 
   function setMode(m) {
     mode = m;
+    if (m === 'board') {
+      statusEl.innerHTML = '<span class="info">TABLERO: arrastra para definir el área. ' +
+        '+ / - = alto · [ ] = ancho · flechas = mover · A = TABLERO/AVATAR · G = guardar.</span>';
+    }
     render();
   }
 
@@ -484,7 +488,7 @@
       render();
       return;
     }
-    if (e.key === '[' || e.key === ']') {
+    if (mode !== 'board' && (e.key === '[' || e.key === ']')) {
       const n = assets[currentType()].length;
       const dir = e.key === '[' ? -1 : 1;
       selectedInstance = (selectedInstance + dir + n) % n;
@@ -514,18 +518,28 @@
       }
       const a = areaToEdit();
       const st = e.shiftKey ? 0.0005 : 0.002;
+      // Ancho: [ = reducir, ] = agrandar (centrado)
+      if (e.key === '[' || e.key === ']') {
+        const dir = e.key === ']' ? 1 : -1;
+        const cx = a.x + a.width / 2;
+        const nw = Math.max(0.02, Math.min(1, a.width + dir * st * 4));
+        a.x = Math.max(0, cx - nw / 2);
+        a.width = Math.min(1 - a.x, nw);
+        render(); return;
+      }
+      // Alto: + = agrandar, - = reducir (centrado)
       if (e.key === '+' || e.key === '=') {
-        const cx = a.x + a.width / 2, cy = a.y + a.height / 2;
-        const nw = Math.min(1, a.width + st * 4), nh = Math.min(1, a.height + st * 4);
-        a.x = Math.max(0, cx - nw / 2); a.y = Math.max(0, cy - nh / 2);
-        a.width = Math.min(1 - a.x, nw); a.height = Math.min(1 - a.y, nh);
+        const cy = a.y + a.height / 2;
+        const nh = Math.min(1, a.height + st * 4);
+        a.y = Math.max(0, cy - nh / 2);
+        a.height = Math.min(1 - a.y, nh);
         render(); return;
       }
       if (e.key === '-' || e.key === '_') {
-        const cx = a.x + a.width / 2, cy = a.y + a.height / 2;
-        const nw = Math.max(0.02, a.width - st * 4), nh = Math.max(0.02, a.height - st * 4);
-        a.x = Math.max(0, cx - nw / 2); a.y = Math.max(0, cy - nh / 2);
-        a.width = nw; a.height = nh;
+        const cy = a.y + a.height / 2;
+        const nh = Math.max(0.02, a.height - st * 4);
+        a.y = Math.max(0, cy - nh / 2);
+        a.height = nh;
         render(); return;
       }
       let changed = false;
