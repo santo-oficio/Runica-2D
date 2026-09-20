@@ -780,13 +780,14 @@ const server = http.createServer((req, res) => {
   }
 
   // API: cargar calibración de sprites del tablero (GET /api/load-board-sprites?world=XXX)
+  // Sin calibración guardada devuelve 200 con valores por defecto (sin ruido en consola).
   if (url.startsWith("/api/load-board-sprites")) {
     const u = new URL(url, `http://localhost:${PORT}`);
     const world = u.searchParams.get("world") ?? "";
     const loadPath = join(ROOT, "assets", "backgrounds", world, "sprites.json");
     if (!existsSync(loadPath)) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: false }));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, world, global: { offsetX: 0, offsetY: 0, scale: 1 } }));
       return;
     }
     res.writeHead(200, { "Content-Type": "application/json" });

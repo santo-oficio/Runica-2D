@@ -579,7 +579,12 @@
     try {
       const r = await fetch('/api/load-board-sprites?world=' + encodeURIComponent(world));
       if (!r.ok) throw new Error();
-      mergeSaved(await r.json());
+      const saved = await r.json();
+      if (!saved.avatar && !saved.enemy && !saved.boss && !saved.trap) {
+        statusEl.innerHTML = '<span class="err">No hay calibración para ' + world + '</span>';
+        return;
+      }
+      mergeSaved(saved);
       render();
       statusEl.innerHTML = '<span class="ok">Cargado calibración de ' + world + '</span>';
     } catch {
