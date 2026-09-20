@@ -258,12 +258,12 @@
     // Rejilla del área activa (brillante) + la otra área (tenue)
     // En modo TABLERO el área activa es la que se está editando; en los
     // demás modos es el área del tipo seleccionado.
+    const type = currentType();
     let activeArea, activeCls;
     if (mode === 'board') {
       activeArea = areaToEdit();
       activeCls = activeArea === assets.boardArea ? 'boardArea' : 'avatarArea';
     } else {
-      const type = currentType();
       activeArea = areaFor(type);
       activeCls = type === 'trap' ? 'boardArea' : 'avatarArea';
     }
