@@ -187,12 +187,12 @@
 </div>
 
 <div id="hud">
-  <b id="world-name">Submundo</b><br>
+  <b id="world-name" data-i18n="submundo.title"></b><br>
   <span class="key">Flechas</span> = mover por casilla<br>
   <span class="key">Enter</span> = entrar al nivel<br>
   <span class="key">ESC</span> = volver al mapamundi<br>
   <br>
-  <span id="pos-info" style="color:#0f0">Nivel: --</span>
+  <span id="pos-info" style="color:#0f0"></span>
 </div>
 
 <button id="back-btn" data-i18n="instructions.back"></button>
@@ -292,6 +292,9 @@
     return await r.json();
   }
   function t(key) { return translations[key] ?? fallback[key] ?? key; }
+  function format(key, ...args) {
+    return t(key).replace(/\{(\d+)\}/g, (m, i) => String(args[+i] ?? m));
+  }
 
   function applyI18n() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -367,8 +370,8 @@
 
     dynamicText.innerHTML = '';
     const dynamicValues = {
-      worldName: currentWorld,
-      level: 'Nivel: ' + (currentLevel + 1) + '/' + NUM_LEVELS,
+      worldName: t('worlds.' + currentWorld),
+      level: format('submundo.level', currentLevel + 1, NUM_LEVELS),
     };
     for (const type of ['worldName', 'level']) {
       const area = textAreas[type];
@@ -384,8 +387,8 @@
       dynamicText.appendChild(text);
     }
 
-    document.getElementById('pos-info').textContent = 'Nivel: ' + (currentLevel + 1) + '/' + NUM_LEVELS;
-    document.getElementById('world-name').textContent = currentWorld;
+    document.getElementById('pos-info').textContent = format('submundo.level', currentLevel + 1, NUM_LEVELS);
+    document.getElementById('world-name').textContent = t('worlds.' + currentWorld);
   }
 
   // Direcciones entre niveles consecutivos segun la serpiente
@@ -439,7 +442,7 @@
     avatarEl.style.top = newY + 'px';
 
     setTimeout(() => { isMoving = false; }, duration * 1000);
-    document.getElementById('pos-info').textContent = 'Nivel: ' + (currentLevel + 1) + '/' + NUM_LEVELS;
+    document.getElementById('pos-info').textContent = format('submundo.level', currentLevel + 1, NUM_LEVELS);
   }
 
   function bounceAvatar(dir) {
@@ -483,7 +486,7 @@
     else if (e.key === 'Enter') {
       e.preventDefault();
       AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.7);
-      alert('Entrar al nivel ' + (currentLevel + 1) + ' de ' + currentWorld);
+      alert(format('submundo.enterLevel', currentLevel + 1, t('worlds.' + currentWorld)));
     }
   });
 

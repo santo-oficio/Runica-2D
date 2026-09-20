@@ -62,5 +62,8 @@
     "instructions.rule1":  "L\u0027avatar si muove solo in 4 direzioni ortogonali: su, giù, sinistra e destra. I movimenti diagonali sono vietati.",
     "exit.back":  "Torna al menu",
     "exit.title":  "A presto",
-    "exit.message":  "Grazie per aver giocato a Runika 2D"
+    "exit.message":  "Grazie per aver giocato a Runika 2D",
+    "submundo.title":  "Sottomondo",
+    "submundo.level":  "Livello: {0}/{1}",
+    "submundo.enterLevel":  "Entra nel livello {0} di {1}"
 }

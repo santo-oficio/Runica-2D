@@ -62,5 +62,8 @@
     "instructions.rule1":  "The avatar only moves in 4 orthogonal directions: up, down, left and right. Diagonal movement is forbidden.",
     "exit.back":  "Back to menu",
     "exit.title":  "See you soon",
-    "exit.message":  "Thanks for playing Runika 2D"
+    "exit.message":  "Thanks for playing Runika 2D",
+    "submundo.title":  "Subworld",
+    "submundo.level":  "Level: {0}/{1}",
+    "submundo.enterLevel":  "Enter level {0} of {1}"
 }
