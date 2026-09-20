@@ -68,6 +68,7 @@ const MIME: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".webp": "image/webp",
   ".mp3": "audio/mpeg",
   ".wav": "audio/wav",
   ".ogg": "audio/ogg",
@@ -715,6 +716,81 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, world, images }));
+    return;
+  }
+
+  // API: assets de sprites del tablero por mundo (GET /api/board-sprites-assets?world=XXX)
+  // Devuelve las imágenes disponibles de avatar/enemigo/boss/trampa + áreas del tablero.
+  if (url.startsWith("/api/board-sprites-assets")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const world = u.searchParams.get("world") ?? "";
+    const det = detections.find((d) => d.world === world);
+    if (!det) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Mundo no encontrado" }));
+      return;
+    }
+    const isImg = (f: string) => /\.(png|jpg|jpeg|webp)$/i.test(f);
+    const list = (folder: string, sub: string): string[] =>
+      existsSync(folder)
+        ? readdirSync(folder)
+            .filter(isImg)
+            .sort()
+            .map((f) => `/assets/${sub}/${encodeURIComponent(f)}`)
+        : [];
+    const worldIdx = MUNDOS.indexOf(world);
+    const trapSub = world === "VIENTO" ? "trampas/AIRE" : `trampas/${world}`;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        world,
+        background: `/assets/backgrounds/${world}/bg_01.png`,
+        boardArea: det.boardArea,
+        avatarArea: det.avatarArea ?? det.boardArea,
+        width: det.width,
+        height: det.height,
+        avatar: worldIdx >= 0 ? [`/assets/avatars/avatar_0${worldIdx + 1}.png`] : [],
+        enemy: list(join(ROOT, "assets", "enemys", world), `enemys/${world}`),
+        boss: list(join(ROOT, "assets", "bosses", world), `bosses/${world}`),
+        trap: list(join(ROOT, "assets", "trampas", world === "VIENTO" ? "AIRE" : world), trapSub),
+      })
+    );
+    return;
+  }
+
+  // API: guardar calibración de sprites del tablero (POST /api/save-board-sprites?world=XXX)
+  if (url.startsWith("/api/save-board-sprites") && req.method === "POST") {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const world = u.searchParams.get("world") ?? "";
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "backgrounds", world, "sprites.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar calibración de sprites del tablero (GET /api/load-board-sprites?world=XXX)
+  if (url.startsWith("/api/load-board-sprites")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const world = u.searchParams.get("world") ?? "";
+    const loadPath = join(ROOT, "assets", "backgrounds", world, "sprites.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
     return;
   }
 

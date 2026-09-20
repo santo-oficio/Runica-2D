@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar sprites del tablero</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'Courier New', monospace; color: #e0e0e0;
+  }
+  #stage {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #image { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 11; pointer-events: none; }
+  #sprites { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 12; pointer-events: none; }
+  .area-rect {
+    position: absolute; pointer-events: none;
+  }
+  .area-rect.boardArea {
+    border: 2px dashed rgba(255, 80, 80, 0.55);
+  }
+  .area-rect.avatarArea {
+    border: 2px dashed rgba(126, 200, 227, 0.55);
+  }
+  .cell {
+    position: absolute; pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  .cell.ref {
+    border: 2px solid rgba(255, 204, 0, 0.85);
+    background: rgba(255, 204, 0, 0.08);
+  }
+  .sprite {
+    position: absolute; pointer-events: none; display: block;
+  }
+  .sprite img {
+    width: 100%; height: 100%; object-fit: contain;
+    filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.85));
+  }
+  .sprite.ref img {
+    filter: drop-shadow(0 0 10px rgba(255,210,80,0.95)) drop-shadow(2px 2px 6px rgba(0,0,0,0.85));
+  }
+  .sprite .tag {
+    position: absolute; bottom: -20px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px; padding: 1px 6px; border-radius: 2px;
+    background: rgba(0,0,0,0.7); color: #fc0; white-space: nowrap;
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.78); padding: 10px 16px;
+    border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
+    font-size: 0.85em; line-height: 1.7;
+  }
+  #hud b { color: #0ff; }
+  #hud .key { color: #fc4; }
+  #hud .mode-label { color: #0f0; font-weight: bold; }
+  select {
+    background: #1a1a2e; color: #e0e0e0;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 2px 6px; font-size: 0.9em; cursor: pointer;
+    margin: 2px 0;
+  }
+  #status {
+    position: absolute; bottom: 12px; left: 50%;
+    transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.78); padding: 6px 16px;
+    border-radius: 4px; font-size: 0.8em; color: #aaa;
+  }
+  #status .ok { color: #0f0; }
+  #status .err { color: #f44; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="image" src="" />
+  <div id="overlay"></div>
+  <div id="sprites"></div>
+</div>
+
+<div id="hud">
+  <b>Calibrar sprites del tablero</b><br>
+  Submundo: <select id="world-select"></select><br>
+  Tipo: <select id="type-select"></select> (teclas <span class="key">1-4</span>)<br>
+  Instancia: <select id="instance-select"></select> (<span class="key">[</span>/<span class="key">]</span>)<br>
+  Modo: <span id="mode-label" class="mode-label">Sprite</span> (<span class="key">M</span>)<br>
+  <br>
+  <span class="key">Flechas</span> = mover (Shift = fino)<br>
+  <span class="key">+ / -</span> = tamaño / escala<br>
+  <span class="key">Tab</span> = siguiente submundo<br>
+  <span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
+  <br>
+  <span id="coords" style="color:#0f0">Sin seleccion</span>
+</div>
+
+<div id="status">Cargando...</div>
+
+<script>
+  const img = document.getElementById('image');
+  const overlay = document.getElementById('overlay');
+  const spriteLayer = document.getElementById('sprites');
+  const coordsEl = document.getElementById('coords');
+  const statusEl = document.getElementById('status');
+  const worldSelect = document.getElementById('world-select');
+  const typeSelect = document.getElementById('type-select');
+  const instanceSelect = document.getElementById('instance-select');
+  const modeLabel = document.getElementById('mode-label');
+
+  const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
+  const TYPES = ['avatar', 'enemy', 'boss', 'trap'];
+  const TYPE_KEYS = { '1': 0, '2': 1, '3': 2, '4': 3 };
+  const COLS = 8, ROWS = 6;
+  const DEFAULT_SIZE = { avatar: 0.85, enemy: 0.8, boss: 0.95, trap: 0.55 };
+
+  let assets = null;  // { world, background, avatar[], enemy[], boss[], trap[], boardArea, avatarArea, width, height }
+  let data = null;    // { world, global:{offsetX,offsetY,scale}, avatar[], enemy[], boss[], trap[] }
+  let selectedWorld = 0;
+  let selectedType = 0;
+  let selectedInstance = 0;
+  let mode = 'sprite'; // 'sprite' | 'global'
+
+  function currentType() { return TYPES[selectedType]; }
+  function currentEntry() { return data[currentType()][selectedInstance]; }
+  function currentSrc() { return assets[currentType()][selectedInstance]; }
+
+  function visibleImageRect() {
+    const rect = img.getBoundingClientRect();
+    const iw = (assets && assets.width) || 7680;
+    const ih = (assets && assets.height) || 4320;
+    const scale = Math.min(rect.width / iw, rect.height / ih);
+    const w = iw * scale, h = ih * scale;
+    return {
+      left: rect.left + (rect.width - w) / 2,
+      top: rect.top + (rect.height - h) / 2,
+      width: w, height: h,
+    };
+  }
+
+  function areaFor(type) {
+    return type === 'trap' ? assets.boardArea : (assets.avatarArea || assets.boardArea);
+  }
+
+  function boardRect(a) {
+    const r = visibleImageRect();
+    return { left: r.left + a.x * r.width, top: r.top + a.y * r.height, w: a.width * r.width, h: a.height * r.height };
+  }
+
+  // Rect del sprite en la celda (c, r) aplicando calibración + global
+  function spriteRect(c, r, type, entry) {
+    const br = boardRect(areaFor(type));
+    const cw = br.w / COLS, ch = br.h / ROWS;
+    const cx = br.left + c * cw + cw / 2;
+    const cy = br.top + r * ch + ch / 2;
+    const g = data.global;
+    const size = (entry.size ?? DEFAULT_SIZE[type]) * (g.scale ?? 1);
+    const w = cw * size, h = ch * size;
+    const cx2 = cx + (entry.offsetX ?? 0) * cw + (g.offsetX ?? 0) * br.w;
+    const cy2 = cy + (entry.offsetY ?? 0) * ch + (g.offsetY ?? 0) * br.h;
+    return { left: cx2 - w / 2, top: cy2 - h / 2, w, h };
+  }
+
+  function render() {
+    if (!assets || !data) return;
+    overlay.innerHTML = '';
+    spriteLayer.innerHTML = '';
+    const r = visibleImageRect();
+
+    // Contornos de ambas áreas
+    const areas = [['boardArea', assets.boardArea], ['avatarArea', assets.avatarArea]];
+    areas.forEach(([name, a]) => {
+      if (!a) return;
+      const b = boardRect(a);
+      const div = document.createElement('div');
+      div.className = 'area-rect ' + name;
+      div.style.left = b.left + 'px';
+      div.style.top = b.top + 'px';
+      div.style.width = b.w + 'px';
+      div.style.height = b.h + 'px';
+      overlay.appendChild(div);
+    });
+
+    // Rejilla de celdas del área del tipo activo
+    const type = currentType();
+    const br = boardRect(areaFor(type));
+    const cw = br.w / COLS, ch = br.h / ROWS;
+    for (let rr = 0; rr < ROWS; rr++) {
+      for (let cc = 0; cc < COLS; cc++) {
+        const div = document.createElement('div');
+        div.className = 'cell' + (cc === 3 && rr === 2 ? ' ref' : '');
+        div.style.left = (br.left + cc * cw) + 'px';
+        div.style.top = (br.top + rr * ch) + 'px';
+        div.style.width = cw + 'px';
+        div.style.height = ch + 'px';
+        overlay.appendChild(div);
+      }
+    }
+
+    if (mode === 'sprite') {
+      // El sprite seleccionado en TODAS las celdas
+      const src = currentSrc();
+      const entry = currentEntry();
+      if (src) {
+        for (let rr = 0; rr < ROWS; rr++) {
+          for (let cc = 0; cc < COLS; cc++) {
+            const isRef = cc === 3 && rr === 2;
+            addSprite(src, spriteRect(cc, rr, type, entry), isRef);
+          }
+        }
+      }
+    } else {
+      // Modo global: tira comparativa con TODOS los sprites del mundo
+      const strip = [];
+      strip.push({ type: 'avatar', idx: 0 });
+      data.enemy.forEach((e, i) => strip.push({ type: 'enemy', idx: i }));
+      strip.push({ type: 'boss', idx: 0 });
+      data.trap.forEach((t, i) => strip.push({ type: 'trap', idx: i }));
+      strip.forEach((s, i) => {
+        const src = assets[s.type][s.idx];
+        if (!src) return;
+        const entry = data[s.type][s.idx];
+        // Se alinean todas sobre el área de avatar para comparar
+        const fakeArea = assets.avatarArea || assets.boardArea;
+        const b = boardRect(fakeArea);
+        const cw2 = b.w / COLS, ch2 = b.h / ROWS;
+        const cx = b.left + (i % COLS) * cw2 + cw2 / 2;
+        const cy = b.top + 1 * ch2 + ch2 / 2;
+        const g = data.global;
+        const size = (entry.size ?? DEFAULT_SIZE[s.type]) * (g.scale ?? 1);
+        const w = cw2 * size, h = ch2 * size;
+        const rect = {
+          left: cx + (entry.offsetX ?? 0) * cw2 + (g.offsetX ?? 0) * b.w - w / 2,
+          top: cy + (entry.offsetY ?? 0) * ch2 + (g.offsetY ?? 0) * b.h - h / 2,
+          w, h,
+        };
+        addSprite(src, rect, false, s.type + ' ' + (s.idx + 1));
+      });
+    }
+    updateCoords();
+  }
+
+  function addSprite(src, rect, isRef, tag) {
+    const el = document.createElement('div');
+    el.className = 'sprite' + (isRef ? ' ref' : '');
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    el.style.width = rect.w + 'px';
+    el.style.height = rect.h + 'px';
+    const im = document.createElement('img');
+    im.src = src;
+    el.appendChild(im);
+    if (tag) {
+      const t = document.createElement('div');
+      t.className = 'tag';
+      t.textContent = tag;
+      el.appendChild(t);
+    }
+    spriteLayer.appendChild(el);
+  }
+
+  function updateCoords() {
+    if (!data) return;
+    const g = data.global;
+    if (mode === 'global') {
+      coordsEl.textContent = currentType() + ' · MODO GLOBAL: offsetX=' + g.offsetX.toFixed(4) +
+        ' offsetY=' + g.offsetY.toFixed(4) + ' escala=' + g.scale.toFixed(3);
+      modeLabel.textContent = 'GLOBAL (todos juntos)';
+    } else {
+      const e = currentEntry();
+      coordsEl.textContent = currentType() + ' #' + (selectedInstance + 1) +
+        ': size=' + e.size.toFixed(3) + ' offsetX=' + e.offsetX.toFixed(4) + ' offsetY=' + e.offsetY.toFixed(4);
+      modeLabel.textContent = 'Sprite';
+    }
+  }
+
+  function initData() {
+    data = {
+      world: assets.world,
+      global: { offsetX: 0, offsetY: 0, scale: 1 },
+      avatar: assets.avatar.map(() => ({ size: DEFAULT_SIZE.avatar, offsetX: 0, offsetY: 0 })),
+      enemy: assets.enemy.map(() => ({ size: DEFAULT_SIZE.enemy, offsetX: 0, offsetY: 0 })),
+      boss: assets.boss.map(() => ({ size: DEFAULT_SIZE.boss, offsetX: 0, offsetY: 0 })),
+      trap: assets.trap.map(() => ({ size: DEFAULT_SIZE.trap, offsetX: 0, offsetY: 0 })),
+    };
+  }
+
+  function mergeSaved(saved) {
+    if (!saved) return;
+    if (saved.global) data.global = Object.assign({ offsetX: 0, offsetY: 0, scale: 1 }, saved.global);
+    TYPES.forEach(type => {
+      const arr = Array.isArray(saved[type]) ? saved[type] : [];
+      data[type].forEach((entry, i) => {
+        const s = arr[i];
+        if (!s) return;
+        entry.size = s.size != null ? s.size : entry.size;
+        entry.offsetX = s.offsetX != null ? s.offsetX : entry.offsetX;
+        entry.offsetY = s.offsetY != null ? s.offsetY : entry.offsetY;
+      });
+    });
+  }
+
+  async function loadWorld(idx) {
+    selectedWorld = ((idx % WORLD_ORDER.length) + WORLD_ORDER.length) % WORLD_ORDER.length;
+    const world = WORLD_ORDER[selectedWorld];
+    worldSelect.value = selectedWorld;
+    statusEl.innerHTML = '<span class="info">Cargando ' + world + '...</span>';
+    try {
+      const ar = await fetch('/api/board-sprites-assets?world=' + encodeURIComponent(world) + '&t=' + Date.now());
+      assets = await ar.json();
+      if (!assets.ok) throw new Error('assets');
+      initData();
+      try {
+        const lr = await fetch('/api/load-board-sprites?world=' + encodeURIComponent(world));
+        if (lr.ok) mergeSaved(await lr.json());
+      } catch {}
+      selectedInstance = 0;
+      fillInstanceSelect();
+      img.src = assets.background;
+      statusEl.innerHTML = '<span class="ok">Cargado: ' + world + ' (' +
+        assets.enemy.length + ' enemigos, ' + assets.trap.length + ' trampas)</span>';
+    } catch {
+      statusEl.innerHTML = '<span class="err">Error cargando ' + world + '</span>';
+    }
+  }
+
+  function fillInstanceSelect() {
+    instanceSelect.innerHTML = '';
+    const n = assets[currentType()].length;
+    for (let i = 0; i < n; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = currentType() + ' ' + (i + 1) + ' / ' + n;
+      instanceSelect.appendChild(opt);
+    }
+    selectedInstance = Math.min(selectedInstance, n - 1);
+    instanceSelect.value = selectedInstance;
+    render();
+  }
+
+  // Selects
+  WORLD_ORDER.forEach((w, i) => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = w;
+    worldSelect.appendChild(opt);
+  });
+  TYPES.forEach((t, i) => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = t;
+    typeSelect.appendChild(opt);
+  });
+
+  worldSelect.addEventListener('change', (e) => {
+    selectedWorld = parseInt(e.target.value, 10);
+    e.target.blur();
+    loadWorld(selectedWorld);
+  });
+  typeSelect.addEventListener('change', (e) => {
+    selectedType = parseInt(e.target.value, 10);
+    selectedInstance = 0;
+    e.target.blur();
+    fillInstanceSelect();
+    render();
+  });
+  instanceSelect.addEventListener('change', (e) => {
+    selectedInstance = parseInt(e.target.value, 10);
+    e.target.blur();
+    render();
+  });
+
+  // Teclado
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'SELECT') return;
+    const step = e.shiftKey ? 0.002 : 0.01;
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      loadWorld(selectedWorld + (e.shiftKey ? -1 : 1));
+      return;
+    }
+    if (TYPE_KEYS[e.key] !== undefined) {
+      selectedType = TYPE_KEYS[e.key];
+      selectedInstance = 0;
+      typeSelect.value = selectedType;
+      fillInstanceSelect();
+      render();
+      return;
+    }
+    if (e.key === '[' || e.key === ']') {
+      const n = assets[currentType()].length;
+      const dir = e.key === '[' ? -1 : 1;
+      selectedInstance = (selectedInstance + dir + n) % n;
+      instanceSelect.value = selectedInstance;
+      render();
+      return;
+    }
+    if (e.key === 'm' || e.key === 'M') {
+      mode = mode === 'sprite' ? 'global' : 'sprite';
+      render();
+      return;
+    }
+    if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
+    if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
+
+    if (mode === 'global') {
+      const g = data.global;
+      if (e.key === '+' || e.key === '=') { g.scale = Math.min(2, g.scale + 0.02); render(); return; }
+      if (e.key === '-' || e.key === '_') { g.scale = Math.max(0.5, g.scale - 0.02); render(); return; }
+      let changed = false;
+      if (e.key === 'ArrowLeft') { g.offsetX -= step; changed = true; }
+      if (e.key === 'ArrowRight') { g.offsetX += step; changed = true; }
+      if (e.key === 'ArrowUp') { g.offsetY -= step; changed = true; }
+      if (e.key === 'ArrowDown') { g.offsetY += step; changed = true; }
+      if (changed) { e.preventDefault(); render(); }
+      return;
+    }
+
+    const entry = currentEntry();
+    if (e.key === '+' || e.key === '=') { entry.size = Math.min(1.5, entry.size + 0.01); render(); return; }
+    if (e.key === '-' || e.key === '_') { entry.size = Math.max(0.05, entry.size - 0.01); render(); return; }
+    let changed = false;
+    if (e.key === 'ArrowLeft') { entry.offsetX -= step; changed = true; }
+    if (e.key === 'ArrowRight') { entry.offsetX += step; changed = true; }
+    if (e.key === 'ArrowUp') { entry.offsetY -= step; changed = true; }
+    if (e.key === 'ArrowDown') { entry.offsetY += step; changed = true; }
+    if (changed) { e.preventDefault(); render(); }
+  });
+
+  function saveJson() {
+    if (!data) return;
+    const world = WORLD_ORDER[selectedWorld];
+    fetch('/api/save-board-sprites?world=' + encodeURIComponent(world), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data, null, 2),
+    }).then(() => {
+      statusEl.innerHTML = '<span class="ok">Guardado: ' + world + '</span>';
+    }).catch(() => {
+      statusEl.innerHTML = '<span class="err">Error al guardar</span>';
+    });
+  }
+
+  async function loadJson() {
+    const world = WORLD_ORDER[selectedWorld];
+    try {
+      const r = await fetch('/api/load-board-sprites?world=' + encodeURIComponent(world));
+      if (!r.ok) throw new Error();
+      mergeSaved(await r.json());
+      render();
+      statusEl.innerHTML = '<span class="ok">Cargado calibración de ' + world + '</span>';
+    } catch {
+      statusEl.innerHTML = '<span class="err">No hay calibración para ' + world + '</span>';
+    }
+  }
+
+  img.addEventListener('load', render);
+  img.addEventListener('error', () => {
+    statusEl.innerHTML = '<span class="err">No se pudo cargar el fondo de ' + WORLD_ORDER[selectedWorld] + '</span>';
+  });
+  window.addEventListener('resize', () => { if (assets) render(); });
+
+  loadWorld(0);
+</script>
+
+</body>
+</html>
