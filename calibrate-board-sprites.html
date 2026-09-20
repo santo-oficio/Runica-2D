@@ -131,7 +131,7 @@
   <span class="key">+ / -</span> = tamaño / escala<br>
   <span class="key">Tab</span> = siguiente submundo<br>
   <span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
-  En modo TABLERO: <span class="key">arrastrar</span> = definir área · <span class="key">+ / -</span> = alto · <span class="key">[ ]</span> = ancho · <span class="key">flechas</span> = mover · <span class="key">A</span> = TABLERO/AVATAR · <span class="key">G</span> = guardar<br>
+  En modo TABLERO: <span class="key">arrastrar</span> = definir área · <span class="key">+ / -</span> = alto · <span class="key">Q / E</span> = ancho · <span class="key">flechas</span> = mover · <span class="key">A</span> = TABLERO/AVATAR · <span class="key">G</span> = guardar<br>
   <br>
   <span id="coords" style="color:#0f0">Sin seleccion</span>
 </div>
@@ -348,7 +348,7 @@
     mode = m;
     if (m === 'board') {
       statusEl.innerHTML = '<span class="info">TABLERO: arrastra para definir el área. ' +
-        '+ / - = alto · [ ] = ancho · flechas = mover · A = TABLERO/AVATAR · G = guardar.</span>';
+        '+ / - = alto · Q / E = ancho · flechas = mover · A = TABLERO/AVATAR · G = guardar.</span>';
     }
     render();
   }
@@ -518,9 +518,10 @@
       }
       const a = areaToEdit();
       const st = e.shiftKey ? 0.0005 : 0.002;
-      // Ancho: [ = reducir, ] = agrandar (centrado)
-      if (e.key === '[' || e.key === ']') {
-        const dir = e.key === ']' ? 1 : -1;
+      // Ancho: Q/[ = reducir, E/] = agrandar (centrado). Q y E funcionan en
+      // cualquier teclado (en el español [ ] no existen sin AltGr).
+      if (['[', '{', 'q', 'Q'].includes(e.key) || [']', '}', 'e', 'E'].includes(e.key)) {
+        const dir = [']', '}', 'e', 'E'].includes(e.key) ? 1 : -1;
         const cx = a.x + a.width / 2;
         const nw = Math.max(0.02, Math.min(1, a.width + dir * st * 4));
         a.x = Math.max(0, cx - nw / 2);
