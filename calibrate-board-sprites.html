@@ -414,8 +414,8 @@
       img.src = assets.background;
       statusEl.innerHTML = '<span class="ok">Cargado: ' + world + ' (' +
         assets.enemy.length + ' enemigos, ' + assets.trap.length + ' trampas)</span>';
-    } catch {
-      statusEl.innerHTML = '<span class="err">Error cargando ' + world + '</span>';
+    } catch (err) {
+      statusEl.innerHTML = '<span class="err">Error cargando ' + world + ' (' + String(err) + ')</span>';
     }
   }
 
