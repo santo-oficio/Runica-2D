@@ -9,6 +9,7 @@
   html, body {
     width: 100%; height: 100%; background: #000; overflow: hidden;
     font-family: 'Courier New', monospace; color: #e0e0e0;
+    user-select: none;
   }
   #stage {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -90,6 +91,15 @@
     padding: 2px 6px; font-size: 0.9em; cursor: pointer;
     margin: 2px 0;
   }
+  .mode-btn {
+    background: #1a1a2e; color: #8a8a9a;
+    border: 1px solid #555; border-radius: 3px;
+    padding: 2px 8px; font-size: 0.85em; cursor: pointer;
+  }
+  .mode-btn.active {
+    background: #0a3a4a; color: #0ff;
+    border-color: #0ff;
+  }
   #status {
     position: absolute; bottom: 12px; left: 50%;
     transform: translateX(-50%); z-index: 20;
@@ -113,7 +123,9 @@
   Submundo: <select id="world-select"></select><br>
   Tipo: <select id="type-select"></select> (teclas <span class="key">1-4</span>)<br>
   Instancia: <select id="instance-select"></select> (<span class="key">[</span>/<span class="key">]</span>)<br>
-  Modo: <span id="mode-label" class="mode-label">Sprite</span> (<span class="key">M</span>: Sprite / GLOBAL / TABLERO)<br>
+  Modo: <button id="btn-sprite" class="mode-btn active">Sprite</button>
+  <button id="btn-global" class="mode-btn">GLOBAL</button>
+  <button id="btn-board" class="mode-btn">TABLERO</button> (<span class="key">M</span> cicla)<br>
   <br>
   <span class="key">Flechas</span> = mover (Shift = fino)<br>
   <span class="key">+ / -</span> = tamaño / escala<br>
@@ -135,7 +147,6 @@
   const worldSelect = document.getElementById('world-select');
   const typeSelect = document.getElementById('type-select');
   const instanceSelect = document.getElementById('instance-select');
-  const modeLabel = document.getElementById('mode-label');
 
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
   const TYPES = ['avatar', 'enemy', 'boss', 'trap'];
@@ -244,11 +255,20 @@
       overlay.appendChild(label);
     });
 
-    // Rejilla del área del tipo activo (brillante) + la otra área (tenue)
-    const type = currentType();
-    const activeArea = areaFor(type);
+    // Rejilla del área activa (brillante) + la otra área (tenue)
+    // En modo TABLERO el área activa es la que se está editando; en los
+    // demás modos es el área del tipo seleccionado.
+    let activeArea, activeCls;
+    if (mode === 'board') {
+      activeArea = areaToEdit();
+      activeCls = activeArea === assets.boardArea ? 'boardArea' : 'avatarArea';
+    } else {
+      const type = currentType();
+      activeArea = areaFor(type);
+      activeCls = type === 'trap' ? 'boardArea' : 'avatarArea';
+    }
     const otherArea = activeArea === assets.boardArea ? assets.avatarArea : assets.boardArea;
-    drawGrid(activeArea, type === 'trap' ? 'boardArea' : 'avatarArea', false);
+    drawGrid(activeArea, activeCls, false);
     if (otherArea) drawGrid(otherArea, otherArea === assets.boardArea ? 'boardArea' : 'avatarArea', true);
 
     if (mode === 'board') {
@@ -324,23 +344,28 @@
     spriteLayer.appendChild(el);
   }
 
+  function setMode(m) {
+    mode = m;
+    render();
+  }
+
   function updateCoords() {
     if (!data) return;
+    document.getElementById('btn-sprite').classList.toggle('active', mode === 'sprite');
+    document.getElementById('btn-global').classList.toggle('active', mode === 'global');
+    document.getElementById('btn-board').classList.toggle('active', mode === 'board');
     const g = data.global;
     if (mode === 'board') {
       const a = areaToEdit();
       coordsEl.textContent = editArea + ': x=' + a.x.toFixed(4) + ' y=' + a.y.toFixed(4) +
         ' w=' + a.width.toFixed(4) + ' h=' + a.height.toFixed(4);
-      modeLabel.textContent = 'TABLERO (' + (editArea === 'boardArea' ? 'losas' : 'avatar') + ')';
     } else if (mode === 'global') {
       coordsEl.textContent = currentType() + ' · MODO GLOBAL: offsetX=' + g.offsetX.toFixed(4) +
         ' offsetY=' + g.offsetY.toFixed(4) + ' escala=' + g.scale.toFixed(3);
-      modeLabel.textContent = 'GLOBAL (todos juntos)';
     } else {
       const e = currentEntry();
       coordsEl.textContent = currentType() + ' #' + (selectedInstance + 1) +
         ': size=' + e.size.toFixed(3) + ' offsetX=' + e.offsetX.toFixed(4) + ' offsetY=' + e.offsetY.toFixed(4);
-      modeLabel.textContent = 'Sprite';
     }
   }
 
@@ -437,6 +462,9 @@
     e.target.blur();
     render();
   });
+  document.getElementById('btn-sprite').addEventListener('click', () => setMode('sprite'));
+  document.getElementById('btn-global').addEventListener('click', () => setMode('global'));
+  document.getElementById('btn-board').addEventListener('click', () => setMode('board'));
 
   // Teclado
   document.addEventListener('keydown', (e) => {
@@ -465,8 +493,7 @@
       return;
     }
     if (e.key === 'm' || e.key === 'M') {
-      mode = mode === 'sprite' ? 'global' : (mode === 'global' ? 'board' : 'sprite');
-      render();
+      setMode(mode === 'sprite' ? 'global' : (mode === 'global' ? 'board' : 'sprite'));
       return;
     }
     if (e.key === 'g' || e.key === 'G') {
