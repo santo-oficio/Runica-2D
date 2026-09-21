@@ -351,6 +351,13 @@
       statusEl.innerHTML = '<span class="info">TABLERO: arrastra para definir el área. ' +
         '+ / - = alto · Q / E = ancho · rueda = agrandar/reducir (Shift = fino) · ' +
         'flechas = mover (Shift = fino) · A = TABLERO/AVATAR · G = guardar.</span>';
+    } else if (m === 'sprite') {
+      statusEl.innerHTML = '<span class="info">Sprite: + / - = tamaño del sprite · ' +
+        'flechas = moverlo dentro de su casilla · [ ] = siguiente avatar/enemigo/trampa. ' +
+        'La rejilla NO cambia.</span>';
+    } else {
+      statusEl.innerHTML = '<span class="info">GLOBAL: mueve y escala todos los sprites ' +
+        'juntos (la rejilla NO cambia).</span>';
     }
     render();
   }
@@ -460,6 +467,8 @@
     selectedType = parseInt(e.target.value, 10);
     selectedInstance = 0;
     e.target.blur();
+    // Al elegir un tipo se entra en modo Sprite: la rejilla nunca cambia
+    mode = 'sprite';
     fillInstanceSelect();
     render();
   });
@@ -486,6 +495,8 @@
       selectedType = TYPE_KEYS[e.key];
       selectedInstance = 0;
       typeSelect.value = selectedType;
+      // Al elegir un tipo se entra en modo Sprite: la rejilla nunca cambia
+      mode = 'sprite';
       fillInstanceSelect();
       render();
       return;

@@ -738,7 +738,6 @@ const server = http.createServer((req, res) => {
             .sort()
             .map((f) => `/assets/${sub}/${encodeURIComponent(f)}`)
         : [];
-    const worldIdx = MUNDOS.indexOf(world);
     const trapSub = world === "VIENTO" ? "trampas/AIRE" : `trampas/${world}`;
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
@@ -750,7 +749,7 @@ const server = http.createServer((req, res) => {
         avatarArea: det.avatarArea ?? det.boardArea,
         width: det.width,
         height: det.height,
-        avatar: worldIdx >= 0 ? [`/assets/avatars/avatar_0${worldIdx + 1}.png`] : [],
+        avatar: Array.from({ length: 8 }, (_, i) => `/assets/avatars/avatar_0${i + 1}.png`),
         enemy: list(join(ROOT, "assets", "enemys", world), `enemys/${world}`),
         boss: list(join(ROOT, "assets", "bosses", world), `bosses/${world}`),
         trap: list(join(ROOT, "assets", "trampas", world === "VIENTO" ? "AIRE" : world), trapSub),
