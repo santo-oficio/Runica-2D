@@ -122,7 +122,7 @@
 <div id="hud">
   <b>Calibrar sprites del tablero</b><br>
   Submundo: <select id="world-select"></select><br>
-  Tipo: <select id="type-select"></select> (teclas <span class="key">1-4</span>)<br>
+  Tipo: <select id="type-select"></select> (teclas <span class="key">1-5</span>: avatar, enemigo, boss, trampa, salida)<br>
   Instancia: <select id="instance-select"></select> (<span class="key">[</span>/<span class="key">]</span>)<br>
   Modo: <button id="btn-sprite" class="mode-btn active">Sprite</button>
   <button id="btn-global" class="mode-btn">GLOBAL</button>
@@ -150,10 +150,10 @@
   const instanceSelect = document.getElementById('instance-select');
 
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
-  const TYPES = ['avatar', 'enemy', 'boss', 'trap'];
-  const TYPE_KEYS = { '1': 0, '2': 1, '3': 2, '4': 3 };
+  const TYPES = ['avatar', 'enemy', 'boss', 'trap', 'exit'];
+  const TYPE_KEYS = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4 };
   const COLS = 8, ROWS = 6;
-  const DEFAULT_SIZE = { avatar: 0.85, enemy: 0.8, boss: 0.95, trap: 0.55 };
+  const DEFAULT_SIZE = { avatar: 0.85, enemy: 0.8, boss: 0.95, trap: 0.55, exit: 0.9 };
 
   let assets = null;  // { world, background, avatar[], enemy[], boss[], trap[], boardArea, avatarArea, width, height }
   let data = null;    // { world, global:{offsetX,offsetY,scale}, avatar[], enemy[], boss[], trap[] }
@@ -182,6 +182,7 @@
   }
 
   function areaFor(type) {
+    // En el juego la salida se coloca con el área de avatar/enemigos/meta
     return type === 'trap' ? assets.boardArea : (assets.avatarArea || assets.boardArea);
   }
 
@@ -302,6 +303,7 @@
       data.enemy.forEach((e, i) => strip.push({ type: 'enemy', idx: i }));
       strip.push({ type: 'boss', idx: 0 });
       data.trap.forEach((t, i) => strip.push({ type: 'trap', idx: i }));
+      data.exit.forEach((x, i) => strip.push({ type: 'exit', idx: i }));
       strip.forEach((s, i) => {
         const src = assets[s.type][s.idx];
         if (!src) return;
@@ -310,8 +312,9 @@
         const fakeArea = assets.avatarArea || assets.boardArea;
         const b = boardRect(fakeArea);
         const cw2 = b.w / COLS, ch2 = b.h / ROWS;
-        const cx = b.left + (i % COLS) * cw2 + cw2 / 2;
-        const cy = b.top + 1 * ch2 + ch2 / 2;
+        const col = i % COLS, row = 1 + Math.floor(i / COLS);
+        const cx = b.left + col * cw2 + cw2 / 2;
+        const cy = b.top + row * ch2 + ch2 / 2;
         const g = data.global;
         const size = (entry.size ?? DEFAULT_SIZE[s.type]) * (g.scale ?? 1);
         const w = cw2 * size, h = ch2 * size;
@@ -393,6 +396,7 @@
       enemy: assets.enemy.map(() => ({ size: DEFAULT_SIZE.enemy, offsetX: 0, offsetY: 0 })),
       boss: assets.boss.map(() => ({ size: DEFAULT_SIZE.boss, offsetX: 0, offsetY: 0 })),
       trap: assets.trap.map(() => ({ size: DEFAULT_SIZE.trap, offsetX: 0, offsetY: 0 })),
+      exit: assets.exit.map(() => ({ size: DEFAULT_SIZE.exit, offsetX: 0, offsetY: 0 })),
     };
   }
 
@@ -611,7 +615,7 @@
       const r = await fetch('/api/load-board-sprites?world=' + encodeURIComponent(world));
       if (!r.ok) throw new Error();
       const saved = await r.json();
-      if (!saved.avatar && !saved.enemy && !saved.boss && !saved.trap) {
+      if (!saved.avatar && !saved.enemy && !saved.boss && !saved.trap && !saved.exit) {
         statusEl.innerHTML = '<span class="err">No hay calibración para ' + world + '</span>';
         return;
       }

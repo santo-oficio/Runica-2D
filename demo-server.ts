@@ -739,6 +739,7 @@ const server = http.createServer((req, res) => {
             .map((f) => `/assets/${sub}/${encodeURIComponent(f)}`)
         : [];
     const trapSub = world === "VIENTO" ? "trampas/AIRE" : `trampas/${world}`;
+    const salidaWorld = world === "MAZMORRA" ? "AGUA" : world; // MAZMORRA no tiene carpeta propia
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
@@ -753,6 +754,7 @@ const server = http.createServer((req, res) => {
         enemy: list(join(ROOT, "assets", "enemys", world), `enemys/${world}`),
         boss: list(join(ROOT, "assets", "bosses", world), `bosses/${world}`),
         trap: list(join(ROOT, "assets", "trampas", world === "VIENTO" ? "AIRE" : world), trapSub),
+        exit: list(join(ROOT, "assets", "salida", salidaWorld), `salida/${salidaWorld}`),
       })
     );
     return;
