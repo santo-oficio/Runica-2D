@@ -356,8 +356,9 @@
         'flechas = moverlo dentro de su casilla · [ ] = siguiente avatar/enemigo/trampa. ' +
         'La rejilla NO cambia.</span>';
     } else {
-      statusEl.innerHTML = '<span class="info">GLOBAL: mueve y escala todos los sprites ' +
-        'juntos (la rejilla NO cambia).</span>';
+      statusEl.innerHTML = '<span class="info">CUIDADO: GLOBAL mueve y escala TODOS los ' +
+        'tipos juntos (avatar, enemigos, boss y trampas). Para editar un solo tipo usa el ' +
+        'modo Sprite.</span>';
     }
     render();
   }
@@ -377,8 +378,10 @@
         ' offsetY=' + g.offsetY.toFixed(4) + ' escala=' + g.scale.toFixed(3);
     } else {
       const e = currentEntry();
-      coordsEl.textContent = currentType() + ' #' + (selectedInstance + 1) +
-        ': size=' + e.size.toFixed(3) + ' offsetX=' + e.offsetX.toFixed(4) + ' offsetY=' + e.offsetY.toFixed(4);
+      const total = data[currentType()].length;
+      coordsEl.textContent = 'Editando: ' + currentType() + ' ' + (selectedInstance + 1) + '/' + total +
+        ' (independiente de los demás) · size=' + e.size.toFixed(3) +
+        ' offsetX=' + e.offsetX.toFixed(4) + ' offsetY=' + e.offsetY.toFixed(4);
     }
   }
 
