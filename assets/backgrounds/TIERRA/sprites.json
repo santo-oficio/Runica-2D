@@ -1,0 +1,91 @@
+{
+  "world": "TIERRA",
+  "global": {
+    "offsetX": 0,
+    "offsetY": 0,
+    "scale": 1
+  },
+  "avatar": [
+    {
+      "size": 0.91,
+      "offsetX": 0,
+      "offsetY": -0.01
+    },
+    {
+      "size": 0.8799999999999999,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.87,
+      "offsetX": 0.02,
+      "offsetY": -0.01
+    },
+    {
+      "size": 0.92,
+      "offsetX": 0.05,
+      "offsetY": 0
+    },
+    {
+      "size": 0.92,
+      "offsetX": -0.01,
+      "offsetY": -0.04
+    },
+    {
+      "size": 0.85,
+      "offsetX": 0,
+      "offsetY": -0.01
+    },
+    {
+      "size": 0.85,
+      "offsetX": 0,
+      "offsetY": -0.04
+    },
+    {
+      "size": 1.02,
+      "offsetX": 0.01,
+      "offsetY": -0.03400000000000001
+    }
+  ],
+  "enemy": [
+    {
+      "size": 0.8,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.8,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.8,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.8,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ],
+  "boss": [
+    {
+      "size": 0.95,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ],
+  "trap": [
+    {
+      "size": 0.55,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.55,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ]
+}
