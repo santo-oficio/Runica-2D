@@ -739,7 +739,7 @@ const server = http.createServer((req, res) => {
             .map((f) => `/assets/${sub}/${encodeURIComponent(f)}`)
         : [];
     const trapSub = world === "VIENTO" ? "trampas/AIRE" : `trampas/${world}`;
-    const salidaWorld = world === "MAZMORRA" ? "AGUA" : world; // MAZMORRA no tiene carpeta propia
+    const salidaWorld = world;
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({

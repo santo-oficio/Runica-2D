@@ -58,9 +58,14 @@ def main():
             fpath = os.path.join(folder, fname)
             print(os.path.relpath(fpath), flush=True)
 
+            img_probe = cv2.imread(fpath, cv2.IMREAD_UNCHANGED)
+            if img_probe is not None and img_probe.shape[1] == TARGET and img_probe.shape[0] == TARGET:
+                print(f"  [SKIP] ya está en {TARGET}x{TARGET}")
+                continue
+
             if fname.lower().endswith(".png") and fname.lower().startswith("salida"):
                 # Aplanar transparencias sobre negro (opaco)
-                img = cv2.imread(fpath, cv2.IMREAD_UNCHANGED)
+                img = img_probe
                 if img is None:
                     print("  [ERROR] no se pudo leer")
                     continue
@@ -78,10 +83,11 @@ def main():
                 # cofre u otra imagen: Real-ESRGAN 4x -> 7680 PNG opaco
                 if upsampler is None:
                     upsampler = build_upsampler()
-                img = cv2.imread(fpath, cv2.IMREAD_COLOR)
+                img = img_probe
                 if img is None:
                     print("  [ERROR] no se pudo leer")
                     continue
+                img = img[:, :, :3] if img.ndim == 3 and img.shape[2] == 4 else img
                 h, w = img.shape[:2]
                 out, _ = upsampler.enhance(img, outscale=4)
                 final = cv2.resize(out, (TARGET, TARGET), interpolation=cv2.INTER_LANCZOS4)
