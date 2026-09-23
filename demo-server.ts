@@ -796,6 +796,41 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: guardar áreas de texto del tablero (POST /api/save-board-text-areas?world=XXX)
+  if (url.startsWith("/api/save-board-text-areas") && req.method === "POST") {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const world = u.searchParams.get("world") ?? "";
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "backgrounds", world, "text-areas.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar áreas de texto del tablero (GET /api/load-board-text-areas?world=XXX)
+  if (url.startsWith("/api/load-board-text-areas")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const world = u.searchParams.get("world") ?? "";
+    const loadPath = join(ROOT, "assets", "backgrounds", world, "text-areas.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, world }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
   // Archivos estáticos (ignorar query string y decodificar %20 etc.)
   const cleanUrl = url.split("?")[0] ?? "/";
   let filePath = cleanUrl === "/" ? "/demo.html" : decodeURIComponent(cleanUrl);

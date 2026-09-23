@@ -65,5 +65,8 @@
     "exit.message":  "Grazie per aver giocato a Runika 2D",
     "submundo.title":  "Sottomondo",
     "submundo.level":  "Livello: {0}/{1}",
-    "submundo.enterLevel":  "Entra nel livello {0} di {1}"
+    "submundo.enterLevel":  "Entra nel livello {0} di {1}",
+    "board.turn":  "Turno",
+    "board.optimal":  "Ottimale",
+    "board.info":  "Info"
 }
