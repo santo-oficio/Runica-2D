@@ -122,7 +122,7 @@
 <div id="hud">
   <b>Calibrar sprites del tablero</b><br>
   Submundo: <select id="world-select"></select><br>
-  Tipo: <select id="type-select"></select> (teclas <span class="key">1-5</span>: avatar, enemigo, boss, trampa, salida)<br>
+  Tipo: <select id="type-select"></select> (teclas <span class="key">1-6</span>: avatar, enemigo, boss, trampa, salida, obstáculo)<br>
   Instancia: <select id="instance-select"></select> (<span class="key">[</span>/<span class="key">]</span>)<br>
   Modo: <button id="btn-sprite" class="mode-btn active">Sprite</button>
   <button id="btn-global" class="mode-btn">GLOBAL</button>
@@ -150,13 +150,13 @@
   const instanceSelect = document.getElementById('instance-select');
 
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
-  const TYPES = ['avatar', 'enemy', 'boss', 'trap', 'exit'];
-  const TYPE_KEYS = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4 };
+  const TYPES = ['avatar', 'enemy', 'boss', 'trap', 'exit', 'obstacle'];
+  const TYPE_KEYS = { '1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5 };
   const COLS = 8, ROWS = 6;
-  const DEFAULT_SIZE = { avatar: 0.85, enemy: 0.8, boss: 0.95, trap: 0.55, exit: 0.9 };
+  const DEFAULT_SIZE = { avatar: 0.85, enemy: 0.8, boss: 0.95, trap: 0.55, exit: 0.9, obstacle: 0.95 };
 
-  let assets = null;  // { world, background, avatar[], enemy[], boss[], trap[], boardArea, avatarArea, width, height }
-  let data = null;    // { world, global:{offsetX,offsetY,scale}, avatar[], enemy[], boss[], trap[] }
+  let assets = null;  // { world, background, avatar[], enemy[], boss[], trap[], exit[], obstacle[], boardArea, avatarArea, width, height }
+  let data = null;    // { world, global:{offsetX,offsetY,scale}, avatar[], enemy[], boss[], trap[], exit[], obstacle[] }
   let selectedWorld = 0;
   let selectedType = 0;
   let selectedInstance = 0;
@@ -182,8 +182,9 @@
   }
 
   function areaFor(type) {
-    // En el juego la salida se coloca con el área de avatar/enemigos/meta
-    return type === 'trap' ? assets.boardArea : (assets.avatarArea || assets.boardArea);
+    // Trampas y obstáculos van sobre el área de losas; la salida con avatar/enemigos
+    return (type === 'trap' || type === 'obstacle')
+      ? assets.boardArea : (assets.avatarArea || assets.boardArea);
   }
 
   function boardRect(a) {
@@ -267,7 +268,7 @@
       activeCls = activeArea === assets.boardArea ? 'boardArea' : 'avatarArea';
     } else {
       activeArea = areaFor(type);
-      activeCls = type === 'trap' ? 'boardArea' : 'avatarArea';
+      activeCls = (type === 'trap' || type === 'obstacle') ? 'boardArea' : 'avatarArea';
     }
     const otherArea = activeArea === assets.boardArea ? assets.avatarArea : assets.boardArea;
     drawGrid(activeArea, activeCls, false);
@@ -304,6 +305,7 @@
       strip.push({ type: 'boss', idx: 0 });
       data.trap.forEach((t, i) => strip.push({ type: 'trap', idx: i }));
       data.exit.forEach((x, i) => strip.push({ type: 'exit', idx: i }));
+      data.obstacle.forEach((o, i) => strip.push({ type: 'obstacle', idx: i }));
       strip.forEach((s, i) => {
         const src = assets[s.type][s.idx];
         if (!src) return;
@@ -356,12 +358,12 @@
         'flechas = mover (Shift = fino) · A = TABLERO/AVATAR · G = guardar.</span>';
     } else if (m === 'sprite') {
       statusEl.innerHTML = '<span class="info">Sprite: + / - = tamaño del sprite · ' +
-        'flechas = moverlo dentro de su casilla · [ ] = siguiente avatar/enemigo/trampa. ' +
+        'flechas = moverlo dentro de su casilla · [ ] = siguiente instancia del tipo. ' +
         'La rejilla NO cambia.</span>';
     } else {
       statusEl.innerHTML = '<span class="info">CUIDADO: GLOBAL mueve y escala TODOS los ' +
-        'tipos juntos (avatar, enemigos, boss y trampas). Para editar un solo tipo usa el ' +
-        'modo Sprite.</span>';
+        'tipos juntos (avatar, enemigos, boss, trampas, salidas y obstáculos). Para ' +
+        'editar un solo tipo usa el modo Sprite.</span>';
     }
     render();
   }
@@ -397,6 +399,7 @@
       boss: assets.boss.map(() => ({ size: DEFAULT_SIZE.boss, offsetX: 0, offsetY: 0 })),
       trap: assets.trap.map(() => ({ size: DEFAULT_SIZE.trap, offsetX: 0, offsetY: 0 })),
       exit: assets.exit.map(() => ({ size: DEFAULT_SIZE.exit, offsetX: 0, offsetY: 0 })),
+      obstacle: assets.obstacle.map(() => ({ size: DEFAULT_SIZE.obstacle, offsetX: 0, offsetY: 0 })),
     };
   }
 
@@ -433,7 +436,8 @@
       fillInstanceSelect();
       img.src = assets.background;
       statusEl.innerHTML = '<span class="ok">Cargado: ' + world + ' (' +
-        assets.enemy.length + ' enemigos, ' + assets.trap.length + ' trampas)</span>';
+        assets.enemy.length + ' enemigos, ' + assets.trap.length + ' trampas, ' +
+        assets.obstacle.length + ' obstáculos)</span>';
     } catch (err) {
       statusEl.innerHTML = '<span class="err">Error cargando ' + world + ' (' + String(err) + ')</span>';
     }
@@ -615,7 +619,7 @@
       const r = await fetch('/api/load-board-sprites?world=' + encodeURIComponent(world));
       if (!r.ok) throw new Error();
       const saved = await r.json();
-      if (!saved.avatar && !saved.enemy && !saved.boss && !saved.trap && !saved.exit) {
+      if (!saved.avatar && !saved.enemy && !saved.boss && !saved.trap && !saved.exit && !saved.obstacle) {
         statusEl.innerHTML = '<span class="err">No hay calibración para ' + world + '</span>';
         return;
       }

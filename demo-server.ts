@@ -755,6 +755,7 @@ const server = http.createServer((req, res) => {
         boss: list(join(ROOT, "assets", "bosses", world), `bosses/${world}`),
         trap: list(join(ROOT, "assets", "trampas", world === "VIENTO" ? "AIRE" : world), trapSub),
         exit: list(join(ROOT, "assets", "salida", salidaWorld), `salida/${salidaWorld}`),
+        obstacle: list(join(ROOT, "assets", "obstaculos", world), `obstaculos/${world}`),
       })
     );
     return;
