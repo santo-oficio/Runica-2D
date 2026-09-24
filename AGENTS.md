@@ -146,7 +146,7 @@ renderizarla igual.
 - Coordenadas normalizadas 0–1 en espacio **`image-content`** (se descuenta el letterbox del `object-fit: contain`, ratio 3:2). Nunca contra el viewport.
 - API: `/api/load-character-positions`, `/api/save-character-positions`, `/api/load-selection-buttons`, `/api/save-selection-buttons`, `/api/load-selection-name`, `/api/save-selection-name`. El servidor resuelve la raíz desde `demo-server.ts`, no `process.cwd()`.
 - Al guardar se reemplaza **solo la entrada del índice editado** — nunca se envían los otros 7 desde memoria.
-- Avatares: `assets/avatars/avatar_0N.png` 7680×7680 RGBA + `thumbs/` 512×512. Cache-busting `?v=avatars-N` (incrementar al regenerar). Para calidad extrema: Real-ESRGAN x4plus en `.sam-venv`.
+- Avatares: `assets/avatars/avatar_0N.png` 7680×7680 RGBA (masters) + `thumbs/` 512×512 + `display/` 2048×2048 webp (los que usa el cuerpo completo en pantalla; regenerar con `tools/convert-display-assets.py`). Cache-busting `?v=avatars-N` / `?v=display-N` (incrementar al regenerar). Para calidad extrema: Real-ESRGAN x4plus en `.sam-venv`.
 - Navegación y bordes: ver `docs/17-PANTALLA-SELECCION-PERSONAJE.md` (orden lineal, filas con memoria entre bloques, excepción Borrar R/S/T/Z→T, borde irregular feTurbulence, click=dorado fuerte / hover=suave, cuerpo completo por hover real).
 
 ## Mundos
@@ -237,6 +237,16 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   3. Solo mostrar el menu / juego cuando todo este en cache.
   4. Usar Service Worker + Cache API para persistencia entre sesiones.
   5. En ejecucion, servir todo desde cache, nunca desde red en caliente.
+  6. **Descargado NO es decodificado**: tras `img.onload` hay que llamar a
+     `img.decode()` (o `createImageBitmap`) para que el primer pintado no
+     decodifique en caliente (tirones al hacer hover). Y hay que **guardar
+     referencia** a los `Image` decodificados (ej. `Map`), o el navegador
+     evicta los datos decodificados bajo presion de memoria.
+  7. **Derivados de display**: las imagenes que cambian en caliente (hover,
+     seleccion) NUNCA usan los masters 8K — decodificar 7680px son ~300ms y
+     ~230MB de RAM por imagen. Se generan versiones `display/` ligeras
+     (webp 2048px, ver `tools/convert-display-assets.py`): `assets/avatars/
+     display/avatar_0N.webp`. Los 8K PNG quedan solo como masters/calibradores.
 - **A fuego — transiciones entre pantallas**: todos los cambios de pantalla
   (menu → instrucciones, menu → juego, juego → victoria/derrota, etc.) deben
   tener una transicion fluida, nunca un corte seco. Las transiciones deben:

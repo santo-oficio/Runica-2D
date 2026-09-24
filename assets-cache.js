@@ -35,6 +35,7 @@ const ASSETS = {
 const cache = {
   images: new Map(),   // url -> blobUrl
   sounds: new Map(),    // url -> blobUrl
+  decoded: new Map(),   // url -> Image (mantiene la imagen decodificada en memoria)
 };
 
 let loaded = 0;
@@ -56,7 +57,9 @@ async function preloadImage(url) {
       img.onerror = reject;
       img.src = blobUrl;
     });
+    if (img.decode) await img.decode().catch(() => {});
     cache.images.set(url, blobUrl);
+    cache.decoded.set(url, img);
   } catch {}
   loaded++;
 }
