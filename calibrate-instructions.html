@@ -36,6 +36,26 @@
     font-size: 12px; padding: 2px 8px; border-radius: 2px;
     background: #0f0; color: #000; white-space: nowrap;
   }
+  /* Boton redondo: circulo calibrado */
+  .area-rect.circle {
+    border: 3px solid #fc4; border-radius: 50%;
+    background: rgba(255, 204, 68, 0.12);
+  }
+  .area-rect.circle.active {
+    border-color: #fc4; box-shadow: 0 0 20px rgba(255,204,68,0.5);
+    background: rgba(255, 204, 68, 0.08);
+  }
+  .area-rect.circle .tag { background: #fc4; }
+  /* Vista previa del boton redondo con su texto real */
+  .btn-preview {
+    position: absolute; z-index: 13; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    font-family: 'MedievalSharp', serif; color: #e8d4a8;
+    background: linear-gradient(180deg, rgba(60,42,20,0.9), rgba(35,24,10,0.95));
+    border: 2px solid rgba(180,150,80,0.5);
+    text-align: center;
+  }
   /* Vista previa del texto real dentro del area seleccionada */
   .text-preview {
     position: absolute; z-index: 13; overflow: hidden;
@@ -79,6 +99,7 @@
   <b>Calibrar area de instrucciones</b><br>
   Marca la zona donde ira el texto (se ve con el contenido real)<br>
   <br>
+  <span class="key">B</span> = editar <b>BOTON ATRAS</b> (redondo: arrastra desde el centro)<br>
   <span class="key">Arrastrar</span> = marcar area<br>
   <span class="new">Espacio</span> = clonar (mismo tamano)<br>
   <span class="key">Flechas</span> = mover seleccion (Shift = fino)<br>
@@ -110,6 +131,9 @@
   let currentRect = null;
   let showText = true;
   let i18n = {};
+  // Boton atras (redondo): {cx, cy, r} - r normalizado al ANCHO de imagen
+  let backButton = null;
+  let editTarget = 'areas'; // 'areas' | 'button'
 
   // Rect visible de la imagen (descuenta el letterbox de object-fit: contain)
   function visibleImageRect() {
@@ -181,6 +205,36 @@
       div.appendChild(tag);
       overlay.appendChild(div);
     });
+    // Boton atras (circulo)
+    if (backButton) {
+      const r = visibleImageRect();
+      const d = 2 * backButton.r * r.width;
+      const cx = r.left + backButton.cx * r.width;
+      const cy = r.top + backButton.cy * r.height;
+      const div = document.createElement('div');
+      div.className = 'area-rect circle' + (editTarget === 'button' ? ' active' : '');
+      div.style.left = (cx - d / 2) + 'px';
+      div.style.top = (cy - d / 2) + 'px';
+      div.style.width = d + 'px';
+      div.style.height = d + 'px';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = 'boton atras';
+      div.appendChild(tag);
+      overlay.appendChild(div);
+      // Vista previa del boton con su texto real
+      if (showText) {
+        const pv = document.createElement('div');
+        pv.className = 'btn-preview';
+        pv.style.left = (cx - d / 2) + 'px';
+        pv.style.top = (cy - d / 2) + 'px';
+        pv.style.width = d + 'px';
+        pv.style.height = d + 'px';
+        pv.style.fontSize = Math.max(10, d * 0.14) + 'px';
+        pv.textContent = t('instructions.back');
+        previewLayer.appendChild(pv);
+      }
+    }
     // Texto real dentro del area seleccionada (o la primera si no hay seleccion)
     if (showText && areas.length > 0) {
       const a = areas[selectedIdx >= 0 ? selectedIdx : 0];
@@ -201,6 +255,13 @@
   }
 
   function updateCoords(a) {
+    if (editTarget === 'button') {
+      coordsEl.textContent = backButton
+        ? 'BOTON ATRAS · cx:' + backButton.cx.toFixed(4) + ' cy:' + backButton.cy.toFixed(4) +
+          ' r:' + backButton.r.toFixed(4)
+        : 'BOTON ATRAS · sin definir (arrastra desde el centro)';
+      return;
+    }
     if (!a) { coordsEl.textContent = 'Sin seleccion'; return; }
     coordsEl.textContent = a.label + ' · x:' + a.x.toFixed(4) + ' y:' + a.y.toFixed(4) +
       ' w:' + a.w.toFixed(4) + ' h:' + a.h.toFixed(4);
@@ -219,6 +280,20 @@
 
   document.addEventListener('mousemove', (e) => {
     if (!dragging) return;
+    const r = visibleImageRect();
+    if (editTarget === 'button') {
+      // Arrastre desde el centro: el radio es la distancia
+      const c = normToPx(dragStart.x, dragStart.y);
+      const d = 2 * Math.hypot(e.clientX - c.x, e.clientY - c.y);
+      dragRect.style.borderRadius = '50%';
+      dragRect.style.left = (c.x - d / 2) + 'px';
+      dragRect.style.top = (c.y - d / 2) + 'px';
+      dragRect.style.width = d + 'px';
+      dragRect.style.height = d + 'px';
+      coordsEl.textContent = 'BOTON ATRAS · r:' + (d / 2 / r.width).toFixed(4);
+      return;
+    }
+    dragRect.style.borderRadius = '0';
     const pos = pxToNorm(e.clientX, e.clientY);
     currentRect.x = Math.min(dragStart.x, pos.x);
     currentRect.y = Math.min(dragStart.y, pos.y);
@@ -233,10 +308,23 @@
     updateCoords(currentRect);
   });
 
-  document.addEventListener('mouseup', () => {
+  document.addEventListener('mouseup', (e) => {
     if (!dragging) return;
     dragging = false;
     dragRect.style.display = 'none';
+    if (editTarget === 'button') {
+      const r = visibleImageRect();
+      const c = normToPx(dragStart.x, dragStart.y);
+      const radius = Math.hypot(e.clientX - c.x, e.clientY - c.y) / r.width;
+      if (radius > 0.005) {
+        backButton = { cx: dragStart.x, cy: dragStart.y, r: radius };
+        render();
+        statusEl.innerHTML = '<span class="ok">Boton atras definido. Flechas = mover · +/- = radio · G = guardar.</span>';
+      }
+      updateCoords(null);
+      dragStart = null;
+      return;
+    }
     if (currentRect.w > 0.01 && currentRect.h > 0.01) {
       const label = 'area ' + areas.length;
       areas.push({ label, x: currentRect.x, y: currentRect.y, w: currentRect.w, h: currentRect.h });
@@ -251,6 +339,30 @@
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT') return;
     const step = e.shiftKey ? 0.001 : 0.005;
+
+    // B = alternar entre calibrar areas de texto y el boton atras (redondo)
+    if (e.key === 'b' || e.key === 'B') {
+      editTarget = editTarget === 'button' ? 'areas' : 'button';
+      render();
+      updateCoords(areas[selectedIdx]);
+      statusEl.innerHTML = editTarget === 'button'
+        ? '<span class="info">Editando BOTON ATRAS (redondo): arrastra desde el centro hasta el borde · flechas = mover · +/- = radio · G = guardar.</span>'
+        : '<span class="info">Editando areas de texto.</span>';
+      return;
+    }
+
+    // Modo boton: flechas mueven el centro, +/- cambian el radio
+    if (editTarget === 'button' && backButton) {
+      let changed = false;
+      if (e.key === 'ArrowLeft') { backButton.cx = Math.max(0, backButton.cx - step); changed = true; }
+      if (e.key === 'ArrowRight') { backButton.cx = Math.min(1, backButton.cx + step); changed = true; }
+      if (e.key === 'ArrowUp') { backButton.cy = Math.max(0, backButton.cy - step); changed = true; }
+      if (e.key === 'ArrowDown') { backButton.cy = Math.min(1, backButton.cy + step); changed = true; }
+      if (e.key === '+' || e.key === '=') { backButton.r = Math.min(0.5, backButton.r + step / 2); changed = true; }
+      if (e.key === '-' || e.key === '_') { backButton.r = Math.max(0.005, backButton.r - step / 2); changed = true; }
+      if (changed) { e.preventDefault(); render(); updateCoords(null); }
+      return;
+    }
 
     if (e.key === ' ') {
       e.preventDefault();
@@ -326,7 +438,7 @@
   });
 
   function saveJson() {
-    const data = { areas };
+    const data = { areas, backButton };
     const json = JSON.stringify(data, null, 2);
     fetch('/api/save-instructions-areas', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
@@ -344,10 +456,12 @@
       const data = await r.json();
       if (data.areas) {
         areas = data.areas;
+        backButton = data.backButton || null;
         selectedIdx = 0;
         render();
         if (areas.length > 0) updateCoords(areas[0]);
-        statusEl.innerHTML = '<span class="ok">Cargadas ' + areas.length + ' areas</span>';
+        statusEl.innerHTML = '<span class="ok">Cargadas ' + areas.length + ' areas' +
+          (backButton ? ' + boton atras' : '') + '</span>';
       }
     } catch {
       statusEl.innerHTML = '<span class="err">No hay guardado</span>';
