@@ -199,7 +199,9 @@ Por mundo, en `assets/backgrounds/<MUNDO>/text-areas.json`. Editado con
 `gold` es el texto en color oro (ej. contador de tesoros `3/12`). El
 calibrador auto-ajusta el tamaño de fuente al área para que el texto nunca se
 corte por los bordes. El texto `gold` se alinea **a la derecha** del área con
-un margen (~6% del ancho) — igual en todas las pantallas.
+un margen (~6% del ancho) — igual en todas las pantallas. A la izquierda del
+texto va el icono `assets/comunes/monedas.png` (altura = altura del área),
+pegado al número aunque cambie su longitud.
 
 ## 8. Calibración de submundos
 

@@ -128,8 +128,12 @@ selector de mundo. La fuente se auto-ajusta al área para no cortar letras.
 **Regla del texto oro (`gold`)**: en TODAS las pantallas (tablero, submundo,
 mapamundi…) el texto `gold` se alinea **a la derecha** dentro de su área,
 dejando un margen (~6% del ancho del área) para que no choque con el borde.
-Las previews de los calibradores ya muestran esa alineación y el juego debe
-renderizarlo igual.
+A la **izquierda** del texto va el icono `assets/comunes/monedas.png` (8K
+RGBA): altura igual a la del área `gold`, casi pegado al texto (gap ~12% de
+la altura). Como el texto es dinámico (0 → N), el conjunto icono+texto se
+mueve junto: el icono siempre queda a la izquierda del número. Las previews
+de los calibradores ya muestran esta composición y el juego debe
+renderizarla igual.
 
 ## Selección de personaje (demo + calibradores)
 
