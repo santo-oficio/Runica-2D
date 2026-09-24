@@ -47,6 +47,7 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 |---|---|---|
 | http://localhost:3000/calibrate-mapamundi.html | Áreas/botones del mapamundi | `assets/mapamundi/menu-buttons.json`, `menu-texto.json` |
 | http://localhost:3000/calibrate-paths.html | Caminos entre mundos | `assets/mapamundi/world-paths.json` |
+| http://localhost:3000/calibrate-mapamundi-text.html | Textos del mapamundi: oro (preview dorado, fuente auto-ajustada) | `assets/mapamundi/text-areas.json` |
 
 ## Losas / rejilla (antiguos)
 

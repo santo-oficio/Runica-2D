@@ -70,6 +70,8 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-board-texts.html` | `assets/backgrounds/<M>/text-areas.json` |
 | `calibrate-submundos.html` | `assets/submundos/<M>/avatar-positions.json` |
 | `calibrate-submundos-text.html` | `assets/submundos/<M>/text-areas.json` |
+| `calibrate-instructions.html` | `assets/instrucciones/instructions-areas.json` |
+| `calibrate-mapamundi-text.html` | `assets/mapamundi/text-areas.json` |
 
 ### `calibrate-board-sprites.html` — sprites + áreas
 
@@ -114,6 +116,14 @@ avatars[8]:{size} }` — posición del avatar en cada uno de los 12 niveles
 (`submundo.title`) y `Nivel X/12` (`submundo.level`), dinámicos desde i18n.
 
 - API: `/api/save-subworld-text-areas`, `/api/load-subworld-text-areas`.
+
+### `calibrate-mapamundi-text.html` — textos del mapamundi
+
+`assets/mapamundi/text-areas.json` = `{ areas:{ gold:{x,y,w,h} } }` — texto en
+oro sobre `mapamundi.png` (ej. contador de tesoros). Una sola imagen, sin
+selector de mundo. La fuente se auto-ajusta al área para no cortar letras.
+
+- API: `/api/save-mapamundi-text-areas`, `/api/load-mapamundi-text-areas`.
 
 ## Selección de personaje (demo + calibradores)
 

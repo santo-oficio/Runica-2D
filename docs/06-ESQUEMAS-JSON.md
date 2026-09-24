@@ -232,3 +232,19 @@ En `assets/instrucciones/instructions-areas.json`, editado con
   sobre la brújula pintada abajo-izquierda. El botón HTML es invisible: es
   solo el área clickeable (anillo dorado al tener foco).
 - La navegación por teclado de la pantalla está en AGENTS.md (regla a fuego).
+
+## 10. Textos del mapamundi (`text-areas.json` en mapamundi)
+
+En `assets/mapamundi/text-areas.json`, editado con
+`calibrate-mapamundi-text.html` (una sola imagen, sin selector de mundo):
+
+```json
+{
+  "areas": {
+    "gold": { "x": 0.4, "y": 0.05, "w": 0.2, "h": 0.07 }
+  }
+}
+```
+
+`gold` es el texto en color oro sobre `mapamundi.png` (ej. contador de
+tesoros). La fuente se auto-ajusta al área para no cortar letras.

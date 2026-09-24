@@ -408,6 +408,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: guardar textos del mapamundi (POST /api/save-mapamundi-text-areas)
+  if (url === "/api/save-mapamundi-text-areas" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "mapamundi", "text-areas.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar textos del mapamundi (GET /api/load-mapamundi-text-areas)
+  if (url === "/api/load-mapamundi-text-areas") {
+    const loadPath = join(ROOT, "assets", "mapamundi", "text-areas.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
   // API: guardar instrucciones areas (POST /api/save-instructions-areas)
   if (url === "/api/save-instructions-areas" && req.method === "POST") {
     let body = "";
