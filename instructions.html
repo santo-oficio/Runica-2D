@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Runika 2D — Instrucciones</title>
+<title>Runika 2D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap" rel="stylesheet">
@@ -79,6 +79,18 @@
     margin-bottom: 15px;
     letter-spacing: 1px;
   }
+  /* Calaveras de adorno flanqueando el titulo */
+  h1::before, h1::after {
+    content: '';
+    display: inline-block;
+    width: 0.95em; height: 0.95em;
+    margin: 0 0.45em;
+    vertical-align: -0.08em;
+    background: url('/assets/comunes/calavera.png') center / contain no-repeat;
+    opacity: 0.75;
+    filter: sepia(1) brightness(0.45) drop-shadow(1px 1px 0 rgba(255,240,200,0.4));
+  }
+  h1::after { transform: scaleX(-1); }
   .section { margin-bottom: 18px; }
   .section-title {
     font-family: 'MedievalSharp', cursive;
@@ -89,23 +101,35 @@
     padding-bottom: 4px;
     border-bottom: 1px solid rgba(90, 58, 24, 0.3);
   }
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 0.85em; height: 0.85em;
+    margin-right: 0.4em;
+    vertical-align: -0.06em;
+    background: url('/assets/comunes/calavera.png') center / contain no-repeat;
+    opacity: 0.6;
+    filter: sepia(1) brightness(0.4);
+  }
   .item {
     font-family: 'MedievalSharp', cursive;
     font-size: clamp(0.85em, 1.5vw, 1em);
     color: #4a3018;
     line-height: 1.6;
-    padding: 4px 0 4px 18px;
+    padding: 4px 0 4px 22px;
     position: relative;
   }
   .item::before {
-    content: '◆';
-    position: absolute; left: 0;
-    color: #8a6030;
-    font-size: 0.7em;
+    content: '';
+    position: absolute; left: 0; top: 0.62em;
+    width: 0.8em; height: 0.8em;
+    background: url('/assets/comunes/calavera.png') center / contain no-repeat;
+    opacity: 0.5;
+    filter: sepia(1) brightness(0.45);
   }
   .item-icon {
     display: flex; align-items: center;
-    padding: 6px 0 6px 18px;
+    padding: 6px 0 6px 22px;
     position: relative;
     font-family: 'MedievalSharp', cursive;
     font-size: clamp(0.85em, 1.5vw, 1em);
@@ -113,10 +137,27 @@
     line-height: 1.5;
   }
   .item-icon::before {
-    content: '◆';
-    position: absolute; left: 0;
-    color: #8a6030;
-    font-size: 0.7em;
+    content: '';
+    position: absolute; left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 0.8em; height: 0.8em;
+    background: url('/assets/comunes/calavera.png') center / contain no-repeat;
+    opacity: 0.5;
+    filter: sepia(1) brightness(0.45);
+  }
+  /* Divisor ornamental: linea - calavera - linea */
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 16px 0 18px;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(90,58,24,0.55), transparent);
+  }
+  .divider img {
+    width: 22px; height: 22px; object-fit: contain;
+    opacity: 0.6; filter: sepia(1) brightness(0.4);
   }
   .item-icon img {
     width: 40px; height: 40px;
@@ -211,9 +252,9 @@
 
 <!-- Pantalla de carga -->
 <div id="loading-screen">
-  <div class="title">RUNIKA 2D</div>
+  <div class="title" data-i18n="menu.title"></div>
   <div id="loading-bar-bg"><div id="loading-bar"></div></div>
-  <div id="loading-text">Cargando... 0%</div>
+  <div id="loading-text"></div>
 </div>
 
 <!-- Overlay de transicion -->
@@ -225,11 +266,13 @@
 
 <div id="text-area">
   <h1 data-i18n="instructions.title"></h1>
+  <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
   <div class="section">
     <div class="section-title" data-i18n="instructions.controls"></div>
     <div class="item" data-i18n="instructions.controlsMove"></div>
     <div class="item" data-i18n="instructions.controlsBack"></div>
   </div>
+  <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
   <div class="section">
     <div class="section-title" data-i18n="instructions.rules"></div>
     <div class="item" data-i18n="instructions.rule1"></div>
@@ -240,13 +283,14 @@
     <div class="item" data-i18n="instructions.rule6"></div>
     <div class="item" data-i18n="instructions.rule7"></div>
   </div>
+  <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
   <div class="section">
     <div class="section-title" data-i18n="instructions.objects"></div>
     <div class="item-icon"><img src="/assets/avatars/avatar_06.png" alt=""><span data-i18n="instructions.objAvatar"></span></div>
-    <div class="item-icon"><img src="/assets/enemys/ESPACIO/enemigo_espacio_1900.png" alt=""><span data-i18n="instructions.objEnemy"></span></div>
-    <div class="item-icon"><img src="/assets/obstaculos/ESPACIO/losa_03.png" alt=""><span data-i18n="instructions.objObstacle"></span></div>
-    <div class="item-icon"><img src="/assets/trampas/AGUA/trampa_01.png" alt=""><span data-i18n="instructions.objTrap"></span></div>
-    <div class="item-icon"><img src="/assets/salida/ESPACIO/salida.png" alt=""><span data-i18n="instructions.objGoal"></span></div>
+    <div class="item-icon"><img src="/assets/enemys/ESPACIO/enemy_ESPACIO.png" alt=""><span data-i18n="instructions.objEnemy"></span></div>
+    <div class="item-icon"><img src="/assets/obstaculos/ESPACIO/cosmic_portal_tile.png" alt=""><span data-i18n="instructions.objObstacle"></span></div>
+    <div class="item-icon"><img src="/assets/trampas/AGUA/image_25.png" alt=""><span data-i18n="instructions.objTrap"></span></div>
+    <div class="item-icon"><img src="/assets/salida/ESPACIO/image_20260921_155734.png" alt=""><span data-i18n="instructions.objGoal"></span></div>
   </div>
 </div>
 
@@ -287,7 +331,7 @@
       const key = el.getAttribute('data-i18n');
       el.textContent = t(key);
     });
-    document.title = t('instructions.title') + ' — Runika 2D';
+    document.title = t('instructions.title') + ' — ' + t('menu.title');
   }
 
   async function loadTextArea() {
@@ -443,13 +487,16 @@
 
   // --- Init con cache + transicion ---
   (async () => {
+    // Idioma primero (JSON local, instantaneo): asi la pantalla de carga
+    // ya muestra los textos traducidos.
+    fallback = await loadLang('es');
+    translations = fallback;
+    applyI18n();
+    await loadTextArea();
+    positionTextArea();
+
     if (sessionStorage.getItem('runika-session') === 'active') {
       // Ya en sesion, ir directo
-      fallback = await loadLang('es');
-      translations = fallback;
-      applyI18n();
-      await loadTextArea();
-      positionTextArea();
       focus = 'scroll';
       updateFocus();
       AssetsCache.hideLoading();
@@ -460,18 +507,14 @@
     AssetsCache.showLoading();
     const loadingBar = document.getElementById('loading-bar');
     const loadingText = document.getElementById('loading-text');
+    loadingText.textContent = t('loading.text') + ' 0%';
 
     await AssetsCache.preloadAll((loaded, total) => {
       const pct = Math.round((loaded / total) * 100);
       loadingBar.style.width = pct + '%';
-      loadingText.textContent = 'Cargando... ' + pct + '%';
+      loadingText.textContent = t('loading.text') + ' ' + pct + '%';
     });
 
-    fallback = await loadLang('es');
-    translations = fallback;
-    applyI18n();
-    await loadTextArea();
-    positionTextArea();
     focus = 'scroll';
     updateFocus();
 
