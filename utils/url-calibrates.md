@@ -15,7 +15,7 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 | URL | Qué calibra | Datos |
 |---|---|---|
 | http://localhost:3000/calibrate-submundos.html | Posición del avatar en los 12 niveles + tamaño por cada uno de los 8 avatares | `assets/submundos/<M>/avatar-positions.json` |
-| http://localhost:3000/calibrate-submundos-text.html | 4 textos del submundo: nombre del mundo, "Nivel X/12", oro y otro (dinámicos i18n) | `assets/submundos/<M>/text-areas.json` |
+| http://localhost:3000/calibrate-submundos-text.html | 3 textos del submundo: nombre del mundo, "Nivel X/12" y oro (dinámicos i18n) | `assets/submundos/<M>/text-areas.json` |
 
 ## Instrucciones
 

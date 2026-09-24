@@ -209,9 +209,9 @@ Por mundo, en `assets/submundos/<MUNDO>/`:
   posición del avatar en cada nivel (rejilla serpiente 4×3) y tamaño
   independiente por cada uno de los 8 avatares.
 - `text-areas.json` (`calibrate-submundos-text.html`):
-  `{ world, areas:{ worldName, level, gold, otro } }` — nombre del mundo
-  (`submundo.title`), `Nivel X/12` (`submundo.level`), texto en oro (`gold`,
-  ej. contador de tesoros) y `otro` (texto libre extra), dinámicos.
+  `{ world, areas:{ worldName:{x,y,w,h}, level:{x,y,w,h}, gold:{x,y,w,h} } }`
+  — nombre del mundo (`submundo.title`), `Nivel X/12` (`submundo.level`) y
+  texto en oro (`gold`, ej. contador de tesoros), dinámicos.
 
 ## 9. Calibración de instrucciones (`instructions-areas.json`)
 
