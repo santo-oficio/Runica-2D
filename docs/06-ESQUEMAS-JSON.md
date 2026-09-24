@@ -28,7 +28,7 @@ Generada una vez por el analizador/editor, por cada imagen de fondo.
 }
 ```
 
-> Nota: el tablero es **fijo 6×5** y los 8 mundos comparten la misma
+> Nota: el tablero es **fijo 8×6** y los 8 mundos comparten la misma
 > `boardArea` calibrada (ver `10-ANALIZADOR-IA-FONDOS.md`). El campo
 > `boardArea` es la zona donde el tablero ya está dibujado en la imagen.
 
@@ -47,14 +47,15 @@ Salida del Level Generator, entrada del Solver y del Asset Resolver.
   "world": "ESPACIO",
   "backgroundTemplateId": "ESPACIO_01",
   "archetype": "RECTANGULO",
-  "width": 6,
-  "height": 5,
+  "width": 8,
+  "height": 6,
   "grid": [
-    "######",
-    "#....#",
-    "#.E..#",
-    "#.PG.#",
-    "######"
+    "########",
+    "#......#",
+    "#..E...#",
+    "#..PG..#",
+    "#......#",
+    "########"
   ],
   "player": [2, 3],
   "enemies": [
@@ -67,7 +68,7 @@ Salida del Level Generator, entrada del Solver y del Asset Resolver.
 }
 ```
 
-> Nota: el tablero es fijo **6×5** (`width=6, height=5`).
+> Nota: el tablero es fijo **8×6** (`width=8, height=6`).
 
 - `grid` es la representación humana-legible de la matriz; internamente se
   puede indexar como array 2D de enums (`WALL`, `FLOOR`, `PLAYER`, `ENEMY`, ...).
@@ -128,7 +129,7 @@ Salida del Solver/Validador, lo que decide si un `LevelMap` entra al banco.
 }
 ```
 
-> Nota: `allowedBoardSizes` es `[[6,5]]` (tablero fijo, no se generan otras
+> Nota: `allowedBoardSizes` es `[[8,6]]` (tablero fijo, no se generan otras
 > dimensiones por ahora).
 
 ## 5. Banco de niveles (índice)
@@ -149,3 +150,59 @@ Solo se guardan los niveles que ya pasaron `ValidationResult.valid == true`.
 El `grid` completo puede regenerarse en el momento a partir de la `seed` (si el
 generador es determinista) o guardarse ya calculado (más simple, más peso en
 disco/BD) — decisión de ingeniería según vuestro volumen de niveles.
+
+## 6. Calibración de sprites del tablero (`sprites.json`)
+
+Por mundo, en `assets/backgrounds/<MUNDO>/sprites.json`. Editado con
+`calibrate-board-sprites.html`. Calibración independiente por tipo e instancia:
+
+```json
+{
+  "world": "AGUA",
+  "global": { "offsetX": 0, "offsetY": 0, "scale": 1 },
+  "avatar":   [ { "size": 0.91, "offsetX": 0, "offsetY": -0.01 } ],
+  "enemy":    [ { "size": 0.89, "offsetX": 0, "offsetY": 0 } ],
+  "boss":     [ { "size": 0.98, "offsetX": 0, "offsetY": -0.01 } ],
+  "trap":     [ { "size": 0.95, "offsetX": 0, "offsetY": -0.02 } ],
+  "exit":     [ { "size": 0.75, "offsetX": 0, "offsetY": -0.04 } ],
+  "obstacle": [ { "size": 0.95, "offsetX": 0, "offsetY": 0 } ]
+}
+```
+
+- `size` = fracción de la casilla (1.0 = llena la celda). `offsetX/offsetY` =
+  desplazamiento desde el centro de la casilla, en fracciones de celda.
+- `global` aplica a todos los tipos a la vez (ajuste conjunto, usar con cuidado).
+- `avatar` tiene siempre 8 entradas; el resto tantas como imágenes haya en la
+  carpeta del mundo. Trampas/obstáculos se colocan sobre `boardArea`; el resto
+  sobre `avatarArea`.
+
+## 7. Áreas de texto del tablero (`text-areas.json` en backgrounds)
+
+Por mundo, en `assets/backgrounds/<MUNDO>/text-areas.json`. Editado con
+`calibrate-board-texts.html`. Los textos son dinámicos desde i18n
+(`board.turn`, `board.optimal`, `board.info`); los números son valores de juego.
+
+```json
+{
+  "world": "ESPACIO",
+  "areas": {
+    "turn":     { "x": 0.092, "y": 0.373, "w": 0.058, "h": 0.064 },
+    "nTurn":    { "x": 0.092, "y": 0.462, "w": 0.058, "h": 0.065 },
+    "optimal":  { "x": 0.846, "y": 0.368, "w": 0.066, "h": 0.064 },
+    "nOptimal": { "x": 0.855, "y": 0.459, "w": 0.053, "h": 0.061 },
+    "info":     { "x": 0.389, "y": 0.908, "w": 0.225, "h": 0.068 }
+  }
+}
+```
+
+## 8. Calibración de submundos
+
+Por mundo, en `assets/submundos/<MUNDO>/`:
+
+- `avatar-positions.json` (`calibrate-submundos.html`):
+  `{ world, positions:{"0".."11"}:{x,y}, avatarSize, avatars[8]:{size} }` —
+  posición del avatar en cada nivel (rejilla serpiente 4×3) y tamaño
+  independiente por cada uno de los 8 avatares.
+- `text-areas.json` (`calibrate-submundos-text.html`):
+  `{ world, areas:{ worldName:{x,y,w,h}, level:{x,y,w,h} } }` — nombre del
+  mundo (`submundo.title`) y `Nivel X/12` (`submundo.level`), dinámicos.

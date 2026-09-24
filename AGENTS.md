@@ -58,6 +58,63 @@ Controles en `demo.html`:
 Las coordenadas se guardan normalizadas respecto a la **imagen visible** (se
 descuenta el letterbox de `object-fit: contain`).
 
+## Calibración de sprites y textos del tablero
+
+Todo es **data-driven por mundo**: cada calibración vive en un JSON dentro de
+`assets/backgrounds/<MUNDO>/` o `assets/submundos/<MUNDO>/` y el juego la consume
+dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
+
+| Calibrador | Datos que guarda |
+|---|---|
+| `calibrate-board-sprites.html` | `assets/backgrounds/<M>/sprites.json` + `board-detection.json` |
+| `calibrate-board-texts.html` | `assets/backgrounds/<M>/text-areas.json` |
+| `calibrate-submundos.html` | `assets/submundos/<M>/avatar-positions.json` |
+| `calibrate-submundos-text.html` | `assets/submundos/<M>/text-areas.json` |
+
+### `calibrate-board-sprites.html` — sprites + áreas
+
+Calibración **independiente por mundo, tipo e instancia**:
+`sprites.json` = `{ world, global:{offsetX,offsetY,scale}, avatar[8], enemy[],
+boss[], trap[], exit[], obstacle[] }`, cada entrada `{size, offsetX, offsetY}`
+(size = fracción de casilla; offset = fracción de casilla desde el centro).
+
+- Tipos: `1` avatar · `2` enemy · `3` boss · `4` trap · `5` exit · `6` obstacle.
+  Trampas y obstáculos usan `boardArea`; el resto `avatarArea`.
+- `M` cicla modos **Sprite → GLOBAL → TABLERO**. GLOBAL mueve/escala todos los
+  tipos juntos; TABLERO edita `boardArea`/`avatarArea` (arrastrar, `A` alterna,
+  `Q/E` ancho, `+/-` alto, rueda tamaño).
+- `[`/`]` instancia · `+/-` tamaño · flechas mover (Shift fino) · `Tab` mundo ·
+  `G` guardar · `C` cargar.
+- API: `/api/board-sprites-assets`, `/api/save-board-sprites`,
+  `/api/load-board-sprites`, `/api/save-calibration` (áreas).
+- Carpetas especiales: trampas `VIENTO`→`AIRE`; obstáculos usan `<MUNDO>` directo.
+
+### `calibrate-board-texts.html` — 5 textos del tablero
+
+`text-areas.json` = `{ world, areas:{ turn, nTurn, optimal, nOptimal, info } }`,
+cada área `{x,y,w,h}` normalizada. Los textos son **dinámicos desde i18n**
+(`board.turn`, `board.optimal`, `board.info`); los números son valores de juego.
+
+- Arrastrar define el área · `Tab` cambia de texto · `Espacio` siguiente mundo ·
+  flechas mover (Shift fino) · `+/-` tamaño · `S` copia tamaño · `G`/`C` por mundo.
+- API: `/api/save-board-text-areas`, `/api/load-board-text-areas`.
+
+### `calibrate-submundos.html` — avatar por nivel
+
+`avatar-positions.json` = `{ world, positions:{"0".."11"}:{x,y}, avatarSize,
+avatars[8]:{size} }` — posición del avatar en cada uno de los 12 niveles
+(rejilla serpiente 4×3) y tamaño independiente por cada uno de los 8 avatares.
+
+- API: `/api/save-subworld-positions`, `/api/load-subworld-positions`.
+- Al guardar avanza nivel → avatar → mundo automáticamente.
+
+### `calibrate-submundos-text.html` — textos de submundo
+
+`text-areas.json` = `{ world, areas:{ worldName, level } }` — nombre del mundo
+(`submundo.title`) y `Nivel X/12` (`submundo.level`), dinámicos desde i18n.
+
+- API: `/api/save-subworld-text-areas`, `/api/load-subworld-text-areas`.
+
 ## Selección de personaje (demo + calibradores)
 
 - Demo: `http://localhost:3000/demo-seleccion-personaje.html`.

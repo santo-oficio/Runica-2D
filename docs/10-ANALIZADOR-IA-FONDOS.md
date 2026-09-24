@@ -80,7 +80,7 @@ La detección de MobileSAM da una **buena aproximación inicial**, pero el
 ajuste fino se hace a mano con la demo visual (`demo-server.ts` + `demo.html`):
 
 - La demo muestra el fondo a pantalla completa (`object-fit: contain`, sin
-  recortar) y superpone la rejilla 6×5 sobre la `boardArea` detectada.
+  recortar) y superpone la rejilla 8×6 sobre la `boardArea` detectada.
 - Controles de calibración:
   - `Flechas/WASD` — mover el selector de casilla.
   - `Shift + Flechas` — mover la rejilla (ajuste fino).
