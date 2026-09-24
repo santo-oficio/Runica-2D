@@ -110,7 +110,7 @@
 <body>
   <div id="stage"><img id="image" alt="fondo"></div>
   <div id="selector">
-    <img id="avatar" src="/assets/avatars/avatar_01.png" alt="avatar">
+    <img id="avatar" src="/assets/avatars/display/avatar_01.webp" alt="avatar">
   </div>
   <div id="entities"></div>
   <audio id="step-sound" preload="auto"></audio>
@@ -146,13 +146,8 @@ const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const overlaySubtitle = document.getElementById('overlay-subtitle');
 
-const AVATARS = [
-  '/assets/avatars/avatar_01.png','/assets/avatars/avatar_02.png',
-  '/assets/avatars/avatar_03.png','/assets/avatars/avatar_04.png',
-  '/assets/avatars/avatar_05.png','/assets/avatars/avatar_06.png',
-  '/assets/avatars/avatar_07.png','/assets/avatars/avatar_08.png',
-  '/assets/avatars/avatar_09.png',
-];
+const AVATARS = Array.from({ length: 8 }, (_, i) =>
+  `/assets/avatars/display/avatar_${String(i + 1).padStart(2, '0')}.webp`);
 let avatarIdx = parseInt(localStorage.getItem('Runika 2D-avatar-idx') ?? '0', 10) || 0;
 avatarImg.src = AVATARS[avatarIdx] + '?t=' + Date.now();
 
@@ -327,7 +322,7 @@ async function renderEntities() {
   // Salida (puerta)
   const goalEl = document.createElement('img');
   goalEl.className = 'entity goal';
-  goalEl.src = '/assets/salida/AGUA/salida.png';
+  goalEl.src = '/assets/salida/display/AGUA/image_20260921_155717.webp';
   goalEl.dataset.col = goal.c;
   goalEl.dataset.row = goal.r;
   goalEl.dataset.type = 'goal';
@@ -342,7 +337,7 @@ async function renderEntities() {
   enemies.forEach((e, i) => {
     const el = document.createElement('img');
     el.className = 'entity';
-    el.src = '/assets/enemys/AGUA/enemy_01.png';
+    el.src = '/assets/enemys/display/AGUA/enemy_AGUA.webp';
     el.dataset.col = e.c;
     el.dataset.row = e.r;
     el.dataset.type = 'enemy';
@@ -379,7 +374,7 @@ async function renderEntities() {
     const [c, r] = key.split(',').map(Number);
     const el = document.createElement('img');
     el.className = 'entity';
-    el.src = obstaclePicks[obstacleIdx++] || '/assets/obstaculos/AGUA/obstaculo_01.png';
+    el.src = obstaclePicks[obstacleIdx++] || '/assets/obstaculos/display/AGUA/underwater_tile_seaweed.webp';
     el.dataset.col = c;
     el.dataset.row = r;
     el.dataset.type = 'obstacle';
@@ -396,7 +391,7 @@ async function renderEntities() {
     const [c, r] = key.split(',').map(Number);
     const el = document.createElement('img');
     el.className = 'entity trap';
-    el.src = '/assets/trampas/AGUA/trampa_01.png';
+    el.src = '/assets/trampas/display/AGUA/image_25.webp';
     el.dataset.col = c;
     el.dataset.row = r;
     el.dataset.type = 'trap';

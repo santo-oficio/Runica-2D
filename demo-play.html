@@ -154,13 +154,9 @@ const overlaySubtitle = document.getElementById('overlay-subtitle');
 let currentTier = 1;
 const COLS = 8, ROWS = 6;
 
-const AVATARS = [
-  '/assets/avatars/avatar_01.png','/assets/avatars/avatar_02.png',
-  '/assets/avatars/avatar_03.png','/assets/avatars/avatar_04.png',
-  '/assets/avatars/avatar_05.png','/assets/avatars/avatar_06.png',
-  '/assets/avatars/avatar_07.png','/assets/avatars/avatar_08.png',
-  '/assets/avatars/avatar_09.png',
-];
+// Avatares ligeros (display webp 2048px) — regla a fuego: nada de masters 8K en el hot path
+const AVATARS = Array.from({ length: 8 }, (_, i) =>
+  `/assets/avatars/display/avatar_${String(i + 1).padStart(2, '0')}.webp`);
 let avatarIdx = parseInt(localStorage.getItem('Runika 2D-avatar-idx') ?? '0', 10) || 0;
 avatarImg.src = BASE + AVATARS[avatarIdx];
 
@@ -251,16 +247,44 @@ async function worldAsset(world, rel, fallbackWorld) {
   return assetCache[key];
 }
 
-// Obstáculos del mundo (lista de imágenes)
-const obstacleCache = {};
-async function getObstacles(world) {
-  if (obstacleCache[world] !== undefined) return obstacleCache[world];
+// Assets del tablero por mundo via /api/board-sprites-assets (rutas reales,
+// display webp preferido por el servidor; fallback por categoria a AGUA)
+const boardAssetsCache = {};
+let spriteAssets = null;
+async function boardAssets(world) {
+  if (boardAssetsCache[world] !== undefined) return boardAssetsCache[world];
+  let a = null;
   try {
-    const res = await fetch(`${BASE}/api/obstacles?world=${encodeURIComponent(world)}`);
-    const data = await res.json();
-    obstacleCache[world] = (data.images && data.images.length) ? data.images : null;
-  } catch (e) { obstacleCache[world] = null; }
-  return obstacleCache[world];
+    const res = await fetch(`${BASE}/api/board-sprites-assets?world=${encodeURIComponent(world)}`);
+    if (res.ok) a = await res.json();
+  } catch (e) {}
+  if (a && a.ok) {
+    for (const k of ['enemy', 'boss', 'trap', 'exit', 'obstacle']) {
+      if ((!a[k] || !a[k].length) && world !== 'AGUA') {
+        const f = await boardAssets('AGUA');
+        if (f) a[k] = f[k];
+      }
+    }
+  } else { a = null; }
+  boardAssetsCache[world] = a;
+  return a;
+}
+
+// Imagenes decodificadas retenidas en memoria (referencia viva: el navegador
+// no puede evictarlas, por mucho tiempo que pase)
+const decodedImgs = new Map();
+function decodeImg(src) {
+  const hit = decodedImgs.get(src);
+  if (hit !== undefined) return Promise.resolve(hit);
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => {
+      (im.decode ? im.decode().catch(() => {}) : Promise.resolve())
+        .finally(() => { decodedImgs.set(src, im); res(im); });
+    };
+    im.onerror = () => { decodedImgs.set(src, null); res(null); };
+    im.src = src;
+  });
 }
 
 // Elegir N imágenes al azar sin repetir mientras sea posible (regla a fuego)
@@ -336,17 +360,18 @@ async function renderEntities() {
   const container = document.getElementById('entities');
   container.innerHTML = '';
   const world = detection.world;
+  const assets = spriteAssets || {};
 
   // Meta (salida)
   const goalEl = document.createElement('img');
   goalEl.className = 'entity goal';
-  goalEl.src = await worldAsset(world, 'salida/{W}/salida.png', 'AGUA');
+  goalEl.src = BASE + (assets.exit?.[0] || '');
   goalEl.dataset.col = goal.c; goalEl.dataset.row = goal.r; goalEl.dataset.type = 'goal';
   place(goalEl, goal.c, goal.r, true);
   container.appendChild(goalEl);
 
   // Enemigos
-  const enemySrc = await worldAsset(world, 'enemys/{W}/enemy_01.png', 'AGUA');
+  const enemySrc = BASE + (assets.enemy?.[0] || '');
   enemies.forEach((e, i) => {
     const el = document.createElement('img');
     el.className = 'entity';
@@ -368,7 +393,7 @@ async function renderEntities() {
   });
 
   // Obstáculos: imágenes del mundo, al azar sin repetir si se puede
-  const pool = await getObstacles(world);
+  const pool = assets.obstacle || null;
   const picks = pickRandomImages(pool, obstacleCells.size);
   let i = 0;
   obstacleCells.forEach(key => {
@@ -385,7 +410,7 @@ async function renderEntities() {
 
   // Trampas
   if (trapCells.size) {
-    const trapSrc = await worldAsset(world, 'trampas/{W}/trampa_01.png', 'AGUA');
+    const trapSrc = BASE + (assets.trap?.[0] || '');
     trapCells.forEach(key => {
       const [c, r] = key.split(',').map(Number);
       const el = document.createElement('img');
@@ -587,6 +612,15 @@ async function loadWorld(idx) {
     img.onerror = res;
     img.src = `${BASE}/` + detection.image;
   });
+  if (img.decode) await img.decode().catch(() => {});
+
+  // Sprites del mundo: rutas reales + decodificados ANTES de pintar
+  spriteAssets = await boardAssets(detection.world);
+  if (spriteAssets) {
+    const srcs = ['enemy', 'boss', 'trap', 'exit', 'obstacle']
+      .flatMap(k => spriteAssets[k] || []).map(s => BASE + s);
+    await Promise.all(srcs.map(decodeImg));
+  }
   layout();
   await loadScreen();
 }
@@ -639,6 +673,8 @@ window.addEventListener('resize', () => {
 async function init() {
   const res = await fetch(`${BASE}/api/worlds?t=${Date.now()}`);
   worlds = await res.json();
+  // Avatares decodificados de antemano (Enter los cicla en el hot path)
+  AVATARS.forEach(a => decodeImg(BASE + a));
   // Mundo al azar en cada recarga
   await loadWorld(Math.floor(Math.random() * worlds.length));
 }

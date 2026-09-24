@@ -5,30 +5,52 @@ Uso:
 
 Los masters 8K (PNG) se quedan para los calibradores. Las pantallas de juego
 usan los .webp reducidos: decodificacion mil veces mas rapida y mucha menos
-RAM, por lo que el preload puede mantenerlas decodificadas siempre.
+RAM, por lo que el preload puede mantenerlas decodificadas siempre (regla a
+fuego en AGENTS.md: las imagenes del hot path nunca usan masters 8K).
 
-Actualmente genera:
-  assets/avatars/avatar_*.png -> assets/avatars/display/*.webp (2048px, q90)
+Genera:
+  assets/avatars/avatar_*.png   -> assets/avatars/display/*.webp   (2048px)
+  assets/<cat>/<W>/*.png        -> assets/<cat>/display/<W>/*.webp (1024px)
+    con cat = enemys, trampas, obstaculos, salida, bosses
 """
 from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "assets" / "avatars"
-DST = SRC / "display"
-MAX_SIDE = 2048
 QUALITY = 90
+
+# (directorio base, tamano maximo, solo raiz sin subcarpetas de mundo)
+JOBS = [
+    ("avatars", 2048, False),
+    ("enemys", 1024, True),
+    ("trampas", 1024, True),
+    ("obstaculos", 1024, True),
+    ("salida", 1024, True),
+    ("bosses", 1024, True),
+]
+
+
+def convert(src: Path, out: Path, max_side: int) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    im = Image.open(src)
+    im.thumbnail((max_side, max_side), Image.LANCZOS)
+    im.save(out, "WEBP", quality=QUALITY, method=6)
+    kb = out.stat().st_size // 1024
+    print(f"{src.relative_to(ROOT)} -> {out.relative_to(ROOT)} ({im.size[0]}x{im.size[1]}, {kb} KB)")
 
 
 def main() -> None:
-    DST.mkdir(exist_ok=True)
-    for src in sorted(SRC.glob("avatar_*.png")):
-        out = DST / (src.stem + ".webp")
-        im = Image.open(src)
-        im.thumbnail((MAX_SIDE, MAX_SIDE), Image.LANCZOS)
-        im.save(out, "WEBP", quality=QUALITY, method=6)
-        kb = out.stat().st_size // 1024
-        print(f"{src.name}: {im.size[0]}x{im.size[1]} -> {out.name} ({kb} KB)")
+    for name, max_side, by_world in JOBS:
+        base = ROOT / "assets" / name
+        if not base.exists():
+            continue
+        if by_world:
+            for world_dir in sorted(p for p in base.iterdir() if p.is_dir() and p.name != "display"):
+                for src in sorted(world_dir.glob("*.png")):
+                    convert(src, base / "display" / world_dir.name / (src.stem + ".webp"), max_side)
+        else:
+            for src in sorted(base.glob("*.png")):
+                convert(src, base / "display" / (src.stem + ".webp"), max_side)
 
 
 if __name__ == "__main__":

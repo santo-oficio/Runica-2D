@@ -237,16 +237,28 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   3. Solo mostrar el menu / juego cuando todo este en cache.
   4. Usar Service Worker + Cache API para persistencia entre sesiones.
   5. En ejecucion, servir todo desde cache, nunca desde red en caliente.
-  6. **Descargado NO es decodificado**: tras `img.onload` hay que llamar a
-     `img.decode()` (o `createImageBitmap`) para que el primer pintado no
-     decodifique en caliente (tirones al hacer hover). Y hay que **guardar
-     referencia** a los `Image` decodificados (ej. `Map`), o el navegador
-     evicta los datos decodificados bajo presion de memoria.
-  7. **Derivados de display**: las imagenes que cambian en caliente (hover,
-     seleccion) NUNCA usan los masters 8K — decodificar 7680px son ~300ms y
-     ~230MB de RAM por imagen. Se generan versiones `display/` ligeras
-     (webp 2048px, ver `tools/convert-display-assets.py`): `assets/avatars/
-     display/avatar_0N.webp`. Los 8K PNG quedan solo como masters/calibradores.
+  6. En ejecucion, servir todo desde cache, nunca desde red en caliente.
+- **A fuego — imagenes del hot path (TODAS las pantallas)**: cualquier imagen
+  que se pinte o cambie durante la interaccion (hover, seleccion, sprites del
+  tablero, iconos) NUNCA usa los masters 8K y NUNCA se decodifica en caliente.
+  En todas las pantallas (game, demo-play, submundo, mapamundi, menus,
+  seleccion de personaje, instrucciones, demos y futuras):
+  1. **Derivados display**: se usan versiones ligeras `.webp` generadas con
+     `tools/convert-display-assets.py` (`assets/<cat>/display/`):
+     avatares 2048px, sprites de tablero (enemys/trampas/obstaculos/salida/
+     bosses) 1024px. Los PNG 8K quedan SOLO como masters para calibradores
+     y regeneracion. El servidor ya prefiere `display/<stem>.webp` en
+     `/api/obstacles` y `/api/board-sprites-assets`.
+  2. **decode() real**: tras `img.onload` hay que esperar `img.decode()`
+     (o `createImageBitmap`) durante la precarga/pantalla de carga.
+     `onload` solo garantiza bytes descargados; la decodificacion lazy es
+     lo que produce el tiron en el primer pintado.
+  3. **Referencias vivas**: guardar los `Image` decodificados en un `Map`
+     (ej. `decodedImgs`, `AssetsCache.cache.decoded`). Sin referencia, el
+     navegador evicta los datos decodificados bajo presion de memoria y el
+     lag vuelve aunque la pantalla lleve mucho tiempo abierta.
+  4. Los fondos a pantalla completa si usan el master 8K (es su resolucion
+     nativa), pero se decodifican durante la carga igualmente.
 - **A fuego — transiciones entre pantallas**: todos los cambios de pantalla
   (menu → instrucciones, menu → juego, juego → victoria/derrota, etc.) deben
   tener una transicion fluida, nunca un corte seco. Las transiciones deben:

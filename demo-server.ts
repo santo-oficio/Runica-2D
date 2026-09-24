@@ -743,7 +743,12 @@ const server = http.createServer((req, res) => {
       images = readdirSync(dir)
         .filter((f) => /\.(png|jpg|jpeg|webp)$/i.test(f) && !/^test_/i.test(f) && !/_cyan_triskele_3\.png$/i.test(f))
         .sort()
-        .map((f) => `/assets/obstaculos/${world}/${encodeURIComponent(f)}`);
+        .map((f) => {
+          const stem = f.replace(/\.[^.]+$/, "");
+          return existsSync(join(ROOT, "assets", "obstaculos", "display", world, `${stem}.webp`))
+            ? `/assets/obstaculos/display/${world}/${encodeURIComponent(stem)}.webp`
+            : `/assets/obstaculos/${world}/${encodeURIComponent(f)}`;
+        });
     }
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true, world, images }));
@@ -762,12 +767,22 @@ const server = http.createServer((req, res) => {
       return;
     }
     const isImg = (f: string) => /\.(png|jpg|jpeg|webp)$/i.test(f);
+    // Preferir el derivado ligero display/<stem>.webp si existe (regla a fuego:
+    // las pantallas no pintan masters 8K en el hot path)
     const list = (folder: string, sub: string): string[] =>
       existsSync(folder)
         ? readdirSync(folder)
             .filter(isImg)
             .sort()
-            .map((f) => `/assets/${sub}/${encodeURIComponent(f)}`)
+            .map((f) => {
+              const stem = f.replace(/\.[^.]+$/, "");
+              const parts = sub.split("/");
+              const cat = parts[0] ?? "";
+              const w = parts[1] ?? "";
+              return existsSync(join(ROOT, "assets", cat, "display", w, `${stem}.webp`))
+                ? `/assets/${cat}/display/${w}/${encodeURIComponent(stem)}.webp`
+                : `/assets/${sub}/${encodeURIComponent(f)}`;
+            })
         : [];
     const trapSub = world === "VIENTO" ? "trampas/AIRE" : `trampas/${world}`;
     const salidaWorld = world;
