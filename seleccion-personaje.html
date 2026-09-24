@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Runika 2D Interactivo - Redondo + Sonido</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#061a33;display:flex;flex-direction:column;align-items:center;min-height:100vh;color:#ffeec2;font-family:system-ui}
@@ -18,7 +19,7 @@ h2{font-size:13px;opacity:.8;margin:10px 0 6px;letter-spacing:1px}
 .hotspot.round{border-radius:50%}
 .hotspot.round:hover,.hotspot.round.focused{background:rgba(255,213,79,.22);border-color:#ffd54f;box-shadow:0 0 18px rgba(255,213,79,.9);transform:scale(1.1)}
 .hotspot.xborrar:hover{background:rgba(244,67,54,.35);border-color:#ff7961;box-shadow:0 0 14px rgba(244,67,54,.8)}
-#name-display{position:absolute;left:32.2%;top:56.5%;width:37.5%;height:10%;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-weight:900;font-size:clamp(16px,2.4vw,28px);letter-spacing:3px;color:#2b1a0a;text-transform:uppercase;pointer-events:none}
+#name-display{position:absolute;left:32.2%;top:56.5%;width:37.5%;height:10%;display:flex;align-items:center;justify-content:center;font-family:'ChelseaMarket',cursive;font-weight:900;font-size:clamp(16px,2.4vw,28px);letter-spacing:3px;color:#2b1a0a;text-transform:uppercase;pointer-events:none}
 #status{margin:12px;background:rgba(0,0,0,.55);padding:10px 16px;border-radius:10px;border:1px solid #5d3a14;font-size:12px;display:flex;gap:12px;flex-wrap:wrap}
 #status b{color:#ffd54f}
 #confirm-overlay{position:fixed;inset:0;background:rgba(6,26,51,0.88);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
@@ -26,7 +27,7 @@ h2{font-size:13px;opacity:.8;margin:10px 0 6px;letter-spacing:1px}
 #confirm-box{background:linear-gradient(180deg,#5a3a18 0%,#3d2610 100%);border:4px solid #8d5a1f;border-radius:20px;width:min(92vw,460px);box-shadow:0 20px 80px rgba(0,0,0,0.9);overflow:hidden;animation:pop .35s cubic-bezier(0.34,1.56,0.64,1)}
 @keyframes pop{from{transform:scale(.7) translateY(30px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
 .confirm-header{background:#3d2610;padding:14px;text-align:center;border-bottom:2px solid #5a3a18}
-.confirm-header h3{margin:0;color:#ffd54f;letter-spacing:2px;font-family:'Courier New',monospace}
+.confirm-header h3{margin:0;color:#ffd54f;letter-spacing:2px;font-family:'ChelseaMarket',cursive}
 .confirm-body{padding:18px;text-align:center;background:radial-gradient(ellipse at center,#4a3215 0%,#3d2610 70%)}
 .confirm-avatar{width:100px;height:100px;margin:0 auto 10px;border-radius:14px;border:3px solid #ffd54f;overflow:hidden;background:#000}
 .confirm-avatar img{width:100%;height:100%;object-fit:cover}
@@ -48,7 +49,7 @@ h2{font-size:13px;opacity:.8;margin:10px 0 6px;letter-spacing:1px}
 <div class="confirm-header"><h3>¿ZARPAR?</h3></div>
 <div class="confirm-body">
 <div class="confirm-avatar"><img id="c-av"></div>
-<div id="c-name" style="font-family:'Courier New',monospace;font-weight:900;font-size:20px;color:#ffeec2;letter-spacing:2px"></div>
+<div id="c-name" style="font-family:'ChelseaMarket',cursive;font-weight:900;font-size:20px;color:#ffeec2;letter-spacing:2px"></div>
 <div style="font-size:12px;opacity:.7;margin-top:4px">Nombre: <span id="c-player"></span></div>
 </div>
 <div class="actions">

@@ -1,0 +1,9 @@
+/* Fuente oficial del juego: Chelsea Market (local, OFL).
+   A fuego: TODO el texto visible usa 'ChelseaMarket'. */
+@font-face {
+  font-family: 'ChelseaMarket';
+  src: url('/assets/fonts/ChelseaMarket-Regular-wc.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

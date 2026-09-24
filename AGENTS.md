@@ -194,9 +194,13 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   (`fr`), italiano (`it`), aleman (`de`).
 - **A fuego — fuente del juego**: la fuente tipografica para TODO el texto del
   juego (menus, botones, instrucciones, creditos, HUD, etc.) es
-  **MedievalSharp** (Google Fonts). No se usa Cinzel ni ninguna otra fuente para
-  texto visible. La fuente se carga desde Google Fonts con
-  `family=MedievalSharp&display=swap`.
+  **Chelsea Market** (`'ChelseaMarket'`, archivo local
+  `assets/fonts/ChelseaMarket-Regular-wc.ttf`, licencia OFL). Se declara con
+  `@font-face` en `assets/fonts/fonts.css` — enlazar ese CSS en cada pantalla
+  (`<link rel="stylesheet" href="/assets/fonts/fonts.css">`), nunca cargar
+  fuentes desde Google Fonts ni otra red externa. No se usa MedievalSharp,
+  Schoolbell, Georgia, Courier New ni ninguna otra fuente para texto visible
+  (los HUD tecnicos de los calibradores si pueden ir en monospace).
 - **A fuego — texto sobre pergamino**: cuando el fondo sea un pergamino claro
   (ej: pantalla de instrucciones, opciones), el texto debe ser oscuro
   (`#3a2810` / `#4a3018` / `#5a3a18`) para que se lea sobre el fondo claro.

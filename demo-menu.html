@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Runika 2D — Demo Menu</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Schoolbell&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -17,7 +15,7 @@
   }
   html, body {
     width: 100%; height: 100%; overflow: hidden;
-    background: #000; font-family: 'Schoolbell', cursive;
+    background: #000; font-family: 'ChelseaMarket', cursive;
   }
   /* Pantalla de carga */
   #loading-screen {
@@ -30,7 +28,7 @@
     cursor: pointer;
   }
   #loading-screen .title {
-    font-family: 'Schoolbell', cursive;
+    font-family: 'ChelseaMarket', cursive;
     font-size: 2.5em; color: #f0d890;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     margin-bottom: 30px; letter-spacing: 3px;
@@ -48,11 +46,11 @@
   }
   #loading-text {
     margin-top: 12px; font-size: 0.9em; color: #a08850;
-    font-family: 'Courier New', monospace;
+    font-family: 'ChelseaMarket', cursive;
   }
   #start-hint {
     margin-top: 20px; font-size: 1em; color: #e8d4a8;
-    font-family: 'Schoolbell', cursive;
+    font-family: 'ChelseaMarket', cursive;
     display: none;
     animation: pulse 1.5s ease-in-out infinite;
   }
@@ -96,7 +94,7 @@
     background: transparent;
   }
   .btn-text {
-    font-family: 'Schoolbell', cursive;
+    font-family: 'ChelseaMarket', cursive;
     color: #e8d4a8;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
     text-align: center;
@@ -156,7 +154,7 @@
   #hud {
     position: absolute; top: 12px; left: 12px; z-index: 20;
     background: rgba(0,0,0,0.7); padding: 8px 14px;
-    border-radius: 4px; font-family: 'Courier New', monospace;
+    border-radius: 4px; font-family: 'ChelseaMarket', cursive;
     font-size: 0.8em; color: #aaa;
   }
   #hud .key { color: #fc4; }
@@ -164,7 +162,7 @@
   #lang-bar {
     position: absolute; bottom: 12px; right: 12px; z-index: 20;
     background: rgba(0,0,0,0.7); padding: 6px 12px;
-    border-radius: 4px; font-family: 'Courier New', monospace;
+    border-radius: 4px; font-family: 'ChelseaMarket', cursive;
     font-size: 0.8em; color: #aaa;
   }
   #lang-bar select {
