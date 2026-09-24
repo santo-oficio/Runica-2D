@@ -414,7 +414,7 @@ const server = http.createServer((req, res) => {
     req.on("data", (chunk: Buffer | string) => { body += chunk; });
     req.on("end", () => {
       try {
-        const savePath = join(ROOT, "assets", "menu principal", "instructions-areas.json");
+        const savePath = join(ROOT, "assets", "instrucciones", "instructions-areas.json");
         writeFileSync(savePath, body, "utf-8");
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true }));
@@ -428,7 +428,7 @@ const server = http.createServer((req, res) => {
 
   // API: cargar instrucciones areas (GET /api/load-instructions-areas)
   if (url === "/api/load-instructions-areas") {
-    const loadPath = join(ROOT, "assets", "menu principal", "instructions-areas.json");
+    const loadPath = join(ROOT, "assets", "instrucciones", "instructions-areas.json");
     if (!existsSync(loadPath)) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false }));

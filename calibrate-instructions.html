@@ -4,11 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calibrar area de instrucciones</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 100%; height: 100%; background: #000; overflow: hidden;
     font-family: 'Courier New', monospace; color: #e0e0e0;
+    user-select: none;
   }
   #stage {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -27,18 +29,28 @@
   }
   .area-rect.active {
     border-color: #0f0; box-shadow: 0 0 20px rgba(0,255,0,0.4);
-    background: rgba(0, 255, 0, 0.15);
+    background: rgba(0, 255, 0, 0.06);
   }
   .area-rect .tag {
     position: absolute; top: -22px; left: 0;
     font-size: 12px; padding: 2px 8px; border-radius: 2px;
     background: #0f0; color: #000; white-space: nowrap;
   }
+  /* Vista previa del texto real dentro del area seleccionada */
+  .text-preview {
+    position: absolute; z-index: 13; overflow: hidden;
+    font-family: 'MedievalSharp', serif; color: #3a2810;
+    pointer-events: none;
+  }
+  .text-preview h1 { font-size: 1.4em; margin-bottom: 0.4em; }
+  .text-preview .sec { font-size: 1.05em; font-weight: bold; margin: 0.5em 0 0.2em; }
+  .text-preview .item { font-size: 0.82em; line-height: 1.35; margin-bottom: 0.25em; }
   #hud {
     position: absolute; top: 12px; left: 12px; z-index: 20;
     background: rgba(0,0,0,0.75); padding: 10px 16px;
     border-radius: 4px; border: 1px solid rgba(126,200,227,0.3);
     font-size: 0.85em; line-height: 1.7;
+    max-width: 25%;
   }
   #hud b { color: #0ff; }
   #hud .key { color: #fc4; }
@@ -57,21 +69,24 @@
 <body>
 
 <div id="stage">
-  <img id="image" src="/assets/menu%20principal/opciones%20del%20juego%20e%20instrucciones.png" />
+  <img id="image" src="/assets/instrucciones/instrucciones.png" />
+  <div id="preview"></div>
   <div id="overlay"></div>
   <div id="drag-rect"></div>
 </div>
 
 <div id="hud">
   <b>Calibrar area de instrucciones</b><br>
-  Marca las zonas donde ira el texto<br>
+  Marca la zona donde ira el texto (se ve con el contenido real)<br>
   <br>
   <span class="key">Arrastrar</span> = marcar area<br>
   <span class="new">Espacio</span> = clonar (mismo tamano)<br>
   <span class="key">Flechas</span> = mover seleccion (Shift = fino)<br>
   <span class="key">+ / -</span> = agrandar / reducir<br>
+  <span class="key">Q / E</span> = ancho (Shift = fino)<br>
   <span class="key">0-9</span> = seleccionar area<br>
   <span class="key">Z</span> = deshacer ultimo<br>
+  <span class="key">T</span> = mostrar/ocultar texto<br>
   <span class="key">G</span> = guardar JSON<br>
   <span class="key">C</span> = cargar guardado<br>
   <br>
@@ -83,6 +98,7 @@
 <script>
   const img = document.getElementById('image');
   const overlay = document.getElementById('overlay');
+  const previewLayer = document.getElementById('preview');
   const dragRect = document.getElementById('drag-rect');
   const coordsEl = document.getElementById('coords');
   const statusEl = document.getElementById('status');
@@ -92,27 +108,63 @@
   let dragging = false;
   let dragStart = null;
   let currentRect = null;
+  let showText = true;
+  let i18n = {};
 
-  function getImgRect() { return img.getBoundingClientRect(); }
+  // Rect visible de la imagen (descuenta el letterbox de object-fit: contain)
+  function visibleImageRect() {
+    const rect = img.getBoundingClientRect();
+    const iw = img.naturalWidth || 1672;
+    const ih = img.naturalHeight || 941;
+    const scale = Math.min(rect.width / iw, rect.height / ih);
+    const w = iw * scale, h = ih * scale;
+    return {
+      left: rect.left + (rect.width - w) / 2,
+      top: rect.top + (rect.height - h) / 2,
+      width: w, height: h,
+    };
+  }
 
   function pxToNorm(x, y) {
-    const r = getImgRect();
+    const r = visibleImageRect();
     return {
       x: Math.max(0, Math.min(1, (x - r.left) / r.width)),
       y: Math.max(0, Math.min(1, (y - r.top) / r.height))
     };
   }
   function normToPx(nx, ny) {
-    const r = getImgRect();
+    const r = visibleImageRect();
     return { x: r.left + nx * r.width, y: r.top + ny * r.height };
   }
   function normToSize(nw, nh) {
-    const r = getImgRect();
+    const r = visibleImageRect();
     return { w: nw * r.width, h: nh * r.height };
+  }
+
+  function t(key) { return i18n[key] ?? key; }
+
+  // El mismo contenido que renderiza instructions.html dentro de #text-area
+  function buildPreviewHTML() {
+    const sec = (k) => '<div class="sec">' + t(k) + '</div>';
+    const item = (k) => '<div class="item">' + t(k) + '</div>';
+    return '<h1>' + t('instructions.title') + '</h1>' +
+      sec('instructions.controls') +
+      item('instructions.controlsMove') +
+      item('instructions.controlsBack') +
+      sec('instructions.rules') +
+      item('instructions.rule1') + item('instructions.rule2') +
+      item('instructions.rule3') + item('instructions.rule4') +
+      item('instructions.rule5') + item('instructions.rule6') +
+      item('instructions.rule7') +
+      sec('instructions.objects') +
+      item('instructions.objAvatar') + item('instructions.objEnemy') +
+      item('instructions.objObstacle') + item('instructions.objTrap') +
+      item('instructions.objGoal');
   }
 
   function render() {
     overlay.innerHTML = '';
+    previewLayer.innerHTML = '';
     areas.forEach((a, i) => {
       const div = document.createElement('div');
       div.className = 'area-rect' + (i === selectedIdx ? ' active' : '');
@@ -129,17 +181,34 @@
       div.appendChild(tag);
       overlay.appendChild(div);
     });
+    // Texto real dentro del area seleccionada (o la primera si no hay seleccion)
+    if (showText && areas.length > 0) {
+      const a = areas[selectedIdx >= 0 ? selectedIdx : 0];
+      const pos = normToPx(a.x, a.y);
+      const size = normToSize(a.w, a.h);
+      const pv = document.createElement('div');
+      pv.className = 'text-preview';
+      pv.style.left = pos.x + 'px';
+      pv.style.top = pos.y + 'px';
+      pv.style.width = size.w + 'px';
+      pv.style.height = size.h + 'px';
+      // Escala del texto proporcional al ancho del area (referencia 1672px)
+      const r = visibleImageRect();
+      pv.style.fontSize = (r.width * 0.014) + 'px';
+      pv.innerHTML = buildPreviewHTML();
+      previewLayer.appendChild(pv);
+    }
   }
 
   function updateCoords(a) {
     if (!a) { coordsEl.textContent = 'Sin seleccion'; return; }
-    coordsEl.textContent = 'x:' + a.x.toFixed(4) + ' y:' + a.y.toFixed(4) +
+    coordsEl.textContent = a.label + ' · x:' + a.x.toFixed(4) + ' y:' + a.y.toFixed(4) +
       ' w:' + a.w.toFixed(4) + ' h:' + a.h.toFixed(4);
   }
 
   document.addEventListener('mousedown', (e) => {
-    const r = getImgRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    const r = visibleImageRect();
+    if (e.clientX < r.left || e.clientX > r.left + r.width || e.clientY < r.top || e.clientY > r.top + r.height) return;
     if (e.target.closest('#hud') || e.target.closest('#status')) return;
     dragging = true;
     dragStart = pxToNorm(e.clientX, e.clientY);
@@ -169,14 +238,12 @@
     dragging = false;
     dragRect.style.display = 'none';
     if (currentRect.w > 0.01 && currentRect.h > 0.01) {
-      const label = prompt('Nombre del area:', 'area ' + areas.length);
-      if (label) {
-        areas.push({ label, x: currentRect.x, y: currentRect.y, w: currentRect.w, h: currentRect.h });
-        selectedIdx = areas.length - 1;
-        render();
-        updateCoords(areas[selectedIdx]);
-        statusEl.innerHTML = '<span class="ok">Area ' + selectedIdx + ' creada. Pulsa Espacio para clonar.</span>';
-      }
+      const label = 'area ' + areas.length;
+      areas.push({ label, x: currentRect.x, y: currentRect.y, w: currentRect.w, h: currentRect.h });
+      selectedIdx = areas.length - 1;
+      render();
+      updateCoords(areas[selectedIdx]);
+      statusEl.innerHTML = '<span class="ok">Area ' + selectedIdx + ' creada. Pulsa Espacio para clonar.</span>';
     }
     currentRect = null;
   });
@@ -206,6 +273,7 @@
       render();
       return;
     }
+    if (e.key === 't' || e.key === 'T') { showText = !showText; render(); return; }
     if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
     if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
 
@@ -221,6 +289,19 @@
     const a = areas[selectedIdx];
     let changed = false;
 
+    // Q/E = ancho centrado (en teclado ES [ ] no existen sin AltGr)
+    if (['q', 'Q'].includes(e.key)) {
+      const cx = a.x + a.w / 2;
+      a.w = Math.max(0.02, a.w - step);
+      a.x = Math.max(0, Math.min(1 - a.w, cx - a.w / 2));
+      changed = true;
+    } else if (['e', 'E'].includes(e.key)) {
+      const cx = a.x + a.w / 2;
+      a.w = Math.min(1, a.w + step);
+      a.x = Math.max(0, Math.min(1 - a.w, cx - a.w / 2));
+      changed = true;
+    }
+
     switch (e.key) {
       case 'ArrowLeft': a.x = Math.max(0, a.x - step); changed = true; break;
       case 'ArrowRight': a.x = Math.min(1 - a.w, a.x + step); changed = true; break;
@@ -234,11 +315,11 @@
         a.w = Math.max(0.02, a.w - step);
         a.h = Math.max(0.02, a.h - step);
         changed = true; break;
-      default: return;
+      default: break;
     }
 
-    e.preventDefault();
     if (changed) {
+      e.preventDefault();
       render();
       updateCoords(a);
     }
@@ -247,17 +328,12 @@
   function saveJson() {
     const data = { areas };
     const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'instructions-areas.json';
-    a.click();
     fetch('/api/save-instructions-areas', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
     }).then(() => {
       statusEl.innerHTML = '<span class="ok">Guardado: ' + areas.length + ' areas</span>';
     }).catch(() => {
-      statusEl.innerHTML = '<span class="ok">Descargado instructions-areas.json</span>';
+      statusEl.innerHTML = '<span class="err">Error al guardar</span>';
     });
   }
 
@@ -278,6 +354,15 @@
     }
   }
 
+  async function loadI18n() {
+    try {
+      const r = await fetch('/api/i18n/es');
+      if (r.ok) i18n = await r.json();
+    } catch {}
+    render();
+  }
+
+  loadI18n();
   loadJson();
   img.addEventListener('load', render);
   window.addEventListener('resize', render);

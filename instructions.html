@@ -220,7 +220,7 @@
 <div id="transition-overlay"></div>
 
 <div id="stage">
-  <img id="bg" src="/assets/menu%20principal/opciones%20del%20juego%20e%20instrucciones.png" />
+  <img id="bg" src="/assets/instrucciones/instrucciones.png" />
 </div>
 
 <div id="text-area">
@@ -268,7 +268,9 @@
 <script>
   let translations = {};
   let fallback = {};
-  const TEXT_AREA = { x: 0.365625, y: 0.391877, w: 0.272396, h: 0.357849 };
+  // Fallback por si no hay calibracion guardada; el valor real viene de
+  // assets/instrucciones/instructions-areas.json (calibrate-instructions.html)
+  let TEXT_AREA = { x: 0.365625, y: 0.391877, w: 0.272396, h: 0.357849 };
 
   // Foco: 'scroll' (pergamino) o 'button' (boton volver)
   let focus = 'scroll';
@@ -288,9 +290,29 @@
     document.title = t('instructions.title') + ' — Runika 2D';
   }
 
+  async function loadTextArea() {
+    try {
+      const r = await fetch('/api/load-instructions-areas');
+      if (!r.ok) return;
+      const data = await r.json();
+      const a = data.areas && data.areas[0];
+      if (a) TEXT_AREA = { x: a.x, y: a.y, w: a.w, h: a.h };
+    } catch {}
+  }
+
   function positionTextArea() {
     const bg = document.getElementById('bg');
-    const r = bg.getBoundingClientRect();
+    const rect = bg.getBoundingClientRect();
+    // Rect visible de la imagen (descuenta el letterbox de object-fit: contain)
+    const iw = bg.naturalWidth || 1672;
+    const ih = bg.naturalHeight || 941;
+    const s = Math.min(rect.width / iw, rect.height / ih);
+    const w = iw * s, h = ih * s;
+    const r = {
+      left: rect.left + (rect.width - w) / 2,
+      top: rect.top + (rect.height - h) / 2,
+      width: w, height: h,
+    };
     const ta = document.getElementById('text-area');
     ta.style.left = (r.left + TEXT_AREA.x * r.width) + 'px';
     ta.style.top = (r.top + TEXT_AREA.y * r.height) + 'px';
@@ -426,6 +448,7 @@
       fallback = await loadLang('es');
       translations = fallback;
       applyI18n();
+      await loadTextArea();
       positionTextArea();
       focus = 'scroll';
       updateFocus();
@@ -447,6 +470,7 @@
     fallback = await loadLang('es');
     translations = fallback;
     applyI18n();
+    await loadTextArea();
     positionTextArea();
     focus = 'scroll';
     updateFocus();
