@@ -428,8 +428,9 @@
     if (e.key === 'Escape') { playMove(); goBack(); return; }
 
     if (focus === 'scroll') {
-      // Foco en el pergamino
-      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+      // Foco en el pergamino (WASD = flechas, como en el juego)
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' ||
+          e.key === 's' || e.key === 'S' || e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         const ta = document.getElementById('text-area');
         const step = ta.clientHeight * 0.8;
@@ -442,7 +443,8 @@
             playMove();
           }
         }, 300);
-      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ||
+                 e.key === 'w' || e.key === 'W' || e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         const ta = document.getElementById('text-area');
         if (ta.scrollTop <= 0) {
@@ -473,13 +475,15 @@
       }
     } else {
       // Foco en el boton volver
-      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ||
+          e.key === 'w' || e.key === 'W' || e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         focus = 'scroll';
         updateFocus();
         playMove();
         // Vuelve al pergamino conservando la posicion del scroll
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight' ||
+                 e.key === 's' || e.key === 'S' || e.key === 'd' || e.key === 'D') {
         e.preventDefault();
         // No hace nada en el boton, solo Enter/Espacio activan
       } else if (e.key === 'Enter' || e.key === ' ') {
