@@ -190,10 +190,15 @@ Por mundo, en `assets/backgrounds/<MUNDO>/text-areas.json`. Editado con
     "nTurn":    { "x": 0.092, "y": 0.462, "w": 0.058, "h": 0.065 },
     "optimal":  { "x": 0.846, "y": 0.368, "w": 0.066, "h": 0.064 },
     "nOptimal": { "x": 0.855, "y": 0.459, "w": 0.053, "h": 0.061 },
-    "info":     { "x": 0.389, "y": 0.908, "w": 0.225, "h": 0.068 }
+    "info":     { "x": 0.389, "y": 0.908, "w": 0.225, "h": 0.068 },
+    "gold":     { "x": 0.450, "y": 0.908, "w": 0.100, "h": 0.068 }
   }
 }
 ```
+
+`gold` es el texto en color oro (ej. contador de tesoros `3/12`). El
+calibrador auto-ajusta el tamaño de fuente al área para que el texto nunca se
+corte por los bordes.
 
 ## 8. Calibración de submundos
 
@@ -204,5 +209,6 @@ Por mundo, en `assets/submundos/<MUNDO>/`:
   posición del avatar en cada nivel (rejilla serpiente 4×3) y tamaño
   independiente por cada uno de los 8 avatares.
 - `text-areas.json` (`calibrate-submundos-text.html`):
-  `{ world, areas:{ worldName:{x,y,w,h}, level:{x,y,w,h} } }` — nombre del
-  mundo (`submundo.title`) y `Nivel X/12` (`submundo.level`), dinámicos.
+  `{ world, areas:{ worldName:{x,y,w,h}, level:{x,y,w,h}, gold:{x,y,w,h} } }`
+  — nombre del mundo (`submundo.title`), `Nivel X/12` (`submundo.level`) y
+  texto en oro (`gold`, ej. contador de tesoros), dinámicos.

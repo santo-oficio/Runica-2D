@@ -91,7 +91,7 @@ boss[], trap[], exit[], obstacle[] }`, cada entrada `{size, offsetX, offsetY}`
 
 ### `calibrate-board-texts.html` — 5 textos del tablero
 
-`text-areas.json` = `{ world, areas:{ turn, nTurn, optimal, nOptimal, info } }`,
+`text-areas.json` = `{ world, areas:{ turn, nTurn, optimal, nOptimal, info, gold } }`,
 cada área `{x,y,w,h}` normalizada. Los textos son **dinámicos desde i18n**
 (`board.turn`, `board.optimal`, `board.info`); los números son valores de juego.
 
@@ -110,7 +110,7 @@ avatars[8]:{size} }` — posición del avatar en cada uno de los 12 niveles
 
 ### `calibrate-submundos-text.html` — textos de submundo
 
-`text-areas.json` = `{ world, areas:{ worldName, level } }` — nombre del mundo
+`text-areas.json` = `{ world, areas:{ worldName, level, gold } }` — nombre del mundo
 (`submundo.title`) y `Nivel X/12` (`submundo.level`), dinámicos desde i18n.
 
 - API: `/api/save-subworld-text-areas`, `/api/load-subworld-text-areas`.
