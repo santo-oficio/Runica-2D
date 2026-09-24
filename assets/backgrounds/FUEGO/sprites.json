@@ -49,31 +49,55 @@
   ],
   "enemy": [
     {
-      "size": 0.8,
+      "size": 0.8900000000000001,
       "offsetX": 0,
       "offsetY": 0
     },
     {
-      "size": 0.8,
-      "offsetX": 0,
-      "offsetY": 0
-    },
-    {
-      "size": 0.8,
+      "size": 0.8900000000000001,
       "offsetX": 0,
       "offsetY": 0
     }
   ],
   "boss": [
     {
-      "size": 0.95,
+      "size": 1.01,
       "offsetX": 0,
-      "offsetY": 0
+      "offsetY": -0.02
     }
   ],
   "trap": [
     {
-      "size": 0.55,
+      "size": 0.9000000000000004,
+      "offsetX": 0,
+      "offsetY": -0.05
+    }
+  ],
+  "exit": [
+    {
+      "size": 0.7699999999999998,
+      "offsetX": 0,
+      "offsetY": -0.019999999999999997
+    }
+  ],
+  "obstacle": [
+    {
+      "size": 0.8399999999999999,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.8499999999999999,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.7099999999999997,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.95,
       "offsetX": 0,
       "offsetY": 0
     }
