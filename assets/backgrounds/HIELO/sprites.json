@@ -87,17 +87,7 @@
   ],
   "obstacle": [
     {
-      "size": 0.7699999999999998,
-      "offsetX": 0,
-      "offsetY": 0
-    },
-    {
-      "size": 0.95,
-      "offsetX": 0,
-      "offsetY": 0
-    },
-    {
-      "size": 0.95,
+      "size": 0.7499999999999998,
       "offsetX": 0,
       "offsetY": 0
     }
