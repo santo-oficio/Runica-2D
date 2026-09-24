@@ -125,6 +125,12 @@ selector de mundo. La fuente se auto-ajusta al área para no cortar letras.
 
 - API: `/api/save-mapamundi-text-areas`, `/api/load-mapamundi-text-areas`.
 
+**Regla del texto oro (`gold`)**: en TODAS las pantallas (tablero, submundo,
+mapamundi…) el texto `gold` se alinea **a la derecha** dentro de su área,
+dejando un margen (~6% del ancho del área) para que no choque con el borde.
+Las previews de los calibradores ya muestran esa alineación y el juego debe
+renderizarlo igual.
+
 ## Selección de personaje (demo + calibradores)
 
 - Demo: `http://localhost:3000/demo-seleccion-personaje.html`.
