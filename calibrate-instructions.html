@@ -46,16 +46,6 @@
     background: rgba(255, 204, 68, 0.08);
   }
   .area-rect.circle .tag { background: #fc4; }
-  /* Vista previa del boton redondo con su texto real */
-  .btn-preview {
-    position: absolute; z-index: 13; pointer-events: none;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%;
-    font-family: 'MedievalSharp', serif; color: #e8d4a8;
-    background: linear-gradient(180deg, rgba(60,42,20,0.9), rgba(35,24,10,0.95));
-    border: 2px solid rgba(180,150,80,0.5);
-    text-align: center;
-  }
   /* Vista previa del texto real dentro del area seleccionada */
   .text-preview {
     position: absolute; z-index: 13; overflow: hidden;
@@ -225,18 +215,6 @@
       tag.textContent = 'boton atras';
       div.appendChild(tag);
       overlay.appendChild(div);
-      // Vista previa del boton con su texto real
-      if (showText) {
-        const pv = document.createElement('div');
-        pv.className = 'btn-preview';
-        pv.style.left = (cx - d / 2) + 'px';
-        pv.style.top = (cy - d / 2) + 'px';
-        pv.style.width = d + 'px';
-        pv.style.height = d + 'px';
-        pv.style.fontSize = Math.max(10, d * 0.14) + 'px';
-        pv.textContent = t('instructions.back');
-        previewLayer.appendChild(pv);
-      }
     }
     // Texto real dentro del area seleccionada (o la primera si no hay seleccion)
     if (showText && areas.length > 0) {
@@ -354,16 +332,23 @@
       return;
     }
 
+    // Teclas globales (funcionan en ambos modos)
+    if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
+    if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
+    if (e.key === 't' || e.key === 'T') { showText = !showText; render(); return; }
+
     // Modo boton: flechas mueven el centro, +/- cambian el radio
-    if (editTarget === 'button' && backButton) {
-      let changed = false;
-      if (e.key === 'ArrowLeft') { backButton.cx = Math.max(0, backButton.cx - step); changed = true; }
-      if (e.key === 'ArrowRight') { backButton.cx = Math.min(1, backButton.cx + step); changed = true; }
-      if (e.key === 'ArrowUp') { backButton.cy = Math.max(0, backButton.cy - step); changed = true; }
-      if (e.key === 'ArrowDown') { backButton.cy = Math.min(1, backButton.cy + step); changed = true; }
-      if (e.key === '+' || e.key === '=') { backButton.r = Math.min(0.5, backButton.r + step / 2); changed = true; }
-      if (e.key === '-' || e.key === '_') { backButton.r = Math.max(0.005, backButton.r - step / 2); changed = true; }
-      if (changed) { e.preventDefault(); render(); updateCoords(null); }
+    if (editTarget === 'button') {
+      if (backButton) {
+        let changed = false;
+        if (e.key === 'ArrowLeft') { backButton.cx = Math.max(0, backButton.cx - step); changed = true; }
+        if (e.key === 'ArrowRight') { backButton.cx = Math.min(1, backButton.cx + step); changed = true; }
+        if (e.key === 'ArrowUp') { backButton.cy = Math.max(0, backButton.cy - step); changed = true; }
+        if (e.key === 'ArrowDown') { backButton.cy = Math.min(1, backButton.cy + step); changed = true; }
+        if (e.key === '+' || e.key === '=') { backButton.r = Math.min(0.5, backButton.r + step / 2); changed = true; }
+        if (e.key === '-' || e.key === '_') { backButton.r = Math.max(0.005, backButton.r - step / 2); changed = true; }
+        if (changed) { e.preventDefault(); render(); updateCoords(null); }
+      }
       return;
     }
 
@@ -388,9 +373,6 @@
       render();
       return;
     }
-    if (e.key === 't' || e.key === 'T') { showText = !showText; render(); return; }
-    if (e.key === 'g' || e.key === 'G') { saveJson(); return; }
-    if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
 
     const num = parseInt(e.key);
     if (!isNaN(num) && num >= 0 && num < areas.length) {

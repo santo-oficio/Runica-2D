@@ -241,8 +241,11 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   en el nivel 1 al entrar a un submundo (salvo que haya progreso guardado).
 - **A fuego — navegación de la pantalla de instrucciones**: en
   `instructions.html` el foco solo puede estar en el pergamino (área de texto
-  con scroll) o en el botón atrás (redondo, posición calibrada en
-  `instructions-areas.json`). Reglas:
+  con scroll) o en el botón atrás. El botón atrás es **solo el área clickeable**:
+  el dibujo ya está pintado en `instrucciones.png` (brújula dorada abajo-
+  izquierda) y el botón HTML es invisible sobre ella (solo muestra un anillo
+  dorado al tener foco/hover). Su posición es un círculo `{cx, cy, r}`
+  calibrado en `instructions-areas.json`. Reglas:
   1. Al entrar, el foco está en el pergamino.
   2. Como el texto no cabe entero, ↓ hace scroll hacia abajo hasta el final.
   3. Al llegar al final del scroll, ↓ pasa el foco al botón atrás.

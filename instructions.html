@@ -226,7 +226,8 @@
       0 2px 5px rgba(0,0,0,0.5),
       inset 0 1px 0 rgba(255, 220, 150, 0.1);
   }
-  /* Boton atras redondo: posicion calibrada sobre la imagen */
+  /* Boton atras: solo el AREA clickeable sobre el boton pintado en la imagen.
+     Invisible; al tener foco se marca con un anillo dorado. */
   #btn-back {
     position: absolute;
     z-index: 21;
@@ -235,8 +236,23 @@
     display: flex; align-items: center; justify-content: center;
     text-align: center;
     line-height: 1.15;
+    font-family: 'MedievalSharp', cursive;
+    background: transparent;
+    border: 3px solid transparent;
+    box-shadow: none;
+    color: transparent;
+    text-shadow: none;
+    cursor: pointer;
+    user-select: none;
   }
-  #btn-back:active { transform: none; }
+  #btn-back:hover {
+    border-color: rgba(255, 204, 68, 0.5);
+    box-shadow: 0 0 14px rgba(255, 204, 68, 0.35);
+  }
+  #btn-back.focused {
+    border-color: rgba(255, 204, 68, 0.95);
+    box-shadow: 0 0 22px rgba(255, 204, 68, 0.6);
+  }
   #page-info {
     font-family: 'MedievalSharp', cursive;
     font-size: 0.9em;
@@ -312,7 +328,7 @@
   </div>
 </div>
 
-<button class="btn3d" id="btn-back" data-i18n="instructions.back"></button>
+<button id="btn-back" data-i18n="instructions.back"></button>
 
 <div id="lang-bar">
   <select id="lang-select">
@@ -331,8 +347,9 @@
   // Fallback por si no hay calibracion guardada; el valor real viene de
   // assets/instrucciones/instructions-areas.json (calibrate-instructions.html)
   let TEXT_AREA = { x: 0.365625, y: 0.391877, w: 0.272396, h: 0.357849 };
-  // Boton atras redondo: centro normalizado + radio en fraccion del ancho
-  let BACK_BUTTON = { cx: 0.5, cy: 0.93, r: 0.05 };
+  // Boton atras redondo: centro normalizado + radio en fraccion del ancho.
+  // El fallback apunta aproximadamente a la brujula pintada abajo-izquierda.
+  let BACK_BUTTON = { cx: 0.293, cy: 0.905, r: 0.046 };
 
   // Foco: 'scroll' (pergamino) o 'button' (boton volver)
   let focus = 'scroll';
@@ -388,7 +405,6 @@
     btn.style.top = (r.top + BACK_BUTTON.cy * r.height - d / 2) + 'px';
     btn.style.width = d + 'px';
     btn.style.height = d + 'px';
-    btn.style.fontSize = Math.max(10, d * 0.16) + 'px';
   }
 
   function updateFocus() {
