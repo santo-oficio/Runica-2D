@@ -279,6 +279,13 @@
   <h1 data-i18n="instructions.title"></h1>
   <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
   <div class="section">
+    <div class="section-title" data-i18n="instructions.storyTitle"></div>
+    <div class="item" data-i18n="instructions.story1"></div>
+    <div class="item" data-i18n="instructions.story2"></div>
+    <div class="item" data-i18n="instructions.story3"></div>
+  </div>
+  <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
+  <div class="section">
     <div class="section-title" data-i18n="instructions.controls"></div>
     <div class="item" data-i18n="instructions.controlsMove"></div>
     <div class="item" data-i18n="instructions.controlsBack"></div>
@@ -471,9 +478,7 @@
         focus = 'scroll';
         updateFocus();
         playMove();
-        // Subir scroll para mostrar el final del texto
-        const ta = document.getElementById('text-area');
-        ta.scrollTo({ top: Math.max(0, ta.scrollTop - ta.clientHeight * 0.8), behavior: 'smooth' });
+        // Vuelve al pergamino conservando la posicion del scroll
       } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
         e.preventDefault();
         // No hace nada en el boton, solo Enter/Espacio activan

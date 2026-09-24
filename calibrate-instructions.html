@@ -172,6 +172,9 @@
     const sec = (k) => '<div class="sec">' + t(k) + '</div>';
     const item = (k) => '<div class="item">' + t(k) + '</div>';
     return '<h1>' + t('instructions.title') + '</h1>' +
+      sec('instructions.storyTitle') +
+      item('instructions.story1') + item('instructions.story2') +
+      item('instructions.story3') +
       sec('instructions.controls') +
       item('instructions.controlsMove') +
       item('instructions.controlsBack') +

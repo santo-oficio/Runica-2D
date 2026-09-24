@@ -239,3 +239,14 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   (ej: 5→4 es derecha, 4→3 es abajo, 8→7 es abajo). Cualquier direccion que no
   corresponda al avance o retroceso produce rebote. El avatar siempre empieza
   en el nivel 1 al entrar a un submundo (salvo que haya progreso guardado).
+- **A fuego — navegación de la pantalla de instrucciones**: en
+  `instructions.html` el foco solo puede estar en el pergamino (área de texto
+  con scroll) o en el botón atrás (redondo, posición calibrada en
+  `instructions-areas.json`). Reglas:
+  1. Al entrar, el foco está en el pergamino.
+  2. Como el texto no cabe entero, ↓ hace scroll hacia abajo hasta el final.
+  3. Al llegar al final del scroll, ↓ pasa el foco al botón atrás.
+  4. ↑ desde el botón atrás devuelve el foco al pergamino **conservando la
+     posición del scroll** donde estaba (nunca se reubica).
+  5. Desde el pergamino NO se puede ir al botón atrás hasta llegar al final
+     del scroll y pulsar ↓ otra vez.
