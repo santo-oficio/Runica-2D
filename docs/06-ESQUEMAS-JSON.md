@@ -209,6 +209,26 @@ Por mundo, en `assets/submundos/<MUNDO>/`:
   posición del avatar en cada nivel (rejilla serpiente 4×3) y tamaño
   independiente por cada uno de los 8 avatares.
 - `text-areas.json` (`calibrate-submundos-text.html`):
-  `{ world, areas:{ worldName:{x,y,w,h}, level:{x,y,w,h}, gold:{x,y,w,h} } }`
-  — nombre del mundo (`submundo.title`), `Nivel X/12` (`submundo.level`) y
-  texto en oro (`gold`, ej. contador de tesoros), dinámicos.
+  `{ world, areas:{ worldName, level, gold, otro } }` — nombre del mundo
+  (`submundo.title`), `Nivel X/12` (`submundo.level`), texto en oro (`gold`,
+  ej. contador de tesoros) y `otro` (texto libre extra), dinámicos.
+
+## 9. Calibración de instrucciones (`instructions-areas.json`)
+
+En `assets/instrucciones/instructions-areas.json`, editado con
+`calibrate-instructions.html` (tecla **B** alterna entre áreas y botón):
+
+```json
+{
+  "areas": [
+    { "label": "area 0", "x": 0.249, "y": 0.332, "w": 0.492, "h": 0.453 }
+  ],
+  "backButton": { "cx": 0.299, "cy": 0.911, "r": 0.033 }
+}
+```
+
+- `areas[]` — rectángulos normalizados; el primero es el pergamino de texto.
+- `backButton` — **círculo** `{cx, cy, r}` (r = fracción del ANCHO de imagen)
+  sobre la brújula pintada abajo-izquierda. El botón HTML es invisible: es
+  solo el área clickeable (anillo dorado al tener foco).
+- La navegación por teclado de la pantalla está en AGENTS.md (regla a fuego).

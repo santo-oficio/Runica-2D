@@ -7,7 +7,7 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 | URL | Qué calibra | Datos |
 |---|---|---|
 | http://localhost:3000/calibrate-board-sprites.html | Sprites: avatar / enemigos / boss / trampas / salidas / obstáculos (teclas 1-6) + áreas del tablero (modo TABLERO) | `assets/backgrounds/<M>/sprites.json`, `board-detection.json` |
-| http://localhost:3000/calibrate-board-texts.html | 5 textos del tablero: turno, nº turno, óptimo, nº óptimo, info (dinámicos i18n) | `assets/backgrounds/<M>/text-areas.json` |
+| http://localhost:3000/calibrate-board-texts.html | 6 textos del tablero: turno, nº turno, óptimo, nº óptimo, info, oro (dinámicos i18n; la fuente se auto-ajusta al área) | `assets/backgrounds/<M>/text-areas.json` |
 | http://localhost:3000/demo.html | Áreas del tablero: `boardArea` (losas) y `avatarArea` (avatar/enemigos/meta) — calibrador original | `assets/backgrounds/<M>/board-detection.json` |
 
 ## Submundos (por mundo)
@@ -15,13 +15,13 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 | URL | Qué calibra | Datos |
 |---|---|---|
 | http://localhost:3000/calibrate-submundos.html | Posición del avatar en los 12 niveles + tamaño por cada uno de los 8 avatares | `assets/submundos/<M>/avatar-positions.json` |
-| http://localhost:3000/calibrate-submundos-text.html | Textos del submundo: nombre del mundo y "Nivel X/12" (dinámicos i18n) | `assets/submundos/<M>/text-areas.json` |
+| http://localhost:3000/calibrate-submundos-text.html | 4 textos del submundo: nombre del mundo, "Nivel X/12", oro y otro (dinámicos i18n) | `assets/submundos/<M>/text-areas.json` |
 
 ## Instrucciones
 
 | URL | Qué calibra | Datos |
 |---|---|---|
-| http://localhost:3000/calibrate-instructions.html | Área de texto sobre `assets/instrucciones/instrucciones.png` (vista previa con texto real i18n) | `assets/instrucciones/instructions-areas.json` |
+| http://localhost:3000/calibrate-instructions.html | Área del pergamino de texto (preview i18n real) + botón atrás redondo `{cx,cy,r}` (tecla B; el botón es solo el área, el dibujo está en la imagen) | `assets/instrucciones/instructions-areas.json` |
 
 ## Menú principal
 
