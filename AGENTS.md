@@ -141,9 +141,11 @@ renderizarla igual.
 
 ## Flujo del menú y partida guardada (bbdd)
 
-- `menu.html` → **Nueva partida** lleva a `demo-seleccion-personaje.html`;
-  **Continuar** lleva a `mapamundi.html` y se muestra **deshabilitado** si no
-  hay partida empezada (GET `/api/savegame` → `{exists, player}`).
+- `demo-menu.html` es el **punto de entrada** del juego. **Nueva partida** lleva
+  a `demo-seleccion-personaje.html`; **Continuar** lleva a `mapamundi.html` y se
+  muestra **deshabilitado** (y se salta en la navegación por flechas) si no hay
+  partida empezada (GET `/api/savegame` → `{exists, player}`). `menu.html`
+  replica el mismo comportamiento.
 - La bbdd del jugador es `db/player.json` (módulo `db/db.ts`). `PlayerState`
   tiene `started?: boolean`, `playerName?`, `avatarIndex?`; el estado solo
   existe como partida real si `started === true`.
