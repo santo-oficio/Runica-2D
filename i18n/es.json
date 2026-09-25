@@ -31,8 +31,8 @@
   "instructions.goal": "Llega a la meta antes de que te capturen",
   "instructions.back": "Volver",
   "credits.title": "Créditos",
-  "credits.design": "Diseño, programación y puzzles — Javier Q.",
-  "credits.inspired": "Inspirado en la estética de Monkey Island y los juegos de Ron Gilbert",
+  "credits.design": "Diseño, código y puzles — Javier Q.",
+  "credits.inspired": "Inspirado por la estética de Monkey Island y las aventuras de Ron Gilbert",
   "credits.back": "Volver",
   "worlds.ESPACIO": "Espacio",
   "worlds.AGUA": "Agua",
@@ -74,9 +74,9 @@
   "board.turn": "Turno",
   "board.optimal": "Óptimo",
   "board.info": "Info",
-  "credits.created": "Un juego creado por Javier Q.",
-  "credits.chars": "Idea de algunos personajes — Sabela",
-  "credits.dedication1": "A mi mujer, con todo mi cariño.",
-  "credits.dedication2": "Y a mi hija Sabela, a quien dedico este juego.",
-  "credits.thanks": "Gracias por jugar."
+  "credits.created": "Un juego creado con mimo por Javier Q.",
+  "credits.chars": "Algunos de estos personajes nacieron de la imaginación de Sabela",
+  "credits.dedication1": "Para mi mujer, mi faro en todas las tormentas.",
+  "credits.dedication2": "Y para Sabela, mi hija: este juego es tuyo.",
+  "credits.thanks": "Gracias por jugar. Que los vientos te sean favorables."
 }

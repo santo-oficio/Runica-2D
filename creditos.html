@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Créditos — Runika 2D</title>
+<title>Runika 2D</title>
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -73,20 +73,21 @@
   }
   #title-area h1::after { transform: scaleX(-1); }
 
-  /* Texto de creditos (area calibrada, scrollable) */
+  /* Texto de creditos (area calibrada, scroll cinematico) */
   #text-area {
     position: absolute; z-index: 11;
     pointer-events: auto;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 10px 18px;
     color: #3a2810;
     text-align: center;
     transition: box-shadow 0.3s ease;
+    /* Fundido en los bordes: el texto entra por abajo y desaparece arriba */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16%, #000 88%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 16%, #000 88%, transparent 100%);
   }
   #text-area.focused { box-shadow: inset 0 0 0 2px rgba(138, 96, 48, 0.5); }
-  #text-area::-webkit-scrollbar { width: 6px; }
-  #text-area::-webkit-scrollbar-track { background: rgba(100,80,40,0.15); border-radius: 3px; }
-  #text-area::-webkit-scrollbar-thumb { background: rgba(100,70,30,0.4); border-radius: 3px; }
+  #credits-flow { will-change: transform; transition: opacity 0.6s ease; }
   #text-area .line { margin-bottom: 0.55em; line-height: 1.4; }
   #text-area .line.big { font-size: 1.25em; font-weight: bold; }
   #text-area .divider {
@@ -151,18 +152,20 @@
 <div id="title-area"><h1 data-i18n="credits.title"></h1></div>
 
 <div id="text-area">
-  <div class="line big">Runika 2D</div>
-  <div class="line" data-i18n="credits.created"></div>
-  <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
-  <div class="line" data-i18n="credits.design"></div>
-  <div class="line" data-i18n="credits.chars"></div>
-  <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
-  <div class="line" data-i18n="credits.inspired"></div>
-  <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
-  <div class="line" data-i18n="credits.dedication1"></div>
-  <div class="line" data-i18n="credits.dedication2"></div>
-  <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
-  <div class="line" data-i18n="credits.thanks"></div>
+  <div id="credits-flow">
+    <div class="line big" data-i18n="menu.title"></div>
+    <div class="line" data-i18n="credits.created"></div>
+    <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
+    <div class="line" data-i18n="credits.design"></div>
+    <div class="line" data-i18n="credits.chars"></div>
+    <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
+    <div class="line" data-i18n="credits.inspired"></div>
+    <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
+    <div class="line" data-i18n="credits.dedication1"></div>
+    <div class="line" data-i18n="credits.dedication2"></div>
+    <div class="divider"><img src="/assets/comunes/calavera.png" alt=""></div>
+    <div class="line" data-i18n="credits.thanks"></div>
+  </div>
 </div>
 
 <button id="btn-back" data-i18n="credits.back"></button>
@@ -230,6 +233,7 @@
       top: rect.top + (rect.height - h) / 2,
       width: w, height: h,
     };
+    imgH = r.height;
     const title = document.getElementById('title-area');
     title.style.left = (r.left + TITLE_AREA.x * r.width) + 'px';
     title.style.top = (r.top + TITLE_AREA.y * r.height) + 'px';
@@ -265,9 +269,80 @@
     btn.classList.toggle('focused', focus === 'button');
   }
 
-  function isScrolledToBottom() {
+  // --- Scroll cinematografico (estilo Star Wars) ---
+  // El texto entra por el borde inferior, sube lentamente y desaparece por
+  // arriba con un fundido (mascara CSS). Al terminar espera, se desvance y
+  // vuelve a empezar desde abajo. Las flechas toman el control unos segundos.
+  let scrollPos = 0;          // posicion continua en px (negativo = aun no entra)
+  let scrollInit = false;
+  let imgH = 0;               // alto de la imagen visible (velocidad relativa)
+  let manualUntil = 0;        // auto-scroll pausado tras input manual
+  let holdUntil = -1;         // pausa al final antes del fundido de reinicio
+  let resetting = false;
+  let lastTick = 0;
+
+  function creditsMaxScroll() {
+    const flow = document.getElementById('credits-flow');
     const ta = document.getElementById('text-area');
-    return ta.scrollTop + ta.clientHeight >= ta.scrollHeight - 2;
+    // Termina cuando el final del texto queda ~1/3 por debajo del borde
+    // superior (ultimas lineas visibles centradas durante la pausa).
+    return Math.max(0, flow.scrollHeight - ta.clientHeight * 0.35);
+  }
+  function applyScroll() {
+    document.getElementById('credits-flow').style.transform =
+      'translateY(' + (-scrollPos) + 'px)';
+  }
+  function isScrolledToBottom() {
+    return scrollPos >= creditsMaxScroll() - 2;
+  }
+  function scrollTick(ts) {
+    const dt = Math.min(60, ts - (lastTick || ts));
+    lastTick = ts;
+    const flow = document.getElementById('credits-flow');
+    const ta = document.getElementById('text-area');
+    if (!scrollInit && ta.clientHeight > 0 && flow.scrollHeight > 0) {
+      // Arranque: el texto empieza justo por debajo del area visible
+      scrollPos = -ta.clientHeight * 0.9;
+      applyScroll();
+      scrollInit = true;
+      manualUntil = ts + 1200;
+    }
+    const max = creditsMaxScroll();
+    if (max > 0 && !resetting && scrollInit) {
+      if (holdUntil > 0) {
+        if (ts >= holdUntil) {
+          resetting = true;
+          flow.style.opacity = '0';
+          setTimeout(() => {
+            scrollPos = -ta.clientHeight * 0.9;
+            applyScroll();
+            flow.style.opacity = '1';
+            resetting = false;
+            holdUntil = -1;
+            manualUntil = performance.now() + 1500;
+          }, 650);
+        }
+      } else if (scrollPos >= max - 0.5) {
+        scrollPos = max;
+        applyScroll();
+        holdUntil = ts + 4000;
+      } else if (ts >= manualUntil) {
+        scrollPos = Math.min(max, scrollPos + imgH * 0.016 * dt / 1000);
+        applyScroll();
+      }
+    }
+    requestAnimationFrame(scrollTick);
+  }
+  requestAnimationFrame(scrollTick);
+
+  function manualScroll(dir) {
+    const ta = document.getElementById('text-area');
+    const step = ta.clientHeight * 0.6;
+    holdUntil = -1;
+    scrollPos = Math.max(-ta.clientHeight * 0.9,
+      Math.min(creditsMaxScroll(), scrollPos + dir * step));
+    manualUntil = performance.now() + 4500;
+    applyScroll();
   }
 
   // Sonidos desde cache
@@ -300,39 +375,29 @@
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' ||
           e.key === 's' || e.key === 'S' || e.key === 'd' || e.key === 'D') {
         e.preventDefault();
-        const ta = document.getElementById('text-area');
-        const step = ta.clientHeight * 0.8;
-        ta.scrollBy({ top: step, behavior: 'smooth' });
-        setTimeout(() => {
+        manualScroll(1);
+        if (isScrolledToBottom()) {
+          focus = 'button';
+          updateFocus();
+          playMove();
+        }
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ||
+                 e.key === 'w' || e.key === 'W' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        if (scrollPos <= -document.getElementById('text-area').clientHeight * 0.9) return;
+        manualScroll(-1);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (isScrolledToBottom()) {
+          playSelect();
+          goBack();
+        } else {
+          manualScroll(1);
           if (isScrolledToBottom()) {
             focus = 'button';
             updateFocus();
             playMove();
           }
-        }, 300);
-      } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ||
-                 e.key === 'w' || e.key === 'W' || e.key === 'a' || e.key === 'A') {
-        e.preventDefault();
-        const ta = document.getElementById('text-area');
-        if (ta.scrollTop <= 0) return;
-        const step = ta.clientHeight * 0.8;
-        ta.scrollBy({ top: -step, behavior: 'smooth' });
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        const ta = document.getElementById('text-area');
-        if (isScrolledToBottom()) {
-          playSelect();
-          goBack();
-        } else {
-          const step = ta.clientHeight * 0.8;
-          ta.scrollBy({ top: step, behavior: 'smooth' });
-          setTimeout(() => {
-            if (isScrolledToBottom()) {
-              focus = 'button';
-              updateFocus();
-              playMove();
-            }
-          }, 300);
         }
       }
     } else {

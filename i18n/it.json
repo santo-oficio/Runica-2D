@@ -31,8 +31,8 @@
   "instructions.goal": "Raggiungi l'obiettivo prima che ti catturino",
   "instructions.back": "Indietro",
   "credits.title": "Crediti",
-  "credits.design": "Design, programmazione e puzzle — Javier Q.",
-  "credits.inspired": "Ispirato all’estetica di Monkey Island e ai giochi di Ron Gilbert",
+  "credits.design": "Design, codice ed enigmi — Javier Q.",
+  "credits.inspired": "Ispirato all’estetica di Monkey Island e alle avventure di Ron Gilbert",
   "credits.back": "Indietro",
   "worlds.ESPACIO": "Spazio",
   "worlds.AGUA": "Acqua",
@@ -74,9 +74,9 @@
   "board.turn": "Turno",
   "board.optimal": "Ottimale",
   "board.info": "Info",
-  "credits.created": "Un gioco creato da Javier Q.",
-  "credits.chars": "Idea di alcuni personaggi — Sabela",
-  "credits.dedication1": "A mia moglie, con tutto il mio amore.",
-  "credits.dedication2": "E a mia figlia Sabela, a cui dedico questo gioco.",
-  "credits.thanks": "Grazie per aver giocato."
+  "credits.created": "Un gioco creato con cura da Javier Q.",
+  "credits.chars": "Alcuni di questi personaggi sono nati dall’immaginazione di Sabela",
+  "credits.dedication1": "Per mia moglie, il mio faro in ogni tempesta.",
+  "credits.dedication2": "E per Sabela, mia figlia: questo gioco è tuo.",
+  "credits.thanks": "Grazie per aver giocato. Che i venti ti siano favorevoli."
 }
