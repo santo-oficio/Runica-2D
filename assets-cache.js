@@ -6,7 +6,7 @@ const ASSETS = {
   images: [
     '/assets/menu principal/menu principal.png',
     '/assets/menu principal/opciones del juego e instrucciones.png',
-    '/assets/menu principal/seleccion_personaje.png',
+    '/assets/menu principal/seleccion_personaje.webp',
     '/assets/mapamundi/mapamundi.png',
     '/assets/avatars/display/avatar_01.webp',
     '/assets/avatars/display/avatar_02.webp',

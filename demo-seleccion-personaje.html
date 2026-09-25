@@ -9,7 +9,7 @@
 </head>
 <body tabindex="0">
 <div id="loading-screen" aria-hidden="true"><div id="loading-box"><div id="loading-title">Cargando selección</div><div id="loading-message">Preparando recursos...</div><div id="loading-track"><div id="loading-progress"></div></div><div id="loading-percent">0%</div></div></div>
-<div id="stage" tabindex="0"><img id="bg" src="/assets/menu%20principal/seleccion_personaje.png?v=template-8k-2" alt=""><div id="overlay"><svg id="border-overlay"></svg><div id="avatar-slots"></div><img id="full-body" alt=""><svg id="button-overlay"></svg></div><div id="confirm">Seleccionado</div></div>
+<div id="stage" tabindex="0"><img id="bg" src="/assets/menu%20principal/seleccion_personaje.webp?v=template-8k-2" alt=""><div id="overlay"><svg id="border-overlay"></svg><div id="avatar-slots"></div><img id="full-body" alt=""><svg id="button-overlay"></svg></div><div id="confirm">Seleccionado</div></div>
 <script>
 const bg=document.getElementById('bg'),overlay=document.getElementById('overlay'),avatarSlotsEl=document.getElementById('avatar-slots'),buttonOverlay=document.getElementById('button-overlay'),borderOverlay=document.getElementById('border-overlay'),fullBody=document.getElementById('full-body'),loadingMessage=document.getElementById('loading-message'),loadingProgress=document.getElementById('loading-progress'),loadingPercent=document.getElementById('loading-percent'),nameDisplay=document.createElement('div'),confirm=document.getElementById('confirm');
 function setLoading(message,progress){loadingMessage.textContent=message;const value=Math.max(0,Math.min(100,progress));loadingProgress.style.width=value+'%';loadingPercent.textContent=value+'%'}

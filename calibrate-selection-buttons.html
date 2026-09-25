@@ -9,7 +9,7 @@
 </style>
 </head>
 <body>
-<div id="stage"><img id="image" src="/assets/menu%20principal/seleccion_personaje.png?v=template-8k" alt=""><svg id="draw"></svg></div>
+<div id="stage"><img id="image" src="/assets/menu%20principal/seleccion_personaje.webp?v=template-8k" alt=""><svg id="draw"></svg></div>
 <div id="panel"><h2>Botones de selección</h2><label>Botón a calibrar<select id="button"></select></label><label>Forma<select id="shape"><option value="polygon">Polígono</option><option value="circle">Círculo</option></select></label><button id="defaults">Cargar áreas aproximadas opcionales</button><button id="clear">Borrar área actual</button><label style="display:block;margin:5px 0;color:#ffd54f"><input id="fine" type="checkbox"> Movimiento fino</label><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin:5px 0"><span></span><button id="up">↑</button><span></span><button id="left">←</button><button id="shrink">−</button><button id="right">→</button><span></span><button id="down">↓</button><button id="grow">+</button></div><button id="save">Guardar</button><button id="load">Cargar guardadas</button><div class="help"><span class="key">Polígono</span>: clic para añadir puntos; doble clic para cerrar<br><span class="key">Círculo</span>: arrastra desde el centro hasta el borde<br><span class="key">Flechas</span>: mover · <span class="key">Shift + flechas</span>: desplazamiento fino · <span class="key">+ / -</span>: cambiar tamaño<br><span class="key">Z</span>: deshacer punto · <span class="key">Esc</span>: cancelar<br><span class="key">Tab</span>: siguiente botón</div><div id="coords"></div></div>
 <div id="status">Selecciona un botón y marca sus puntos</div>
 <script>
