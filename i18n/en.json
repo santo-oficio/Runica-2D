@@ -31,8 +31,8 @@
   "instructions.goal": "Reach the goal before they catch you",
   "instructions.back": "Back",
   "credits.title": "Credits",
-  "credits.design": "Design and programming",
-  "credits.inspired": "Inspired by Wappo",
+  "credits.design": "Design, programming and puzzles — Javier Q.",
+  "credits.inspired": "Inspired by the aesthetics of Monkey Island and the games of Ron Gilbert",
   "credits.back": "Back",
   "worlds.ESPACIO": "Space",
   "worlds.AGUA": "Water",
@@ -73,5 +73,10 @@
   "submundo.enterLevel": "Enter level {0} of {1}",
   "board.turn": "Turn",
   "board.optimal": "Optimal",
-  "board.info": "Info"
+  "board.info": "Info",
+  "credits.created": "A game created by Javier Q.",
+  "credits.chars": "Idea for some of the characters — Sabela",
+  "credits.dedication1": "To my wife, with all my love.",
+  "credits.dedication2": "And to my daughter Sabela, to whom I dedicate this game.",
+  "credits.thanks": "Thank you for playing."
 }
