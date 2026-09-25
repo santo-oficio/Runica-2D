@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar créditos</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px 'Courier New',monospace}
+#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}#image{width:100%;height:100%;object-fit:contain;display:block}
+#overlay{position:absolute;inset:0;pointer-events:none}.area{position:absolute;border:3px solid #fc4;background:rgba(255,190,40,.12);pointer-events:none}.area.active{border-color:#0ff;box-shadow:0 0 18px #0ff;background:rgba(0,220,255,.12)}.area label{position:absolute;top:-22px;left:0;padding:2px 6px;background:#fc4;color:#000;white-space:nowrap;font-size:11px}.area.active label{background:#0ff}
+.area.circle{border-color:#fc4;border-radius:50%;background:rgba(255,204,68,.12)}.area.circle.active{border-color:#0ff;box-shadow:0 0 18px #0ff;background:rgba(0,220,255,.10)}
+.preview{position:absolute;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'ChelseaMarket','Trebuchet MS',sans-serif;font-weight:bold;text-align:center;text-shadow:2px 2px 4px #000,0 0 10px #000;overflow:hidden}.preview.active{color:#ffe38a;text-shadow:2px 2px 4px #000,0 0 10px #ffd34e,0 0 22px #ffb000}.preview.multiline{white-space:normal;line-height:1.5;flex-direction:column;justify-content:flex-start;padding:4px}
+#drag{position:absolute;border:3px solid #0ff;background:rgba(0,220,255,.16);display:none;pointer-events:none}#hud{position:absolute;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.82);padding:12px 16px;line-height:1.7;border:1px solid #567;border-radius:4px;max-width:30vw}#hud b{color:#0ff}.key{color:#fc4}select{background:#18202a;color:#fff;border:1px solid #789;padding:3px 6px}#status{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.82);padding:7px 15px}.ok{color:#0f0}.err{color:#f66}.info{color:#fc4}
+</style>
+</head>
+<body>
+<div id="stage"><img id="image" src="/assets/creditos/creditos.jpg?v=creditos-8k" alt=""><div id="overlay"></div><div id="drag"></div></div>
+<div id="hud"><b>Calibrar créditos</b><br>
+Texto: <select id="kind"></select><br>
+<span class="key">Arrastrar</span> = definir área · <span class="key">Tab</span> = cambiar texto<br>
+<span class="key">B</span> = editar <b>BOTÓN ATRÁS</b> (redondo: arrastra desde el centro)<br>
+<span class="key">Flechas</span> = mover · <span class="key">Shift</span> = fino<br>
+<span class="key">+ / -</span> = tamaño (botón: radio) · <span class="key">S</span> = copiar tamaño al siguiente<br>
+<span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
+<button id="save-btn">Guardar</button> <button id="load-btn">Cargar</button><br>
+<span id="coords" style="color:#0f0"></span></div>
+<div id="status">Arrastra sobre la imagen para definir el área</div>
+<script>
+const IMAGE='/assets/creditos/creditos.jpg';
+const KINDS=['title','credits'];
+const LABELS={title:'TÍTULO',credits:'CRÉDITOS'};
+const SELECT_LABELS={title:'Texto título',credits:'Texto créditos'};
+const img=document.getElementById('image'),overlay=document.getElementById('overlay'),drag=document.getElementById('drag'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status'),saveBtn=document.getElementById('save-btn'),loadBtn=document.getElementById('load-btn');
+let kind='title',areas={},backButton=null,editTarget='areas',dragging=false,start=null,current=null;
+KINDS.forEach(k=>{areas[k]={x:.3,y:.05,w:.4,h:.1};const o=document.createElement('option');o.value=k;o.textContent=SELECT_LABELS[k];kindSelect.appendChild(o)});
+areas.credits={x:.2,y:.25,w:.6,h:.5};
+let T={};function tt(key){return T[key]??key}
+async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
+function rect(){return img.getBoundingClientRect()}
+// La imagen usa object-fit:contain: hay que descontar el letterbox
+function imageRect(){const r=rect();const iw=img.naturalWidth||7680,ih=img.naturalHeight||4320;const s=Math.min(r.width/iw,r.height/ih);const w=iw*s,h=ih*s;return{left:r.left+(r.width-w)/2,top:r.top+(r.height-h)/2,width:w,height:h}}
+function norm(x,y){const r=imageRect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}
+function px(a){const r=imageRect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
+function render(){const r=imageRect();overlay.innerHTML='';for(const k of KINDS){const a=areas[k],p=px(a),active=k===kind&&editTarget==='areas';const box=document.createElement('div');box.className='area'+(active?' active':'');box.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;const label=document.createElement('label');label.textContent=LABELS[k];box.appendChild(label);overlay.appendChild(box);const preview=document.createElement('div');preview.className='preview'+(active?' active':'')+(k==='credits'?' multiline':'');if(k==='title'){preview.textContent=tt('credits.title')}else{preview.innerHTML=`<div>${tt('credits.design')}</div><div>Cognition</div><div>${tt('credits.inspired')}</div><div>Wappo</div>`}preview.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;overlay.appendChild(preview);let fs=Math.max(12,p.h*(k==='title'?.62:.16));preview.style.fontSize=fs+'px';while((preview.scrollWidth>p.w+1||preview.scrollHeight>p.h+1)&&fs>6){fs--;preview.style.fontSize=fs+'px'}}
+// Boton atras (circulo)
+if(backButton){const d=2*backButton.r*r.width,cx=r.left+backButton.cx*r.width,cy=r.top+backButton.cy*r.height;const div=document.createElement('div');div.className='area circle'+(editTarget==='button'?' active':'');div.style.cssText=`left:${cx-d/2}px;top:${cy-d/2}px;width:${d}px;height:${d}px`;const label=document.createElement('label');label.textContent='botón atrás';div.appendChild(label);overlay.appendChild(div)}
+updateCoords()}
+function updateCoords(){if(editTarget==='button'){coords.textContent=backButton?`BOTÓN ATRÁS · cx:${backButton.cx.toFixed(4)} cy:${backButton.cy.toFixed(4)} r:${backButton.r.toFixed(4)}`:'BOTÓN ATRÁS · sin definir (arrastra desde el centro)';return}const a=areas[kind];coords.textContent=`${LABELS[kind]} x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)}`}
+kindSelect.onchange=(e)=>{kind=e.target.value;editTarget='areas';e.target.blur();render()};
+document.addEventListener('mousedown',e=>{const r=imageRect();if(e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.left+r.width||e.clientY<r.top||e.clientY>r.top+r.height)return;dragging=true;start=norm(e.clientX,e.clientY);current={x:start.x,y:start.y,w:0,h:0};drag.style.display='block';e.preventDefault()});
+document.addEventListener('mousemove',e=>{if(!dragging)return;const r=imageRect();if(editTarget==='button'){const cx=r.left+start.x*r.width,cy=r.top+start.y*r.height;const d=2*Math.hypot(e.clientX-cx,e.clientY-cy);drag.style.cssText=`display:block;border-radius:50%;left:${cx-d/2}px;top:${cy-d/2}px;width:${d}px;height:${d}px`;coords.textContent='BOTÓN ATRÁS · r:'+(d/2/r.width).toFixed(4);return}drag.style.borderRadius='0';const p=norm(e.clientX,e.clientY);current={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};const q=px(current);drag.style.cssText=`display:block;left:${q.x}px;top:${q.y}px;width:${q.w}px;height:${q.h}px`;});
+document.addEventListener('mouseup',e=>{if(!dragging)return;dragging=false;drag.style.display='none';if(editTarget==='button'){const r=imageRect();const cx=r.left+start.x*r.width,cy=r.top+start.y*r.height;const radius=Math.hypot(e.clientX-cx,e.clientY-cy)/r.width;if(radius>0.005){backButton={cx:start.x,cy:start.y,r:radius};render();status.innerHTML='<span class="ok">Botón atrás definido. Flechas = mover · +/- = radio · G = guardar.</span>'}updateCoords();start=null;return}if(current.w>.005&&current.h>.005){areas[kind]=current;status.innerHTML='<span class="ok">Área actualizada. Pulsa G para guardar.</span>';render()}current=null});
+document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'){e.target.blur();if(e.key==='g'||e.key==='G'){save();return}if(e.key==='c'||e.key==='C'){load();return}return}
+// B = alternar entre areas de texto y boton atras (redondo)
+if(e.key==='b'||e.key==='B'){editTarget=editTarget==='button'?'areas':'button';render();status.innerHTML=editTarget==='button'?'<span class="info">Editando BOTÓN ATRÁS (redondo): arrastra desde el centro · flechas = mover · +/- = radio.</span>':'<span class="info">Editando áreas de texto.</span>';return}
+if(e.key==='g'||e.key==='G'){save();return}if(e.key==='c'||e.key==='C'){load();return}
+if(e.key==='Tab'&&editTarget==='areas'){e.preventDefault();const i=(KINDS.indexOf(kind)+(e.shiftKey?-1:1)+KINDS.length)%KINDS.length;kind=KINDS[i];kindSelect.value=kind;render();return}
+const step=e.shiftKey?.001:.01;
+// Modo boton: flechas mueven el centro, +/- cambian el radio
+if(editTarget==='button'){if(backButton){let changed=false;if(e.key==='ArrowLeft'){backButton.cx=Math.max(0,backButton.cx-step);changed=true}if(e.key==='ArrowRight'){backButton.cx=Math.min(1,backButton.cx+step);changed=true}if(e.key==='ArrowUp'){backButton.cy=Math.max(0,backButton.cy-step);changed=true}if(e.key==='ArrowDown'){backButton.cy=Math.min(1,backButton.cy+step);changed=true}if(e.key==='+'||e.key==='='){backButton.r=Math.min(0.5,backButton.r+step/2);changed=true}if(e.key==='-'||e.key==='_'){backButton.r=Math.max(0.005,backButton.r-step/2);changed=true}if(changed){e.preventDefault();render()}}return}
+const a=areas[kind];if(e.key==='s'||e.key==='S'){const i=(KINDS.indexOf(kind)+1)%KINDS.length;const b=areas[KINDS[i]];b.w=a.w;b.h=a.h;render();status.innerHTML='<span class="ok">Tamaño copiado a '+LABELS[KINDS[i]]+'</span>';return}if(e.key==='+'||e.key==='='){a.w=Math.min(1-a.x,a.w+step);a.h=Math.min(1-a.y,a.h+step);render();return}if(e.key==='-'||e.key==='_'){a.w=Math.max(.01,a.w-step);a.h=Math.max(.01,a.h-step);render();return}let changed=false;if(e.key==='ArrowLeft'){a.x=Math.max(0,a.x-step);changed=true}if(e.key==='ArrowRight'){a.x=Math.min(1-a.w,a.x+step);changed=true}if(e.key==='ArrowUp'){a.y=Math.max(0,a.y-step);changed=true}if(e.key==='ArrowDown'){a.y=Math.min(1-a.h,a.y+step);changed=true}if(changed){e.preventDefault();render()}});
+async function save(){const body=JSON.stringify({areas,backButton},null,2);try{const r=await fetch('/api/save-creditos-areas',{method:'POST',headers:{'Content-Type':'application/json'},body});if(!r.ok)throw Error();status.innerHTML='<span class="ok">Guardado ('+KINDS.length+' textos'+(backButton?' + botón':'')+')</span>'}catch{status.innerHTML='<span class="err">Error al guardar</span>'}}
+async function load(){try{const r=await fetch('/api/load-creditos-areas');if(!r.ok)throw Error();const d=await r.json();if(d.areas)KINDS.forEach(k=>{if(d.areas[k])areas[k]=d.areas[k]});backButton=d.backButton||null;status.innerHTML='<span class="ok">Cargado</span>'}catch{status.innerHTML='<span class="info">No hay guardado previo</span>'}render()}
+saveBtn.addEventListener('click',save);loadBtn.addEventListener('click',load);
+img.onerror=()=>status.innerHTML='<span class="err">No se pudo cargar la imagen de créditos</span>';img.onload=render;load();loadI18n().then(render);
+window.addEventListener('resize',render);
+</script>
+</body></html>

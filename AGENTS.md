@@ -71,6 +71,7 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-submundos.html` | `assets/submundos/<M>/avatar-positions.json` |
 | `calibrate-submundos-text.html` | `assets/submundos/<M>/text-areas.json` |
 | `calibrate-instructions.html` | `assets/instrucciones/instructions-areas.json` |
+| `calibrate-creditos.html` | `assets/creditos/creditos-areas.json` (título + créditos + botón atrás circular) |
 | `calibrate-mapamundi-text.html` | `assets/mapamundi/text-areas.json` |
 
 ### `calibrate-board-sprites.html` — sprites + áreas

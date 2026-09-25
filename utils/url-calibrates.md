@@ -23,6 +23,12 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 |---|---|---|
 | http://localhost:3000/calibrate-instructions.html | Área del pergamino de texto (preview i18n real) + botón atrás redondo `{cx,cy,r}` (tecla B; el botón es solo el área, el dibujo está en la imagen) | `assets/instrucciones/instructions-areas.json` |
 
+## Créditos
+
+| URL | Qué calibra | Datos |
+|---|---|---|
+| http://localhost:3000/calibrate-creditos.html | Texto título + texto créditos (previews i18n, fuente auto-ajustada) + botón atrás redondo `{cx,cy,r}` (tecla B) | `assets/creditos/creditos-areas.json` |
+
 ## Menú principal
 
 | URL | Qué calibra | Datos |
@@ -65,4 +71,5 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 | http://localhost:3000/demo-menu.html | Menú principal |
 | http://localhost:3000/demo-seleccion-personaje.html | Selección de personaje |
 | http://localhost:3000/instructions.html | Pantalla de instrucciones (usa el área calibrada) |
+| http://localhost:3000/creditos.html | Pantalla de créditos (usa `creditos-areas.json`) |
 | http://localhost:3000/submundo.html | Submundo (usa avatar-positions + text-areas) |

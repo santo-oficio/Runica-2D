@@ -251,3 +251,26 @@ En `assets/mapamundi/text-areas.json`, editado con
 
 `gold` es el texto en color oro sobre `mapamundi.png` (ej. contador de
 tesoros). La fuente se auto-ajusta al área para no cortar letras.
+
+## 11. Calibración de créditos (`creditos-areas.json`)
+
+En `assets/creditos/creditos-areas.json`, editado con
+`calibrate-creditos.html` (tecla **B** alterna entre áreas y botón):
+
+```json
+{
+  "areas": {
+    "title":   { "x": 0.30, "y": 0.05, "w": 0.40, "h": 0.10 },
+    "credits": { "x": 0.20, "y": 0.25, "w": 0.60, "h": 0.50 }
+  },
+  "backButton": { "cx": 0.30, "cy": 0.88, "r": 0.04 }
+}
+```
+
+- `areas.title` — título (`credits.title`, i18n) sobre `creditos.jpg`.
+- `areas.credits` — bloque de texto de créditos (i18n, scrollable).
+- `backButton` — **círculo** `{cx, cy, r}` (r = fracción del ANCHO de imagen)
+  sobre el medallón/brújula pintado abajo-izquierda. El botón HTML es
+  invisible: solo el área clickeable (anillo dorado al tener foco).
+- La pantalla `creditos.html` consume este JSON; las reglas de foco son las
+  mismas que en instrucciones (AGENTS.md).

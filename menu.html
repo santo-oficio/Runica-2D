@@ -411,13 +411,10 @@
     }
     const content = document.getElementById('panel-content');
     if (type === 'credits') {
-      content.innerHTML = `
-        <h2>${t('credits.title')}</h2>
-        <p class="credit-line"><strong>Runika 2D — ${t('menu.subtitle')}</strong></p>
-        <p class="credit-line">${t('credits.design')}</p>
-        <p class="credit-line">${t('credits.inspired')}</p>
-      `;
-    } else if (type === 'settings') {
+      window.location.href = '/creditos.html';
+      return;
+    }
+    if (type === 'settings') {
       content.innerHTML = `
         <h2>${t('menu.settings')}</h2>
         <p class="credit-line">${t('menu.language')}:</p>
