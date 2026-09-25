@@ -62,6 +62,10 @@ export interface PlayerState {
   currentSubLevel: number; // 1..15
   totalStagesCompleted: number; // 0..120 (contador global monótono)
   updatedAt: number;
+  /** true cuando el jugador ha pasado por "Nueva partida" (selección de personaje). */
+  started?: boolean;
+  playerName?: string;
+  avatarIndex?: number;
 }
 
 /**
@@ -174,6 +178,27 @@ function ensureTierLoaded(tier: number): Screen[] {
 // ---------------------------------------------------------------------------
 
 export function getPlayer(): PlayerState {
+  return { ...player };
+}
+
+/** Hay una partida empezada (el jugador eligió personaje/nombre alguna vez). */
+export function hasSaveGame(): boolean {
+  return player.started === true;
+}
+
+/**
+ * Nueva partida: reinicia progreso y asignaciones, y guarda nombre/avatar.
+ * Devuelve el estado inicial del jugador.
+ */
+export function startNewGame(playerName: string, avatarIndex: number): PlayerState {
+  player = {
+    ...defaultPlayer(),
+    started: true,
+    playerName,
+    avatarIndex,
+  };
+  assignments = new Map();
+  persist();
   return { ...player };
 }
 

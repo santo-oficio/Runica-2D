@@ -18,6 +18,8 @@ import {
   getPlayer,
   getStats,
   getRandomScreenByTier,
+  hasSaveGame,
+  startNewGame,
 } from "./db/db.js";
 
 const PORT = 3000;
@@ -84,6 +86,31 @@ const server = http.createServer((req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  // API: estado de la partida guardada (GET /api/savegame)
+  if (url === "/api/savegame") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ exists: hasSaveGame(), player: getPlayer() }));
+    return;
+  }
+
+  // API: nueva partida (POST /api/new-game {name, avatar})
+  if (url === "/api/new-game" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body || "{}") as { name?: string; avatar?: number };
+        const p = startNewGame(String(data.name ?? ""), Number(data.avatar ?? 0));
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, player: p }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
     return;
   }
 

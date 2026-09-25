@@ -139,6 +139,18 @@ mueve junto: el icono siempre queda a la izquierda del número. Las previews
 de los calibradores ya muestran esta composición y el juego debe
 renderizarla igual.
 
+## Flujo del menú y partida guardada (bbdd)
+
+- `menu.html` → **Nueva partida** lleva a `demo-seleccion-personaje.html`;
+  **Continuar** lleva a `mapamundi.html` y se muestra **deshabilitado** si no
+  hay partida empezada (GET `/api/savegame` → `{exists, player}`).
+- La bbdd del jugador es `db/player.json` (módulo `db/db.ts`). `PlayerState`
+  tiene `started?: boolean`, `playerName?`, `avatarIndex?`; el estado solo
+  existe como partida real si `started === true`.
+- En la selección, **Atrás** vuelve al menú y **Adelante** llama a
+  `POST /api/new-game {name, avatar}` (resetea progreso, `started:true`) y va a
+  `mapamundi.html`.
+
 ## Selección de personaje (demo + calibradores)
 
 - Demo: `http://localhost:3000/demo-seleccion-personaje.html`.

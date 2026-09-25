@@ -444,16 +444,15 @@
   // --- Eventos ---
   document.querySelectorAll('.menu-item[data-action]').forEach(el => {
     el.addEventListener('click', () => {
+      if (el.classList.contains('disabled')) return;
       const action = el.getAttribute('data-action');
       if (action === 'instructions') showPanel('instructions');
       else if (action === 'credits') showPanel('credits');
       else if (action === 'settings') showPanel('settings');
       else if (action === 'newGame') {
-        // TODO: iniciar nueva partida
-        alert(t('menu.newGame') + ' — ' + t('menu.todo'));
+        window.location.href = '/demo-seleccion-personaje.html';
       } else if (action === 'continue') {
-        // TODO: continuar partida
-        alert(t('menu.continue') + ' — ' + t('menu.todo'));
+        window.location.href = '/mapamundi.html';
       } else if (action === 'exit') {
         window.close();
       }
@@ -469,11 +468,26 @@
     changeLang(e.target.value);
   });
 
+  // "Continuar" solo disponible si existe una partida empezada (bbdd del usuario)
+  async function refreshSaveState() {
+    let hasSave = false;
+    try {
+      const r = await fetch('/api/savegame');
+      if (r.ok) {
+        const d = await r.json();
+        hasSave = !!d.exists;
+      }
+    } catch {}
+    const el = document.querySelector('.menu-item[data-action="continue"]');
+    if (el) el.classList.toggle('disabled', !hasSave);
+  }
+
   // --- Init ---
   (async () => {
     fallback = await loadLang('es');
     translations = fallback;
     applyTranslations();
+    refreshSaveState();
   })();
 </script>
 
