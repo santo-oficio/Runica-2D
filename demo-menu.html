@@ -135,6 +135,16 @@
       0 0 60px rgba(255,160,40,0.5);
     transform: scale(1.15);
   }
+  .btn.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn.disabled .btn-text {
+    color: #6b5d45 !important;
+    opacity: 0.55;
+    text-shadow: none !important;
+    transform: none !important;
+  }
   @keyframes btnPulse {
     0%, 100% {
       box-shadow:
@@ -249,6 +259,16 @@
   let translations = {};
   let fallback = {};
   let selectedIdx = 0;
+  // "Continuar" (indice 1) solo activo si hay partida empezada en la bbdd
+  let hasSave = false;
+  const CONTINUE_IDX = 1;
+
+  async function refreshSaveState() {
+    try {
+      const r = await fetch('/api/savegame');
+      if (r.ok) hasSave = !!(await r.json()).exists;
+    } catch {}
+  }
 
   async function loadLang(lang) {
     const r = await fetch('/api/i18n/' + lang);
@@ -360,7 +380,8 @@
       const btnBBox = areaBBox(b.rect, b.polygon);
       if (!btnBBox) return;
       const div = document.createElement('div');
-      div.className = 'btn' + (i === selectedIdx ? ' active' : '');
+      div.className = 'btn' + (i === selectedIdx ? ' active' : '')
+        + (i === CONTINUE_IDX && !hasSave ? ' disabled' : '');
       div.style.left = (r.left + btnBBox.x * r.width) + 'px';
       div.style.top = (r.top + btnBBox.y * r.height) + 'px';
       div.style.width = (btnBBox.w * r.width) + 'px';
@@ -460,7 +481,9 @@
   }
 
   function activate(i) {
-    if (i === 0) AssetsCache.transitionTo('/mapamundi.html');
+    if (i === CONTINUE_IDX && !hasSave) return;
+    if (i === 0) AssetsCache.transitionTo('/demo-seleccion-personaje.html');
+    if (i === 1) AssetsCache.transitionTo('/mapamundi.html');
     if (i === 2) AssetsCache.transitionTo('/instructions.html');
     if (i === 4) AssetsCache.transitionTo('/creditos.html');
     if (i === 5) AssetsCache.transitionTo('/exit.html');
@@ -479,10 +502,13 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault(); selectedIdx = (selectedIdx + 1) % BUTTONS.length; updateActive(); playMove();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault(); selectedIdx = (selectedIdx - 1 + BUTTONS.length) % BUTTONS.length; updateActive(); playMove();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const dir = e.key === 'ArrowDown' ? 1 : -1;
+      let next = selectedIdx;
+      do { next = (next + dir + BUTTONS.length) % BUTTONS.length; }
+      while (next === CONTINUE_IDX && !hasSave && next !== selectedIdx);
+      selectedIdx = next; updateActive(); playMove();
     } else if (e.key === 'Enter') {
       e.preventDefault(); playSelect(); activate(selectedIdx);
     } else if (e.key === 'a' || e.key === 'A') { glowX = Math.max(0, glowX - 2); applyGlow(); }
@@ -527,6 +553,7 @@
       } catch {}
       audioUnlocked = true;
       AssetsCache.unlockAudio();
+      await refreshSaveState();
       render();
       AssetsCache.hideLoading();
       setTimeout(() => AssetsCache.transitionIn(), 100);
@@ -564,6 +591,9 @@
         applyGlow();
       }
     } catch {}
+
+    // Estado de partida guardada (habilita/deshabilita Continuar)
+    await refreshSaveState();
 
     // Renderizar menu
     render();
