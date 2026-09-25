@@ -20,7 +20,7 @@
 Texto: <select id="kind"></select><br>
 <span class="key">Arrastrar</span> = definir área · <span class="key">Tab</span> = cambiar texto<br>
 <span class="key">B</span> = editar <b>BOTÓN ATRÁS</b> (redondo: arrastra desde el centro)<br>
-<span class="key">Flechas</span> = mover · <span class="key">Shift</span> = fino<br>
+<span class="key">Flechas</span> = mover · <span class="key">Shift</span> = fino · <span class="key">Ctrl</span> = ultra-fino<br>
 <span class="key">+ / -</span> = tamaño (botón: radio) · <span class="key">S</span> = copiar tamaño al siguiente<br>
 <span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
 <button id="save-btn">Guardar</button> <button id="load-btn">Cargar</button><br>
@@ -56,7 +56,7 @@ document.addEventListener('keydown',e=>{if(e.target.tagName==='SELECT'){e.target
 if(e.key==='b'||e.key==='B'){editTarget=editTarget==='button'?'areas':'button';render();status.innerHTML=editTarget==='button'?'<span class="info">Editando BOTÓN ATRÁS (redondo): arrastra desde el centro · flechas = mover · +/- = radio.</span>':'<span class="info">Editando áreas de texto.</span>';return}
 if(e.key==='g'||e.key==='G'){save();return}if(e.key==='c'||e.key==='C'){load();return}
 if(e.key==='Tab'&&editTarget==='areas'){e.preventDefault();const i=(KINDS.indexOf(kind)+(e.shiftKey?-1:1)+KINDS.length)%KINDS.length;kind=KINDS[i];kindSelect.value=kind;render();return}
-const step=e.shiftKey?.001:.01;
+const step=e.ctrlKey?.0002:e.shiftKey?.001:.01;
 // Modo boton: flechas mueven el centro, +/- cambian el radio
 if(editTarget==='button'){if(backButton){let changed=false;if(e.key==='ArrowLeft'){backButton.cx=Math.max(0,backButton.cx-step);changed=true}if(e.key==='ArrowRight'){backButton.cx=Math.min(1,backButton.cx+step);changed=true}if(e.key==='ArrowUp'){backButton.cy=Math.max(0,backButton.cy-step);changed=true}if(e.key==='ArrowDown'){backButton.cy=Math.min(1,backButton.cy+step);changed=true}if(e.key==='+'||e.key==='='){backButton.r=Math.min(0.5,backButton.r+step/2);changed=true}if(e.key==='-'||e.key==='_'){backButton.r=Math.max(0.005,backButton.r-step/2);changed=true}if(changed){e.preventDefault();render()}}return}
 const a=areas[kind];if(e.key==='s'||e.key==='S'){const i=(KINDS.indexOf(kind)+1)%KINDS.length;const b=areas[KINDS[i]];b.w=a.w;b.h=a.h;render();status.innerHTML='<span class="ok">Tamaño copiado a '+LABELS[KINDS[i]]+'</span>';return}if(e.key==='+'||e.key==='='){a.w=Math.min(1-a.x,a.w+step);a.h=Math.min(1-a.y,a.h+step);render();return}if(e.key==='-'||e.key==='_'){a.w=Math.max(.01,a.w-step);a.h=Math.max(.01,a.h-step);render();return}let changed=false;if(e.key==='ArrowLeft'){a.x=Math.max(0,a.x-step);changed=true}if(e.key==='ArrowRight'){a.x=Math.min(1-a.w,a.x+step);changed=true}if(e.key==='ArrowUp'){a.y=Math.max(0,a.y-step);changed=true}if(e.key==='ArrowDown'){a.y=Math.min(1-a.h,a.y+step);changed=true}if(changed){e.preventDefault();render()}});

@@ -262,7 +262,7 @@
   // Teclado
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'SELECT') return;
-    const step = e.shiftKey ? 0.001 : 0.01;
+    const step = e.ctrlKey ? 0.0002 : e.shiftKey ? 0.001 : 0.01;
     const world = WORLD_ORDER[selectedWorld];
 
     if (e.key === 'Tab') {

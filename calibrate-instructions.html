@@ -92,9 +92,9 @@
   <span class="key">B</span> = editar <b>BOTON ATRAS</b> (redondo: arrastra desde el centro)<br>
   <span class="key">Arrastrar</span> = marcar area<br>
   <span class="new">Espacio</span> = clonar (mismo tamano)<br>
-  <span class="key">Flechas</span> = mover seleccion (Shift = fino)<br>
+  <span class="key">Flechas</span> = mover seleccion (Shift = fino, Ctrl = ultra)<br>
   <span class="key">+ / -</span> = agrandar / reducir<br>
-  <span class="key">Q / E</span> = ancho (Shift = fino)<br>
+  <span class="key">Q / E</span> = ancho (Shift = fino, Ctrl = ultra)<br>
   <span class="key">0-9</span> = seleccionar area<br>
   <span class="key">Z</span> = deshacer ultimo<br>
   <span class="key">T</span> = mostrar/ocultar texto<br>
@@ -319,7 +319,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT') return;
-    const step = e.shiftKey ? 0.001 : 0.005;
+    const step = e.ctrlKey ? 0.0002 : e.shiftKey ? 0.001 : 0.005;
 
     // B = alternar entre calibrar areas de texto y el boton atras (redondo)
     if (e.key === 'b' || e.key === 'B') {

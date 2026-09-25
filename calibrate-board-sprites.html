@@ -495,7 +495,7 @@
   // Teclado
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'SELECT') return;
-    const step = e.shiftKey ? 0.002 : 0.01;
+    const step = e.ctrlKey ? 0.0002 : e.shiftKey ? 0.002 : 0.01;
 
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -541,7 +541,7 @@
         return;
       }
       const a = areaToEdit();
-      const st = e.shiftKey ? 0.0002 : 0.001;
+      const st = e.ctrlKey ? 0.00005 : e.shiftKey ? 0.0002 : 0.001;
       // Ancho: Q/[ = reducir, E/] = agrandar (centrado). Q y E funcionan en
       // cualquier teclado (en el español [ ] no existen sin AltGr).
       if (['[', '{', 'q', 'Q'].includes(e.key) || [']', '}', 'e', 'E'].includes(e.key)) {
@@ -708,7 +708,7 @@
     if (mode !== 'board' || !assets) return;
     if (e.target.closest('#hud') || e.target.closest('#status')) return;
     const a = areaToEdit();
-    const rs = e.shiftKey ? 0.0008 : 0.004;
+    const rs = e.ctrlKey ? 0.0002 : e.shiftKey ? 0.0008 : 0.004;
     const dir = e.deltaY < 0 ? 1 : -1;
     const cx = a.x + a.width / 2, cy = a.y + a.height / 2;
     const nw = Math.max(0.02, Math.min(1, a.width + dir * rs));
