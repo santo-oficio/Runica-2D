@@ -35,6 +35,7 @@ Avatar: <select id="avatar-select"></select><br>
 <span class="key">Flechas</span> = mover · <span class="key">Shift</span> = fino<br>
 <span class="key">+ / -</span> = cambiar tamaño</div>
 <button id="save">Guardar y siguiente</button> <button id="load">Cargar</button><br>
+<span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
 <span id="coords" style="color:#0f0"></span></div>
 <div class="status" id="status">Coloca el Avatar 1</div>
 <script>
@@ -83,6 +84,6 @@ if(draft.length>=4){const f=draft[0];if(Math.abs(nx-f[0])*r.width<12&&Math.abs(n
 stage.addEventListener('pointermove',e=>{if(!bodyDraw)return;const r=rect(),nx=(e.clientX-r.left)/r.width,ny=(e.clientY-r.top)/r.height;bodyAreas[selected]={x:Math.min(bodyDraw[0],nx),y:Math.min(bodyDraw[1],ny),w:Math.abs(nx-bodyDraw[0]),h:Math.abs(ny-bodyDraw[1])};render()});
 stage.addEventListener('pointerup',()=>{if(bodyDraw){bodyDraw=null;const a=getBody(selected);if(a.w<.01||a.h<.01)status.innerHTML='<span class="err">Zona demasiado pequeña</span>'}});
 stage.addEventListener('dblclick',e=>{if(mode==='box'||mode==='border'){e.preventDefault();closePolygon()}});
-window.addEventListener('resize',render);document.addEventListener('keydown',e=>{const poly=mode==='box'||mode==='border';if(e.key==='Escape'&&poly){e.preventDefault();draft=[];render();return}if((e.key==='z'||e.key==='Z')&&poly){e.preventDefault();draft.pop();render();return}const arrows={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(arrows[e.key]){e.preventDefault();const[dx,dy]=arrows[e.key];if(poly)movePoly(dx,dy,e.shiftKey);else move(dx,dy,e.shiftKey);return}if(mode==='avatar'||mode==='body'){if(e.key==='+'||e.key==='='){e.preventDefault();resize(1,e.shiftKey)}else if(e.key==='-'){e.preventDefault();resize(-1,e.shiftKey)}}},true);load();
+window.addEventListener('resize',render);document.addEventListener('keydown',e=>{const poly=mode==='box'||mode==='border';if(e.key==='Escape'&&poly){e.preventDefault();draft=[];render();return}if((e.key==='z'||e.key==='Z')&&poly){e.preventDefault();draft.pop();render();return}if(e.key==='g'||e.key==='G'){save();return}if(e.key==='c'||e.key==='C'){load();return}const arrows={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(arrows[e.key]){e.preventDefault();const[dx,dy]=arrows[e.key];if(poly)movePoly(dx,dy,e.shiftKey);else move(dx,dy,e.shiftKey);return}if(mode==='avatar'||mode==='body'){if(e.key==='+'||e.key==='='){e.preventDefault();resize(1,e.shiftKey)}else if(e.key==='-'){e.preventDefault();resize(-1,e.shiftKey)}}},true);load();
 </script>
 </body></html>
