@@ -203,6 +203,17 @@ un margen (~6% del ancho) — igual en todas las pantallas. A la izquierda del
 texto va el icono `assets/comunes/monedas.png` (altura = altura del área),
 pegado al número aunque cambie su longitud.
 
+### Campo opcional `fontScale` (todas las áreas de texto)
+
+Cada área `{x,y,w,h}` puede llevar además `fontScale` — multiplicador
+**relativo** del tamaño de fuente (1 = por defecto, 1.5 = 50% más grande).
+Siempre relativo al tamaño base que calcula el área; nunca un tamaño absoluto.
+Se calibra con `,` / `.` en los calibradores de texto (`calibrate-board-texts`,
+`calibrate-submundos-text`, `calibrate-mapamundi-text`, `calibrate-creditos`)
+y las pantallas lo aplican al renderizar (`fontScale || 1` si falta). En esos
+calibradores `Q`/`E` redimensionan **solo el ancho** y `Z`/`X` **solo el alto**
+del área (centro fijo); `+`/`-` siguen cambiando ambos.
+
 ## 8. Calibración de submundos
 
 Por mundo, en `assets/submundos/<MUNDO>/`:

@@ -381,7 +381,7 @@
       text.style.top = (r.top + area.y * r.height) + 'px';
       text.style.width = (area.w * r.width) + 'px';
       text.style.height = (area.h * r.height) + 'px';
-      text.style.fontSize = Math.max(14, area.h * r.height * 0.62) + 'px';
+      text.style.fontSize = Math.max(14, area.h * r.height * 0.62 * (area.fontScale || 1)) + 'px';
       dynamicText.appendChild(text);
     }
 

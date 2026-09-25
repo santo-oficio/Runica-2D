@@ -100,6 +100,9 @@ cada área `{x,y,w,h}` normalizada. Los textos son **dinámicos desde i18n**
 
 - Arrastrar define el área · `Tab` cambia de texto · `Espacio` siguiente mundo ·
   flechas mover (Shift fino) · `+/-` tamaño · `S` copia tamaño · `G`/`C` por mundo.
+- `Q`/`E` solo ancho · `Z`/`X` solo alto · `,`/`.` tamaño de texto relativo
+  (se guarda como `fontScale` por área; igual en los calibradores de textos de
+  submundo, mapamundi y créditos; las pantallas lo aplican al renderizar).
 - API: `/api/save-board-text-areas`, `/api/load-board-text-areas`.
 
 ### `calibrate-submundos.html` — avatar por nivel
