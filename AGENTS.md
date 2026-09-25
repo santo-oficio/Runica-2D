@@ -177,6 +177,9 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
 - Añadir un mundo = solo datos (WorldConfig + BackgroundTemplates).
 - Las imágenes de fondo no se recortan ni modifican.
 - ESM imports usan `.js` en TypeScript source.
+- **A fuego — registrar URLs nuevas**: cada pantalla o calibrador nuevo debe
+  añadirse a `utils/url-calibrates.md` (en su sección, con qué calibra/hace y
+  el JSON donde guarda los datos). Nunca crear una pantalla sin registrarla.
 - **Colisión con obstáculos**: el avatar no puede entrar en una casilla ocupada por un obstáculo. Al intentar moverse hacia un obstáculo, el avatar rebota visualmente (efecto rebote) y suena el sonido de choque común (`assets/sounds/comun/choque.wav`). El movimiento se cancela — el avatar se queda en su casilla actual.
 - **Movimiento ortogonal**: el avatar solo se mueve en 4 direcciones (arriba, abajo, izquierda, derecha). Está prohibido moverse en diagonal.
 - **Choque en bordes**: al intentar salir del tablero, el avatar rebota y suena el sonido de choque común, igual que con los obstáculos.
