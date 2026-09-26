@@ -1,10 +1,10 @@
-// assets-cache.js — Sistema de cache de assets + transiciones
+﻿// assets-cache.js — Sistema de cache de assets + transiciones
 // Sonidos: fetch + Blob URL + Audio elements (fiable)
 // Imagenes: fetch + Blob + object URLs
 
 const ASSETS = {
   images: [
-    '/assets/menu principal/menu principal.png',
+    '/assets/menu principal/menu principal.webp',
     '/assets/menu principal/opciones del juego e instrucciones.png',
     '/assets/menu principal/seleccion_personaje.webp',
     '/assets/mapamundi/mapamundi.png',
