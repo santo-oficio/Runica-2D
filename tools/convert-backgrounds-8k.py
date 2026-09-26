@@ -19,7 +19,7 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BG_DIR = os.path.join(ROOT, "assets", "backgrounds")
+BG_DIR = os.path.join(ROOT, "assets", "old backgrounds")
 
 TARGET_W = 7680
 TARGET_H = 4320

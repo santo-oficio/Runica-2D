@@ -16,7 +16,7 @@ import os
 import shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SALIDA_DIR = os.path.join(ROOT, "assets", "salida")
+SALIDA_DIR = os.path.join(ROOT, "assets", "old salidas")
 OLD_DIR = os.path.join(ROOT, "assets", "old salidas")
 
 TARGET = 7680

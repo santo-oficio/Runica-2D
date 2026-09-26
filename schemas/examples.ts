@@ -98,12 +98,12 @@ export const worldConfigExample: WorldConfig = {
   world: "ESPACIO",
   backgroundTemplates: ["SPACE_01", "SPACE_02", "SPACE_03"],
   tileAssets: {
-    floor: "space_floor.png",
-    wallEdgeTop: "space_wall_top.png",
-    wallCornerTopLeft: "space_wall_corner_tl.png",
-    player: "space_player.png",
-    enemyDefault: "space_enemy.png",
-    goal: "space_goal.png",
+    floor: "space_floor.webp",
+    wallEdgeTop: "space_wall_top.webp",
+    wallCornerTopLeft: "space_wall_corner_tl.webp",
+    player: "space_player.webp",
+    enemyDefault: "space_enemy.webp",
+    goal: "space_goal.webp",
   },
   allowedBoardSizes: [[6, 5], [7, 6], [8, 6], [8, 8]],
   difficultyTable: [

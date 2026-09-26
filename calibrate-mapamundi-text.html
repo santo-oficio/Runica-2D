@@ -14,7 +14,7 @@
 </style>
 </head>
 <body>
-<div id="stage"><img id="image" src="/assets/mapamundi/mapamundi.png" alt=""><div id="overlay"></div><div id="drag"></div></div>
+<div id="stage"><img id="image" src="/assets/mapamundi/mapamundi.webp" alt=""><div id="overlay"></div><div id="drag"></div></div>
 <div id="hud"><b>Calibrar textos del mapamundi</b><br>
 Texto: <select id="kind"></select><br>
 <span class="key">Arrastrar</span> = definir área · <span class="key">Tab</span> = cambiar texto<br>
@@ -26,7 +26,7 @@ Texto: <select id="kind"></select><br>
 <span id="coords" style="color:#0f0"></span></div>
 <div id="status">Arrastra sobre la imagen para definir el área</div>
 <script>
-const IMAGE='/assets/mapamundi/mapamundi.png';
+const IMAGE='/assets/mapamundi/mapamundi.webp';
 const KINDS=['gold'];
 const LABELS={gold:'ORO'};
 const SELECT_LABELS={gold:'Texto oro'};
@@ -41,7 +41,7 @@ function imageRect(){const r=rect();const iw=img.naturalWidth||7680,ih=img.natur
 function norm(x,y){const r=imageRect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}
 function px(a){const r=imageRect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
 function textFor(k){return k==='gold'?'3/12':'Texto'}
-function render(){const r=imageRect();overlay.innerHTML='';for(const k of KINDS){const a=areas[k],p=px(a),active=k===kind;const box=document.createElement('div');box.className='area'+(active?' active':'');box.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;const label=document.createElement('label');label.textContent=LABELS[k];box.appendChild(label);overlay.appendChild(box);const preview=document.createElement('div');preview.className='preview'+(active?' active':'')+(k==='gold'?' gold':'');preview.textContent=textFor(k);if(preview.className.includes('gold')){preview.style.paddingRight=(p.w*0.06)+'px';const coin=document.createElement('img');coin.src='/assets/comunes/monedas.png';coin.style.cssText=`height:100%;width:auto;margin-right:${p.h*0.12}px;flex:none`;const span=document.createElement('span');span.textContent=preview.textContent;preview.textContent='';preview.appendChild(coin);preview.appendChild(span)}preview.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;overlay.appendChild(preview);let fs=Math.max(12,p.h*.62*(a.fontScale||1));preview.style.fontSize=fs+'px';while((preview.scrollWidth>p.w+1||preview.scrollHeight>p.h+1)&&fs>6){fs--;preview.style.fontSize=fs+'px'}}updateCoords()}
+function render(){const r=imageRect();overlay.innerHTML='';for(const k of KINDS){const a=areas[k],p=px(a),active=k===kind;const box=document.createElement('div');box.className='area'+(active?' active':'');box.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;const label=document.createElement('label');label.textContent=LABELS[k];box.appendChild(label);overlay.appendChild(box);const preview=document.createElement('div');preview.className='preview'+(active?' active':'')+(k==='gold'?' gold':'');preview.textContent=textFor(k);if(preview.className.includes('gold')){preview.style.paddingRight=(p.w*0.06)+'px';const coin=document.createElement('img');coin.src='/assets/comunes/monedas.webp';coin.style.cssText=`height:100%;width:auto;margin-right:${p.h*0.12}px;flex:none`;const span=document.createElement('span');span.textContent=preview.textContent;preview.textContent='';preview.appendChild(coin);preview.appendChild(span)}preview.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;overlay.appendChild(preview);let fs=Math.max(12,p.h*.62*(a.fontScale||1));preview.style.fontSize=fs+'px';while((preview.scrollWidth>p.w+1||preview.scrollHeight>p.h+1)&&fs>6){fs--;preview.style.fontSize=fs+'px'}}updateCoords()}
 function updateCoords(){const a=areas[kind];coords.textContent=`MAPAMUNDI · ${LABELS[kind]} x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)} · texto:×${(a.fontScale||1).toFixed(2)}`}
 kindSelect.onchange=(e)=>{kind=e.target.value;e.target.blur();render()};
 document.addEventListener('mousedown',e=>{const r=imageRect();if(e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.left+r.width||e.clientY<r.top||e.clientY>r.top+r.height)return;dragging=true;start=norm(e.clientX,e.clientY);current={x:start.x,y:start.y,w:0,h:0};drag.style.display='block';e.preventDefault()});

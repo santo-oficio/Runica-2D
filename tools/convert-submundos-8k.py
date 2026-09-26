@@ -21,7 +21,7 @@ import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SUB_DIR = os.path.join(ROOT, "assets", "submundos")
+SUB_DIR = os.path.join(ROOT, "assets", "old submundos")
 
 TARGET_W = 7680
 TARGET_H = 5120

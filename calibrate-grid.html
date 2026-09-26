@@ -141,7 +141,7 @@ async function loadBoardDetection(world) {
 
 async function loadWorld() {
   const world = MUNDOS[currentWorld];
-  const src = '/assets/backgrounds/' + world + '/bg_01.png?t=' + Date.now();
+  const src = '/assets/backgrounds/' + world + '/bg_01.webp?t=' + Date.now();
   await new Promise((resolve) => {
     const preload = new Image();
     preload.onload = resolve;

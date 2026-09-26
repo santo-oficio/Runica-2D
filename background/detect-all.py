@@ -1,5 +1,6 @@
 """Detecta el tablero 8x6 de los 8 mundos con MobileSAM (una sola carga de modelo)."""
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -124,7 +125,7 @@ def detect(predictor, image, world):
     cell_h = best["bh"] / ROWS
     result = {
         "world": world,
-        "image": f"assets/backgrounds/{world}/bg_01.png",
+        "image": f"assets/backgrounds/{world}/bg_01.webp",
         "width": w,
         "height": h,
         "boardArea": board_area,
@@ -144,7 +145,10 @@ def detect(predictor, image, world):
 def main():
     predictor = load_model("models/mobile_sam.pt")
     for world in WORLDS:
-        img_path = f"assets/backgrounds/{world}/bg_01.png"
+        # masters PNG archivados en assets/old backgrounds/; runtime usa bg_01.webp
+        img_path = f"assets/old backgrounds/{world}/bg_01.png"
+        if not os.path.isfile(img_path):
+            img_path = f"assets/backgrounds/{world}/bg_01.webp"
         image = cv2.imread(img_path)
         if image is None:
             print(f"[{world}] no se pudo cargar {img_path}", file=sys.stderr)

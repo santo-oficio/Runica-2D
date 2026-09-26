@@ -9,9 +9,13 @@ RAM, por lo que el preload puede mantenerlas decodificadas siempre (regla a
 fuego en AGENTS.md: las imagenes del hot path nunca usan masters 8K).
 
 Genera:
-  assets/avatars/avatar_*.png   -> assets/avatars/display/*.webp   (2048px)
-  assets/<cat>/<W>/*.png        -> assets/<cat>/display/<W>/*.webp (1024px)
+  assets/{,old }avatars/avatar_*.png   -> assets/avatars/display/*.webp   (2048px)
+  assets/{,old }<cat>/<W>/*.png        -> assets/<cat>/display/<W>/*.webp (1024px)
     con cat = enemys, trampas, obstaculos, salida, bosses
+
+Los masters PNG viven en assets/old <cat>/ (archivados); los PNG que lleguen
+nuevos a assets/<cat>/ tambien se leen (luego png-to-webp-archive.py los
+archiva y genera el .webp de master).
 """
 from pathlib import Path
 from PIL import Image
@@ -44,13 +48,19 @@ def main() -> None:
         base = ROOT / "assets" / name
         if not base.exists():
             continue
+        # masters archivados en assets/old <cat>/ + posibles PNG nuevos en assets/<cat>/
+        bases = [ROOT / "assets" / ("old " + name), base]
         if by_world:
-            for world_dir in sorted(p for p in base.iterdir() if p.is_dir() and p.name != "display"):
-                for src in sorted(world_dir.glob("*.png")):
-                    convert(src, base / "display" / world_dir.name / (src.stem + ".webp"), max_side)
+            for b in bases:
+                if not b.exists():
+                    continue
+                for world_dir in sorted(p for p in b.iterdir() if p.is_dir() and p.name != "display"):
+                    for src in sorted(world_dir.glob("*.png")):
+                        convert(src, base / "display" / world_dir.name / (src.stem + ".webp"), max_side)
         else:
-            for src in sorted(base.glob("*.png")):
-                convert(src, base / "display" / (src.stem + ".webp"), max_side)
+            for b in bases:
+                for src in sorted(b.glob("*.png")):
+                    convert(src, base / "display" / (src.stem + ".webp"), max_side)
 
 
 if __name__ == "__main__":

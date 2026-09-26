@@ -17,9 +17,9 @@ dinámica** — ninguna coordenada, polígono ni zona va hardcodeada en el códi
 | Datos de avatares | `assets/menu principal/character-positions.json` | Polígonos, transforms, bordes y zonas full-body |
 | Datos de botones | `assets/menu principal/selection-buttons.json` | 29 polígonos de botones |
 | Datos del nombre | `assets/menu principal/selection-name-area.json` | Rectángulo del nombre |
-| Fondo | `assets/menu principal/seleccion_personaje.png` | Imagen de fondo (no se modifica) |
-| Avatares | `assets/avatars/avatar_01.png`–`avatar_08.png` | Originales 7680×7680 RGBA |
-| Thumbnails | `assets/avatars/thumbs/avatar_01.png`–`avatar_08.png` | 512×512 RGBA para los cuadros |
+| Fondo | `assets/menu principal/seleccion_personaje.webp` | Imagen de fondo (no se modifica) |
+| Avatares | `assets/avatars/avatar_01.webp`–`avatar_08.webp` | Originales 7680×7680 RGBA |
+| Thumbnails | `assets/avatars/thumbs/avatar_01.webp`–`avatar_08.webp` | 512×512 RGBA para los cuadros |
 
 API en `demo-server.ts` (un par load/save por cada JSON, patrón común):
 
@@ -124,7 +124,8 @@ informa de la fase y el progreso (nunca un spinner a secas):
 
 ### Cuerpo completo
 
-- Se muestra en `fullBodyAreas[i]` con el PNG 8K `avatar_{i}.png`.
+- Se muestra en `fullBodyAreas[i]` con el WebP del master 8K `avatar_{i}.webp`
+  (el PNG original está archivado en `assets/old avatars/`).
 - Al cambiar de avatar la imagen se oculta hasta que `img.decode()` confirma
   el nuevo src — así el avatar anterior nunca se ve con el tamaño de la zona
   nueva (bug histórico del "fantasma").

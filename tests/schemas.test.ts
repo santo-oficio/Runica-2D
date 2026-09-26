@@ -280,7 +280,7 @@ describe("WorldConfig", () => {
     expect(w.backgroundTemplates.length).toBe(3);
     expect(w.allowedBoardSizes.length).toBe(4);
     expect(w.difficultyTable.length).toBe(5);
-    expect(w.tileAssets.floor).toBe("space_floor.png");
+    expect(w.tileAssets.floor).toBe("space_floor.webp");
   });
 
   it("rechaza si tileAssets falta 'floor'", () => {

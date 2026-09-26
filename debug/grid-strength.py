@@ -31,7 +31,7 @@ def grid_strength(img_path, ba, cols=8, rows=6):
     return score
 
 world = sys.argv[1] if len(sys.argv) > 1 else "AGUA"
-img = f"assets/backgrounds/{world}/bg_01.png"
+img = f"assets/backgrounds/{world}/bg_01.webp"
 
 candidates = {
     "determinista(8cols+2)": {"x": 0.2973054304029304, "y": 0.26367225, "width": 0.4098141391941391, "height": 0.539062},

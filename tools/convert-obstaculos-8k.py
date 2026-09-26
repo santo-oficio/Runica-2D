@@ -20,7 +20,7 @@ import shutil
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OBS_DIR = os.path.join(ROOT, "assets", "obstaculos")
+OBS_DIR = os.path.join(ROOT, "assets", "old obstaculos")
 OLD_DIR = os.path.join(ROOT, "assets", "old obstaculos")
 
 TARGET = 7680

@@ -88,7 +88,7 @@
 <body>
 
 <div id="stage">
-  <img id="image" src="/assets/mapamundi/mapamundi.png" />
+  <img id="image" src="/assets/mapamundi/mapamundi.webp" />
   <div id="overlay"></div>
   <div id="avatar-previews"></div>
 </div>
@@ -125,18 +125,18 @@
   const modeLabel = document.getElementById('mode-label');
 
   const WORLD_AVATARS = {
-    ESPACIO:    '/assets/avatars/avatar_01.png',
-    AGUA:       '/assets/avatars/avatar_02.png',
-    TIERRA:     '/assets/avatars/avatar_03.png',
-    FUEGO:      '/assets/avatars/avatar_04.png',
-    HIELO:      '/assets/avatars/avatar_05.png',
-    VIENTO:     '/assets/avatars/avatar_06.png',
-    INFRAMUNDO: '/assets/avatars/avatar_07.png',
-    MAZMORRA:   '/assets/avatars/avatar_08.png',
+    ESPACIO:    '/assets/avatars/avatar_01.webp',
+    AGUA:       '/assets/avatars/avatar_02.webp',
+    TIERRA:     '/assets/avatars/avatar_03.webp',
+    FUEGO:      '/assets/avatars/avatar_04.webp',
+    HIELO:      '/assets/avatars/avatar_05.webp',
+    VIENTO:     '/assets/avatars/avatar_06.webp',
+    INFRAMUNDO: '/assets/avatars/avatar_07.webp',
+    MAZMORRA:   '/assets/avatars/avatar_08.webp',
   };
 
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
-  const AVATAR_SRC = i => '/assets/avatars/thumbs/avatar_' + String(i + 1).padStart(2, '0') + '.png?v=avatars-9';
+  const AVATAR_SRC = i => '/assets/avatars/thumbs/avatar_' + String(i + 1).padStart(2, '0') + '.webp?v=avatars-9';
 
   // Ancla de cada isla (posiciones[w]) + matriz de avatares (avatars[w][i])
   let positions = {};

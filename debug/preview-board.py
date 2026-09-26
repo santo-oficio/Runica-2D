@@ -5,7 +5,7 @@ import cv2
 
 world = sys.argv[1] if len(sys.argv) > 1 else "AGUA"
 det_path = f"assets/backgrounds/{world}/board-detection.json"
-img_path = f"assets/backgrounds/{world}/bg_01.png"
+img_path = f"assets/backgrounds/{world}/bg_01.webp"
 
 det = json.load(open(det_path, encoding="utf-8"))
 img = cv2.imread(img_path)

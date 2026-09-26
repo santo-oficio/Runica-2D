@@ -1,6 +1,6 @@
 import base64
 
-fpath = r'C:\Proyectos personales\Runika 2D\assets\menu principal\menu principal_preview.png'
+fpath = r'C:\Proyectos personales\Runika 2D\assets\menu principal\menu principal.webp'
 with open(fpath, 'rb') as f:
     b64 = base64.b64encode(f.read()).decode()
 

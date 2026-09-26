@@ -153,7 +153,7 @@ avatarImg.src = AVATARS[avatarIdx] + '?t=' + Date.now();
 
 // === Config del mundo (AGUA) ===
 const WORLD = 'AGUA';
-const BG_IMAGE = '/assets/backgrounds/AGUA/bg_01.png';
+const BG_IMAGE = '/assets/backgrounds/AGUA/bg_01.webp';
 const COLS = 8, ROWS = 6;
 const SELECTOR_INSET = 0.02;
 
@@ -719,7 +719,7 @@ async function init() {
   IMG_H = det.height || 4320;
   metaLabel.textContent = `AGUA · tablero ${COLS}x${ROWS}`;
 
-  img.src = '/assets/backgrounds/AGUA/bg_01.png';
+  img.src = '/assets/backgrounds/AGUA/bg_01.webp';
   img.onload = () => {
     layout();
     newGame();

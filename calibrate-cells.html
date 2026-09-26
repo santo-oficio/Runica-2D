@@ -203,7 +203,7 @@ function resetCells() {
 
 async function loadWorld() {
   const world = MUNDOS[currentWorld];
-  img.src = '/assets/backgrounds/' + world + '/bg_01.png?t=' + Date.now();
+  img.src = '/assets/backgrounds/' + world + '/bg_01.webp?t=' + Date.now();
   // Intentar cargar casillas guardadas
   const loaded = await loadBoardArea(world);
   if (!loaded) {

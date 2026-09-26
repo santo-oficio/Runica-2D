@@ -16,7 +16,7 @@ import os
 import shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TRAP_DIR = os.path.join(ROOT, "assets", "trampas")
+TRAP_DIR = os.path.join(ROOT, "assets", "old trampas")
 OLD_DIR = os.path.join(ROOT, "assets", "old trampas")
 
 TARGET = 1900

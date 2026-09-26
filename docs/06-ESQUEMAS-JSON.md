@@ -111,12 +111,12 @@ Salida del Solver/Validador, lo que decide si un `LevelMap` entra al banco.
   "world": "ESPACIO",
   "backgroundTemplates": ["ESPACIO_01"],
   "tileAssets": {
-    "floor": "space_floor.png",
-    "wallEdgeTop": "space_wall_top.png",
-    "wallCornerTopLeft": "space_wall_corner_tl.png",
-    "player": "space_player.png",
-    "enemyDefault": "space_enemy.png",
-    "goal": "space_goal.png"
+    "floor": "space_floor.webp",
+    "wallEdgeTop": "space_wall_top.webp",
+    "wallCornerTopLeft": "space_wall_corner_tl.webp",
+    "player": "space_player.webp",
+    "enemyDefault": "space_enemy.webp",
+    "goal": "space_goal.webp"
   },
   "allowedBoardSizes": [[6,5]],
   "difficultyTable": [
@@ -200,7 +200,7 @@ Por mundo, en `assets/backgrounds/<MUNDO>/text-areas.json`. Editado con
 calibrador auto-ajusta el tamaño de fuente al área para que el texto nunca se
 corte por los bordes. El texto `gold` se alinea **a la derecha** del área con
 un margen (~6% del ancho) — igual en todas las pantallas. A la izquierda del
-texto va el icono `assets/comunes/monedas.png` (altura = altura del área),
+texto va el icono `assets/comunes/monedas.webp` (altura = altura del área),
 pegado al número aunque cambie su longitud.
 
 ### Campo opcional `fontScale` (todas las áreas de texto)
@@ -260,7 +260,7 @@ En `assets/mapamundi/text-areas.json`, editado con
 }
 ```
 
-`gold` es el texto en color oro sobre `mapamundi.png` (ej. contador de
+`gold` es el texto en color oro sobre `mapamundi.webp` (ej. contador de
 tesoros). La fuente se auto-ajusta al área para no cortar letras.
 
 ## 11. Calibración de créditos (`creditos-areas.json`)

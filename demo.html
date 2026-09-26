@@ -191,7 +191,7 @@
   </div>
 
   <div id="selector">
-    <img id="avatar" src="/assets/avatars/avatar_01.png" alt="avatar">
+    <img id="avatar" src="/assets/avatars/display/avatar_01.webp" alt="avatar">
   </div>
 
   <!-- Rejilla visible del tablero -->
@@ -241,14 +241,14 @@ const posLabel = document.getElementById('pos-label');
 const dotsEl = document.getElementById('dots');
 
 const AVATARS = [
-  '/assets/avatars/avatar_01.png',
-  '/assets/avatars/avatar_02.png',
-  '/assets/avatars/avatar_03.png',
-  '/assets/avatars/avatar_04.png',
-  '/assets/avatars/avatar_05.png',
-  '/assets/avatars/avatar_06.png',
-  '/assets/avatars/avatar_07.png',
-  '/assets/avatars/avatar_08.png',
+  '/assets/avatars/display/avatar_01.webp',
+  '/assets/avatars/display/avatar_02.webp',
+  '/assets/avatars/display/avatar_03.webp',
+  '/assets/avatars/display/avatar_04.webp',
+  '/assets/avatars/display/avatar_05.webp',
+  '/assets/avatars/display/avatar_06.webp',
+  '/assets/avatars/display/avatar_07.webp',
+  '/assets/avatars/display/avatar_08.webp',
 ];
 // Avatar persistente (se guarda al seleccionar con Enter)
 let avatarIdx = parseInt(localStorage.getItem('Runika 2D-avatar-idx') ?? '0', 10) || 0;
@@ -357,8 +357,8 @@ function loadWorld(idx) {
 // === Enemigos y obstaculos por mundo ===
 const ENTITIES = {
   AGUA: {
-    enemies: ['/assets/enemys/AGUA/enemy_01.png'],
-    traps: ['/assets/trampas/AGUA/trampa_01.png'],
+    enemies: ['/assets/enemys/display/AGUA/enemy_AGUA.webp'],
+    traps: ['/assets/trampas/display/AGUA/image_25.webp'],
   },
 };
 

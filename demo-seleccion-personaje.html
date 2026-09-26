@@ -33,7 +33,7 @@ const SOUND_SRCS=['/assets/sounds/comun/menu_mover.wav','/assets/sounds/comun/me
 function requestFull(i){if(fullLoaded.has(i))return;const im=new Image();im.onload=()=>{fullLoaded.add(i);if(focus.type==='avatar'&&focus.index===i)render()};im.src=FULL_SRCS[i]}
 function preloadAudios(onProgress=()=>{}){let doneCount=0;return Promise.all(SOUND_SRCS.map(src=>new Promise(resolve=>{const audio=new Audio();let done=false;const finish=()=>{if(done)return;done=true;doneCount++;onProgress(doneCount,SOUND_SRCS.length);resolve()};audio.addEventListener('canplaythrough',finish,{once:true});audio.addEventListener('error',finish,{once:true});audio.src=src;audio.load();setTimeout(finish,10000)})))}
 nameDisplay.id='name-display';overlay.appendChild(nameDisplay);
-const AVATAR_SRCS=Array.from({length:8},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.png?v=avatars-5`);
+const AVATAR_SRCS=Array.from({length:8},(_,i)=>`/assets/avatars/thumbs/avatar_${String(i+1).padStart(2,'0')}.webp?v=avatars-5`);
 const preloadedImgs=new Map();
 function preload(srcs,onProgress=()=>{}){let done=0;return Promise.all(srcs.map(s=>new Promise(r=>{const im=new Image();const finish=()=>{preloadedImgs.set(s,im);done++;onProgress(done,srcs.length);r()};im.onload=()=>{(im.decode?im.decode().catch(()=>{}):Promise.resolve()).finally(finish)};im.onerror=finish;im.src=s})))}
 const avatarSlotEls=[],avatarImgEls=[];

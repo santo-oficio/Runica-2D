@@ -22,21 +22,21 @@ import type { LevelMap, WorldConfig } from "../schemas/types.js";
 
 // WorldConfig de test con todos los assets de borde/esquina posibles.
 const fullTileAssets = {
-  floor: "space_floor.png",
-  wallEdgeTop: "space_wall_top.png",
-  wallEdgeBottom: "space_wall_bottom.png",
-  wallEdgeLeft: "space_wall_left.png",
-  wallEdgeRight: "space_wall_right.png",
-  wallCornerTopLeft: "space_wall_corner_tl.png",
-  wallCornerTopRight: "space_wall_corner_tr.png",
-  wallCornerBottomLeft: "space_wall_corner_bl.png",
-  wallCornerBottomRight: "space_wall_corner_br.png",
-  player: "space_player.png",
-  enemyDefault: "space_enemy.png",
-  goal: "space_goal.png",
-  obstacle: "space_obstacle.png",
-  door: "space_door.png",
-  key: "space_key.png",
+  floor: "space_floor.webp",
+  wallEdgeTop: "space_wall_top.webp",
+  wallEdgeBottom: "space_wall_bottom.webp",
+  wallEdgeLeft: "space_wall_left.webp",
+  wallEdgeRight: "space_wall_right.webp",
+  wallCornerTopLeft: "space_wall_corner_tl.webp",
+  wallCornerTopRight: "space_wall_corner_tr.webp",
+  wallCornerBottomLeft: "space_wall_corner_bl.webp",
+  wallCornerBottomRight: "space_wall_corner_br.webp",
+  player: "space_player.webp",
+  enemyDefault: "space_enemy.webp",
+  goal: "space_goal.webp",
+  obstacle: "space_obstacle.webp",
+  door: "space_door.webp",
+  key: "space_key.webp",
 };
 const worldFull: WorldConfig = { ...worldConfigExample, tileAssets: fullTileAssets };
 
@@ -151,15 +151,15 @@ describe("resolveSprite — tipos de celda", () => {
   });
   it("resuelve PLAYER", () => {
     expect(resolveSprite(grid, 0, 1, fullTileAssets).cellType).toBe("PLAYER");
-    expect(resolveSprite(grid, 0, 1, fullTileAssets).asset).toBe("space_player.png");
+    expect(resolveSprite(grid, 0, 1, fullTileAssets).asset).toBe("space_player.webp");
   });
   it("resuelve ENEMY", () => {
     expect(resolveSprite(grid, 1, 1, fullTileAssets).cellType).toBe("ENEMY");
-    expect(resolveSprite(grid, 1, 1, fullTileAssets).asset).toBe("space_enemy.png");
+    expect(resolveSprite(grid, 1, 1, fullTileAssets).asset).toBe("space_enemy.webp");
   });
   it("resuelve GOAL", () => {
     expect(resolveSprite(grid, 2, 1, fullTileAssets).cellType).toBe("GOAL");
-    expect(resolveSprite(grid, 2, 1, fullTileAssets).asset).toBe("space_goal.png");
+    expect(resolveSprite(grid, 2, 1, fullTileAssets).asset).toBe("space_goal.webp");
   });
   it("resuelve OBSTACLE/DOOR/KEY con fallback si faltan assets", () => {
     expect(resolveSprite(grid, 0, 2, fullTileAssets).cellType).toBe("OBSTACLE");

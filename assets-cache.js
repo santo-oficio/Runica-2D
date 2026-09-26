@@ -5,9 +5,9 @@
 const ASSETS = {
   images: [
     '/assets/menu principal/menu principal.webp',
-    '/assets/menu principal/opciones del juego e instrucciones.png',
+    '/assets/menu principal/opciones del juego e instrucciones.webp',
     '/assets/menu principal/seleccion_personaje.webp',
-    '/assets/mapamundi/mapamundi.png',
+    '/assets/mapamundi/mapamundi.webp',
     '/assets/avatars/display/avatar_01.webp',
     '/assets/avatars/display/avatar_02.webp',
     '/assets/avatars/display/avatar_03.webp',
@@ -16,10 +16,10 @@ const ASSETS = {
     '/assets/avatars/display/avatar_06.webp',
     '/assets/avatars/display/avatar_07.webp',
     '/assets/avatars/display/avatar_08.webp',
-    '/assets/enemys/ESPACIO/enemigo_espacio_1900.png',
-    '/assets/obstaculos/ESPACIO/losa_03.png',
-    '/assets/trampas/AGUA/trampa_01.png',
-    '/assets/salida/ESPACIO/salida.png',
+    '/assets/enemys/display/ESPACIO/enemy_ESPACIO.webp',
+    '/assets/obstaculos/display/ESPACIO/cosmic_portal_tile.webp',
+    '/assets/trampas/display/AGUA/image_25.webp',
+    '/assets/salida/display/ESPACIO/image_20260921_155734.webp',
   ],
   sounds: [
     '/assets/sounds/comun/menu_mover.wav',

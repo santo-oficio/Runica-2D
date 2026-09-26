@@ -23,7 +23,7 @@ Controles: `Flechas/WASD` mover · `R` otra pantalla · `Espacio` cambiar mundo 
 
 ```bash
 # Detectar tablero de un mundo (escribe board-detection.json)
-.sam-venv\Scripts\python.exe background/sam-detect.py assets/backgrounds/<MUNDO>/bg_01.png <MUNDO> assets/backgrounds/<MUNDO>/board-detection.json
+.sam-venv\Scripts\python.exe background/sam-detect.py assets/backgrounds/<MUNDO>/bg_01.webp <MUNDO> assets/backgrounds/<MUNDO>/board-detection.json
 
 # Informe de casillas (solo lectura)
 npx tsx tools/detect-cells.ts [MUNDO]
@@ -124,7 +124,7 @@ avatars[8]:{size} }` — posición del avatar en cada uno de los 12 niveles
 ### `calibrate-mapamundi-text.html` — textos del mapamundi
 
 `assets/mapamundi/text-areas.json` = `{ areas:{ gold:{x,y,w,h} } }` — texto en
-oro sobre `mapamundi.png` (ej. contador de tesoros). Una sola imagen, sin
+oro sobre `mapamundi.webp` (ej. contador de tesoros). Una sola imagen, sin
 selector de mundo. La fuente se auto-ajusta al área para no cortar letras.
 
 - API: `/api/save-mapamundi-text-areas`, `/api/load-mapamundi-text-areas`.
@@ -132,7 +132,7 @@ selector de mundo. La fuente se auto-ajusta al área para no cortar letras.
 **Regla del texto oro (`gold`)**: en TODAS las pantallas (tablero, submundo,
 mapamundi…) el texto `gold` se alinea **a la derecha** dentro de su área,
 dejando un margen (~6% del ancho del área) para que no choque con el borde.
-A la **izquierda** del texto va el icono `assets/comunes/monedas.png` (8K
+A la **izquierda** del texto va el icono `assets/comunes/monedas.webp` (8K
 RGBA): altura igual a la del área `gold`, casi pegado al texto (gap ~12% de
 la altura). Como el texto es dinámico (0 → N), el conjunto icono+texto se
 mueve junto: el icono siempre queda a la izquierda del número. Las previews
@@ -164,17 +164,32 @@ renderizarla igual.
 - Coordenadas normalizadas 0–1 en espacio **`image-content`** (se descuenta el letterbox del `object-fit: contain`, ratio 3:2). Nunca contra el viewport.
 - API: `/api/load-character-positions`, `/api/save-character-positions`, `/api/load-selection-buttons`, `/api/save-selection-buttons`, `/api/load-selection-name`, `/api/save-selection-name`. El servidor resuelve la raíz desde `demo-server.ts`, no `process.cwd()`.
 - Al guardar se reemplaza **solo la entrada del índice editado** — nunca se envían los otros 7 desde memoria.
-- Avatares: `assets/avatars/avatar_0N.png` 7680×7680 RGBA (masters) + `thumbs/` 512×512 + `display/` 2048×2048 webp (los que usa el cuerpo completo en pantalla; regenerar con `tools/convert-display-assets.py`). Cache-busting `?v=avatars-N` / `?v=display-N` (incrementar al regenerar). Para calidad extrema: Real-ESRGAN x4plus en `.sam-venv`.
+- Avatares: `assets/avatars/avatar_0N.webp` 7680×7680 RGBA (masters) + `thumbs/` 512×512 + `display/` 2048×2048 webp (los que usa el cuerpo completo en pantalla; regenerar con `tools/convert-display-assets.py`). Cache-busting `?v=avatars-N` / `?v=display-N` (incrementar al regenerar). Para calidad extrema: Real-ESRGAN x4plus en `.sam-venv`.
 - Navegación y bordes: ver `docs/17-PANTALLA-SELECCION-PERSONAJE.md` (orden lineal, filas con memoria entre bloques, excepción Borrar R/S/T/Z→T, borde irregular feTurbulence, click=dorado fuerte / hover=suave, cuerpo completo por hover real).
 
 ## Mundos
 
 ESPACIO, AGUA, TIERRA, FUEGO, HIELO, VIENTO, INFRAMUNDO, MAZMORRA.
 
-Fondos en `assets/backgrounds/<MUNDO>/bg_01.png` (los antiguos están en
-`bg_01_old.png`). Todos están a **7680×4320 (8K)**. Nota: MAZMORRA,
+Fondos en `assets/backgrounds/<MUNDO>/bg_01.webp`. Todos están a
+**7680×4320 (8K)**. Nota: MAZMORRA,
 ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
 1024×576), así que su calidad real es inferior a la de los 8K nativos.
+
+### Regla a fuego — assets: WebP en runtime, PNG masters en `old/`
+
+- **Ningún código/HTML referencia `.png`**: todo lo que carga la app es
+  `.webp` (q92) junto a donde estaba el PNG, mismo nombre de archivo.
+- Los masters PNG están archivados en `assets/old <categoria>/<...>`
+  (misma estructura de subcarpetas, mismo nombre). Ej:
+  `assets/backgrounds/ESPACIO/bg_01.png` → `assets/old backgrounds/ESPACIO/bg_01.png`.
+- Al llegar una imagen nueva (PNG a `assets/<cat>/`):
+  `tools/png-to-webp-archive.py --apply` genera el `.webp` in-situ y mueve
+  el PNG a `old <cat>/`. Después `tools/convert-display-assets.py`
+  regenera los derivados `display/` (lee masters de `old/` y de la
+  carpeta viva).
+- `tools/upscale-8k.py <imagen> [WxH]` sigue generando masters PNG (luego
+  se archivan con el script anterior).
 
 ## Arquitectura
 
@@ -267,8 +282,9 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   1. **Derivados display**: se usan versiones ligeras `.webp` generadas con
      `tools/convert-display-assets.py` (`assets/<cat>/display/`):
      avatares 2048px, sprites de tablero (enemys/trampas/obstaculos/salida/
-     bosses) 1024px. Los PNG 8K quedan SOLO como masters para calibradores
-     y regeneracion. El servidor ya prefiere `display/<stem>.webp` en
+     bosses) 1024px. Los masters PNG quedan archivados en `assets/old */`
+     (ver regla de assets arriba). El servidor ya prefiere
+     `display/<stem>.webp` en
      `/api/obstacles` y `/api/board-sprites-assets`.
   2. **decode() real**: tras `img.onload` hay que esperar `img.decode()`
      (o `createImageBitmap`) durante la precarga/pantalla de carga.
@@ -309,7 +325,7 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
 - **A fuego — navegación de la pantalla de instrucciones**: en
   `instructions.html` el foco solo puede estar en el pergamino (área de texto
   con scroll) o en el botón atrás. El botón atrás es **solo el área clickeable**:
-  el dibujo ya está pintado en `instrucciones.png` (brújula dorada abajo-
+  el dibujo ya está pintado en `instrucciones.webp` (brújula dorada abajo-
   izquierda) y el botón HTML es invisible sobre ella (solo muestra un anillo
   dorado al tener foco/hover). Su posición es un círculo `{cx, cy, r}`
   calibrado en `instructions-areas.json`. Reglas:
