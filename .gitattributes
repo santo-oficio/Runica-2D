@@ -1,2 +1,2 @@
 assets/avatars/**/*.png filter=lfs diff=lfs merge=lfs -text
-assets/old avatars/**/*.png filter=lfs diff=lfs merge=lfs -text
+assets/old[ ]avatars/**/*.png filter=lfs diff=lfs merge=lfs -text
