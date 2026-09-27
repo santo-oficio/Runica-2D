@@ -5,13 +5,13 @@
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}#stage{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;outline:none;opacity:0;transition:opacity .35s ease}#bg{width:100%;height:100%;object-fit:contain;display:block}#overlay{position:absolute;inset:0;pointer-events:auto}#avatar-slots{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none}#button-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none}#border-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}.sel-border{fill:none;stroke:#ffd54f;stroke-width:3;opacity:.85}.sel-border.selected{stroke:#fff3c4;stroke-width:4;opacity:1;filter:drop-shadow(0 0 8px #ffd54f) drop-shadow(0 0 18px rgba(255,213,79,.85))}#full-body{position:absolute;z-index:7;display:none;max-width:none;max-height:none;object-fit:contain;pointer-events:none;opacity:0;transition:opacity .18s ease;filter:drop-shadow(0 12px 24px rgba(0,0,0,.65))}#full-body.show{display:block;opacity:1}#loading-screen{position:fixed;inset:0;z-index:100;background:#000;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .35s ease;color:#ffe9a3;font-family:'ChelseaMarket',cursive;text-align:center}#loading-box{width:min(560px,82vw);padding:28px 34px;border:2px solid rgba(255,213,79,.6);background:rgba(25,16,7,.92);box-shadow:0 0 24px rgba(255,213,79,.2)}#loading-title{font-size:clamp(24px,4vw,42px);margin-bottom:14px}#loading-message{font-size:clamp(16px,2.2vw,24px);min-height:1.5em;color:#fff4ce}#loading-track{height:12px;margin-top:20px;border:1px solid #98752d;background:#211707}#loading-progress{height:100%;width:0;background:linear-gradient(90deg,#a66d18,#ffe28a);transition:width .2s ease}#loading-percent{margin-top:10px;font:14px 'ChelseaMarket',cursive;color:#d9bd72}@keyframes spin{to{transform:rotate(360deg)}}body.ready #stage{opacity:1}body.ready #loading-screen{opacity:0;pointer-events:none}.avatar-slot{position:absolute;z-index:2;overflow:hidden;clip-path:inset(0);contain:paint;background:transparent;pointer-events:none}.avatar-slot img{position:absolute;left:0;top:0;right:auto;bottom:auto;display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:fill;background:transparent;pointer-events:none}.button-hit{fill:transparent;stroke:transparent;pointer-events:auto;cursor:pointer}.button-hit.focused{fill:rgba(255,213,79,.12);stroke:#ffd54f;stroke-width:3;filter:drop-shadow(0 0 6px #ffd54f)}.hotspot{position:absolute;border:2px solid transparent;border-radius:10px;pointer-events:auto;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}.hotspot:hover,.hotspot.focused{border-color:#ffd54f;box-shadow:0 0 0 3px #ffb300,0 0 18px 6px rgba(255,213,79,.9);transform:scale(1.07);z-index:10}.hotspot.avatar,.hotspot.avatar:hover,.hotspot.avatar.selected{border-color:transparent;box-shadow:none;transform:none}.hotspot.letter.pressed{background:rgba(255,235,59,.6);transform:scale(.93)}#name-display{position:absolute;display:flex;align-items:center;justify-content:center;font-family:'ChelseaMarket',cursive;font-weight:400;font-size:clamp(16px,2.4vw,28px);letter-spacing:3px;color:#2b1a0a;text-transform:uppercase;pointer-events:none;text-shadow:1px 1px 0 rgba(255,240,180,.5)}#confirm{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.25);pointer-events:none;color:#fff8d0;font:900 clamp(18px,3vw,42px) 'ChelseaMarket',cursive;text-shadow:0 0 18px #ffd54f,3px 3px 4px #000;letter-spacing:4px;text-transform:uppercase}#confirm.show{display:flex}
-#modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}#modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}#modal-box{position:relative;width:min(120vh,88vw);aspect-ratio:3/2}#modal-img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}#modal-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}#modal-svg text{font-family:'ChelseaMarket',cursive;fill:#ffe9b0;paint-order:stroke;stroke:rgba(60,30,10,.7);stroke-width:1.5px}#modal-content{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'ChelseaMarket',cursive;color:#3a2810;line-height:1.3;pointer-events:none}.modal-btn{position:absolute;display:flex;align-items:center;justify-content:center;font-family:'ChelseaMarket',cursive;color:#ffe9b0;text-shadow:0 1px 3px rgba(0,0,0,.75);cursor:pointer;user-select:none}.modal-btn.focused{outline:2px solid #ffd54f;outline-offset:3px;filter:drop-shadow(0 0 8px rgba(255,213,79,.8))}
+#modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}#modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}#modal-box{position:relative;width:min(40vh,32vw);aspect-ratio:3/2}#modal-img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}#modal-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}#modal-svg text{font-family:'ChelseaMarket',cursive;fill:#ffe9b0;paint-order:stroke;stroke:rgba(60,30,10,.7);stroke-width:1.5px}#modal-content{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'ChelseaMarket',cursive;color:#3a2810;line-height:1.3;pointer-events:none}.modal-btn{position:absolute;display:flex;align-items:center;justify-content:center;font-family:'ChelseaMarket',cursive;color:#ffe9b0;text-shadow:0 1px 3px rgba(0,0,0,.75);cursor:pointer;user-select:none}.modal-sel{position:absolute;display:none;border:3px solid #ffd54f;border-radius:8px;box-shadow:0 0 10px rgba(255,213,79,.85),inset 0 0 8px rgba(255,213,79,.3);pointer-events:none}.modal-sel.focused{display:block}
 </style>
 </head>
 <body tabindex="0">
 <div id="loading-screen" aria-hidden="true"><div id="loading-box"><div id="loading-title"></div><div id="loading-message"></div><div id="loading-track"><div id="loading-progress"></div></div><div id="loading-percent">0%</div></div></div>
 <div id="stage" tabindex="0"><img id="bg" src="/assets/menu%20principal/seleccion_personaje.webp?v=sel8k-3" alt=""><div id="overlay"><svg id="border-overlay"></svg><div id="avatar-slots"></div><img id="full-body" alt=""><svg id="button-overlay"></svg></div><div id="confirm"></div></div>
-<div id="modal-overlay"><div id="modal-box"><img id="modal-img" src="/assets/comunes/modal.webp?v=modal8k-1" alt=""><svg id="modal-svg"></svg><div id="modal-content"></div><div id="modal-btn-l" class="modal-btn"></div><div id="modal-btn-r" class="modal-btn"></div></div></div>
+<div id="modal-overlay"><div id="modal-box"><img id="modal-img" src="/assets/comunes/modal.webp?v=modal8k-1" alt=""><svg id="modal-svg"></svg><div id="modal-content"></div><div id="modal-sel-l" class="modal-sel"></div><div id="modal-sel-r" class="modal-sel"></div><div id="modal-btn-l" class="modal-btn"></div><div id="modal-btn-r" class="modal-btn"></div></div></div>
 <script>
 const bg=document.getElementById('bg'),overlay=document.getElementById('overlay'),avatarSlotsEl=document.getElementById('avatar-slots'),buttonOverlay=document.getElementById('button-overlay'),borderOverlay=document.getElementById('border-overlay'),fullBody=document.getElementById('full-body'),loadingMessage=document.getElementById('loading-message'),loadingProgress=document.getElementById('loading-progress'),loadingPercent=document.getElementById('loading-percent'),nameDisplay=document.createElement('div'),confirm=document.getElementById('confirm');
 function setLoading(message,progress){loadingMessage.textContent=message;const value=Math.max(0,Math.min(100,progress));loadingProgress.style.width=value+'%';loadingPercent.textContent=value+'%'}
@@ -26,34 +26,44 @@ function tt(key){return T[key]??key}
 async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
 
 // --- Modal de confirmacion (calibrado en calibrate-modal.html) ---
-const modalOverlay=document.getElementById('modal-overlay'),modalBox=document.getElementById('modal-box'),modalSvg=document.getElementById('modal-svg'),modalContent=document.getElementById('modal-content'),modalBtnL=document.getElementById('modal-btn-l'),modalBtnR=document.getElementById('modal-btn-r');
-const MODAL_DEFAULTS={title:{polygon:[[.30,.19],[.42,.115],[.58,.115],[.70,.19]],fontScale:1},content:{x:.20,y:.30,w:.60,h:.22,fontScale:1},buttonLeft:{x:.21,y:.60,w:.26,h:.13,fontScale:1},buttonRight:{x:.53,y:.60,w:.26,h:.13,fontScale:1}};
+const modalOverlay=document.getElementById('modal-overlay'),modalBox=document.getElementById('modal-box'),modalSvg=document.getElementById('modal-svg'),modalContent=document.getElementById('modal-content'),modalBtnL=document.getElementById('modal-btn-l'),modalBtnR=document.getElementById('modal-btn-r'),modalSelL=document.getElementById('modal-sel-l'),modalSelR=document.getElementById('modal-sel-r');
+const MODAL_DEFAULTS={title:{polygon:[[.30,.19],[.42,.115],[.58,.115],[.70,.19]],fontScale:1},content:{x:.20,y:.30,w:.60,h:.22,fontScale:1},buttonLeft:{x:.21,y:.60,w:.26,h:.13,fontScale:1},buttonRight:{x:.53,y:.60,w:.26,h:.13,fontScale:1},buttonLeftBorder:{x:.18,y:.55,w:.32,h:.20,fontScale:1},buttonRightBorder:{x:.50,y:.55,w:.32,h:.20,fontScale:1}};
 let modalAreas=null,modalOpen=false,modalSel=1; // 0=izq(no), 1=der(si)
-function modalFitCircle(pts){let sx=0,sy=0,sxx=0,sxy=0,syy=0,sxz=0,syz=0,sz=0;const n=pts.length;for(const p of pts){const x=p[0],y=p[1],z=x*x+y*y;sx+=x;sy+=y;sxx+=x*x;sxy+=x*y;syy+=y*y;sxz+=x*z;syz+=y*z;sz+=z}const m=[[sxx,sxy,sx,sxz],[sxy,syy,sy,syz],[sx,sy,n,sz]];for(let c=0;c<3;c++){let piv=c;for(let r2=c+1;r2<3;r2++)if(Math.abs(m[r2][c])>Math.abs(m[piv][c]))piv=r2;[m[c],m[piv]]=[m[piv],m[c]];const d=m[c][c];if(Math.abs(d)<1e-12)return null;for(let j=c;j<4;j++)m[c][j]/=d;for(let r2=0;r2<3;r2++){if(r2===c)continue;const f=m[r2][c];for(let j=c;j<4;j++)m[r2][j]-=f*m[c][j]}}const D=m[0][3],E=m[1][3],F=m[2][3],cx=-D/2,cy=-E/2,r=Math.sqrt(Math.max(0,(D*D+E*E)/4-F));return{cx,cy,r}}
+// Curva del titulo: linea media del poligono (contorno cerrado del cartel o arco abierto)
+function modalCurvePath(poly,W,H){
+  if(!poly||poly.length<2)return null;
+  const pts=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];for(let t=0;t<400;t++){const u=t/400;pts.push([a[0]+(b[0]-a[0])*u,a[1]+(b[1]-a[1])*u])}}
+  const buckets=new Map();
+  for(const p of pts){const k=Math.round(p[0]*160);if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(p[1])}
+  const sorted=[...buckets].sort((a,b)=>a[0]-b[0]);
+  const thicks=sorted.map(([,ys])=>Math.max(...ys)-Math.min(...ys));
+  const avgT=thicks.reduce((s,v)=>s+v,0)/thicks.length;
+  let mid;
+  if(avgT<0.008){mid=poly.slice();if(mid[0][0]>mid[mid.length-1][0])mid.reverse()}
+  else mid=sorted.map(([k,ys])=>[k/160,(Math.min(...ys)+Math.max(...ys))/2]);
+  if(mid.length<2)return null;
+  return{d:'M '+mid.map(p=>`${(p[0]*W).toFixed(1)} ${(p[1]*H).toFixed(1)}`).join(' L '),bandH:Math.max(avgT,.05)};
+}
 function renderModal(){
   const W=modalBox.clientWidth,H=modalBox.clientHeight;
   const A=k=>Object.assign({},MODAL_DEFAULTS[k],modalAreas?.[k]);
-  // titulo arqueado sobre la circunferencia ajustada al poligono
   modalSvg.setAttribute('viewBox',`0 0 ${W} ${H}`);modalSvg.innerHTML='';
   const title=A('title');
-  if(title.polygon?.length>=3){
-    const fit=modalFitCircle(title.polygon);
-    if(fit&&isFinite(fit.r)&&fit.r>0){
-      const angs=title.polygon.map(p=>Math.atan2(p[1]-fit.cy,p[0]-fit.cx));
-      const a1=Math.min(...angs),a2=Math.max(...angs),span=a2-a1;
-      const p1={x:(fit.cx+fit.r*Math.cos(a1))*W,y:(fit.cy+fit.r*Math.sin(a1))*H},p2={x:(fit.cx+fit.r*Math.cos(a2))*W,y:(fit.cy+fit.r*Math.sin(a2))*H};
-      const ys=title.polygon.map(p=>p[1]),bandH=(Math.max(...ys)-Math.min(...ys))*H;
-      const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('id','modal-arc');path.setAttribute('d',`M ${p1.x} ${p1.y} A ${fit.r*W} ${fit.r*W} 0 ${span>Math.PI?1:0} 1 ${p2.x} ${p2.y}`);path.setAttribute('fill','none');
-      const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');defs.appendChild(path);modalSvg.appendChild(defs);
-      const tx=document.createElementNS('http://www.w3.org/2000/svg','text');const tp=document.createElementNS('http://www.w3.org/2000/svg','textPath');tp.setAttribute('href','#modal-arc');tp.setAttribute('startOffset','50%');tp.setAttribute('text-anchor','middle');tp.textContent=tt('modal.confirmTitle');
-      tx.setAttribute('font-size',Math.max(10,bandH*.62*(title.fontScale||1)));tx.appendChild(tp);modalSvg.appendChild(tx);
-    }
+  const curve=modalCurvePath(title.polygon,W,H);
+  if(curve){
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('id','modal-arc');path.setAttribute('d',curve.d);path.setAttribute('fill','none');
+    const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');defs.appendChild(path);modalSvg.appendChild(defs);
+    const tx=document.createElementNS('http://www.w3.org/2000/svg','text');const tp=document.createElementNS('http://www.w3.org/2000/svg','textPath');tp.setAttribute('href','#modal-arc');tp.setAttribute('startOffset','50%');tp.setAttribute('text-anchor','middle');tp.textContent=tt('modal.confirmTitle');
+    tx.setAttribute('font-size',Math.max(8,curve.bandH*H*.62*(title.fontScale||1)));tx.appendChild(tp);modalSvg.appendChild(tx);
   }
-  const put=(el,a,text,color)=>{el.style.left=a.x*W+'px';el.style.top=a.y*H+'px';el.style.width=a.w*W+'px';el.style.height=a.h*H+'px';el.textContent=text;let fs=Math.max(10,a.h*H*.62*(a.fontScale||1));el.style.fontSize=fs+'px';while((el.scrollWidth>a.w*W+1||el.scrollHeight>a.h*H+1)&&fs>6){fs--;el.style.fontSize=fs+'px'}};
+  const put=(el,a,text)=>{el.style.left=a.x*W+'px';el.style.top=a.y*H+'px';el.style.width=a.w*W+'px';el.style.height=a.h*H+'px';el.textContent=text;let fs=Math.max(8,a.h*H*.62*(a.fontScale||1));el.style.fontSize=fs+'px';while((el.scrollWidth>a.w*W+1||el.scrollHeight>a.h*H+1)&&fs>6){fs--;el.style.fontSize=fs+'px'}};
   put(modalContent,A('content'),tt('modal.confirmBody'));
   put(modalBtnL,A('buttonLeft'),tt('modal.confirmNo'));
   put(modalBtnR,A('buttonRight'),tt('modal.confirmYes'));
-  modalBtnL.classList.toggle('focused',modalSel===0);modalBtnR.classList.toggle('focused',modalSel===1);
+  const bl=A('buttonLeftBorder'),br=A('buttonRightBorder');
+  Object.assign(modalSelL.style,{left:bl.x*W+'px',top:bl.y*H+'px',width:bl.w*W+'px',height:bl.h*H+'px'});
+  Object.assign(modalSelR.style,{left:br.x*W+'px',top:br.y*H+'px',width:br.w*W+'px',height:br.h*H+'px'});
+  modalSelL.classList.toggle('focused',modalSel===0);modalSelR.classList.toggle('focused',modalSel===1);
 }
 function openModal(){modalOpen=true;modalSel=1;modalOverlay.classList.add('show');requestAnimationFrame(()=>requestAnimationFrame(()=>modalOverlay.classList.add('visible')));renderModal()}
 function closeModal(){modalOpen=false;modalOverlay.classList.remove('visible');setTimeout(()=>modalOverlay.classList.remove('show'),320)}

@@ -25,9 +25,9 @@ Campo: <select id="kind"></select><br>
 <div id="status">El título se dibuja como polígono siguiendo el arco del cartel; el resto son áreas</div>
 <script>
 const NS='http://www.w3.org/2000/svg';
-const KINDS=['title','content','buttonLeft','buttonRight'];
-const LABELS={title:'TÍTULO (arco)',content:'CONTENIDO',buttonLeft:'BOTÓN IZQ',buttonRight:'BOTÓN DER'};
-const SELECT_LABELS={title:'Título arqueado',content:'Texto contenido',buttonLeft:'Texto botón izq',buttonRight:'Texto botón der'};
+const KINDS=['title','content','buttonLeft','buttonRight','buttonLeftBorder','buttonRightBorder'];
+const LABELS={title:'TÍTULO (arco)',content:'CONTENIDO',buttonLeft:'BOTÓN IZQ',buttonRight:'BOTÓN DER',buttonLeftBorder:'BORDE SEL IZQ',buttonRightBorder:'BORDE SEL DER'};
+const SELECT_LABELS={title:'Título arqueado',content:'Texto contenido',buttonLeft:'Texto botón izq',buttonRight:'Texto botón der',buttonLeftBorder:'Borde selección izq',buttonRightBorder:'Borde selección der'};
 const img=document.getElementById('image'),overlay=document.getElementById('overlay'),svg=document.getElementById('draw'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status'),saveBtn=document.getElementById('save-btn'),loadBtn=document.getElementById('load-btn');
 let kind='title';
 let areas={};KINDS.forEach(k=>areas[k]=k==='title'?{polygon:[],fontScale:1}:{x:.3,y:.3,w:.4,h:.15,fontScale:1});
@@ -39,33 +39,25 @@ function imageRect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,heig
 function norm(x,y){const r=imageRect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}
 function px(a){const r=imageRect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
 function pxPt(p){const r=imageRect();return[(r.left+p[0]*r.width).toFixed(2),(r.top+p[1]*r.height).toFixed(2)]}
-function textFor(k){return k==='title'?tt('menu.settings'):k==='content'?tt('instructions.story1'):k==='buttonLeft'?tt('menu.exit'):tt('menu.continue')}
+function textFor(k){return k==='title'?tt('modal.confirmTitle'):k==='content'?tt('modal.confirmBody'):k==='buttonLeft'?tt('modal.confirmNo'):k==='buttonRight'?tt('modal.confirmYes'):''}
 
-// Ajuste de circunferencia por minimos cuadrados sobre los puntos del poligono
-function fitCircle(pts){
-  let sx=0,sy=0,sxx=0,sxy=0,syy=0,sxz=0,syz=0,sz=0;const n=pts.length;
-  for(const p of pts){const x=p[0],y=p[1],z=x*x+y*y;sx+=x;sy+=y;sxx+=x*x;sxy+=x*y;syy+=y*y;sxz+=x*z;syz+=y*z;sz+=z}
-  // |sxx sxy sx| |D|   |sxz|
-  // |sxy syy sy| |E| = |syz|
-  // |sx  sy  n | |F|   |sz |
-  const m=[[sxx,sxy,sx,sxz],[sxy,syy,sy,syz],[sx,sy,n,sz]];
-  for(let c=0;c<3;c++){let piv=c;for(let r2=c+1;r2<3;r2++)if(Math.abs(m[r2][c])>Math.abs(m[piv][c]))piv=r2;[m[c],m[piv]]=[m[piv],m[c]];const d=m[c][c];if(Math.abs(d)<1e-12)return null;for(let j=c;j<4;j++)m[c][j]/=d;for(let r2=0;r2<3;r2++){if(r2===c)continue;const f=m[r2][c];for(let j=c;j<4;j++)m[r2][j]-=f*m[c][j]}}
-  const D=m[0][3],E=m[1][3],F=m[2][3],cx=-D/2,cy=-E/2,r=Math.sqrt(Math.max(0,(D*D+E*E)/4-F));
-  return{cx,cy,r};
-}
-function arcPath(poly,r){
-  const fit=fitCircle(poly);if(!fit||!isFinite(fit.r)||fit.r<=0)return null;
-  const angs=poly.map(p=>Math.atan2(p[1]-fit.cy,p[0]-fit.cx));
-  const a1=Math.min(...angs),a2=Math.max(...angs);
-  // sentido: queremos el arco que pasa por el punto medio angular del poligono
-  const am=(a1+a2)/2,span=a2-a1;
-  const x1=fit.cx+fit.r*Math.cos(a1),y1=fit.cy+fit.r*Math.sin(a1),x2=fit.cx+fit.r*Math.cos(a2),y2=fit.cy+fit.r*Math.sin(a2);
-  const toPx=v=>({x:r.left+v.x*r.width,y:r.top+v.y*r.height});
-  const p1=toPx({x:x1,y:y1}),p2=toPx({x:x2,y:y2});
-  const rpx=fit.r*r.width;
-  const large=span>Math.PI?1:0;
-  // sweep 1 = clockwise (arco por la parte alta si el centro esta debajo)
-  return{d:`M ${p1.x} ${p1.y} A ${rpx} ${rpx} 0 ${large} 1 ${p2.x} ${p2.y}`,fit,midAngle:am};
+
+// Curva del titulo: linea media del poligono (funciona con contorno cerrado del
+// cartel o con un arco abierto). Devuelve {d, bandH} en px.
+function curvePath(poly,offX,offY,W,H){
+  if(!poly||poly.length<2)return null;
+  const pts=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length];for(let t=0;t<400;t++){const u=t/400;pts.push([a[0]+(b[0]-a[0])*u,a[1]+(b[1]-a[1])*u])}}
+  const buckets=new Map();
+  for(const p of pts){const k=Math.round(p[0]*160);if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(p[1])}
+  const sorted=[...buckets].sort((a,b)=>a[0]-b[0]);
+  const thicks=sorted.map(([,ys])=>Math.max(...ys)-Math.min(...ys));
+  const avgT=thicks.reduce((s,v)=>s+v,0)/thicks.length;
+  let mid;
+  if(avgT<0.008){mid=poly.slice();if(mid[0][0]>mid[mid.length-1][0])mid.reverse()}
+  else mid=sorted.map(([k,ys])=>[k/160,(Math.min(...ys)+Math.max(...ys))/2]);
+  if(mid.length<2)return null;
+  const d='M '+mid.map(p=>`${(offX+p[0]*W).toFixed(1)} ${(offY+p[1]*H).toFixed(1)}`).join(' L ');
+  return{d,bandH:Math.max(avgT,.05)};
 }
 
 function render(){
@@ -75,13 +67,12 @@ function render(){
     if(k==='title'){
       if(a.polygon.length>=3){
         const el=document.createElementNS(NS,'polygon');el.setAttribute('points',a.polygon.map(pxPt).map(p=>p.join(',')).join(' '));el.setAttribute('class',active?'selected':'poly');svg.appendChild(el);
-        const ys=a.polygon.map(p=>p[1]),bandH=(Math.max(...ys)-Math.min(...ys))*r.height;
-        const arc=arcPath(a.polygon,r);
+        const arc=curvePath(a.polygon,r.left,r.top,r.width,r.height);
         if(arc){
           const pid='arc-'+k;const path=document.createElementNS(NS,'path');path.setAttribute('d',arc.d);path.setAttribute('id',pid);path.setAttribute('fill','none');
           const defs=document.createElementNS(NS,'defs');defs.appendChild(path);svg.appendChild(defs);
           const tx=document.createElementNS(NS,'text');const tp=document.createElementNS(NS,'textPath');tp.setAttribute('href','#'+pid);tp.setAttribute('startOffset','50%');tp.setAttribute('text-anchor','middle');tp.textContent=textFor(k);
-          let fs=Math.max(10,bandH*.62*(a.fontScale||1));
+          let fs=Math.max(10,arc.bandH*r.height*.62*(a.fontScale||1));
           tx.setAttribute('font-size',fs);tx.appendChild(tp);svg.appendChild(tx);
         }
       }
