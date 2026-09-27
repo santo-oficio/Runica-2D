@@ -421,7 +421,7 @@
         textDiv.style.display = 'flex';
         textDiv.style.alignItems = 'center';
         textDiv.style.justifyContent = 'center';
-        const fontSize = textBBox.h * r.height * 0.8;
+        const fontSize = textBBox.h * r.height * 0.72;
         textDiv.style.fontSize = fontSize + 'px';
         const str = t(I18N_KEYS[i] || b.label);
         if (b.textPolygon && b.textPolygon.length >= 4) {
@@ -430,6 +430,7 @@
                 p2 = b.textPolygon[2], p3 = b.textPolygon[3];
           const baseAng = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
           const N = str.length;
+          const slotW = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) * r.width / Math.max(1, N);
           for (let k = 0; k < N; k++) {
             const ch = str[k];
             if (ch === ' ') continue;
@@ -446,11 +447,13 @@
             span.style.left = (((cx - textBBox.x) / textBBox.w) * 100) + '%';
             span.style.top = (((cy - textBBox.y) / textBBox.h) * 100) + '%';
             span.style.transform = 'translate(-50%, -50%) rotate(' + baseAng + 'rad)';
-            span.style.fontSize = (lh * r.height * 0.85) + 'px';
+            span.style.fontSize = Math.min(lh * r.height * 0.72, slotW * 1.4) + 'px';
             textDiv.appendChild(span);
           }
         } else {
           textDiv.textContent = str;
+          let fs = fontSize;
+          while (fs > 6 && textDiv.scrollWidth > textDiv.clientWidth + 1) { fs -= 1; textDiv.style.fontSize = fs + 'px'; }
           const btnRot = (b.rect && b.rect.angle) ? b.rect.angle : 0;
           const textAngle = (textBBox.angle || 0) - btnRot;
           if (Math.abs(textAngle) > 0.0001) {
