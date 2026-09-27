@@ -258,7 +258,7 @@
 
   let translations = {};
   let fallback = {};
-  let selectedIdx = 0;
+  let selectedIdx = 0, hoveredIdx = -1, selVisible = false;
   // "Continuar" (indice 1) solo activo si hay partida empezada en la bbdd
   let hasSave = false;
   const CONTINUE_IDX = 1;
@@ -338,9 +338,10 @@
     borders.setAttribute('viewBox', '0 0 ' + window.innerWidth + ' ' + window.innerHeight);
     borders.innerHTML = '';
     BUTTONS.forEach((b, i) => {
-      const isSel = i === selectedIdx;
-      const stroke = isSel ? '#ffd860' : 'rgba(255, 216, 96, 0.55)';
-      const sw = isSel ? 3.5 : 2;
+      const isSel = (selVisible && i === selectedIdx) || i === hoveredIdx;
+      if (!isSel) return;
+      const stroke = '#ffd860';
+      const sw = 3.5;
       if (b.polygon && b.polygon.length >= 3 && !b.rect) {
         const pts = b.polygon.map(p =>
           (r.left + p[0] * r.width) + ',' + (r.top + p[1] * r.height)
@@ -380,7 +381,7 @@
       const btnBBox = areaBBox(b.rect, b.polygon);
       if (!btnBBox) return;
       const div = document.createElement('div');
-      div.className = 'btn' + (i === selectedIdx ? ' active' : '')
+      div.className = 'btn' + (i === selectedIdx && selVisible ? ' active' : '')
         + (i === CONTINUE_IDX && !hasSave ? ' disabled' : '');
       div.style.left = (r.left + btnBBox.x * r.width) + 'px';
       div.style.top = (r.top + btnBBox.y * r.height) + 'px';
@@ -461,7 +462,10 @@
       }
 
       div.addEventListener('mouseenter', () => {
-        selectedIdx = i; updateActive(); playMove();
+        hoveredIdx = i; selectedIdx = i; updateActive(); playMove();
+      });
+      div.addEventListener('mouseleave', () => {
+        if (hoveredIdx === i) { hoveredIdx = -1; updateActive(); }
       });
       div.addEventListener('click', () => {
         selectedIdx = i; updateActive(); playSelect(); activate(i);
@@ -475,7 +479,7 @@
 
   function updateActive() {
     overlay.querySelectorAll('.btn').forEach((el, i) => {
-      el.classList.toggle('active', i === selectedIdx);
+      el.classList.toggle('active', selVisible && i === selectedIdx);
     });
     renderBorders();
   }
@@ -508,7 +512,7 @@
       let next = selectedIdx;
       do { next = (next + dir + BUTTONS.length) % BUTTONS.length; }
       while (next === CONTINUE_IDX && !hasSave && next !== selectedIdx);
-      selectedIdx = next; updateActive(); playMove();
+      selectedIdx = next; selVisible = true; updateActive(); playMove();
     } else if (e.key === 'Enter') {
       e.preventDefault(); playSelect(); activate(selectedIdx);
     } else if (e.key === 'a' || e.key === 'A') { glowX = Math.max(0, glowX - 2); applyGlow(); }

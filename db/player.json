@@ -1,0 +1,13 @@
+{
+  "player": {
+    "playerId": "player-1",
+    "currentWorld": 1,
+    "currentSubLevel": 1,
+    "totalStagesCompleted": 0,
+    "updatedAt": 1790517333297,
+    "started": true,
+    "playerName": "GQ",
+    "avatarIndex": 0
+  },
+  "assignments": {}
+}
