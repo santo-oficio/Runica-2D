@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calibrar modal</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px Arial,sans-serif}#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}#image{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block}#overlay{position:absolute;inset:0;pointer-events:none;z-index:2}#draw{position:absolute;inset:0;pointer-events:none;z-index:3}#hud{position:absolute;z-index:5;top:10px;left:10px;padding:12px;background:rgba(0,0,0,.88);border:1px solid #789;border-radius:6px;max-width:330px}#hud .key{color:#ffd54f}#hud select,#hud button{width:100%;margin:3px 0;padding:7px;background:#17212b;color:#fff;border:1px solid #789;border-radius:4px;cursor:pointer}#hud button:hover{border-color:#0ff}#status{position:absolute;z-index:5;bottom:12px;left:50%;transform:translateX(-50%);padding:7px 14px;background:rgba(0,0,0,.88);border-radius:4px;color:#9de}.ok{color:#7f7}.area{position:absolute;border:2px dashed #4af;background:rgba(0,120,255,.08)}.area.active{border-color:#0ff;background:rgba(0,255,255,.12)}.area label{position:absolute;top:-18px;left:0;font-size:11px;color:#4af;background:rgba(0,0,0,.7);padding:0 4px}.area.active label{color:#0ff}.preview{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:MedievalSharp,'ChelseaMarket',cursive;color:#f4e3b2;text-align:center;line-height:1.25;pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.7)}.preview.active{outline:1px dotted #0ff}#draw polygon.poly{fill:rgba(255,210,60,.1);stroke:#ffd54f;stroke-width:3}#draw polygon.selected{fill:rgba(0,220,255,.16);stroke:#0ff;stroke-width:4}#draw polyline{fill:rgba(0,220,255,.12);stroke:#0ff;stroke-width:4;stroke-dasharray:8 5}#draw text{font-family:MedievalSharp,'ChelseaMarket',cursive;fill:#ffe9b0;paint-order:stroke;stroke:rgba(60,30,10,.65);stroke-width:2px}
+</style>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+</head>
+<body>
+<div id="stage"><img id="image" src="/assets/comunes/modal.webp?v=modal8k-1" alt=""><div id="overlay"></div><svg id="draw"></svg></div>
+<div id="hud"><b>Calibrar textos del modal</b><br>
+Campo: <select id="kind"></select><br>
+<span class="key">Arrastrar</span> = área rectangular<br>
+<span class="key">Clic×N + doble clic</span> = polígono (TÍTULO)<br>
+<span class="key">Flechas</span> = mover · <span class="key">Shift</span> fino · <span class="key">Ctrl</span> ultra-fino<br>
+<span class="key">+ / -</span> tamaño · <span class="key">Q/E</span> solo ancho · <span class="key">Z/X</span> solo alto<br>
+<span class="key">, / .</span> tamaño del texto (relativo)<br>
+<span class="key">Tab</span> = siguiente campo · <span class="key">Z</span> deshacer punto · <span class="key">Esc</span> cancelar<br>
+<span class="key">G</span> guardar · <span class="key">C</span> cargar<br>
+<button id="save-btn">Guardar</button><button id="load-btn">Cargar</button><br>
+<span id="coords" style="color:#0f0"></span></div>
+<div id="status">El título se dibuja como polígono siguiendo el arco del cartel; el resto son áreas</div>
+<script>
+const NS='http://www.w3.org/2000/svg';
+const KINDS=['title','content','buttonLeft','buttonRight'];
+const LABELS={title:'TÍTULO (arco)',content:'CONTENIDO',buttonLeft:'BOTÓN IZQ',buttonRight:'BOTÓN DER'};
+const SELECT_LABELS={title:'Título arqueado',content:'Texto contenido',buttonLeft:'Texto botón izq',buttonRight:'Texto botón der'};
+const img=document.getElementById('image'),overlay=document.getElementById('overlay'),svg=document.getElementById('draw'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status'),saveBtn=document.getElementById('save-btn'),loadBtn=document.getElementById('load-btn');
+let kind='title';
+let areas={};KINDS.forEach(k=>areas[k]=k==='title'?{polygon:[],fontScale:1}:{x:.3,y:.3,w:.4,h:.15,fontScale:1});
+let drawing=[],dragging=false,start=null,current=null,dragEl=null;
+let T={};function tt(key){return T[key]??key}
+async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
+KINDS.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=SELECT_LABELS[k];kindSelect.appendChild(o)});
+function imageRect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,height=w/ratio;if(height>h){height=h;width=h*ratio}return{left:(w-width)/2,top:(h-height)/2,width,height,right:(w+width)/2,bottom:(h+height)/2}}
+function norm(x,y){const r=imageRect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}
+function px(a){const r=imageRect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
+function pxPt(p){const r=imageRect();return[(r.left+p[0]*r.width).toFixed(2),(r.top+p[1]*r.height).toFixed(2)]}
+function textFor(k){return k==='title'?tt('menu.settings'):k==='content'?tt('instructions.story1'):k==='buttonLeft'?tt('menu.exit'):tt('menu.continue')}
+
+// Ajuste de circunferencia por minimos cuadrados sobre los puntos del poligono
+function fitCircle(pts){
+  let sx=0,sy=0,sxx=0,sxy=0,syy=0,sxz=0,syz=0,sz=0;const n=pts.length;
+  for(const p of pts){const x=p[0],y=p[1],z=x*x+y*y;sx+=x;sy+=y;sxx+=x*x;sxy+=x*y;syy+=y*y;sxz+=x*z;syz+=y*z;sz+=z}
+  // |sxx sxy sx| |D|   |sxz|
+  // |sxy syy sy| |E| = |syz|
+  // |sx  sy  n | |F|   |sz |
+  const m=[[sxx,sxy,sx,sxz],[sxy,syy,sy,syz],[sx,sy,n,sz]];
+  for(let c=0;c<3;c++){let piv=c;for(let r2=c+1;r2<3;r2++)if(Math.abs(m[r2][c])>Math.abs(m[piv][c]))piv=r2;[m[c],m[piv]]=[m[piv],m[c]];const d=m[c][c];if(Math.abs(d)<1e-12)return null;for(let j=c;j<4;j++)m[c][j]/=d;for(let r2=0;r2<3;r2++){if(r2===c)continue;const f=m[r2][c];for(let j=c;j<4;j++)m[r2][j]-=f*m[c][j]}}
+  const D=m[0][3],E=m[1][3],F=m[2][3],cx=-D/2,cy=-E/2,r=Math.sqrt(Math.max(0,(D*D+E*E)/4-F));
+  return{cx,cy,r};
+}
+function arcPath(poly,r){
+  const fit=fitCircle(poly);if(!fit||!isFinite(fit.r)||fit.r<=0)return null;
+  const angs=poly.map(p=>Math.atan2(p[1]-fit.cy,p[0]-fit.cx));
+  const a1=Math.min(...angs),a2=Math.max(...angs);
+  // sentido: queremos el arco que pasa por el punto medio angular del poligono
+  const am=(a1+a2)/2,span=a2-a1;
+  const x1=fit.cx+fit.r*Math.cos(a1),y1=fit.cy+fit.r*Math.sin(a1),x2=fit.cx+fit.r*Math.cos(a2),y2=fit.cy+fit.r*Math.sin(a2);
+  const toPx=v=>({x:r.left+v.x*r.width,y:r.top+v.y*r.height});
+  const p1=toPx({x:x1,y:y1}),p2=toPx({x:x2,y:y2});
+  const rpx=fit.r*r.width;
+  const large=span>Math.PI?1:0;
+  // sweep 1 = clockwise (arco por la parte alta si el centro esta debajo)
+  return{d:`M ${p1.x} ${p1.y} A ${rpx} ${rpx} 0 ${large} 1 ${p2.x} ${p2.y}`,fit,midAngle:am};
+}
+
+function render(){
+  const r=imageRect();overlay.innerHTML='';svg.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);svg.setAttribute('width',innerWidth);svg.setAttribute('height',innerHeight);svg.innerHTML='';
+  for(const k of KINDS){
+    const a=areas[k],active=k===kind;
+    if(k==='title'){
+      if(a.polygon.length>=3){
+        const el=document.createElementNS(NS,'polygon');el.setAttribute('points',a.polygon.map(pxPt).map(p=>p.join(',')).join(' '));el.setAttribute('class',active?'selected':'poly');svg.appendChild(el);
+        const ys=a.polygon.map(p=>p[1]),bandH=(Math.max(...ys)-Math.min(...ys))*r.height;
+        const arc=arcPath(a.polygon,r);
+        if(arc){
+          const pid='arc-'+k;const path=document.createElementNS(NS,'path');path.setAttribute('d',arc.d);path.setAttribute('id',pid);path.setAttribute('fill','none');
+          const defs=document.createElementNS(NS,'defs');defs.appendChild(path);svg.appendChild(defs);
+          const tx=document.createElementNS(NS,'text');const tp=document.createElementNS(NS,'textPath');tp.setAttribute('href','#'+pid);tp.setAttribute('startOffset','50%');tp.setAttribute('text-anchor','middle');tp.textContent=textFor(k);
+          let fs=Math.max(10,bandH*.62*(a.fontScale||1));
+          tx.setAttribute('font-size',fs);tx.appendChild(tp);svg.appendChild(tx);
+        }
+      }
+      continue;
+    }
+    const p=px(a);
+    const box=document.createElement('div');box.className='area'+(active?' active':'');box.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;const label=document.createElement('label');label.textContent=LABELS[k];box.appendChild(label);overlay.appendChild(box);
+    const preview=document.createElement('div');preview.className='preview'+(active?' active':'');preview.textContent=textFor(k);preview.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;overlay.appendChild(preview);
+    let fs=Math.max(12,p.h*.62*(a.fontScale||1));preview.style.fontSize=fs+'px';while((preview.scrollWidth>p.w+1||preview.scrollHeight>p.h+1)&&fs>6){fs--;preview.style.fontSize=fs+'px'}
+  }
+  if(drawing.length){const line=document.createElementNS(NS,'polyline');line.setAttribute('points',drawing.map(pxPt).map(p=>p.join(',')).join(' '));svg.appendChild(line)}
+  updateCoords();
+}
+function updateCoords(){const a=areas[kind];if(kind==='title'){coords.textContent=`MODAL · ${LABELS[kind]} · ${a.polygon.length} puntos · texto:×${(a.fontScale||1).toFixed(2)}`}else{coords.textContent=`MODAL · ${LABELS[kind]} x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)} · texto:×${(a.fontScale||1).toFixed(2)}`}}
+kindSelect.onchange=(e)=>{kind=e.target.value;e.target.blur();drawing=[];render()};
+document.addEventListener('mousedown',e=>{const r=imageRect();if(e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;if(kind==='title')return;dragging=true;start=norm(e.clientX,e.clientY);current={x:start.x,y:start.y,w:0,h:0};dragEl=document.createElement('div');dragEl.className='area active';overlay.appendChild(dragEl);e.preventDefault()});
+document.addEventListener('mousemove',e=>{if(!dragging)return;const p=norm(e.clientX,e.clientY);current={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};if(dragEl){const q=px(current);dragEl.style.cssText=`left:${q.x}px;top:${q.y}px;width:${q.w}px;height:${q.h}px`}});
+document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;if(current&&current.w>0.002&&current.h>0.002)areas[kind]={...current,fontScale:areas[kind].fontScale||1};current=null;dragEl=null;render()});
+document.addEventListener('click',e=>{const r=imageRect();if(kind!=='title'||e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;const p=norm(e.clientX,e.clientY);if(drawing.length>=3&&Math.hypot(p.x-drawing[0][0],p.y-drawing[0][1])<.018){close();return}drawing.push([p.x,p.y]);render()});
+document.addEventListener('dblclick',e=>{e.preventDefault();if(kind==='title'&&drawing.length>=3)close()});
+function close(){if(drawing.length<3)return;areas.title.polygon=drawing.map(p=>[...p]);drawing=[];render();status.innerHTML='<span class="ok">Polígono del título cerrado. G para guardar.</span>'}
+function moveField(dx,dy,step){const a=areas[kind];if(kind==='title'&&a.polygon.length){a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,p[0]+dx*step)),Math.max(0,Math.min(1,p[1]+dy*step))])}else if(kind!=='title'){a.x=Math.max(0,Math.min(1-a.w,a.x+dx*step));a.y=Math.max(0,Math.min(1-a.h,a.y+dy*step))}render()}
+function resizeField(dw,dh){const a=areas[kind];if(kind==='title'&&a.polygon.length){const cx=a.polygon.reduce((s,p)=>s+p[0],0)/a.polygon.length,cy=a.polygon.reduce((s,p)=>s+p[1],0)/a.polygon.length;a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,cx+(p[0]-cx)*(1+dw))),Math.max(0,Math.min(1,cy+(p[1]-cy)*(1+dh)))])}else if(kind!=='title'){const cx=a.x+a.w/2,cy=a.y+a.h/2;a.w=Math.max(.01,Math.min(1,a.w+dw));a.h=Math.max(.005,Math.min(1,a.h+dh));a.x=Math.max(0,Math.min(1-a.w,cx-a.w/2));a.y=Math.max(0,Math.min(1-a.h,cy-a.h/2))}render()}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){drawing=[];render();return}
+  if((e.key==='z'||e.key==='Z')&&!e.ctrlKey&&!e.shiftKey&&drawing.length){drawing.pop();render();return}
+  const step=e.ctrlKey?.0002:e.shiftKey?.001:.01;
+  const fstep=e.ctrlKey?1.002:e.shiftKey?1.01:1.05;
+  const a=areas[kind];
+  switch(e.key){
+    case 'ArrowLeft':moveField(-1,0,step);e.preventDefault();break;
+    case 'ArrowRight':moveField(1,0,step);e.preventDefault();break;
+    case 'ArrowUp':moveField(0,-1,step);e.preventDefault();break;
+    case 'ArrowDown':moveField(0,1,step);e.preventDefault();break;
+    case '+':case '=':resizeField(step*1.5,step*1.5);e.preventDefault();break;
+    case '-':resizeField(-step*1.5,-step*1.5);e.preventDefault();break;
+    case 'q':case 'Q':resizeField(-step*1.5,0);e.preventDefault();break;
+    case 'e':case 'E':resizeField(step*1.5,0);e.preventDefault();break;
+    case 'z':case 'Z':resizeField(0,-step*1.5);e.preventDefault();break;
+    case 'x':case 'X':resizeField(0,step*1.5);e.preventDefault();break;
+    case ',':a.fontScale=(a.fontScale||1)/fstep;render();e.preventDefault();break;
+    case '.':a.fontScale=(a.fontScale||1)*fstep;render();e.preventDefault();break;
+    case 'Tab':{const i=KINDS.indexOf(kind);kind=KINDS[(i+1)%KINDS.length];kindSelect.value=kind;drawing=[];render();e.preventDefault();break}
+    case 'g':case 'G':save();e.preventDefault();break;
+    case 'c':case 'C':load();e.preventDefault();break;
+  }
+});
+async function save(){try{const r=await fetch('/api/save-modal-areas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coordinateSpace:'image-content',areas},null,2)});if(!r.ok)throw new Error('HTTP '+r.status);const i=KINDS.indexOf(kind);status.innerHTML='<span class="ok">Guardado</span>'}catch(err){status.textContent='Error al guardar: '+err.message}}
+async function load(){try{const r=await fetch('/api/load-modal-areas');if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(d.areas){KINDS.forEach(k=>{if(d.areas[k])areas[k]={...areas[k],...d.areas[k]}})}drawing=[];render();status.innerHTML='<span class="ok">Cargado</span>'}catch(err){status.textContent='No hay calibración guardada'}}
+saveBtn.onclick=save;loadBtn.onclick=load;
+window.addEventListener('resize',render);
+loadI18n().then(()=>{load().catch(()=>{});render()});
+img.onload=render;
+</script>
+</body>
+</html>

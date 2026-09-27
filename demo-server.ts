@@ -528,6 +528,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: guardar areas de texto del modal (POST /api/save-modal-areas)
+  if (url === "/api/save-modal-areas" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "comunes", "modal-areas.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar areas de texto del modal (GET /api/load-modal-areas)
+  if (url === "/api/load-modal-areas") {
+    const loadPath = join(ROOT, "assets", "comunes", "modal-areas.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
   // API: guardar botones del menu (POST /api/save-menu-buttons)
   if (url === "/api/save-menu-buttons" && req.method === "POST") {
     let body = "";

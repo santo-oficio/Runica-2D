@@ -29,6 +29,12 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 |---|---|---|
 | http://localhost:3000/calibrate-creditos.html | Texto título + texto créditos (previews i18n, fuente auto-ajustada) + botón atrás redondo `{cx,cy,r}` (tecla B) | `assets/creditos/creditos-areas.json` |
 
+## Modal (común)
+
+| URL | Qué calibra | Datos |
+|---|---|---|
+| http://localhost:3000/calibrate-modal.html | Textos del modal: `title` (**polígono** siguiendo el arco del cartel — el texto se previsualiza curvado sobre la circunferencia ajustada), `content`, `buttonLeft`, `buttonRight` (rectángulos). Mismas teclas que el resto de calibradores | `assets/comunes/modal-areas.json` |
+
 ## Menú principal
 
 | URL | Qué calibra | Datos |

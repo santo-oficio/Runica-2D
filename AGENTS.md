@@ -73,6 +73,7 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-instructions.html` | `assets/instrucciones/instructions-areas.json` |
 | `calibrate-creditos.html` | `assets/creditos/creditos-areas.json` (título + créditos + botón atrás circular) |
 | `calibrate-mapamundi-text.html` | `assets/mapamundi/text-areas.json` |
+| `calibrate-modal.html` | `assets/comunes/modal-areas.json` (`title` = polígono sobre el arco del cartel + `content`/`buttonLeft`/`buttonRight` rectángulos) |
 
 ### `calibrate-board-sprites.html` — sprites + áreas
 
