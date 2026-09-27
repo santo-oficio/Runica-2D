@@ -421,7 +421,7 @@
         textDiv.style.display = 'flex';
         textDiv.style.alignItems = 'center';
         textDiv.style.justifyContent = 'center';
-        const fontSize = textBBox.h * r.height * 0.72;
+        const fontSize = textBBox.h * r.height * 0.65;
         textDiv.style.fontSize = fontSize + 'px';
         const str = t(I18N_KEYS[i] || b.label);
         if (b.textPolygon && b.textPolygon.length >= 4) {
@@ -447,7 +447,7 @@
             span.style.left = (((cx - textBBox.x) / textBBox.w) * 100) + '%';
             span.style.top = (((cy - textBBox.y) / textBBox.h) * 100) + '%';
             span.style.transform = 'translate(-50%, -50%) rotate(' + baseAng + 'rad)';
-            span.style.fontSize = Math.min(lh * r.height * 0.72, slotW * 1.4) + 'px';
+            span.style.fontSize = Math.min(lh * r.height * 0.72, slotW * 1.9) + 'px';
             textDiv.appendChild(span);
           }
         } else {
