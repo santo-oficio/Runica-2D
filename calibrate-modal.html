@@ -14,7 +14,7 @@
 <div id="hud"><b>Calibrar textos del modal</b><br>
 Campo: <select id="kind"></select><br>
 <span class="key">Arrastrar</span> = área rectangular<br>
-<span class="key">Clic×N + doble clic</span> = polígono (TÍTULO)<br>
+<span class="key">Clic×N + doble clic</span> = polígono (TÍTULO y BORDES)<br>
 <span class="key">Flechas</span> = mover · <span class="key">Shift</span> fino · <span class="key">Ctrl</span> ultra-fino<br>
 <span class="key">+ / -</span> tamaño · <span class="key">Q/E</span> solo ancho · <span class="key">Z/X</span> solo alto<br>
 <span class="key">, / .</span> tamaño del texto (relativo)<br>
@@ -29,8 +29,10 @@ const KINDS=['title','content','buttonLeft','buttonRight','buttonLeftBorder','bu
 const LABELS={title:'TÍTULO (arco)',content:'CONTENIDO',buttonLeft:'BOTÓN IZQ',buttonRight:'BOTÓN DER',buttonLeftBorder:'BORDE SEL IZQ',buttonRightBorder:'BORDE SEL DER'};
 const SELECT_LABELS={title:'Título arqueado',content:'Texto contenido',buttonLeft:'Texto botón izq',buttonRight:'Texto botón der',buttonLeftBorder:'Borde selección izq',buttonRightBorder:'Borde selección der'};
 const img=document.getElementById('image'),overlay=document.getElementById('overlay'),svg=document.getElementById('draw'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status'),saveBtn=document.getElementById('save-btn'),loadBtn=document.getElementById('load-btn');
+const POLY_KINDS=['title','buttonLeftBorder','buttonRightBorder'];
+const isPoly=k=>POLY_KINDS.includes(k);
 let kind='title';
-let areas={};KINDS.forEach(k=>areas[k]=k==='title'?{polygon:[],fontScale:1}:{x:.3,y:.3,w:.4,h:.15,fontScale:1});
+let areas={};KINDS.forEach(k=>areas[k]=isPoly(k)?{polygon:[],fontScale:1}:{x:.3,y:.3,w:.4,h:.15,fontScale:1});
 let drawing=[],dragging=false,start=null,current=null,dragEl=null;
 let T={};function tt(key){return T[key]??key}
 async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
@@ -64,9 +66,10 @@ function render(){
   const r=imageRect();overlay.innerHTML='';svg.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);svg.setAttribute('width',innerWidth);svg.setAttribute('height',innerHeight);svg.innerHTML='';
   for(const k of KINDS){
     const a=areas[k],active=k===kind;
-    if(k==='title'){
+    if(isPoly(k)){
       if(a.polygon.length>=3){
         const el=document.createElementNS(NS,'polygon');el.setAttribute('points',a.polygon.map(pxPt).map(p=>p.join(',')).join(' '));el.setAttribute('class',active?'selected':'poly');svg.appendChild(el);
+        if(k!=='title')continue;
         const arc=curvePath(a.polygon,r.left,r.top,r.width,r.height);
         if(arc){
           const pid='arc-'+k;const path=document.createElementNS(NS,'path');path.setAttribute('d',arc.d);path.setAttribute('id',pid);path.setAttribute('fill','none');
@@ -86,16 +89,16 @@ function render(){
   if(drawing.length){const line=document.createElementNS(NS,'polyline');line.setAttribute('points',drawing.map(pxPt).map(p=>p.join(',')).join(' '));svg.appendChild(line)}
   updateCoords();
 }
-function updateCoords(){const a=areas[kind];if(kind==='title'){coords.textContent=`MODAL · ${LABELS[kind]} · ${a.polygon.length} puntos · texto:×${(a.fontScale||1).toFixed(2)}`}else{coords.textContent=`MODAL · ${LABELS[kind]} x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)} · texto:×${(a.fontScale||1).toFixed(2)}`}}
+function updateCoords(){const a=areas[kind];if(isPoly(kind)){coords.textContent=`MODAL · ${LABELS[kind]} · ${a.polygon.length} puntos · texto:×${(a.fontScale||1).toFixed(2)}`}else{coords.textContent=`MODAL · ${LABELS[kind]} x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)} · texto:×${(a.fontScale||1).toFixed(2)}`}}
 kindSelect.onchange=(e)=>{kind=e.target.value;e.target.blur();drawing=[];render()};
-document.addEventListener('mousedown',e=>{const r=imageRect();if(e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;if(kind==='title')return;dragging=true;start=norm(e.clientX,e.clientY);current={x:start.x,y:start.y,w:0,h:0};dragEl=document.createElement('div');dragEl.className='area active';overlay.appendChild(dragEl);e.preventDefault()});
+document.addEventListener('mousedown',e=>{const r=imageRect();if(e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;if(isPoly(kind))return;dragging=true;start=norm(e.clientX,e.clientY);current={x:start.x,y:start.y,w:0,h:0};dragEl=document.createElement('div');dragEl.className='area active';overlay.appendChild(dragEl);e.preventDefault()});
 document.addEventListener('mousemove',e=>{if(!dragging)return;const p=norm(e.clientX,e.clientY);current={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};if(dragEl){const q=px(current);dragEl.style.cssText=`left:${q.x}px;top:${q.y}px;width:${q.w}px;height:${q.h}px`}});
 document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;if(current&&current.w>0.002&&current.h>0.002)areas[kind]={...current,fontScale:areas[kind].fontScale||1};current=null;dragEl=null;render()});
-document.addEventListener('click',e=>{const r=imageRect();if(kind!=='title'||e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;const p=norm(e.clientX,e.clientY);if(drawing.length>=3&&Math.hypot(p.x-drawing[0][0],p.y-drawing[0][1])<.018){close();return}drawing.push([p.x,p.y]);render()});
-document.addEventListener('dblclick',e=>{e.preventDefault();if(kind==='title'&&drawing.length>=3)close()});
-function close(){if(drawing.length<3)return;areas.title.polygon=drawing.map(p=>[...p]);drawing=[];render();status.innerHTML='<span class="ok">Polígono del título cerrado. G para guardar.</span>'}
-function moveField(dx,dy,step){const a=areas[kind];if(kind==='title'&&a.polygon.length){a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,p[0]+dx*step)),Math.max(0,Math.min(1,p[1]+dy*step))])}else if(kind!=='title'){a.x=Math.max(0,Math.min(1-a.w,a.x+dx*step));a.y=Math.max(0,Math.min(1-a.h,a.y+dy*step))}render()}
-function resizeField(dw,dh){const a=areas[kind];if(kind==='title'&&a.polygon.length){const cx=a.polygon.reduce((s,p)=>s+p[0],0)/a.polygon.length,cy=a.polygon.reduce((s,p)=>s+p[1],0)/a.polygon.length;a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,cx+(p[0]-cx)*(1+dw))),Math.max(0,Math.min(1,cy+(p[1]-cy)*(1+dh)))])}else if(kind!=='title'){const cx=a.x+a.w/2,cy=a.y+a.h/2;a.w=Math.max(.01,Math.min(1,a.w+dw));a.h=Math.max(.005,Math.min(1,a.h+dh));a.x=Math.max(0,Math.min(1-a.w,cx-a.w/2));a.y=Math.max(0,Math.min(1-a.h,cy-a.h/2))}render()}
+document.addEventListener('click',e=>{const r=imageRect();if(!isPoly(kind)||e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;const p=norm(e.clientX,e.clientY);if(drawing.length>=3&&Math.hypot(p.x-drawing[0][0],p.y-drawing[0][1])<.018){close();return}drawing.push([p.x,p.y]);render()});
+document.addEventListener('dblclick',e=>{e.preventDefault();if(isPoly(kind)&&drawing.length>=3)close()});
+function close(){if(drawing.length<3)return;areas[kind].polygon=drawing.map(p=>[...p]);drawing=[];render();status.innerHTML='<span class="ok">Polígono cerrado. G para guardar.</span>'}
+function moveField(dx,dy,step){const a=areas[kind];if(isPoly(kind)&&a.polygon.length){a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,p[0]+dx*step)),Math.max(0,Math.min(1,p[1]+dy*step))])}else if(!isPoly(kind)){a.x=Math.max(0,Math.min(1-a.w,a.x+dx*step));a.y=Math.max(0,Math.min(1-a.h,a.y+dy*step))}render()}
+function resizeField(dw,dh){const a=areas[kind];if(isPoly(kind)&&a.polygon.length){const cx=a.polygon.reduce((s,p)=>s+p[0],0)/a.polygon.length,cy=a.polygon.reduce((s,p)=>s+p[1],0)/a.polygon.length;a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,cx+(p[0]-cx)*(1+dw))),Math.max(0,Math.min(1,cy+(p[1]-cy)*(1+dh)))])}else if(!isPoly(kind)){const cx=a.x+a.w/2,cy=a.y+a.h/2;a.w=Math.max(.01,Math.min(1,a.w+dw));a.h=Math.max(.005,Math.min(1,a.h+dh));a.x=Math.max(0,Math.min(1-a.w,cx-a.w/2));a.y=Math.max(0,Math.min(1-a.h,cy-a.h/2))}render()}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){drawing=[];render();return}
   if((e.key==='z'||e.key==='Z')&&!e.ctrlKey&&!e.shiftKey&&drawing.length){drawing.pop();render();return}
@@ -121,7 +124,7 @@ document.addEventListener('keydown',e=>{
   }
 });
 async function save(){try{const r=await fetch('/api/save-modal-areas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coordinateSpace:'image-content',areas},null,2)});if(!r.ok)throw new Error('HTTP '+r.status);const i=KINDS.indexOf(kind);status.innerHTML='<span class="ok">Guardado</span>'}catch(err){status.textContent='Error al guardar: '+err.message}}
-async function load(){try{const r=await fetch('/api/load-modal-areas');if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(d.areas){KINDS.forEach(k=>{if(d.areas[k])areas[k]={...areas[k],...d.areas[k]}})}drawing=[];render();status.innerHTML='<span class="ok">Cargado</span>'}catch(err){status.textContent='No hay calibración guardada'}}
+async function load(){try{const r=await fetch('/api/load-modal-areas');if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(d.areas){KINDS.forEach(k=>{const s=d.areas[k];if(!s)return;if(isPoly(k)&&!s.polygon&&s.w>0){areas[k].polygon=[[s.x,s.y],[s.x+s.w,s.y],[s.x+s.w,s.y+s.h],[s.x,s.y+s.h]];areas[k].fontScale=s.fontScale||1}else areas[k]={...areas[k],...s}})}drawing=[];render();status.innerHTML='<span class="ok">Cargado</span>'}catch(err){status.textContent='No hay calibración guardada'}}
 saveBtn.onclick=save;loadBtn.onclick=load;
 window.addEventListener('resize',render);
 loadI18n().then(()=>{load().catch(()=>{});render()});
