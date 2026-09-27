@@ -81,5 +81,9 @@
   "credits.thanks": "Danke, dass du spielst. Mögen dir günstige Winde folgen.",
   "credits.made": "Nach unzähligen Änderungen an Zeichnungen, Figuren und Rätseln ist dies seine vorläufige Version.",
   "credits.wife": "Danke für deine unendliche Geduld und dafür, dass du an dieses Spiel geglaubt hast, selbst als ich zweifelte.",
-  "credits.joke": "Bei der Entwicklung dieses Spiels wurde kein Feind verletzt."
+  "credits.joke": "Bei der Entwicklung dieses Spiels wurde kein Feind verletzt.",
+  "modal.confirmTitle": "Ist das richtig?",
+  "modal.confirmBody": "Prüfe die Angaben, bevor du fortfährst.",
+  "modal.confirmYes": "Ja",
+  "modal.confirmNo": "Nein"
 }
