@@ -85,5 +85,14 @@
   "modal.confirmTitle": "¿Es correcto?",
   "modal.confirmBody": "Revisa los datos antes de continuar.",
   "modal.confirmYes": "Sí",
-  "modal.confirmNo": "No"
+  "modal.confirmNo": "No",
+  "selection.title": "Selección de personaje",
+  "selection.loadingTitle": "Cargando selección",
+  "selection.loadingPortraits": "Cargando el fondo y los retratos pequeños...",
+  "selection.loadingBodies": "Cargando los avatares completos en alta calidad...",
+  "selection.loadingSounds": "Preparando los sonidos del selector...",
+  "selection.loadingCalib": "Leyendo las calibraciones guardadas...",
+  "selection.loadingReady": "Selector preparado. Entrando...",
+  "selection.loadingError": "No se pudieron cargar todos los recursos. Continuando...",
+  "selection.selected": "Seleccionado"
 }

@@ -85,5 +85,14 @@
   "modal.confirmTitle": "Is this correct?",
   "modal.confirmBody": "Check the details before continuing.",
   "modal.confirmYes": "Yes",
-  "modal.confirmNo": "No"
+  "modal.confirmNo": "No",
+  "selection.title": "Character selection",
+  "selection.loadingTitle": "Loading selection",
+  "selection.loadingPortraits": "Loading the background and small portraits...",
+  "selection.loadingBodies": "Loading full-size high-quality avatars...",
+  "selection.loadingSounds": "Preparing selector sounds...",
+  "selection.loadingCalib": "Reading saved calibrations...",
+  "selection.loadingReady": "Selector ready. Entering...",
+  "selection.loadingError": "Some resources could not be loaded. Continuing...",
+  "selection.selected": "Selected"
 }
