@@ -96,5 +96,6 @@
   "selection.loadingError": "Certaines ressources n'ont pas pu être chargées. Poursuite...",
   "selection.selected": "Sélectionné",
   "config.sound": "Son",
-  "config.music": "Musique"
+  "config.music": "Musique",
+  "config.langName": "Français"
 }

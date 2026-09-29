@@ -96,5 +96,6 @@
   "selection.loadingError": "Impossibile caricare tutte le risorse. Continuo...",
   "selection.selected": "Selezionato",
   "config.sound": "Suono",
-  "config.music": "Musica"
+  "config.music": "Musica",
+  "config.langName": "Italiano"
 }

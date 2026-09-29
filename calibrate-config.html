@@ -27,11 +27,11 @@ Campo: <select id="kind"></select><br>
 <div id="status">Textos y casillas son áreas; las flechas de idioma y el botón atrás son polígonos</div>
 <script>
 const NS='http://www.w3.org/2000/svg';
-const KINDS=['soundText','soundCheck','musicText','musicCheck','langText','langLeft','langRight','back'];
+const KINDS=['soundText','soundCheck','musicText','musicCheck','langLabel','langText','langLeft','langRight','back'];
 const POLY_KINDS=['langLeft','langRight','back'];
 const isPoly=k=>POLY_KINDS.includes(k);
-const LABELS={soundText:'TEXTO SONIDO',soundCheck:'CASILLA SONIDO',musicText:'TEXTO MÚSICA',musicCheck:'CASILLA MÚSICA',langText:'TEXTO IDIOMA',langLeft:'FLECHA ◀',langRight:'FLECHA ▶',back:'ATRÁS'};
-const SELECT_LABELS={soundText:'Texto sonido',soundCheck:'Casilla sonido',musicText:'Texto música',musicCheck:'Casilla música',langText:'Texto idioma',langLeft:'Flecha idioma izq',langRight:'Flecha idioma der',back:'Botón atrás'};
+const LABELS={soundText:'TEXTO SONIDO',soundCheck:'CASILLA SONIDO',musicText:'TEXTO MÚSICA',musicCheck:'CASILLA MÚSICA',langLabel:'ETIQUETA IDIOMA',langText:'IDIOMA ELEGIDO',langLeft:'FLECHA ◀',langRight:'FLECHA ▶',back:'ATRÁS'};
+const SELECT_LABELS={soundText:'Texto sonido',soundCheck:'Casilla sonido',musicText:'Texto música',musicCheck:'Casilla música',langLabel:'Etiqueta "Idioma"',langText:'Idioma elegido',langLeft:'Flecha idioma izq',langRight:'Flecha idioma der',back:'Botón atrás'};
 const img=document.getElementById('image'),overlay=document.getElementById('overlay'),svg=document.getElementById('draw'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status'),saveBtn=document.getElementById('save-btn'),loadBtn=document.getElementById('load-btn');
 let kind='soundText';
 let areas={};KINDS.forEach(k=>areas[k]=isPoly(k)?{polygon:[],fontScale:1}:{x:.3,y:.3,w:.4,h:.15,fontScale:1});
@@ -43,7 +43,7 @@ function imageRect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,heig
 function norm(x,y){const r=imageRect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}
 function px(a){const r=imageRect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
 function pxPt(p){const r=imageRect();return[(r.left+p[0]*r.width).toFixed(2),(r.top+p[1]*r.height).toFixed(2)]}
-function textFor(k){return k==='soundText'?tt('config.sound'):k==='musicText'?tt('config.music'):k==='langText'?tt('menu.language'):k.endsWith('Check')?'✓':''}
+function textFor(k){return k==='soundText'?tt('config.sound'):k==='musicText'?tt('config.music'):k==='langLabel'?tt('menu.language'):k==='langText'?tt('config.langName'):k.endsWith('Check')?'✓':''}
 
 function render(){
   const r=imageRect();overlay.innerHTML='';svg.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);svg.setAttribute('width',innerWidth);svg.setAttribute('height',innerHeight);svg.innerHTML='';
