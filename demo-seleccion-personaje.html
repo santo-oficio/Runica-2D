@@ -18,12 +18,13 @@ function setLoading(message,progress){loadingMessage.textContent=message;const v
 const moveSound=new Audio('/assets/sounds/comun/menu_mover.wav');
 const selectSound=new Audio('/assets/sounds/comun/menu_seleccionar.wav');
 const typeSound=new Audio('/assets/sounds/comun/pulsacion%20maquina%20escribir.mp3');
-function playSound(audio,volume=.7){const sound=audio.cloneNode();sound.volume=volume;sound.play().catch(()=>{});}
+let sfxOn=true;fetch('/api/settings').then(r=>r.ok?r.json():null).then(d=>{if(d)sfxOn=d.sound!==false}).catch(()=>{});
+function playSound(audio,volume=.7){if(!sfxOn)return;const sound=audio.cloneNode();sound.volume=volume;sound.play().catch(()=>{});}
 const NAMES=['Capitán Hueso Rojo','Barba Corta','Espectro Hielo','Bruja Vudú Morada','Almirante Sombra','Monóculo Blanco','Veterano Parche','Pirata Pelirroja'];
 // --- i18n ---
 let T={};
 function tt(key){return T[key]??key}
-async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
+async function loadI18n(){try{const r=await fetch('/api/i18n');if(r.ok)T=await r.json()}catch{}}
 
 // --- Modal de confirmacion (calibrado en calibrate-modal.html) ---
 const modalOverlay=document.getElementById('modal-overlay'),modalBox=document.getElementById('modal-box'),modalSvg=document.getElementById('modal-svg'),modalContent=document.getElementById('modal-content'),modalBtnL=document.getElementById('modal-btn-l'),modalBtnR=document.getElementById('modal-btn-r');

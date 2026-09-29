@@ -8,6 +8,8 @@ const ASSETS = {
     '/assets/menu principal/opciones del juego e instrucciones.webp',
     '/assets/menu principal/seleccion_personaje.webp',
     '/assets/mapamundi/mapamundi.webp',
+    '/assets/configuracion/configuracion.webp',
+    '/assets/comunes/modal.webp',
     '/assets/avatars/display/avatar_01.webp',
     '/assets/avatars/display/avatar_02.webp',
     '/assets/avatars/display/avatar_03.webp',
@@ -89,7 +91,34 @@ function getCachedImageUrl(url) { return cache.images.get(url) ?? url; }
 function getCachedImage(url) { return cache.images.get(url); }
 function getCachedSound(url) { return cache.sounds.get(url) ?? null; }
 
+// --- Ajustes globales (persisten en db/settings.json via /api/settings) ---
+const settings = { sound: true, music: true, lang: 'es' };
+async function loadSettings() {
+  try {
+    const r = await fetch('/api/settings');
+    if (r.ok) { const d = await r.json(); if (d) Object.assign(settings, d); }
+  } catch {}
+  const sel = document.getElementById('lang-select');
+  if (sel) sel.value = settings.lang;
+  return settings;
+}
+function isSoundEnabled() { return settings.sound !== false; }
+function isMusicEnabled() { return settings.music !== false; }
+function currentLang() { return settings.lang || 'es'; }
+async function setSetting(key, value) {
+  settings[key] = value;
+  try {
+    await fetch('/api/settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: value })
+    });
+  } catch {}
+}
+// La carga arranca sola para que los flags esten listos antes de interactuar
+loadSettings();
+
 function playSound(url, volume) {
+  if (!isSoundEnabled()) return;
   const blobUrl = cache.sounds.get(url);
   if (!blobUrl) return;
   // Crear un Audio nuevo cada vez — fiable, sin cortes
@@ -157,4 +186,5 @@ window.AssetsCache = {
   preloadAll, getCachedImage, getCachedImageUrl, getCachedSound, playSound,
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
+  settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
 };

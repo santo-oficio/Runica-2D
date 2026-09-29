@@ -230,7 +230,9 @@ const victoryAudio = new Audio(`${BASE}/assets/sounds/comun/victoria.mp3`);
 const defeatAudio = new Audio(`${BASE}/assets/sounds/comun/derrota.wav`);
 [bounceAudio, trapAudio, victoryAudio, defeatAudio].forEach(a => a.preload = true);
 
-function play(a) { a.pause(); a.currentTime = 0; a.play().catch(()=>{}); }
+let sfxOn = true;
+fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d) sfxOn = d.sound !== false; }).catch(() => {});
+function play(a) { if (!sfxOn) return; a.pause(); a.currentTime = 0; a.play().catch(()=>{}); }
 function playStep() { play(stepAudio); }
 
 // === Assets por mundo (con fallback a AGUA si el mundo no los tiene) ===

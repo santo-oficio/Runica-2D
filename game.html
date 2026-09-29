@@ -220,6 +220,8 @@ let won = false;
 let moving = false;
 
 // === Sonidos ===
+let sfxOn = true;
+fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d) sfxOn = d.sound !== false; }).catch(() => {});
 const stepAudio = document.getElementById('step-sound');
 const bounceAudio = new Audio('/assets/sounds/comun/choque.wav');
 const trapAudio = new Audio('/assets/sounds/comun/trampa.wav');
@@ -231,11 +233,11 @@ victoryAudio.preload = true;
 defeatAudio.preload = true;
 stepAudio.src = `/assets/sounds/${WORLD}/paso.mp3`;
 
-function playStep() { stepAudio.pause(); stepAudio.currentTime = 0; stepAudio.play().catch(()=>{}); }
-function playBounce() { bounceAudio.pause(); bounceAudio.currentTime = 0; bounceAudio.play().catch(()=>{}); }
-function playTrap() { trapAudio.pause(); trapAudio.currentTime = 0; trapAudio.play().catch(()=>{}); }
-function playVictory() { victoryAudio.pause(); victoryAudio.currentTime = 0; victoryAudio.play().catch(()=>{}); }
-function playDefeat() { defeatAudio.pause(); defeatAudio.currentTime = 0; defeatAudio.play().catch(()=>{}); }
+function playStep() { if (!sfxOn) return; stepAudio.pause(); stepAudio.currentTime = 0; stepAudio.play().catch(()=>{}); }
+function playBounce() { if (!sfxOn) return; bounceAudio.pause(); bounceAudio.currentTime = 0; bounceAudio.play().catch(()=>{}); }
+function playTrap() { if (!sfxOn) return; trapAudio.pause(); trapAudio.currentTime = 0; trapAudio.play().catch(()=>{}); }
+function playVictory() { if (!sfxOn) return; victoryAudio.pause(); victoryAudio.currentTime = 0; victoryAudio.play().catch(()=>{}); }
+function playDefeat() { if (!sfxOn) return; defeatAudio.pause(); defeatAudio.currentTime = 0; defeatAudio.play().catch(()=>{}); }
 
 let currentTier = 1;         // tier de dificultad de la pantalla en curso (1..14)
 let currentStage = 1;        // etapa global (1..120)

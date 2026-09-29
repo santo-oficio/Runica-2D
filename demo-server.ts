@@ -714,6 +714,49 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: ajustes globales (sound, music, lang) — db/settings.json
+  const SETTINGS_PATH = join(ROOT, "db", "settings.json");
+  const readSettings = () => {
+    try {
+      if (existsSync(SETTINGS_PATH)) {
+        return { sound: true, music: true, lang: "es", ...JSON.parse(readFileSync(SETTINGS_PATH, "utf-8")) };
+      }
+    } catch {}
+    return { sound: true, music: true, lang: "es" };
+  };
+  if (url === "/api/settings" && req.method === "GET") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(readSettings()));
+    return;
+  }
+  if (url === "/api/settings" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const next = { ...readSettings(), ...JSON.parse(body) };
+        writeFileSync(SETTINGS_PATH, JSON.stringify(next, null, 2), "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, settings: next }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: archivo de idioma activo (GET /api/i18n) — usa settings.lang
+  if (url === "/api/i18n") {
+    const lang = readSettings().lang;
+    const langPath = join(ROOT, "i18n", `${lang}.json`);
+    const fallbackPath = join(ROOT, "i18n", "es.json");
+    const file = existsSync(langPath) ? langPath : fallbackPath;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(file, "utf-8"));
+    return;
+  }
+
   // API: archivo de idioma (GET /api/i18n/:lang)
   const i18nMatch = url.match(/^\/api\/i18n\/(\w+)$/);
   if (i18nMatch) {

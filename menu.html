@@ -378,9 +378,16 @@
   const SUPPORTED = ['es', 'en', 'fr', 'de', 'it'];
 
   async function loadLang(lang) {
-    const resp = await fetch(`/api/i18n/${lang}`);
+    const resp = await fetch('/api/i18n' + (lang ? `/${lang}` : ''));
     if (!resp.ok) return {};
     return await resp.json();
+  }
+
+  function saveLang(lang) {
+    fetch('/api/settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lang })
+    }).catch(() => {});
   }
 
   function t(key) {
@@ -396,6 +403,7 @@
   }
 
   async function changeLang(lang) {
+    saveLang(lang);
     translations = await loadLang(lang);
     if (lang !== 'es' && Object.keys(fallback).length === 0) {
       fallback = await loadLang('es');
@@ -415,24 +423,8 @@
       return;
     }
     if (type === 'settings') {
-      content.innerHTML = `
-        <h2>${t('menu.settings')}</h2>
-        <p class="credit-line">${t('menu.language')}:</p>
-        <p class="credit-line">
-          <select id="settings-lang" onchange="document.getElementById('lang-select').value=this.value; document.getElementById('lang-select').dispatchEvent(new Event('change'))">
-            <option value="es">Español</option>
-            <option value="en">English</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="it">Italiano</option>
-          </select>
-        </p>
-      `;
-      // Sincronizar con el selector del menu
-      setTimeout(() => {
-        const sel = document.getElementById('settings-lang');
-        if (sel) sel.value = document.getElementById('lang-select').value;
-      }, 0);
+      window.location.href = '/demo-config.html';
+      return;
     }
     document.getElementById('panel-overlay').classList.add('show');
   }
@@ -485,7 +477,15 @@
   // --- Init ---
   (async () => {
     fallback = await loadLang('es');
-    translations = fallback;
+    try {
+      const r = await fetch('/api/settings');
+      if (r.ok) {
+        const s = await r.json();
+        const sel = document.getElementById('lang-select');
+        if (sel && s?.lang) sel.value = s.lang;
+      }
+    } catch {}
+    translations = await loadLang();
     applyTranslations();
     refreshSaveState();
   })();

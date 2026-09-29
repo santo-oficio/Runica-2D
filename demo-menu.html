@@ -271,7 +271,7 @@
   }
 
   async function loadLang(lang) {
-    const r = await fetch('/api/i18n/' + lang);
+    const r = await fetch('/api/i18n' + (lang ? '/' + lang : ''));
     if (!r.ok) return {};
     return await r.json();
   }
@@ -492,6 +492,7 @@
     if (i === 0) AssetsCache.transitionTo('/demo-seleccion-personaje.html');
     if (i === 1) AssetsCache.transitionTo('/mapamundi.html');
     if (i === 2) AssetsCache.transitionTo('/instructions.html');
+    if (i === 3) AssetsCache.transitionTo('/demo-config.html');
     if (i === 4) AssetsCache.transitionTo('/creditos.html');
     if (i === 5) AssetsCache.transitionTo('/exit.html');
   }
@@ -535,6 +536,7 @@
   });
 
   document.getElementById('lang-select').addEventListener('change', async (e) => {
+    AssetsCache.setSetting('lang', e.target.value);
     translations = await loadLang(e.target.value);
     render();
   });
@@ -544,8 +546,9 @@
     // Si ya estamos en sesion (venimos de otra pantalla), no recargar
     if (sessionStorage.getItem('runika-session') === 'active') {
       // Audio ya desbloqueado, ir directo al menu
+      await AssetsCache.loadSettings();
       fallback = await loadLang('es');
-      translations = fallback;
+      translations = await loadLang();
       await loadButtons();
       try {
         const r = await fetch('/api/load-glow');
@@ -579,9 +582,10 @@
       loadingText.textContent = 'Cargando... ' + pct + '%';
     });
 
-    // Cargar idioma
+    // Cargar ajustes + idioma activo
+    await AssetsCache.loadSettings();
     fallback = await loadLang('es');
-    translations = fallback;
+    translations = await loadLang();
 
     // Cargar botones calibrados
     await loadButtons();

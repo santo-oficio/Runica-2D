@@ -353,7 +353,7 @@
   let focus = 'scroll';
 
   async function loadLang(lang) {
-    const r = await fetch('/api/i18n/' + lang);
+    const r = await fetch('/api/i18n' + (lang ? '/' + lang : ''));
     if (!r.ok) return {};
     return await r.json();
   }
@@ -524,6 +524,7 @@
   });
 
   document.getElementById('lang-select').addEventListener('change', async (e) => {
+    AssetsCache.setSetting('lang', e.target.value);
     translations = await loadLang(e.target.value);
     applyI18n();
   });
@@ -532,8 +533,9 @@
   (async () => {
     // Idioma primero (JSON local, instantaneo): asi la pantalla de carga
     // ya muestra los textos traducidos.
+    await AssetsCache.loadSettings();
     fallback = await loadLang('es');
-    translations = fallback;
+    translations = await loadLang();
     applyI18n();
     await loadTextArea();
     positionTextArea();

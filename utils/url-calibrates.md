@@ -80,3 +80,4 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 | http://localhost:3000/instructions.html | Pantalla de instrucciones (usa el área calibrada) |
 | http://localhost:3000/creditos.html | Pantalla de créditos (usa `creditos-areas.json`) |
 | http://localhost:3000/submundo.html | Submundo (usa avatar-positions + text-areas) |
+| http://localhost:3000/demo-config.html | Pantalla de configuración real (usa `config-areas.json`); guarda `db/settings.json` vía `/api/settings` — sonido, música e idioma se aplican a todo el juego |

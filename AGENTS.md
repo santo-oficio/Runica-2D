@@ -154,6 +154,14 @@ renderizarla igual.
 - En la selección, **Atrás** vuelve al menú y **Adelante** llama a
   `POST /api/new-game {name, avatar}` (resetea progreso, `started:true`) y va a
   `mapamundi.html`.
+- **Ajustes** lleva a `demo-config.html` (usa `assets/configuracion/config-areas.json`).
+  Los ajustes globales viven en `db/settings.json` (`{sound, music, lang}`) y se
+  leen/escriben con `GET`/`POST /api/settings`. `GET /api/i18n` (sin idioma)
+  devuelve el archivo del idioma activo guardado en settings; todas las
+  pantallas lo usan en el arranque. `assets-cache.js` expone
+  `loadSettings`/`setSetting`/`isSoundEnabled`/`isMusicEnabled` y `playSound`
+  respeta el flag `sound` global. Los cambios en la pantalla de configuración
+  se persisten al instante y afectan a todo el juego.
 
 ## Selección de personaje (demo + calibradores)
 
