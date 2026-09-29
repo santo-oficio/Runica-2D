@@ -94,5 +94,7 @@
   "selection.loadingCalib": "Leyendo las calibraciones guardadas...",
   "selection.loadingReady": "Selector preparado. Entrando...",
   "selection.loadingError": "No se pudieron cargar todos los recursos. Continuando...",
-  "selection.selected": "Seleccionado"
+  "selection.selected": "Seleccionado",
+  "config.sound": "Sonido",
+  "config.music": "Música"
 }

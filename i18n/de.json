@@ -94,5 +94,7 @@
   "selection.loadingCalib": "Gespeicherte Kalibrierungen werden gelesen...",
   "selection.loadingReady": "Auswahl bereit. Es geht los...",
   "selection.loadingError": "Einige Ressourcen konnten nicht geladen werden. Weiter...",
-  "selection.selected": "Ausgewählt"
+  "selection.selected": "Ausgewählt",
+  "config.sound": "Ton",
+  "config.music": "Musik"
 }

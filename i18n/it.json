@@ -94,5 +94,7 @@
   "selection.loadingCalib": "Lettura delle calibrazioni salvate...",
   "selection.loadingReady": "Selettore pronto. Ingresso...",
   "selection.loadingError": "Impossibile caricare tutte le risorse. Continuo...",
-  "selection.selected": "Selezionato"
+  "selection.selected": "Selezionato",
+  "config.sound": "Suono",
+  "config.music": "Musica"
 }

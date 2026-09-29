@@ -559,6 +559,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: guardar areas de la pantalla de configuracion (POST /api/save-config-areas)
+  if (url === "/api/save-config-areas" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "configuracion", "config-areas.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar areas de configuracion (GET /api/load-config-areas)
+  if (url === "/api/load-config-areas") {
+    const loadPath = join(ROOT, "assets", "configuracion", "config-areas.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
   // API: guardar botones del menu (POST /api/save-menu-buttons)
   if (url === "/api/save-menu-buttons" && req.method === "POST") {
     let body = "";
