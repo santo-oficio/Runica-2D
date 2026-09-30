@@ -38,7 +38,9 @@
   <br>
   <b>MAPA — círculo por mundo</b><br>
   Defines el círculo, el aura irregular se genera sola.<br>
-  <span class="key">Arrastrar</span> desde el centro hasta el borde<br>
+  <span class="key">Click en un círculo</span> = seleccionar ese mundo<br>
+  <span class="key">Arrastrar</span> en zona vacía = nuevo centro + radio<br>
+  <span class="key">, / .</span> o <span class="key">[ ]</span> = mundo anterior/siguiente<br>
   <span class="key">Flechas</span> mover (Shift fino) · <span class="key">+ / -</span> radio<br>
   <span class="key">X</span> quitar círculo<br>
   <br>
@@ -112,11 +114,21 @@ function render(){
 let dragStart=null;
 document.addEventListener('pointerdown',e=>{
   if(e.target.closest('#hud'))return;
-  dragStart=[nx(e.clientX),ny(e.clientY),e.clientX,e.clientY];
   if(mode==='map'){
+    // Click dentro de un circulo existente -> selecciona ese mundo
+    for(let i=0;i<WORLD_ORDER.length;i++){
+      const c=DATA.aura[WORLD_ORDER[i]];
+      if(!(c.r>0))continue;
+      const dx=nx(e.clientX)-c.cx, dy=ny(e.clientY)-c.cy;
+      const aspect=imgRect.width/imgRect.height||1.5;
+      if(Math.hypot(dx,dy/aspect)<=c.r){worldIdx=i;render();return}
+    }
+    dragStart=[nx(e.clientX),ny(e.clientY)];
     const c=DATA.aura[WORLD_ORDER[worldIdx]];
     c.cx=+dragStart[0].toFixed(4);c.cy=+dragStart[1].toFixed(4);c.r=0;
     render();
+  }else{
+    dragStart=[nx(e.clientX),ny(e.clientY)];
   }
 });
 document.addEventListener('pointermove',e=>{
@@ -137,8 +149,8 @@ document.addEventListener('pointerup',()=>{dragStart=null});
 document.addEventListener('keydown',e=>{
   const fine=e.shiftKey?0.001:0.005;
   if(e.key==='Tab'){e.preventDefault();mode=mode==='map'?'board':'map';img.src=IMGS[mode];if(img.complete){updateRect()}render();return}
-  if(e.key==='['){e.preventDefault();if(mode==='map')worldIdx=(worldIdx+7)%8;else fieldIdx=(fieldIdx+1)%2;render();return}
-  if(e.key===']'){e.preventDefault();if(mode==='map')worldIdx=(worldIdx+1)%8;else fieldIdx=(fieldIdx+1)%2;render();return}
+  if(e.key==='['||e.key===','){e.preventDefault();if(mode==='map')worldIdx=(worldIdx+7)%8;else fieldIdx=(fieldIdx+1)%2;render();return}
+  if(e.key===']'||e.key==='.'){e.preventDefault();if(mode==='map')worldIdx=(worldIdx+1)%8;else fieldIdx=(fieldIdx+1)%2;render();return}
   if(e.key==='g'||e.key==='G'){e.preventDefault();save();return}
   if(e.key==='c'||e.key==='C'){e.preventDefault();load();return}
   if(mode==='map'){
