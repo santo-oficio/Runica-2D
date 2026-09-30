@@ -211,28 +211,6 @@
     transform: none;
   }
 
-  /* Selector de idioma */
-  .lang-selector {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 0.85em;
-    color: #7a5a2a;
-  }
-
-  .lang-selector select {
-    background: #f0e0c0;
-    color: #5a3a1a;
-    border: 1px solid #b09050;
-    border-radius: 3px;
-    padding: 3px 8px;
-    font-family: 'ChelseaMarket', cursive;
-    font-size: 0.9em;
-    cursor: pointer;
-    margin-left: 8px;
-  }
-
-  .lang-selector select:focus { outline: none; border-color: #8b6a3a; }
-
   /* Panel de instrucciones/créditos (overlay) */
   #panel-overlay {
     position: absolute;
@@ -342,17 +320,6 @@
       <li class="menu-item" data-i18n="menu.credits" data-action="credits"></li>
       <li class="menu-item" data-i18n="menu.exit" data-action="exit"></li>
     </ul>
-    <div class="separator">✦ ✦ ✦</div>
-    <div class="lang-selector">
-      <span data-i18n="menu.language"></span>:
-      <select id="lang-select">
-        <option value="es">Español</option>
-        <option value="en">English</option>
-        <option value="fr">Français</option>
-        <option value="de">Deutsch</option>
-        <option value="it">Italiano</option>
-      </select>
-    </div>
   </div>
   <div class="rod-bottom"></div>
 </div>
@@ -383,13 +350,6 @@
     return await resp.json();
   }
 
-  function saveLang(lang) {
-    fetch('/api/settings', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lang })
-    }).catch(() => {});
-  }
-
   function t(key) {
     return translations[key] ?? fallback[key] ?? key;
   }
@@ -400,15 +360,6 @@
       el.textContent = t(key);
     });
     document.title = t('menu.title') + ' — ' + t('menu.subtitle');
-  }
-
-  async function changeLang(lang) {
-    saveLang(lang);
-    translations = await loadLang(lang);
-    if (lang !== 'es' && Object.keys(fallback).length === 0) {
-      fallback = await loadLang('es');
-    }
-    applyTranslations();
   }
 
   // --- Panel de instrucciones / créditos ---
@@ -456,10 +407,6 @@
     if (e.target === e.currentTarget) hidePanel();
   });
 
-  document.getElementById('lang-select').addEventListener('change', (e) => {
-    changeLang(e.target.value);
-  });
-
   // "Continuar" solo disponible si existe una partida empezada (bbdd del usuario)
   async function refreshSaveState() {
     let hasSave = false;
@@ -477,14 +424,6 @@
   // --- Init ---
   (async () => {
     fallback = await loadLang('es');
-    try {
-      const r = await fetch('/api/settings');
-      if (r.ok) {
-        const s = await r.json();
-        const sel = document.getElementById('lang-select');
-        if (sel && s?.lang) sel.value = s.lang;
-      }
-    } catch {}
     translations = await loadLang();
     applyTranslations();
     refreshSaveState();
