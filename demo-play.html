@@ -394,12 +394,14 @@ async function renderEntities() {
   place(goalEl, goal.c, goal.r, true);
   container.appendChild(goalEl);
 
-  // Enemigos
-  const enemySrc = BASE + (assets.enemy?.[0] || '');
+  // Enemigos — en la última isla del submundo (modo real) salen los bosses
+  const FINAL_ISLAND = 11;
+  const isBossLevel = REAL_MODE && REAL_LEVEL === FINAL_ISLAND;
+  const enemyPool = isBossLevel ? (assets.boss?.length ? assets.boss : assets.enemy) : assets.enemy;
   enemies.forEach((e, i) => {
     const el = document.createElement('img');
     el.className = 'entity';
-    el.src = enemySrc;
+    el.src = BASE + (enemyPool?.[isBossLevel ? i % (enemyPool.length || 1) : 0] || '');
     el.dataset.col = e.c; el.dataset.row = e.r;
     el.dataset.type = 'enemy'; el.dataset.idx = i;
     place(el, e.c, e.r, true);

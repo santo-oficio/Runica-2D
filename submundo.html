@@ -86,16 +86,20 @@
     border: none;
     background: transparent;
   }
-  /* Isla completada: punto dorado tenue = ya vencida */
-  .cell-marker.completed::after {
-    content: '';
-    position: absolute; inset: 18%;
+  /* Isla completada o bloqueada: misma estrategia que los mundos del mapa */
+  .island-fx {
+    position: absolute;
+    z-index: 9;
+    pointer-events: none;
     border-radius: 50%;
-    background: radial-gradient(circle,
-      rgba(240, 216, 144, 0.95) 0%,
-      rgba(240, 216, 144, 0.45) 45%,
-      transparent 70%);
-    filter: drop-shadow(0 0 6px rgba(240, 216, 144, 0.7));
+  }
+  .island-fx.done {
+    backdrop-filter: grayscale(1) brightness(0.55);
+    -webkit-backdrop-filter: grayscale(1) brightness(0.55);
+  }
+  .island-fx.locked {
+    backdrop-filter: grayscale(0.6) brightness(0.35);
+    -webkit-backdrop-filter: grayscale(0.6) brightness(0.35);
   }
   #avatar {
     position: absolute;
@@ -267,6 +271,11 @@
       if (r.ok) { const d = await r.json(); player = d.player || null; }
     } catch {}
   }
+  // Isla desbloqueada: la primera siempre; las demás solo si la anterior
+  // está completada (no se puede saltar islas)
+  function isLevelUnlocked(i) {
+    return i === 0 || completedLevels.has(i - 1);
+  }
 
   let positions = {};
   let textAreas = {
@@ -290,8 +299,13 @@
   // El nivel inicial = última isla jugada en este mundo (bbdd); 0 si no hay
   function getStartLevel(world) {
     const wp = player?.worldProgress?.[world];
-    if (wp && typeof wp.last === 'number') return Math.max(0, Math.min(NUM_LEVELS - 1, wp.last));
-    return 0;
+    let last = wp && typeof wp.last === 'number' ? Math.max(0, Math.min(NUM_LEVELS - 1, wp.last)) : 0;
+    // Si el último quedara bloqueado (datos raros), ir a la frontera:
+    // la primera isla sin completar, que siempre está desbloqueada
+    if (!isLevelUnlocked(last)) {
+      for (let i = 0; i < NUM_LEVELS; i++) { if (!completedLevels.has(i)) { last = i; break; } }
+    }
+    return last;
   }
 
   async function loadLang(lang) {
@@ -363,6 +377,22 @@
       div.style.width = sz + 'px';
       div.style.height = sz + 'px';
       overlay.appendChild(div);
+
+      // Máscara visual sobre la isla: completada (B/N) o bloqueada (oscura)
+      if (i !== currentLevel) {
+        const done = completedLevels.has(i);
+        const locked = !isLevelUnlocked(i);
+        if (done || locked) {
+          const fx = document.createElement('div');
+          fx.className = 'island-fx ' + (done ? 'done' : 'locked');
+          const fxSz = sz * 2.4;
+          fx.style.left = (r.left + pos.x * r.width - fxSz / 2) + 'px';
+          fx.style.top = (r.top + pos.y * r.height - fxSz / 2) + 'px';
+          fx.style.width = fxSz + 'px';
+          fx.style.height = fxSz + 'px';
+          overlay.appendChild(fx);
+        }
+      }
     }
 
     // Avatar en la casilla actual
@@ -446,7 +476,8 @@
       newLevel = currentLevel - 1;
     }
 
-    if (newLevel < 0) {
+    if (newLevel < 0 || !isLevelUnlocked(newLevel)) {
+      // Sin pasar a la siguiente isla si la actual no está completada
       bounceAvatar(dir);
       return;
     }
@@ -515,6 +546,7 @@
     else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); moveByCell('down'); }
     else if (e.key === 'Enter') {
       e.preventDefault();
+      if (!isLevelUnlocked(currentLevel)) { bounceAvatar('down'); return; }
       AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.7);
       // La isla jugada se recuerda en la bbdd (completada o no)
       fetch('/api/level-position', {

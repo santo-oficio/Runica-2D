@@ -186,12 +186,18 @@ renderizarla igual.
   (`backdrop-filter: grayscale`) y no se puede volver a entrar. **MAZMORRA**
   (centro del mapa) permanece bloqueado y oscurecido hasta completar los otros
   7 mundos.
-- **Submundo**: el avatar aparece en la última isla jugada (completada o no),
-  las islas completadas llevan un punto dorado y el oro se muestra en el área
-  `gold` calibrada (alineado a la derecha + icono `comunes/monedas.webp`).
-  `Enter` en una isla guarda la posición y entra a
+- **Submundo**: el avatar aparece en la última isla jugada (completada o no) y
+  el oro se muestra en el área `gold` calibrada (alineado a la derecha + icono
+  `comunes/monedas.webp`). Las islas siguen la misma estrategia visual que los
+  mundos: completada → blanco y negro (`island-fx done`), bloqueada → oscura
+  (`island-fx locked`). **Progreso secuencial**: solo se puede ir a la isla N
+  si la N-1 está completada — el movimiento y el Enter a islas bloqueadas
+  rebotan. `Enter` en una isla desbloqueada guarda la posición y entra a
   `demo-play.html?world=X&level=N` (modo real: pantalla sticky, avatar fijo,
   victoria → `POST /api/level-complete` y vuelta al submundo; `Esc` vuelve).
+- **Bosses**: los sprites de `assets/bosses/<M>/` solo se usan en la **última
+  isla** (índice 11) de cada submundo; el resto de islas usan siempre imágenes
+  de `assets/enemys/<M>/`.
 
 ## Selección de personaje (demo + calibradores)
 
