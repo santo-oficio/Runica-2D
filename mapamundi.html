@@ -91,11 +91,18 @@
   .world-fx.done {
     backdrop-filter: grayscale(1) brightness(0.55);
     -webkit-backdrop-filter: grayscale(1) brightness(0.55);
+    animation: auraPulse 4s ease-in-out infinite;
   }
   /* Mundo central bloqueado: oscurecido hasta completar el resto */
   .world-fx.locked {
     backdrop-filter: grayscale(0.6) brightness(0.35);
     -webkit-backdrop-filter: grayscale(0.6) brightness(0.35);
+    animation: auraPulse 5s ease-in-out infinite;
+  }
+  /* Aura "viva": respiracion sutil de la forma irregular calibrada */
+  @keyframes auraPulse {
+    0%,100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.04) rotate(0.8deg); }
   }
   /* Contador de oro (área calibrada, alineado a la derecha) */
   .gold-text {

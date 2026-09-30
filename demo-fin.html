@@ -49,7 +49,7 @@
     z-index: 50; text-align: center; pointer-events: none;
     font-size: clamp(30px, 8vh, 90px); color: #ffd54f;
     text-shadow: 0 0 18px rgba(255,180,60,.55), 3px 3px 0 #5a3410, -2px -2px 0 #5a3410, 2px -2px 0 #5a3410, -2px 2px 0 #5a3410;
-    opacity: 0;
+    opacity: 0; width: 88%; line-height: 1.15;
   }
   .big-text.pop { animation: textPop .55s cubic-bezier(.2,1.6,.4,1) forwards; }
   @keyframes textPop { 0%{opacity:0;transform:translate(-50%,-50%) scale(.2)} 70%{transform:translate(-50%,-50%) scale(1.12)} 100%{opacity:1;transform:translate(-50%,-50%) scale(1)} }
@@ -88,7 +88,14 @@
   .world-fx.fall {
     transition: transform .55s cubic-bezier(.5,0,.9,.4), opacity .45s ease;
     transform: scale(1) translateY(1.5%); opacity: 1;
+    animation: auraPulse 3.2s ease-in-out .7s infinite;
   }
+  @keyframes auraPulse {
+    0%,100% { transform: scale(1) translateY(1.5%) rotate(0deg); }
+    50% { transform: scale(1.045) translateY(1.2%) rotate(1.2deg); }
+  }
+  /* Paso del heroe entre casillas (hop corto) */
+  @keyframes cellHop { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18%)} }
   /* Derrumbe de la escena del tablero */
   .scene.crumble { animation: boardCrumble 1.6s ease-in forwards; }
   @keyframes boardCrumble {
@@ -301,17 +308,24 @@ async function sceneBoard() {
   } catch {}
   const r = getImgRect(bg);
   const ax = area ? area.x : 0.25, ay = area ? area.y : 0.3, aw = area ? area.w : 0.5, ah = area ? area.h : 0.45;
-  // Posiciones calibradas (fin-areas.json) con fallback al avatarArea
-  const bA = FIN_AREAS?.board?.boss || { x: ax + aw * 0.52, y: ay + ah * 0.30, w: aw * 0.22, h: ah * 0.44 };
-  const hA = FIN_AREAS?.board?.hero || { x: ax + aw * 0.28, y: ay + ah * 0.52, w: aw * 0.075, h: ah * 0.16 };
+  // Casillas del tablero (8x6): heroe al azar en la mitad izquierda,
+  // boss al azar en la mitad derecha — nunca coinciden
+  const ri = n => Math.floor(Math.random() * n);
+  let hc = ri(4), hr = ri(6);
+  let bc = 4 + ri(4), br = ri(6);
+  const cellW = aw * r.width / 8, cellH = ah * r.height / 6;
+  const cellX = c => r.left + ax * r.width + (c + 0.5) * cellW;
+  const cellBottom = row => r.top + ay * r.height + (row + 1) * cellH;
   const boss = document.getElementById('boss-img');
-  const put = (img, a) => {
-    img.style.left = (r.left + a.x * r.width) + 'px';
-    img.style.top = (r.top + a.y * r.height) + 'px';
-    img.style.width = (a.w * r.width) + 'px';
-    img.style.height = (a.h * r.height) + 'px';
+  const setCell = (img, w, h, c, row) => {
+    img.style.width = w + 'px'; img.style.height = h + 'px';
+    img.style.left = (cellX(c) - w / 2) + 'px';
+    img.style.top = (cellBottom(row) - h) + 'px';
   };
-  put(boss, bA); put(hero, hA);
+  const hW = cellW * 1.05, hH = cellH * 1.25;
+  const bW = cellW * 2.1, bH = cellH * 2.4;
+  setCell(boss, bW, bH, bc, br);
+  setCell(hero, hW, hH, hc, hr);
 
   // Presentacion
   const sub = document.getElementById('sub-text');
@@ -320,7 +334,23 @@ async function sceneBoard() {
   await wait(300); sub.classList.add('on');
   await wait(1600); sub.classList.remove('on');
 
-  // Combate: 3 golpes con destello + sacudida
+  // Persecucion por casillas: el heroe avanza como en el juego
+  // (horizontal primero, luego vertical) hasta quedar junto al boss
+  hero.style.transition = 'left .3s ease, top .3s ease';
+  while (hc < bc - 1 || hr !== br) {
+    if (hc < bc - 1) hc++;
+    else if (hr < br) hr++;
+    else if (hr > br) hr--;
+    setCell(hero, hW, hH, hc, hr);
+    hero.style.animation = 'cellHop .3s ease';
+    snd('/assets/sounds/comun/move.wav', 0.4);
+    await wait(340);
+    hero.style.animation = '';
+    await wait(60);
+  }
+  await wait(350);
+
+  // Lucha: 3 golpes con destello + sacudida (gana el avatar)
   for (let i = 0; i < 3; i++) {
     hero.style.animation = 'heroStrike .55s ease';
     snd('/assets/sounds/comun/choque.wav', 0.5);
@@ -345,8 +375,9 @@ async function sceneBoard() {
   hero.style.animation = 'heroCelebrate .7s ease .1s';
   await wait(1400);
 
-  // Pulsa para continuar
+  // Pulsa para continuar (bajo "Victoria")
   const hint = document.getElementById('continue-hint');
+  hint.style.top = '47%';
   hint.textContent = tt('instructions.continue');
   hint.classList.add('on');
 }
@@ -484,6 +515,7 @@ async function sceneEnd() {
 
   await wait(1800);
   const hint = document.getElementById('continue-hint');
+  hint.style.top = '62%';
   hint.textContent = tt('instructions.continue');
   hint.classList.add('on');
   busy = false;
