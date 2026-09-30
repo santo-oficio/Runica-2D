@@ -104,5 +104,8 @@
   "game.levelDone": "Island {0} completed in {1} turns",
   "game.goldEarned": "+{0} gold",
   "board.level": "Level {0}",
-  "game.go": "GO!"
+  "game.go": "GO!",
+  "fin.completed": "You have completed Runika 2D!",
+  "fin.worldsFell": "All worlds have fallen",
+  "fin.finalBoss": "The last guardian..."
 }

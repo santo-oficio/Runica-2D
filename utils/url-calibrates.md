@@ -81,3 +81,4 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 | http://localhost:3000/creditos.html | Pantalla de créditos (usa `creditos-areas.json`) |
 | http://localhost:3000/submundo.html | Submundo (usa avatar-positions + text-areas) |
 | http://localhost:3000/demo-config.html | Pantalla de configuración real (usa `config-areas.json`); guarda `db/settings.json` vía `/api/settings` — sonido, música e idioma se aplican a todo el juego |
+| http://localhost:3000/demo-fin.html | Cinemática demo del final del juego: boss final cae → mapamundi con los 8 mundos derrumbándose en cadena → final épico (letras pop, monedas, fuegos artificiales). Usa `load-avatar-positions` del mapamundi |

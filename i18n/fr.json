@@ -104,5 +104,8 @@
   "game.levelDone": "Île {0} terminée en {1} tours",
   "game.goldEarned": "+{0} or",
   "board.level": "Niveau {0}",
-  "game.go": "GO !"
+  "game.go": "GO !",
+  "fin.completed": "Tu as terminé Runika 2D !",
+  "fin.worldsFell": "Tous les mondes sont tombés",
+  "fin.finalBoss": "Le dernier gardien..."
 }

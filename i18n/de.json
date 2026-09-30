@@ -104,5 +104,8 @@
   "game.levelDone": "Insel {0} in {1} Zügen geschafft",
   "game.goldEarned": "+{0} Gold",
   "board.level": "Level {0}",
-  "game.go": "LOS!"
+  "game.go": "LOS!",
+  "fin.completed": "Du hast Runika 2D abgeschlossen!",
+  "fin.worldsFell": "Alle Welten sind gefallen",
+  "fin.finalBoss": "Der letzte Wächter..."
 }

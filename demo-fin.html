@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'ChelseaMarket', cursive; user-select: none;
+  }
+  #stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .scene { position: absolute; inset: 0; opacity: 0; transition: opacity .8s ease; }
+  .scene.on { opacity: 1; }
+  .bgimg { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+  /* --- Escena 1: el boss final --- */
+  .sprite { position: absolute; object-fit: contain; pointer-events: none;
+    filter: drop-shadow(3px 6px 10px rgba(0,0,0,.7)); }
+  @keyframes bossHit { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-9px,3px) rotate(-4deg)} 40%{transform:translate(8px,-4px) rotate(3deg)} 60%{transform:translate(-6px,2px) rotate(-2deg)} 80%{transform:translate(5px,-2px) rotate(2deg)} }
+  @keyframes bossFall {
+    0% { transform: rotate(0) translateY(0); filter: grayscale(0) brightness(1) drop-shadow(3px 6px 10px rgba(0,0,0,.7)); opacity: 1; }
+    55% { transform: rotate(78deg) translateY(6%); filter: grayscale(.7) brightness(.75) drop-shadow(3px 6px 10px rgba(0,0,0,.7)); opacity: 1; }
+    100% { transform: rotate(92deg) translateY(34%); filter: grayscale(1) brightness(.35); opacity: 0; }
+  }
+  @keyframes avatarJump { 0%,100%{transform:translateY(0)} 30%{transform:translateY(-26%)} 60%{transform:translateY(0)} 75%{transform:translateY(-10%)} }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 40; }
+  #vignette { position: absolute; inset: 0; pointer-events: none; z-index: 35; opacity: 0;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(180,20,10,.55) 100%); }
+
+  /* --- Textos --- */
+  .big-text {
+    position: absolute; left: 50%; top: 38%; transform: translate(-50%,-50%);
+    z-index: 50; text-align: center; pointer-events: none;
+    font-size: clamp(30px, 8vh, 90px); color: #ffd54f;
+    text-shadow: 0 0 18px rgba(255,180,60,.55), 3px 3px 0 #5a3410, -2px -2px 0 #5a3410, 2px -2px 0 #5a3410, -2px 2px 0 #5a3410;
+    opacity: 0;
+  }
+  .big-text.pop { animation: textPop .55s cubic-bezier(.2,1.6,.4,1) forwards; }
+  @keyframes textPop { 0%{opacity:0;transform:translate(-50%,-50%) scale(.2)} 70%{transform:translate(-50%,-50%) scale(1.12)} 100%{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+  .sub-text {
+    position: absolute; left: 50%; top: 52%; transform: translateX(-50%);
+    z-index: 50; font-size: clamp(16px, 3.4vh, 36px); color: #f4e3b2;
+    text-shadow: 2px 2px 0 #2a1a08; opacity: 0; transition: opacity .6s;
+    pointer-events: none; white-space: nowrap;
+  }
+  .sub-text.on { opacity: 1; }
+  #continue-hint {
+    position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%);
+    z-index: 60; font-size: clamp(14px, 2.6vh, 28px); color: #ffe9a3;
+    text-shadow: 2px 2px 0 #2a1a08; opacity: 0; pointer-events: none;
+  }
+  #continue-hint.on { animation: hintBlink 1.1s ease-in-out infinite; }
+  @keyframes hintBlink { 0%,100%{opacity:.25} 50%{opacity:1} }
+
+  /* --- Escena 2: mapamundi que se derrumba --- */
+  .world-fx {
+    position: absolute; z-index: 9; pointer-events: none; border-radius: 50%;
+    backdrop-filter: grayscale(1) brightness(.5);
+    -webkit-backdrop-filter: grayscale(1) brightness(.5);
+    transform: scale(.15); opacity: 0;
+  }
+  .world-fx.fall {
+    transition: transform .55s cubic-bezier(.5,0,.9,.4), opacity .45s ease;
+    transform: scale(1) translateY(3.2%); opacity: 1;
+  }
+  @keyframes shakeHard {
+    0%,100%{transform:translate(0,0) rotate(0)}
+    10%{transform:translate(-16px,9px) rotate(-.5deg)} 20%{transform:translate(14px,-10px) rotate(.5deg)}
+    30%{transform:translate(-12px,-7px) rotate(-.4deg)} 40%{transform:translate(11px,8px) rotate(.4deg)}
+    50%{transform:translate(-9px,-6px) rotate(-.3deg)} 60%{transform:translate(8px,5px) rotate(.3deg)}
+    70%{transform:translate(-6px,4px) rotate(-.2deg)} 80%{transform:translate(5px,-3px) rotate(.2deg)}
+    90%{transform:translate(-3px,2px) rotate(-.1deg)}
+  }
+  @keyframes shakeSoft {
+    0%,100%{transform:translate(0,0)}
+    20%{transform:translate(-7px,4px)} 40%{transform:translate(6px,-5px)}
+    60%{transform:translate(-5px,-3px)} 80%{transform:translate(4px,3px)}
+  }
+  .shake-hard { animation: shakeHard .7s ease-out; }
+  .shake-soft { animation: shakeSoft .45s ease-out; }
+  @keyframes dustPuff { 0%{opacity:.85;transform:translate(-50%,-50%) scale(.3)} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.6)} }
+  .dust {
+    position: absolute; z-index: 30; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(160,140,110,.8), rgba(120,100,75,.35) 60%, transparent 75%);
+    animation: dustPuff 1s ease-out forwards;
+  }
+
+  /* --- Escena 3: final epico --- */
+  #fx-canvas { position: absolute; inset: 0; z-index: 45; pointer-events: none; }
+  .coin-rain { position: absolute; z-index: 44; pointer-events: none; object-fit: contain;
+    animation: coinFall linear forwards; }
+  @keyframes coinFall {
+    0% { transform: translateY(-12vh) rotate(0deg); opacity: 1; }
+    92% { opacity: 1; }
+    100% { transform: translateY(112vh) rotate(700deg); opacity: 0; }
+  }
+  @keyframes raysPulse { 0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1) rotate(0deg)} 50%{opacity:.85;transform:translate(-50%,-50%) scale(1.06) rotate(3deg)} }
+  #rays {
+    position: absolute; left: 50%; top: 40%; width: 120vmax; height: 120vmax;
+    transform: translate(-50%,-50%); z-index: 20; pointer-events: none; opacity: 0;
+    background: conic-gradient(from 0deg,
+      transparent 0deg 12deg, rgba(255,205,90,.16) 12deg 24deg,
+      transparent 24deg 40deg, rgba(255,205,90,.12) 40deg 52deg,
+      transparent 52deg 70deg, rgba(255,205,90,.16) 70deg 82deg,
+      transparent 82deg 100deg, rgba(255,205,90,.12) 100deg 112deg,
+      transparent 112deg 130deg, rgba(255,205,90,.16) 130deg 142deg,
+      transparent 142deg 160deg, rgba(255,205,90,.12) 160deg 172deg,
+      transparent 172deg 190deg, rgba(255,205,90,.16) 190deg 202deg,
+      transparent 202deg 220deg, rgba(255,205,90,.12) 220deg 232deg,
+      transparent 232deg 250deg, rgba(255,205,90,.16) 250deg 262deg,
+      transparent 262deg 280deg, rgba(255,205,90,.12) 280deg 292deg,
+      transparent 292deg 310deg, rgba(255,205,90,.16) 310deg 322deg,
+      transparent 322deg 340deg, rgba(255,205,90,.12) 340deg 352deg,
+      transparent 352deg 360deg);
+    border-radius: 50%;
+    transition: opacity 1.2s ease;
+  }
+  #rays.on { opacity: .9; animation: raysPulse 6s ease-in-out infinite; }
+  .letter { display: inline-block; opacity: 0; transform: translateY(-40px) scale(.3); }
+  .letter.pop { animation: letterPop .5s cubic-bezier(.2,1.8,.4,1) forwards; }
+  @keyframes letterPop { to { opacity: 1; transform: translateY(0) scale(1); } }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <!-- Escena 1: el boss final -->
+  <div class="scene" id="scene-board">
+    <img class="bgimg" id="board-bg" src="/assets/backgrounds/MAZMORRA/bg_01.webp">
+    <img class="sprite" id="boss-img" src="/assets/bosses/display/MAZMORRA/boss_MAZMORRA.webp">
+    <img class="sprite" id="hero-img">
+  </div>
+  <!-- Escena 2: mapamundi -->
+  <div class="scene" id="scene-map">
+    <img class="bgimg" src="/assets/mapamundi/mapamundi.webp">
+    <div id="map-overlay" style="position:absolute;inset:0;pointer-events:none"></div>
+  </div>
+  <!-- Escena 3: final -->
+  <div class="scene" id="scene-end">
+    <div id="rays"></div>
+  </div>
+</div>
+
+<div id="vignette"></div>
+<div id="flash"></div>
+<canvas id="fx-canvas"></canvas>
+<div class="big-text" id="big-text"></div>
+<div class="sub-text" id="sub-text"></div>
+<div id="continue-hint"></div>
+
+<script src="/assets-cache.js"></script>
+<script>
+'use strict';
+
+// ---------- Datos ----------
+const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
+let translations = {}, fallback = {}, player = null;
+let WORLD_POSITIONS = {}, avatarSize = 0.06;
+let scene = 0, busy = false;
+
+function tt(key, ...args) {
+  let s = translations[key] ?? fallback[key] ?? key;
+  args.forEach((a, i) => { s = s.replaceAll('{' + i + '}', String(a)); });
+  return s;
+}
+async function loadLang(lang) {
+  try { const r = await fetch('/api/i18n' + (lang ? '/' + lang : '')); if (r.ok) return await r.json(); } catch {}
+  return {};
+}
+function getImgRect(img) {
+  const nw = img.naturalWidth || 0, nh = img.naturalHeight || 0;
+  if (!nw || !nh) return { left: 0, top: 0, width: innerWidth, height: innerHeight };
+  const s = Math.min(innerWidth / nw, innerHeight / nh);
+  const w = nw * s, h = nh * s;
+  return { left: (innerWidth - w) / 2, top: (innerHeight - h) / 2, width: w, height: h };
+}
+function snd(url, vol) { AssetsCache.playSound(url, vol ?? 0.6); }
+
+// ---------- Canvas de particulas ----------
+const canvas = document.getElementById('fx-canvas');
+const ctx = canvas.getContext('2d');
+let particles = [], rafFx = null;
+function resizeFx() { canvas.width = innerWidth; canvas.height = innerHeight; }
+window.addEventListener('resize', resizeFx); resizeFx();
+function fxLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    p.life -= 1; p.x += p.vx; p.y += p.vy; p.vy += p.g;
+    if (p.spark) { p.vx *= .985; p.vy *= .985; }
+    const a = Math.max(0, p.life / p.maxLife);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (p.grow ? (1 + (1 - a) * 2) : 1), 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  rafFx = requestAnimationFrame(fxLoop);
+}
+function burst(x, y, n, color, speed, opts = {}) {
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random() * Math.PI * 2, sp = speed * (0.4 + Math.random());
+    particles.push({
+      x, y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - (opts.up || 0),
+      g: opts.g ?? 0.12, life: maxLife(opts.life ?? 50), maxLife: opts.life ?? 50,
+      size: opts.size ?? (2 + Math.random() * 3), color: Array.isArray(color) ? color[i % color.length] : color,
+      spark: !!opts.spark, grow: !!opts.grow,
+    });
+  }
+  function maxLife(l) { return l * (0.6 + Math.random() * 0.8); }
+}
+if (!rafFx) fxLoop();
+
+// ---------- Utilidades escena ----------
+const stage = document.getElementById('stage');
+function showScene(id) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.toggle('on', s.id === id));
+}
+function shakeStage(soft) {
+  stage.classList.remove('shake-hard', 'shake-soft');
+  void stage.offsetWidth;
+  stage.classList.add(soft ? 'shake-soft' : 'shake-hard');
+}
+function flash(alpha, ms) {
+  const f = document.getElementById('flash');
+  f.style.transition = 'none'; f.style.opacity = alpha;
+  requestAnimationFrame(() => { f.style.transition = `opacity ${ms}ms ease`; f.style.opacity = 0; });
+}
+function redPulse() {
+  const v = document.getElementById('vignette');
+  v.style.transition = 'none'; v.style.opacity = 1;
+  requestAnimationFrame(() => { v.style.transition = 'opacity 700ms ease'; v.style.opacity = 0; });
+}
+function dust(x, y, size) {
+  const d = document.createElement('div');
+  d.className = 'dust';
+  d.style.left = x + 'px'; d.style.top = y + 'px';
+  d.style.width = size + 'px'; d.style.height = size + 'px';
+  stage.appendChild(d);
+  setTimeout(() => d.remove(), 1100);
+}
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ---------- ESCENA 1: el boss final cae ----------
+async function sceneBoard() {
+  scene = 1;
+  showScene('scene-board');
+  const bg = document.getElementById('board-bg');
+  await (bg.complete ? Promise.resolve() : new Promise(r => { bg.onload = r; bg.onerror = r; }));
+
+  // Avatar del jugador (el elegido en la partida)
+  const hero = document.getElementById('hero-img');
+  const ai = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
+  hero.src = `/assets/avatars/display/avatar_${String(ai + 1).padStart(2, '0')}.webp`;
+
+  // Posiciones sobre la zona del tablero (avatarArea calibrada)
+  let area = null;
+  try {
+    const r = await fetch('/assets/backgrounds/MAZMORRA/board-detection.json');
+    if (r.ok) { const d = await r.json(); area = d.avatarArea || d.boardArea || null; }
+  } catch {}
+  const r = getImgRect(bg);
+  const ax = area ? area.x : 0.25, ay = area ? area.y : 0.3, aw = area ? area.w : 0.5, ah = area ? area.h : 0.45;
+  const boss = document.getElementById('boss-img');
+  const bsz = r.width * aw * 0.30;
+  boss.style.width = bsz + 'px';
+  boss.style.left = (r.left + (ax + aw * 0.62) * r.width - bsz / 2) + 'px';
+  boss.style.top = (r.top + (ay + ah * 0.42) * r.height - bsz / 2) + 'px';
+  const hsz = r.width * aw * 0.13;
+  hero.style.width = hsz + 'px';
+  hero.style.left = (r.left + (ax + aw * 0.34) * r.width - hsz / 2) + 'px';
+  hero.style.top = (r.top + (ay + ah * 0.58) * r.height - hsz / 2) + 'px';
+
+  // Presentacion
+  const sub = document.getElementById('sub-text');
+  sub.textContent = tt('fin.finalBoss');
+  sub.style.top = '12%';
+  await wait(300); sub.classList.add('on');
+  await wait(1600); sub.classList.remove('on');
+
+  // Combate: 3 golpes con destello + sacudida
+  for (let i = 0; i < 3; i++) {
+    hero.style.animation = 'avatarJump .5s ease';
+    snd('/assets/sounds/comun/choque.wav', 0.5);
+    boss.style.animation = 'bossHit .4s ease';
+    flash(0.55, 260);
+    shakeStage(true);
+    await wait(520);
+    hero.style.animation = ''; boss.style.animation = '';
+    await wait(240);
+  }
+
+  // Golpe final: flash grande, boss cae en gris, victoria
+  flash(0.95, 500); redPulse(); shakeStage(false);
+  snd('/assets/sounds/comun/derrota.wav', 0.5); // el boss cae
+  boss.style.animation = 'bossFall 1.4s ease-in forwards';
+  burst(innerWidth * 0.6, innerHeight * 0.45, 60, ['#9a8a70', '#c0aa80', '#6a5a45'], 6, { size: 5, g: 0.18 });
+  await wait(900);
+  snd('/assets/sounds/comun/victoria.wav', 0.8);
+  const big = document.getElementById('big-text');
+  big.textContent = tt('game.victory');
+  big.classList.add('pop');
+  hero.style.animation = 'avatarJump .6s ease .1s';
+  await wait(1400);
+
+  // Pulsa para continuar
+  const hint = document.getElementById('continue-hint');
+  hint.textContent = tt('instructions.continue');
+  hint.classList.add('on');
+}
+
+// ---------- ESCENA 2: los mundos se derrumban ----------
+async function sceneMap() {
+  scene = 2; busy = true;
+  document.getElementById('continue-hint').classList.remove('on');
+  document.getElementById('big-text').classList.remove('pop');
+  document.getElementById('big-text').style.opacity = 0;
+  showScene('scene-map');
+  const bg = document.querySelector('#scene-map .bgimg');
+  await (bg.complete ? Promise.resolve() : new Promise(r => { bg.onload = r; bg.onerror = r; }));
+  await wait(700);
+
+  const r = getImgRect(bg);
+  const overlay = document.getElementById('map-overlay');
+  const sub = document.getElementById('sub-text');
+  sub.style.top = '8%';
+  sub.textContent = tt('fin.worldsFell');
+  sub.classList.add('on');
+
+  const overlayDivs = {};
+  for (const w of WORLD_ORDER) {
+    const pos = WORLD_POSITIONS[w];
+    if (!pos) continue;
+    const sz = (pos.size || avatarSize) * r.width * 2.4;
+    const fx = document.createElement('div');
+    fx.className = 'world-fx';
+    fx.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
+    fx.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
+    fx.style.width = sz + 'px'; fx.style.height = sz + 'px';
+    overlay.appendChild(fx);
+    overlayDivs[w] = { fx, cx: r.left + pos.x * r.width, cy: r.top + pos.y * r.height, sz };
+  }
+
+  // Derrumbe en cadena: los 7 mundos externos y al final MAZMORRA
+  for (const w of WORLD_ORDER) {
+    const o = overlayDivs[w];
+    if (!o) continue;
+    const isFinal = w === 'MAZMORRA';
+    snd('/assets/sounds/comun/choque.wav', isFinal ? 0.8 : 0.55);
+    shakeStage(!isFinal ? true : false);
+    o.fx.classList.add('fall');
+    dust(o.cx, o.cy + o.sz * 0.28, o.sz * 0.9);
+    dust(o.cx - o.sz * 0.25, o.cy + o.sz * 0.2, o.sz * 0.6);
+    dust(o.cx + o.sz * 0.25, o.cy + o.sz * 0.2, o.sz * 0.6);
+    burst(o.cx, o.cy + o.sz * 0.2, isFinal ? 70 : 30,
+      ['#8a7a60', '#b09a75', '#6a5a45', '#d0b890'], isFinal ? 8 : 5, { size: 4, g: 0.15 });
+    if (isFinal) { flash(0.8, 600); redPulse(); }
+    await wait(isFinal ? 1100 : 750);
+  }
+  sub.classList.remove('on');
+  await wait(900);
+  busy = false;
+  sceneEnd();
+}
+
+// ---------- ESCENA 3: gran final ----------
+async function sceneEnd() {
+  scene = 3; busy = true;
+  showScene('scene-end');
+  document.getElementById('scene-end').style.background =
+    'radial-gradient(ellipse at center, #2a1c08 0%, #120a04 60%, #000 100%)';
+  await wait(400);
+
+  flash(0.9, 900);
+  snd('/assets/sounds/comun/victoria.wav', 0.9);
+  document.getElementById('rays').classList.add('on');
+
+  // Titulo letra a letra
+  const big = document.getElementById('big-text');
+  big.style.opacity = 1; big.style.top = '40%';
+  big.innerHTML = '';
+  const text = tt('fin.completed');
+  const letters = [];
+  for (const ch of text) {
+    const sp = document.createElement('span');
+    sp.className = 'letter';
+    sp.textContent = ch === ' ' ? ' ' : ch;
+    big.appendChild(sp); letters.push(sp);
+  }
+  for (let i = 0; i < letters.length; i++) {
+    letters[i].classList.add('pop');
+    snd('/assets/sounds/comun/move.wav', 0.25);
+    await wait(70);
+  }
+
+  // Lluvia de monedas + fuegos artificiales
+  coinRain();
+  const fw = setInterval(() => {
+    const x = innerWidth * (0.15 + Math.random() * 0.7);
+    const y = innerHeight * (0.12 + Math.random() * 0.45);
+    burst(x, y, 46, ['#ffd54f', '#ff9a3c', '#fff3c4', '#e86a4a', '#7ec8e3'], 7, { spark: true, g: 0.05, size: 3, life: 70 });
+    snd('/assets/sounds/comun/choque.wav', 0.15);
+  }, 850);
+  setTimeout(() => clearInterval(fw), 6500);
+
+  await wait(1800);
+  const hint = document.getElementById('continue-hint');
+  hint.textContent = tt('instructions.continue');
+  hint.classList.add('on');
+  busy = false;
+}
+function coinRain() {
+  for (let i = 0; i < 26; i++) {
+    setTimeout(() => {
+      const c = document.createElement('img');
+      c.src = '/assets/comunes/monedas.webp';
+      c.className = 'coin-rain';
+      const sz = 26 + Math.random() * 44;
+      c.style.width = sz + 'px';
+      c.style.left = (Math.random() * 96) + 'vw';
+      c.style.top = '-10vh';
+      c.style.animationDuration = (2.4 + Math.random() * 2.4) + 's';
+      stage.appendChild(c);
+      setTimeout(() => c.remove(), 5500);
+    }, i * 160);
+  }
+}
+
+// ---------- Avance ----------
+function advance() {
+  if (busy) return;
+  if (scene === 1) { sceneMap(); return; }
+  if (scene === 3) { AssetsCache.transitionTo('/demo-menu.html'); return; }
+}
+document.addEventListener('keydown', e => { AssetsCache.unlockAudio(); if (e.key === 'Escape') { AssetsCache.transitionTo('/demo-menu.html'); return; } advance(); });
+document.addEventListener('pointerdown', () => { AssetsCache.unlockAudio(); advance(); });
+
+// ---------- Arranque ----------
+(async () => {
+  await AssetsCache.loadSettings();
+  fallback = await loadLang('es');
+  translations = await loadLang();
+  try {
+    const r = await fetch('/api/savegame');
+    if (r.ok) { const d = await r.json(); player = d.player || null; }
+  } catch {}
+  try {
+    const r = await fetch('/api/load-avatar-positions');
+    if (r.ok) { const d = await r.json(); if (d.positions) WORLD_POSITIONS = d.positions; if (d.avatarSize) avatarSize = d.avatarSize; }
+  } catch {}
+  WORLD_ORDER.forEach(w => { if (!WORLD_POSITIONS[w]) WORLD_POSITIONS[w] = { x: 0.5, y: 0.5 }; });
+  sceneBoard();
+})();
+</script>
+</body>
+</html>
