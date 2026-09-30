@@ -67,8 +67,8 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
 - `GET /api/level-screen?world&level` → pantalla **sticky** del tier
   correspondiente (`mapTierFor`: misma pantalla hasta completar la isla).
 - El **nivel de juego** mostrado es el **tier por progreso** (1..14):
-  `floor(pantallas superadas × 14 / 96) + 1` — depende del contador global,
-  no de la isla/mundo (los mundos se juegan en orden libre).
+  niveles 1–2 de 3 pantallas, luego `floor((c-6) × 12 / 90) + 3` — depende
+  del contador global, no de la isla/mundo (los mundos se juegan libremente).
 - Textos en áreas calibradas (`text-areas.json` del mundo): `turn`/`nTurn`
   (turno actual), `optimal`/`nOptimal` (movimientos mínimos del solver),
   `info` = `board.level` "Nivel X", `gold` = oro (moneda + número,

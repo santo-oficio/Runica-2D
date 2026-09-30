@@ -10,11 +10,13 @@
 > ⚠️ **Corrección a fuego (implementada en `db/db.ts`)**: el nivel de juego
 > (`tier` 1–14) **no depende de la posición** (mundo/isla) ni de la curva
 > `p=0.6` descrita abajo — depende del **número de pantallas superadas**
-> (`totalStagesCompleted`), reparto **lineal**:
+> (`totalStagesCompleted`). Los niveles 1 y 2 son cortos (3 pantallas cada
+> uno — son muy fáciles) y el resto reparte las 90 restantes linealmente:
 >
 > ```
-> tier = min(14, floor(completadas × 14 / 96) + 1)   // ~7 pantallas por nivel
-> banda = 0.5 + completadas / 95 × 7.5               // 0.5 → 8.0
+> c < 6  → tier = floor(c / 3) + 1                    // niveles 1 y 2 (3 c/u)
+> c >= 6 → tier = floor((c - 6) × 12 / 90) + 3        // niveles 3..14 (~7-8)
+> banda = 0.5 + c / 95 × 7.5                          // 0.5 → 8.0
 > ```
 >
 > Motivo: los mundos se pueden jugar en **orden libre** (solo MAZMORRA va
