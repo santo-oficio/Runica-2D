@@ -102,5 +102,6 @@
   "game.caught": "Il nemico ti ha catturato",
   "game.backToMap": "Torna alla mappa (R)",
   "game.levelDone": "Isola {0} completata in {1} turni",
-  "game.goldEarned": "+{0} oro"
+  "game.goldEarned": "+{0} oro",
+  "board.level": "Livello {0}"
 }

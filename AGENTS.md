@@ -198,6 +198,13 @@ renderizarla igual.
 - **Bosses**: los sprites de `assets/bosses/<M>/` solo se usan en la **última
   isla** (índice 11) de cada submundo; el resto de islas usan siempre imágenes
   de `assets/enemys/<M>/`.
+- **Nivel de juego (tier)** en el tablero: en modo real el HUD dev se oculta y
+  se pintan las áreas calibradas de `assets/backgrounds/<M>/text-areas.json`:
+  `turn`/`nTurn`, `optimal`/`nOptimal`, `info` = `board.level` ("Nivel {0}" →
+  tier 1..14 de la curva global, viene en `/api/level-screen` como `tier`), y
+  `gold`. El tier se persiste en `player.gameLevel` (`db/db.ts`,
+  `mapTierFor` sobre 8×12=96 etapas). Funcionamiento completo:
+  `docs/18-FUNCIONAMIENTO-JUEGO.md`.
 
 ## Selección de personaje (demo + calibradores)
 

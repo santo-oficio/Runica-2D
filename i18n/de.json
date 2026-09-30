@@ -102,5 +102,6 @@
   "game.caught": "Der Feind hat dich erwischt",
   "game.backToMap": "Zurück zur Karte (R)",
   "game.levelDone": "Insel {0} in {1} Zügen geschafft",
-  "game.goldEarned": "+{0} Gold"
+  "game.goldEarned": "+{0} Gold",
+  "board.level": "Level {0}"
 }

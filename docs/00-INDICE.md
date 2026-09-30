@@ -35,6 +35,7 @@ estética retro/pixel-art de tus fondos artísticos, adaptados a pantalla panor�
 | `15-TABLA-CURVA-DIFICULTAD-120-JUEGOS.md` | 📈 Tabla generada `juego → tier → banda de dificultad` para los 120 juegos (8 mundos × 15 subniveles), con curva no lineal p=0.6 y las reglas "a fuego" |
 | `16-DISENADOR-NIVELES-TIERS.md` | 🎯 Definición de los 14 tiers de dificultad, reglas del generador (pruning, validación funcional) y formato del banco de pantallas |
 | `17-PANTALLA-SELECCION-PERSONAJE.md` | 🧑‍🎤 Pantalla de selección de personaje: demo, calibradores visuales, esquemas JSON (`character-positions`, `selection-buttons`, `selection-name-area`), espacio `image-content`, navegación por teclado y pipeline de avatares 8K |
+| `18-FUNCIONAMIENTO-JUEGO.md` | 🎮 **Funcionamiento definitivo del juego**: flujo arranque→carga→ajustes→música→menú→mapamundi→submundo→pantallita, persistencia (`player.json`), curva de nivel (tier), bosses y reglas a fuego activas |
 
 > Nota de orden de lectura: `10-ANALIZADOR-IA-FONDOS.md` amplía el punto 1 de
 > `02-MOTOR-GRAFICO.md`, así que léelos juntos. `11-ACTUALIZACION-NIVELES-DIFICULTAD-PROGRESO.md`

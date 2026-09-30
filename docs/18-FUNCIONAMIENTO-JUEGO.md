@@ -1,0 +1,87 @@
+# 🎮 Funcionamiento del juego — estado definitivo
+
+> Documento de referencia del flujo completo de Runika 2D tal como está
+> implementado. Manda sobre los "demos": el flujo real es el que se describe
+> aquí; `demo-*`/`calibrate-*` son herramientas de desarrollo.
+
+## 1. Arranque (`demo-menu.html` = punto de entrada)
+
+1. `GET /api/settings` → si no existe `db/settings.json`, defaults
+   `{sound:true, music:true, lang:'es'}`.
+2. `GET /api/i18n` → archivo del idioma activo (o `?lang=` explícito).
+3. Pantalla de carga estilo *Return to Monkey Island*: `GET /api/assets-manifest`
+   precarga **todos** los assets de `assets/` (imágenes, sonidos, música;
+   excluye `old */`). Las imágenes del hot path se decodifican con
+   `Image.decode()` y quedan retenidas en `AssetsCache`.
+4. `AssetsCache.startMusic()`: música en bucle si `settings.music` y hay track.
+   La posición se conserva en `localStorage` — **no se corta entre pantallas**.
+5. `GET /api/savegame` → `{exists, player}`. Sin partida empezada
+   (`player.started !== true`), **Continuar** está deshabilitado y se salta en
+   la navegación.
+
+## 2. Nueva partida / Continuar
+
+- **Nueva partida** → `demo-seleccion-personaje.html` → modal de confirmación
+  (`assets/comunes/modal.webp` + `modal-areas.json`) → `POST /api/new-game
+  {name, avatar}` (`started:true`, progreso reseteado) → `mapamundi.html`.
+- **Continuar** → `mapamundi.html` restaurando todo lo persistido en
+  `db/player.json`.
+
+## 3. Persistencia (`db/player.json` → `db/db.ts`)
+
+| Campo | Significado |
+|---|---|
+| `started` | la partida existe |
+| `playerName`, `avatarIndex` | identidad fija hasta nueva partida |
+| `gold` | oro acumulado |
+| `lastWorld` | último mundo seleccionado en el mapamundi |
+| `worldProgress.<M>.last` | última isla jugada del mundo (completada o no) |
+| `worldProgress.<M>.completed` | islas completadas del mundo |
+| `gameLevel` | nivel de juego actual = **tier 1..14** de la curva global |
+| `currentWorld`, `currentSubLevel`, `totalStagesCompleted` | modelo lineal legacy (1..15) |
+
+APIs de progreso: `/api/map-position`, `/api/level-position`,
+`/api/level-complete` (POST) · `/api/player`, `/api/stats`, `/api/progress`,
+`/api/level-screen` (GET).
+
+## 4. Mapamundi (`mapamundi.html`)
+
+- 8 mundos: ESPACIO, AGUA, TIERRA, FUEGO, HIELO, VIENTO, INFRAMUNDO, MAZMORRA.
+- El avatar (`player.avatarIndex`, fijo) se posiciona en `lastWorld`.
+- **MAZMORRA** (centro): bloqueado hasta completar los otros 7 mundos.
+- Mundo completado (sus 12 islas hechas) → blanco y negro y rechaza la entrada.
+- Oro en el área calibrada `gold` de `assets/mapamundi/text-areas.json`.
+
+## 5. Submundo (`submundo.html?world=X`)
+
+- 12 islas por mundo (rejilla serpiente 4×3, posiciones calibradas en
+  `assets/submundos/<M>/avatar-positions.json`).
+- **Progreso secuencial a fuego**: solo se puede entrar a la isla N si la
+  N-1 está completada. Intentos bloqueados → rebote + choque.
+- Isla completada → blanco y negro; isla bloqueada → oscurecida.
+- `Enter` en isla disponible → `POST /api/level-position` →
+  `demo-play.html?world=X&level=N` (la pantallita real).
+
+## 6. Pantallita / tablero (`demo-play.html?world=X&level=N`)
+
+- `GET /api/level-screen?world&level` → pantalla **sticky** del tier
+  correspondiente (`mapTierFor`: misma pantalla hasta completar la isla).
+- El **nivel de juego** mostrado es el **tier de la curva global**
+  (1..14, p=0.6 sobre 96 etapas = 8 mundos × 12 islas) — no el índice de isla.
+- Textos en áreas calibradas (`text-areas.json` del mundo): `turn`/`nTurn`
+  (turno actual), `optimal`/`nOptimal` (movimientos mínimos del solver),
+  `info` = `board.level` "Nivel X", `gold` = oro (moneda + número,
+  alineado a la derecha).
+- Enemigos: imágenes de `assets/enemys/display/<M>/`; **bosses solo en la
+  isla final** (índice 11) desde `assets/bosses/display/<M>/`.
+- Victoria → `POST /api/level-complete` (oro = `max(10, minMoves×5 − turnos)`)
+  → vuelve al submundo. Derrota → reintenta la misma pantalla.
+- Sin `?world=` → modo demo aleatorio (no persiste; solo desarrollo).
+
+## 7. Reglas "a fuego" activas
+
+- Todo texto visible desde `i18n/*.json` (es/en/fr/de/it). Cero literales.
+- Fuente única: ChelseaMarket (`assets/fonts/fonts.css`). Nada externo.
+- Runtime solo `.webp`; masters PNG en `assets/old */`.
+- Tablero 8×6 fijo; motor/solver determinista; enemigos siempre se mueven
+  (2 pasos, CHASE); máx. 3 enemigos; trampa aturde 3 turnos.

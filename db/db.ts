@@ -72,6 +72,8 @@ export interface PlayerState {
   lastWorld?: string;
   /** Progreso por mundo: última isla jugada + islas completadas (0..MAP_LEVELS_PER_WORLD-1). */
   worldProgress?: Record<string, { last?: number; completed?: number[] }>;
+  /** Nivel de juego actual (tier 1..14 según la curva global de dificultad). */
+  gameLevel?: number;
 }
 
 /**
@@ -143,6 +145,7 @@ function defaultPlayer(): PlayerState {
     gold: 0,
     lastWorld: "AGUA",
     worldProgress: {},
+    gameLevel: 1,
   };
 }
 
@@ -346,6 +349,7 @@ export function setLevelPosition(world: string, level: number): PlayerState {
   wp[world] = w;
   player.worldProgress = wp;
   player.lastWorld = world;
+  player.gameLevel = mapTierFor(world, level);
   player.updatedAt = Date.now();
   persist();
   return { ...player };
@@ -396,6 +400,7 @@ export function completeLevel(world: string, level: number, goldEarned = 0, scre
   player.worldProgress = wp;
   player.lastWorld = world;
   player.gold = (player.gold ?? 0) + goldEarned;
+  player.gameLevel = mapTierFor(world, level);
   player.updatedAt = Date.now();
   persist();
   return { ...player };

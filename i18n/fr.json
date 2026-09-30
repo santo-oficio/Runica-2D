@@ -102,5 +102,6 @@
   "game.caught": "L’ennemi vous a attrapé",
   "game.backToMap": "Retour à la carte (R)",
   "game.levelDone": "Île {0} terminée en {1} tours",
-  "game.goldEarned": "+{0} or"
+  "game.goldEarned": "+{0} or",
+  "board.level": "Niveau {0}"
 }

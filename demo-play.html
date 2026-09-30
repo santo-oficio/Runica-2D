@@ -104,12 +104,24 @@
     border: 1px solid #0ff; padding: 8px 20px; border-radius: 4px;
   }
   #overlay .restart:hover { background: rgba(0,255,255,0.1); }
+  #boardtexts { position: fixed; inset: 0; pointer-events: none; z-index: 15; display: none; }
+  .btext {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-family: 'ChelseaMarket','Trebuchet MS',sans-serif; font-weight: bold;
+    text-align: center; text-shadow: 2px 2px 4px #000, 0 0 10px #000;
+    white-space: nowrap; overflow: hidden;
+  }
+  .btext.gold {
+    justify-content: flex-end; color: #ffd34e;
+    text-shadow: 1px 1px 2px #000, 0 0 12px rgba(255,180,0,.8), 0 0 26px rgba(255,140,0,.5);
+  }
 </style>
 </head>
 <body>
   <div id="stage"><img id="image" alt="fondo"></div>
   <div id="selector"><img id="avatar" alt="avatar"></div>
   <div id="entities"></div>
+  <div id="boardtexts"></div>
   <audio id="step-sound" preload="auto"></audio>
 
   <div id="hud">
@@ -224,6 +236,68 @@ function cellPos(c, r, useAvatarArea) {
   return { left: b.left + c * cw, top: b.top + r * ch, w: cw, h: ch };
 }
 
+// === Textos calibrados del tablero (modo real) ===
+// Áreas de assets/backgrounds/<M>/text-areas.json: etiqueta+número de turno,
+// óptimo, nivel de juego (tier de la curva global) en info, y oro.
+let textAreas = null;
+let gameLevel = 1;
+const BT_KINDS = ['turn', 'nTurn', 'optimal', 'nOptimal', 'info', 'gold'];
+const btEls = {};
+const boardTextsBox = () => document.getElementById('boardtexts');
+
+function btValue(k) {
+  if (k === 'turn') return tt('board.turn');
+  if (k === 'nTurn') return String(turn);
+  if (k === 'optimal') return tt('board.optimal');
+  if (k === 'nOptimal') return String(currentMinMoves);
+  if (k === 'gold') return String(playerData?.gold ?? 0);
+  return tt('board.level', gameLevel); // info → "Nivel X" (tier de la pantallita)
+}
+
+function renderBoardTexts() {
+  const box = boardTextsBox();
+  if (!REAL_MODE || !textAreas) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const rect = visibleImageRect();
+  for (const k of BT_KINDS) {
+    const a = textAreas[k];
+    if (!a) continue;
+    let el = btEls[k];
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'btext' + (k === 'gold' ? ' gold' : '');
+      box.appendChild(el);
+      btEls[k] = el;
+    }
+    const p = { x: rect.left + a.x * rect.width, y: rect.top + a.y * rect.height,
+                w: a.w * rect.width, h: a.h * rect.height };
+    el.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;
+    if (k === 'gold') {
+      // Regla a fuego: moneda a la izquierda del número, conjunto a la derecha
+      el.style.paddingRight = (p.w * 0.06) + 'px';
+      el.innerHTML = '';
+      const coin = document.createElement('img');
+      coin.src = BASE + '/assets/comunes/monedas.webp';
+      coin.style.cssText = `height:100%;width:auto;margin-right:${p.h * 0.12}px;flex:none`;
+      const span = document.createElement('span');
+      span.textContent = btValue(k);
+      el.appendChild(coin); el.appendChild(span);
+    } else {
+      el.textContent = btValue(k);
+    }
+    let fs = Math.max(12, p.h * .62 * (a.fontScale || 1));
+    el.style.fontSize = fs + 'px';
+    while ((el.scrollWidth > p.w + 1 || el.scrollHeight > p.h + 1) && fs > 6) {
+      fs--; el.style.fontSize = fs + 'px';
+    }
+  }
+}
+
+function updateTurnDisplay() {
+  turnLabel.textContent = `Turno: ${turn}`;
+  if (btEls.nTurn) btEls.nTurn.textContent = String(turn);
+}
+
 // === Estado del juego ===
 let player = { c: 0, r: 0 };
 let goal = { c: 0, r: 0 };
@@ -324,10 +398,15 @@ async function loadScreen() {
     : `${BASE}/api/demo-screen?tier=${currentTier}&t=${Date.now()}`;
   const res = await fetch(endpoint);
   const data = await res.json();
-  if (!data.ok) { worldLabel.textContent = 'Error: ' + data.error; return; }
+  if (!data.ok) {
+    worldLabel.textContent = 'Error: ' + data.error;
+    if (REAL_MODE) { overlay.classList.add('show', 'lose'); overlayTitle.textContent = data.error; }
+    return;
+  }
   const s = data.screen;
   currentScreenId = s.id;
   currentMinMoves = s.minMoves || 0;
+  if (REAL_MODE && (data.tier || s.level)) gameLevel = data.tier ?? s.level;
 
   player = { c: s.player[0], r: s.player[1] };
   goal = { c: s.goal[0], r: s.goal[1] };
@@ -360,6 +439,7 @@ async function loadScreen() {
 
   positionSelector();
   await renderEntities();
+  renderBoardTexts();
 }
 
 function positionSelector() {
@@ -369,7 +449,7 @@ function positionSelector() {
   selector.style.width = p.w + 'px';
   selector.style.height = p.h + 'px';
   posLabel.textContent = `casilla [${player.c}, ${player.r}]`;
-  turnLabel.textContent = `Turno: ${turn}`;
+  updateTurnDisplay();
 }
 
 function place(el, c, r, useAvatarArea) {
@@ -498,7 +578,7 @@ function movePlayer(dc, dr) {
     playerStunnedTurns--;
     moveEnemiesAnimated().then(captured => {
       if (captured) { setTimeout(loseGame, 600); return; }
-      turn++; turnLabel.textContent = `Turno: ${turn}`;
+      turn++; updateTurnDisplay();
       moving = false;
     });
     return;
@@ -538,7 +618,7 @@ function movePlayer(dc, dr) {
     moveEnemiesAnimated().then(captured => {
       if (captured) { setTimeout(loseGame, 600); return; }
       if (player.c === goal.c && player.r === goal.r) { winGame(); return; }
-      turn++; turnLabel.textContent = `Turno: ${turn}`;
+      turn++; updateTurnDisplay();
       moving = false;
     });
   }, 80);
@@ -611,8 +691,10 @@ function winGame() {
   if (REAL_MODE) {
     // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos
     const goldEarned = Math.max(10, currentMinMoves * 5 - turn);
+    if (playerData) playerData.gold = (playerData.gold ?? 0) + goldEarned;
     overlaySubtitle.textContent = tt('game.levelDone', REAL_LEVEL + 1, turn) + ' · ' + tt('game.goldEarned', goldEarned);
     document.getElementById('overlay-restart').textContent = tt('game.backToMap');
+    renderBoardTexts();
     fetch(BASE + '/api/level-complete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: goldEarned, screenId: currentScreenId }),
@@ -725,6 +807,7 @@ window.addEventListener('resize', () => {
   layout();
   positionSelector();
   repositionAll();
+  renderBoardTexts();
 });
 
 // === Init ===
@@ -743,6 +826,13 @@ async function init() {
       avatarIdx = playerData.avatarIndex;
       avatarImg.src = BASE + AVATARS[avatarIdx];
     }
+    gameLevel = playerData?.gameLevel ?? 1;
+    // Áreas de texto calibradas del mundo (turno, óptimo, nivel, oro)
+    try {
+      const r = await fetch(`${BASE}/api/load-board-text-areas?world=${encodeURIComponent(REAL_WORLD)}`);
+      if (r.ok) { const d = await r.json(); textAreas = d.areas || null; }
+    } catch {}
+    document.getElementById('hud').style.display = 'none';
     document.getElementById('demo-tag').style.display = 'none';
     document.getElementById('help').style.display = 'none';
     const idx = worlds.findIndex(w => w.world === REAL_WORLD);
