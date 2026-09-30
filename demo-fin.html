@@ -48,9 +48,18 @@
   }
   .sub-text.on { opacity: 1; }
   #continue-hint {
-    position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 62%; transform: translateX(-50%);
     z-index: 60; font-size: clamp(14px, 2.6vh, 28px); color: #ffe9a3;
     text-shadow: 2px 2px 0 #2a1a08; opacity: 0; pointer-events: none;
+    text-align: center; width: 90%;
+  }
+  /* Gate de inicio: primer gesto del usuario = desbloquea el audio */
+  #press-start {
+    position: fixed; inset: 0; z-index: 200; background: #000;
+    display: flex; align-items: center; justify-content: center;
+    color: #ffe9a3; font-size: clamp(18px, 3.5vh, 40px);
+    text-shadow: 2px 2px 0 #2a1a08; text-align: center; padding: 0 10%;
+    animation: hintBlink 1.2s ease-in-out infinite; cursor: pointer;
   }
   #continue-hint.on { animation: hintBlink 1.1s ease-in-out infinite; }
   @keyframes hintBlink { 0%,100%{opacity:.25} 50%{opacity:1} }
@@ -144,6 +153,7 @@
   </div>
 </div>
 
+<div id="press-start"></div>
 <div id="vignette"></div>
 <div id="flash"></div>
 <canvas id="fx-canvas"></canvas>
@@ -158,7 +168,10 @@
 // ---------- Datos ----------
 const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
 let translations = {}, fallback = {}, player = null;
-let WORLD_POSITIONS = {}, avatarSize = 0.06;
+let WORLD_POSITIONS = {}, WORLD_AVATAR_POS = {}, avatarSize = 0.06;
+let avatarIdx = 0;
+function avatarPos(w) { return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][avatarIdx]) || WORLD_POSITIONS[w]; }
+function worldSize(w) { return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][avatarIdx] && WORLD_AVATAR_POS[w][avatarIdx].size) || (WORLD_POSITIONS[w] && WORLD_POSITIONS[w].size) || avatarSize; }
 let scene = 0, busy = false;
 
 function tt(key, ...args) {
@@ -252,8 +265,7 @@ async function sceneBoard() {
 
   // Avatar del jugador (el elegido en la partida)
   const hero = document.getElementById('hero-img');
-  const ai = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
-  hero.src = `/assets/avatars/display/avatar_${String(ai + 1).padStart(2, '0')}.webp`;
+  hero.src = `/assets/avatars/display/avatar_${String(avatarIdx + 1).padStart(2, '0')}.webp`;
 
   // Posiciones sobre la zona del tablero (avatarArea calibrada)
   let area = null;
@@ -263,15 +275,17 @@ async function sceneBoard() {
   } catch {}
   const r = getImgRect(bg);
   const ax = area ? area.x : 0.25, ay = area ? area.y : 0.3, aw = area ? area.w : 0.5, ah = area ? area.h : 0.45;
+  // Sprites con los pies en la base del tablero (alineados por abajo)
   const boss = document.getElementById('boss-img');
-  const bsz = r.width * aw * 0.30;
+  const boardBottom = r.top + (ay + ah * 0.92) * r.height;
+  const bsz = r.width * aw * 0.34;
   boss.style.width = bsz + 'px';
-  boss.style.left = (r.left + (ax + aw * 0.62) * r.width - bsz / 2) + 'px';
-  boss.style.top = (r.top + (ay + ah * 0.42) * r.height - bsz / 2) + 'px';
-  const hsz = r.width * aw * 0.13;
+  boss.style.left = (r.left + (ax + aw * 0.66) * r.width - bsz / 2) + 'px';
+  boss.style.top = (boardBottom - bsz) + 'px';
+  const hsz = r.width * aw * 0.16;
   hero.style.width = hsz + 'px';
-  hero.style.left = (r.left + (ax + aw * 0.34) * r.width - hsz / 2) + 'px';
-  hero.style.top = (r.top + (ay + ah * 0.58) * r.height - hsz / 2) + 'px';
+  hero.style.left = (r.left + (ax + aw * 0.30) * r.width - hsz / 2) + 'px';
+  hero.style.top = (boardBottom - hsz) + 'px';
 
   // Presentacion
   const sub = document.getElementById('sub-text');
@@ -331,9 +345,9 @@ async function sceneMap() {
 
   const overlayDivs = {};
   for (const w of WORLD_ORDER) {
-    const pos = WORLD_POSITIONS[w];
+    const pos = avatarPos(w);
     if (!pos) continue;
-    const sz = (pos.size || avatarSize) * r.width * 2.4;
+    const sz = worldSize(w) * r.width * 2.4;
     const fx = document.createElement('div');
     fx.className = 'world-fx';
     fx.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
@@ -429,29 +443,57 @@ function coinRain() {
 }
 
 // ---------- Avance ----------
+let started = false;
 function advance() {
-  if (busy) return;
+  if (!started || busy) return;
   if (scene === 1) { sceneMap(); return; }
   if (scene === 3) { AssetsCache.transitionTo('/demo-menu.html'); return; }
 }
-document.addEventListener('keydown', e => { AssetsCache.unlockAudio(); if (e.key === 'Escape') { AssetsCache.transitionTo('/demo-menu.html'); return; } advance(); });
-document.addEventListener('pointerdown', () => { AssetsCache.unlockAudio(); advance(); });
+document.addEventListener('keydown', e => {
+  if (!started) { begin(); return; }
+  AssetsCache.unlockAudio();
+  if (e.key === 'Escape') { AssetsCache.transitionTo('/demo-menu.html'); return; }
+  advance();
+});
+document.addEventListener('pointerdown', () => {
+  if (!started) { begin(); return; }
+  AssetsCache.unlockAudio();
+  advance();
+});
+function begin() {
+  if (started) return;
+  started = true;
+  AssetsCache.unlockAudio();
+  const ps = document.getElementById('press-start');
+  ps.style.animation = 'none';
+  ps.style.opacity = '0';
+  ps.style.transition = 'opacity .4s ease';
+  setTimeout(() => ps.remove(), 450);
+  sceneBoard();
+}
 
 // ---------- Arranque ----------
 (async () => {
   await AssetsCache.loadSettings();
   fallback = await loadLang('es');
   translations = await loadLang();
+  await AssetsCache.preloadSounds([
+    '/assets/sounds/comun/choque.wav',
+    '/assets/sounds/comun/victoria.wav',
+    '/assets/sounds/comun/derrota.wav',
+    '/assets/sounds/comun/move.wav',
+  ]);
   try {
     const r = await fetch('/api/savegame');
     if (r.ok) { const d = await r.json(); player = d.player || null; }
   } catch {}
+  if (player && typeof player.avatarIndex === 'number') avatarIdx = player.avatarIndex;
   try {
     const r = await fetch('/api/load-avatar-positions');
-    if (r.ok) { const d = await r.json(); if (d.positions) WORLD_POSITIONS = d.positions; if (d.avatarSize) avatarSize = d.avatarSize; }
+    if (r.ok) { const d = await r.json(); if (d.positions) WORLD_POSITIONS = d.positions; if (d.avatars) WORLD_AVATAR_POS = d.avatars; if (d.avatarSize) avatarSize = d.avatarSize; }
   } catch {}
   WORLD_ORDER.forEach(w => { if (!WORLD_POSITIONS[w]) WORLD_POSITIONS[w] = { x: 0.5, y: 0.5 }; });
-  sceneBoard();
+  document.getElementById('press-start').textContent = tt('loading.pressStart');
 })();
 </script>
 </body>

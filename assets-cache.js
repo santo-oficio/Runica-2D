@@ -181,6 +181,18 @@ function stopMusic() {
   musicEl = null;
 }
 
+// Precarga ligera de sonidos sueltos (sin el manifiesto completo)
+async function preloadSounds(urls) {
+  await Promise.all((urls || []).map(async (u) => {
+    try {
+      if (!cache.sounds.has(u)) {
+        const res = await fetch(u);
+        if (res.ok) cache.sounds.set(u, URL.createObjectURL(await res.blob()));
+      }
+    } catch {}
+  }));
+}
+
 function playSound(url, volume) {
   if (!isSoundEnabled()) return;
   const blobUrl = cache.sounds.get(url);
@@ -249,7 +261,7 @@ function hideLoading() {
 }
 
 window.AssetsCache = {
-  preloadAll, getCachedImage, getCachedImageUrl, getCachedSound, playSound,
+  preloadAll, preloadSounds, getCachedImage, getCachedImageUrl, getCachedSound, playSound,
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
