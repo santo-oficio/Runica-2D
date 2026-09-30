@@ -468,15 +468,21 @@
             textDiv.appendChild(span);
           }
         } else {
-          textDiv.textContent = str;
-          let fs = fontSize;
-          while (fs > 6 && textDiv.scrollWidth > textDiv.clientWidth + 1) { fs -= 1; textDiv.style.fontSize = fs + 'px'; }
+          // La rotacion va en un span interno: si la ponemos en .btn-text,
+          // el inline transform anula el scale del hover/active en CSS
+          const inner = document.createElement('span');
+          inner.textContent = str;
+          inner.style.display = 'inline-block';
+          inner.style.whiteSpace = 'nowrap';
           const btnRot = (b.rect && b.rect.angle) ? b.rect.angle : 0;
           const textAngle = (textBBox.angle || 0) - btnRot;
           if (Math.abs(textAngle) > 0.0001) {
-            textDiv.style.transform = 'rotate(' + textAngle + 'rad)';
-            textDiv.style.transformOrigin = 'center center';
+            inner.style.transform = 'rotate(' + textAngle + 'rad)';
+            inner.style.transformOrigin = 'center center';
           }
+          textDiv.appendChild(inner);
+          let fs = fontSize;
+          while (fs > 6 && inner.offsetWidth > textDiv.clientWidth + 1) { fs -= 1; textDiv.style.fontSize = fs + 'px'; }
         }
         div.appendChild(textDiv);
       }
