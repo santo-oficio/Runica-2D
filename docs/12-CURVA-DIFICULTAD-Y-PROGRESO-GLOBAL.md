@@ -10,12 +10,12 @@
 > ⚠️ **Corrección a fuego (implementada en `db/db.ts`)**: el nivel de juego
 > (`tier` 1–14) **no depende de la posición** (mundo/isla) ni de la curva
 > `p=0.6` descrita abajo — depende del **número de pantallas superadas**
-> (`totalStagesCompleted`). Los niveles 1 y 2 son cortos (3 pantallas cada
-> uno — son muy fáciles) y el resto reparte las 90 restantes linealmente:
+> (`totalStagesCompleted`). Los niveles 1-3 son cortos (3 pantallas cada
+> uno — son muy fáciles) y el resto reparte las 87 restantes linealmente:
 >
 > ```
-> c < 6  → tier = floor(c / 3) + 1                    // niveles 1 y 2 (3 c/u)
-> c >= 6 → tier = floor((c - 6) × 12 / 90) + 3        // niveles 3..14 (~7-8)
+> c < 9  → tier = floor(c / 3) + 1                    // niveles 1-3 (3 c/u)
+> c >= 9 → tier = floor((c - 9) × 11 / 87) + 4        // niveles 4..14 (~8)
 > banda = 0.5 + c / 95 × 7.5                          // 0.5 → 8.0
 > ```
 >

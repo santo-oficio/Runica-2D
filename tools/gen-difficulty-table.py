@@ -12,12 +12,12 @@ N = W * S  # 96
 T = 14
 
 # El nivel de juego NO depende de la isla/mundo: los mundos se juegan en orden
-# libre. Depende del Nº DE PANTALLAS SUPERADAS. Niveles 1-2 cortos (3 cada
-# uno, son muy fáciles); el resto reparte lineal las 90 restantes (3..14).
+# libre. Depende del Nº DE PANTALLAS SUPERADAS. Niveles 1-3 cortos (3 cada
+# uno, son muy fáciles); el resto reparte lineal las 87 restantes (4..14).
 def tier_for(c):  # c = pantallas superadas 0..95
-    if c < 6:
+    if c < 9:
         return c // 3 + 1
-    return min(T, math.floor((c - 6) * (T - 2) / (N - 6)) + 3)
+    return min(T, math.floor((c - 9) * (T - 3) / (N - 9)) + 4)
 
 def band_for(c):
     return 0.5 + (c / (N - 1)) * 7.5
@@ -45,8 +45,8 @@ lines.append('> `W=8`, `S=12`, `N=96`, `T=14` niveles, reparto lineal.')
 lines.append('')
 lines.append('El nivel de juego (tier 1–14) depende del **número de pantallas')
 lines.append('superadas**, no de la isla/mundo (los mundos se juegan en orden')
-lines.append('libre). Los niveles 1 y 2 son cortos (3 pantallas cada uno, son')
-lines.append('muy fáciles); del 3 al 14 se reparten las 90 restantes (~7-8).')
+lines.append('libre). Los niveles 1-3 son cortos (3 pantallas cada uno, son')
+lines.append('muy fáciles); del 4 al 14 se reparten las 87 restantes (~8).')
 lines.append('')
 lines.append('## Reglas "a fuego"')
 lines.append('')
@@ -66,8 +66,8 @@ lines.append('## Fórmula')
 lines.append('')
 lines.append('```')
 lines.append('c = pantallas superadas (0..95)')
-lines.append('c < 6  → tier = floor(c/3) + 1                       // niveles 1-2 cortos')
-lines.append('c >= 6 → tier = floor((c-6) * 12 / 90) + 3           // niveles 3..14')
+lines.append('c < 9  → tier = floor(c/3) + 1                       // niveles 1-3 cortos')
+lines.append('c >= 9 → tier = floor((c-9) * 11 / 87) + 4           // niveles 4..14')
 lines.append('banda = 0.5 + c / 95 * 7.5               // dificultad continua')
 lines.append('```')
 lines.append('')
