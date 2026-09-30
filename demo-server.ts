@@ -20,6 +20,10 @@ import {
   getRandomScreenByTier,
   hasSaveGame,
   startNewGame,
+  setLastWorld,
+  setLevelPosition,
+  getLevelScreen,
+  completeLevel,
 } from "./db/db.js";
 
 const PORT = 3000;
@@ -816,6 +820,106 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ ok: false, error: String(e) }));
       }
     });
+    return;
+  }
+
+  // API: manifiesto de TODOS los assets runtime (excluye carpetas "old *").
+  // GET /api/assets-manifest → { images:[], sounds:[], music:[] } (rutas URL)
+  if (url === "/api/assets-manifest") {
+    const assetsRoot = join(ROOT, "assets");
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      if (!existsSync(dir)) return;
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (e.isDirectory()) {
+          if (/^old\b/i.test(e.name)) continue;
+          walk(join(dir, e.name));
+        } else {
+          files.push(join(dir, e.name));
+        }
+      }
+    };
+    walk(assetsRoot);
+    const toUrl = (p: string) => encodeURI("/assets" + p.slice(assetsRoot.length).replace(/\\/g, "/"));
+    const rel = files.map(toUrl);
+    const images = rel.filter((u) => /\.(webp|png|jpe?g)$/i.test(u));
+    const music = rel.filter((u) => /\/music\//i.test(u) && /\.(mp3|wav|ogg)$/i.test(u));
+    const sounds = rel.filter((u) => /\/sounds\//i.test(u) && /\.(mp3|wav|ogg)$/i.test(u));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, images, sounds, music }));
+    return;
+  }
+
+  // API: última posición del jugador en el mapamundi (POST {world})
+  if (url === "/api/map-position" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body);
+        const player = setLastWorld(String(data.world ?? ""));
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, player }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: última isla jugada de un mundo (POST {world, level})
+  if (url === "/api/level-position" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body);
+        const player = setLevelPosition(String(data.world ?? ""), Number(data.level) || 0);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, player }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: isla completada (POST {world, level, gold?, screenId?})
+  if (url === "/api/level-complete" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body);
+        const player = completeLevel(
+          String(data.world ?? ""), Number(data.level) || 0,
+          Number(data.gold) || 0, data.screenId ? String(data.screenId) : undefined,
+        );
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, player }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: pantalla asignada a una isla del mapa (GET /api/level-screen?world=X&level=N)
+  if (url.startsWith("/api/level-screen")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const world = u.searchParams.get("world") ?? "";
+    const level = Number(u.searchParams.get("level") ?? "0") || 0;
+    try {
+      const { screen, tier } = getLevelScreen(world, level);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, screen, tier, world, level }));
+    } catch (e) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: String(e) }));
+    }
     return;
   }
 

@@ -163,6 +163,36 @@ renderizarla igual.
   respeta el flag `sound` global. Los cambios en la pantalla de configuración
   se persisten al instante y afectan a todo el juego.
 
+## Flujo de arranque y progreso por mapa
+
+- **Arranque**: `demo-menu.html` muestra la pantalla de carga (estilo aventura
+  clásica: marco grabado, título oro con contorno, barra chunky). Precarga
+  **todos** los assets listados por `GET /api/assets-manifest` (el servidor
+  escanea `assets/` excluyendo `old */`); solo se decodifican en memoria los
+  del hot path (menú, config, modal, display/) — los fondos/submundos 8K se
+  cachean como blob y se decodifican al entrar. Tras la carga, el primer gesto
+  del usuario desbloquea el audio y arranca la música si `settings.music`.
+- **Música global**: `AssetsCache.startMusic()` reproduce la pista del
+  manifiesto en loop y guarda la posición en `localStorage` (`runika-music-pos`)
+  para retomarla entre pantallas — la música no se corta al navegar.
+- **Progreso por mapa** (PlayerState): `gold`, `lastWorld` (último mundo del
+  mapamundi) y `worldProgress` = `{MUNDO: {last, completed[]}}` con 12 islas por
+  mundo (`MAP_LEVELS_PER_WORLD`). Endpoints: `POST /api/map-position`,
+  `POST /api/level-position`, `POST /api/level-complete {world, level, gold,
+  screenId}`, `GET /api/level-screen?world&level` (pantalla sticky por isla).
+- **Mapamundi**: el avatar siempre es `player.avatarIndex` (el elegido al crear
+  la partida — nunca cambia). Se restaura `lastWorld` al entrar y se guarda al
+  avanzar. Un mundo con las 12 islas completadas se muestra en blanco y negro
+  (`backdrop-filter: grayscale`) y no se puede volver a entrar. **MAZMORRA**
+  (centro del mapa) permanece bloqueado y oscurecido hasta completar los otros
+  7 mundos.
+- **Submundo**: el avatar aparece en la última isla jugada (completada o no),
+  las islas completadas llevan un punto dorado y el oro se muestra en el área
+  `gold` calibrada (alineado a la derecha + icono `comunes/monedas.webp`).
+  `Enter` en una isla guarda la posición y entra a
+  `demo-play.html?world=X&level=N` (modo real: pantalla sticky, avatar fijo,
+  victoria → `POST /api/level-complete` y vuelta al submundo; `Esc` vuelve).
+
 ## Selección de personaje (demo + calibradores)
 
 - Demo: `http://localhost:3000/demo-seleccion-personaje.html`.

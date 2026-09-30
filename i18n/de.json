@@ -13,8 +13,8 @@
   "game.turn": "Zug",
   "game.moves": "Bewegungen",
   "game.victory": "Sieg!",
-  "game.defeat": "Du wurdest erfasst",
-  "game.retry": "Erneut versuchen",
+  "game.defeat": "Niederlage",
+  "game.retry": "Wiederholen (R)",
   "game.next": "Weiter",
   "game.exit": "Beenden",
   "instructions.title": "Anleitung",
@@ -97,5 +97,10 @@
   "selection.selected": "Ausgewählt",
   "config.sound": "Ton",
   "config.music": "Musik",
-  "config.langName": "Deutsch"
+  "config.langName": "Deutsch",
+  "loading.pressStart": "Taste drücken zum Starten",
+  "game.caught": "Der Feind hat dich erwischt",
+  "game.backToMap": "Zurück zur Karte (R)",
+  "game.levelDone": "Insel {0} in {1} Zügen geschafft",
+  "game.goldEarned": "+{0} Gold"
 }

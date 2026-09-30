@@ -66,6 +66,12 @@ export interface PlayerState {
   started?: boolean;
   playerName?: string;
   avatarIndex?: number;
+  /** Oro acumulado (se muestra en mapamundi/submundo). */
+  gold?: number;
+  /** Último mundo seleccionado en el mapamundi (posición del avatar al volver). */
+  lastWorld?: string;
+  /** Progreso por mundo: última isla jugada + islas completadas (0..MAP_LEVELS_PER_WORLD-1). */
+  worldProgress?: Record<string, { last?: number; completed?: number[] }>;
 }
 
 /**
@@ -89,6 +95,10 @@ export const SUBLEVELS_PER_WORLD = 15;
 export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 120
 export const TOTAL_TIERS = 14;
 export const CURVE_P = 0.6;
+/** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
+export const MAP_LEVELS_PER_WORLD = 12;
+/** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
+export const FINAL_WORLD = "MAZMORRA";
 
 /** Etapa global (1..120) a partir de mundo y subnivel. */
 export function stageFor(world: number, subLevel: number): number {
@@ -130,6 +140,9 @@ function defaultPlayer(): PlayerState {
     currentSubLevel: 1,
     totalStagesCompleted: 0,
     updatedAt: Date.now(),
+    gold: 0,
+    lastWorld: "AGUA",
+    worldProgress: {},
   };
 }
 
@@ -301,6 +314,106 @@ export function completeScreen(screenId: string, _turns: number): PlayerState {
 export function failScreen(_screenId: string): void {
   // Los reintentos no cambian la asignación sticky: la pantalla sigue asignada.
   // Se podría añadir un contador si se quiere estadística.
+}
+
+// ---------------------------------------------------------------------------
+// Progreso por mapa (submundos de 12 islas)
+// ---------------------------------------------------------------------------
+
+/** Tier de dificultad para una isla del mapa (etapa 1..96, misma curva p=0.6). */
+export function mapTierFor(world: string, level: number): number {
+  const wi = WORLDS.indexOf(world as (typeof WORLDS)[number]);
+  if (wi < 0) return 1;
+  const s = wi * MAP_LEVELS_PER_WORLD + level + 1;
+  const x = (s - 1) / (WORLDS.length * MAP_LEVELS_PER_WORLD - 1);
+  return Math.min(TOTAL_TIERS - 1, Math.floor(Math.pow(x, CURVE_P) * TOTAL_TIERS)) + 1;
+}
+
+/** Recuerda el último mundo seleccionado en el mapamundi. */
+export function setLastWorld(world: string): PlayerState {
+  if ((WORLDS as readonly string[]).includes(world)) player.lastWorld = world;
+  player.updatedAt = Date.now();
+  persist();
+  return { ...player };
+}
+
+/** Recuerda la última isla jugada de un mundo (completada o no). */
+export function setLevelPosition(world: string, level: number): PlayerState {
+  if (!(WORLDS as readonly string[]).includes(world)) return { ...player };
+  const wp = { ...(player.worldProgress ?? {}) };
+  const w = { ...(wp[world] ?? {}) };
+  w.last = Math.max(0, Math.min(MAP_LEVELS_PER_WORLD - 1, level));
+  wp[world] = w;
+  player.worldProgress = wp;
+  player.lastWorld = world;
+  player.updatedAt = Date.now();
+  persist();
+  return { ...player };
+}
+
+/**
+ * Pantalla asignada a una isla del mapa (sticky): mientras la isla no se
+ * complete, siempre devuelve la misma pantalla del tier correspondiente.
+ */
+export function getLevelScreen(world: string, level: number): { screen: Screen; tier: number } {
+  const tier = mapTierFor(world, level);
+  const key = `map:${world}:${level}`;
+  let assign = assignments.get(key) ?? { current: null, completed: [] };
+
+  if (assign.current !== null) {
+    const s = ensureTierLoaded(tier).find((sc) => sc.id === assign.current);
+    if (s) return { screen: s, tier };
+    assign.current = null;
+  }
+
+  const pool = ensureTierLoaded(tier);
+  const done = new Set(assign.completed);
+  const chosen = pool.find((s) => !done.has(s.id)) ?? pool[0]!;
+  assign.current = chosen.id;
+  assignments.set(key, assign);
+  persist();
+  return { screen: chosen, tier };
+}
+
+/**
+ * Marca una isla del mapa como completada: libera la pantalla asignada,
+ * registra el nivel y suma el oro ganado.
+ */
+export function completeLevel(world: string, level: number, goldEarned = 0, screenId?: string): PlayerState {
+  const key = `map:${world}:${level}`;
+  const assign = assignments.get(key) ?? { current: null, completed: [] };
+  if (screenId) {
+    if (assign.current === screenId) assign.current = null;
+    if (!assign.completed.includes(screenId)) assign.completed.push(screenId);
+  }
+  assignments.set(key, assign);
+
+  const wp = { ...(player.worldProgress ?? {}) };
+  const w = { completed: [] as number[], ...(wp[world] ?? {}) };
+  if (!w.completed!.includes(level)) w.completed!.push(level);
+  w.last = level;
+  wp[world] = w;
+  player.worldProgress = wp;
+  player.lastWorld = world;
+  player.gold = (player.gold ?? 0) + goldEarned;
+  player.updatedAt = Date.now();
+  persist();
+  return { ...player };
+}
+
+/** Mundo completado: todas sus islas del mapa terminadas. */
+export function isWorldComplete(world: string): boolean {
+  return (player.worldProgress?.[world]?.completed?.length ?? 0) >= MAP_LEVELS_PER_WORLD;
+}
+
+/**
+ * Un mundo se puede jugar si no está completo y, en el caso del mundo final
+ * (centro del mapa), solo cuando todos los demás están completados.
+ */
+export function isWorldUnlocked(world: string): boolean {
+  if (isWorldComplete(world)) return false;
+  if (world !== FINAL_WORLD) return true;
+  return WORLDS.filter((w) => w !== FINAL_WORLD).every(isWorldComplete);
 }
 
 /** Estadísticas globales del jugador. */

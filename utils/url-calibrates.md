@@ -74,7 +74,7 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 
 | URL | Qué hace |
 |---|---|
-| http://localhost:3000/demo-play.html | Demo jugable: pantalla al azar del tier 1 |
+| http://localhost:3000/demo-play.html | Demo jugable: pantalla al azar del tier 1. Con `?world=X&level=N` = modo real (isla del submundo, guarda progreso/oro en bbdd) |
 | http://localhost:3000/demo-menu.html | Menú principal |
 | http://localhost:3000/demo-seleccion-personaje.html | Selección de personaje |
 | http://localhost:3000/instructions.html | Pantalla de instrucciones (usa el área calibrada) |

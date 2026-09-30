@@ -81,6 +81,38 @@
     background: transparent;
     box-shadow: none;
   }
+  /* Mundo completado: la zona queda en blanco y negro, "vencida" */
+  .world-fx {
+    position: absolute;
+    z-index: 9;
+    pointer-events: none;
+    border-radius: 50%;
+  }
+  .world-fx.done {
+    backdrop-filter: grayscale(1) brightness(0.55);
+    -webkit-backdrop-filter: grayscale(1) brightness(0.55);
+  }
+  /* Mundo central bloqueado: oscurecido hasta completar el resto */
+  .world-fx.locked {
+    backdrop-filter: grayscale(0.6) brightness(0.35);
+    -webkit-backdrop-filter: grayscale(0.6) brightness(0.35);
+  }
+  /* Contador de oro (área calibrada, alineado a la derecha) */
+  .gold-text {
+    position: absolute;
+    display: flex; align-items: center; justify-content: flex-end;
+    font-family: 'ChelseaMarket', cursive;
+    color: #f0d890;
+    text-shadow: -1px -1px 0 #20140a, 1px -1px 0 #20140a,
+                 -1px 1px 0 #20140a, 1px 1px 0 #20140a;
+    pointer-events: none; z-index: 20;
+    white-space: nowrap;
+  }
+  .gold-text img {
+    height: 100%;
+    object-fit: contain;
+    margin-right: 0.35em;
+  }
   #avatar {
     position: absolute;
     z-index: 12;
@@ -216,18 +248,9 @@
   let translations = {};
   let fallback = {};
 
-  const WORLD_AVATARS = {
-    ESPACIO:    '/assets/avatars/display/avatar_01.webp',
-    AGUA:       '/assets/avatars/display/avatar_02.webp',
-    TIERRA:     '/assets/avatars/display/avatar_03.webp',
-    FUEGO:      '/assets/avatars/display/avatar_04.webp',
-    HIELO:      '/assets/avatars/display/avatar_05.webp',
-    VIENTO:     '/assets/avatars/display/avatar_06.webp',
-    INFRAMUNDO: '/assets/avatars/display/avatar_07.webp',
-    MAZMORRA:   '/assets/avatars/display/avatar_08.webp',
-  };
-
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
+  const FINAL_WORLD = 'MAZMORRA'; // centro del mapa: solo con todos los demás completados
+  const LEVELS_PER_WORLD = 12;
   const DIRS = ['up', 'down', 'left', 'right'];
 
   let WORLD_POSITIONS = {};
@@ -237,14 +260,41 @@
   function worldAvatarIdx(w) { return WORLD_ORDER.indexOf(w); }
   function avatarPos(w) { const i = worldAvatarIdx(w); return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][i]) || WORLD_POSITIONS[w]; }
   function worldSize(w) { const i = worldAvatarIdx(w); return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][i] && WORLD_AVATAR_POS[w][i].size) || (WORLD_POSITIONS[w] && WORLD_POSITIONS[w].size) || avatarSize; }
-  let selectedWorld = 7; // MAZMORRA por defecto
 
-  // Restaurar ultimo mundo visitado
-  const lastWorld = sessionStorage.getItem('runika-last-world');
-  if (lastWorld !== null) {
-    const idx = parseInt(lastWorld);
-    if (idx >= 0 && idx < WORLD_ORDER.length) selectedWorld = idx;
+  // Estado de la partida (bbdd): avatar elegido, oro, progreso por mundo
+  let player = null;
+  function playerAvatarSrc() {
+    const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
+    return `/assets/avatars/display/avatar_${String(idx + 1).padStart(2, '0')}.webp`;
   }
+  function worldCompleted(w) {
+    return ((player?.worldProgress?.[w]?.completed?.length) ?? 0) >= LEVELS_PER_WORLD;
+  }
+  function worldLocked(w) {
+    if (worldCompleted(w)) return true;      // completado = vencido, no se re-entra
+    if (w !== FINAL_WORLD) return false;
+    return !WORLD_ORDER.filter(x => x !== FINAL_WORLD).every(worldCompleted);
+  }
+  async function loadPlayer() {
+    try {
+      const r = await fetch('/api/savegame');
+      if (r.ok) { const d = await r.json(); player = d.player || null; }
+    } catch {}
+  }
+  function saveMapPosition() {
+    fetch('/api/map-position', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ world: WORLD_ORDER[selectedWorld] }),
+    }).catch(() => {});
+  }
+  // Al volver al mapa, el avatar aparece en el último mundo guardado
+  function restoreLastWorld() {
+    const lw = player?.lastWorld;
+    const idx = lw ? WORLD_ORDER.indexOf(lw) : -1;
+    if (idx >= 0) selectedWorld = idx;
+  }
+
+  let selectedWorld = 0; // ESPACIO por defecto; luego manda player.lastWorld
 
   async function loadLang(lang) {
     const r = await fetch('/api/i18n' + (lang ? '/' + lang : ''));
@@ -276,6 +326,28 @@
       const pos = WORLD_POSITIONS[w];
       if (!pos) return;
       const sz = worldSize(w) * r.width;
+
+      // Máscara visual: completado (B/N) o mundo central bloqueado
+      if (worldCompleted(w)) {
+        const fx = document.createElement('div');
+        fx.className = 'world-fx done';
+        const fxSz = sz * 2.4; // cubrir la isla entera, no solo el hitbox
+        fx.style.left = (r.left + pos.x * r.width - fxSz / 2) + 'px';
+        fx.style.top = (r.top + pos.y * r.height - fxSz / 2) + 'px';
+        fx.style.width = fxSz + 'px';
+        fx.style.height = fxSz + 'px';
+        overlay.appendChild(fx);
+      } else if (worldLocked(w)) {
+        const fx = document.createElement('div');
+        fx.className = 'world-fx locked';
+        const fxSz = sz * 2.4;
+        fx.style.left = (r.left + pos.x * r.width - fxSz / 2) + 'px';
+        fx.style.top = (r.top + pos.y * r.height - fxSz / 2) + 'px';
+        fx.style.width = fxSz + 'px';
+        fx.style.height = fxSz + 'px';
+        overlay.appendChild(fx);
+      }
+
       const div = document.createElement('div');
       let cls = 'world-marker';
       if (i === selectedWorld) cls += ' selected';
@@ -295,10 +367,12 @@
         // Solo permitir si es alcanzable desde el mundo actual
         const dir = DIRS.find(d => paths[d] === w);
         if (!dir) return;
+        // Mundo completado o bloqueado: no se puede entrar
+        if (worldLocked(w)) { bounceAvatar(dir); return; }
         // Mover el avatar primero, luego entrar al submundo
         moveByPath(dir);
         const world = WORLD_ORDER[selectedWorld];
-        sessionStorage.setItem('runika-last-world', String(selectedWorld));
+        saveMapPosition();
         // Esperar a que termine el movimiento antes de entrar
         const r = getImgRect();
         const pos = avatarPos(w);
@@ -318,13 +392,31 @@
       overlay.appendChild(div);
     });
 
-    // Mostrar avatar siempre (fijo, uno solo)
+    // Oro acumulado (área calibrada, alineado a la derecha con moneda)
+    if (GOLD_AREA && player) {
+      const goldEl = document.createElement('div');
+      goldEl.className = 'gold-text';
+      goldEl.style.left = (r.left + GOLD_AREA.x * r.width) + 'px';
+      goldEl.style.top = (r.top + GOLD_AREA.y * r.height) + 'px';
+      goldEl.style.width = (GOLD_AREA.w * r.width) + 'px';
+      goldEl.style.height = (GOLD_AREA.h * r.height) + 'px';
+      goldEl.style.fontSize = Math.max(10, GOLD_AREA.h * r.height * 0.62 * (GOLD_AREA.fontScale || 1)) + 'px';
+      const coin = document.createElement('img');
+      coin.src = AssetsCache.getCachedImageUrl('/assets/comunes/monedas.webp');
+      coin.alt = '';
+      goldEl.appendChild(coin);
+      goldEl.appendChild(document.createTextNode(String(player.gold ?? 0)));
+      overlay.appendChild(goldEl);
+    }
+
+    // Mostrar avatar siempre (el elegido en la seleccion de personaje)
     const pos = avatarPos(world);
     if (pos) {
-      avatarImg.src = AssetsCache.getCachedImageUrl(WORLD_AVATARS[world]);
+      const src = playerAvatarSrc();
+      avatarImg.src = AssetsCache.getCachedImageUrl(src);
       avatarImg.alt = world;
       avatarImg.onerror = () => {
-        avatarImg.src = WORLD_AVATARS[world];
+        avatarImg.src = src;
       };
       avatarEl.style.display = 'block';
       const asz = worldSize(world) * r.width;
@@ -423,9 +515,11 @@
     else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); moveByPath('down'); }
     else if (e.key === 'Enter') {
       e.preventDefault();
-      AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.6);
       const world = WORLD_ORDER[selectedWorld];
-      sessionStorage.setItem('runika-last-world', String(selectedWorld));
+      // Mundo completado o bloqueado: rebote, no se entra
+      if (worldLocked(world)) { bounceAvatar('down'); return; }
+      AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.6);
+      saveMapPosition();
       AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(world));
     }
   });
@@ -469,6 +563,17 @@
     });
   }
 
+  let GOLD_AREA = null;
+  async function loadTextAreas() {
+    try {
+      const r = await fetch('/api/load-mapamundi-text-areas');
+      if (r.ok) {
+        const data = await r.json();
+        if (data.areas?.gold) GOLD_AREA = data.areas.gold;
+      }
+    } catch {}
+  }
+
   (async () => {
     if (sessionStorage.getItem('runika-session') === 'active') {
       // Ya en sesion, ir directo
@@ -476,8 +581,11 @@
       fallback = await loadLang('es');
       translations = await loadLang();
       applyI18n();
+      await loadPlayer();
+      restoreLastWorld();
       await loadPositions();
       await loadPaths();
+      await loadTextAreas();
       render();
       AssetsCache.hideLoading();
       setTimeout(() => AssetsCache.transitionIn(), 100);
@@ -498,8 +606,11 @@
     fallback = await loadLang('es');
     translations = await loadLang();
     applyI18n();
+    await loadPlayer();
+    restoreLastWorld();
     await loadPositions();
     await loadPaths();
+    await loadTextAreas();
     render();
 
     AssetsCache.hideLoading();

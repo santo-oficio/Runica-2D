@@ -59,12 +59,20 @@ async function preloadImage(url) {
       img.onerror = reject;
       img.src = blobUrl;
     });
-    if (img.decode) await img.decode().catch(() => {});
+    // Solo se decodifica el hot path: los fondos/submundos 8K (~130MB decod.
+    // cada uno) quedan como blob en cache y se decodifican al entrar.
+    if (DECODE_RE.test(url) && img.decode) {
+      await img.decode().catch(() => {});
+      cache.decoded.set(url, img);
+    }
     cache.images.set(url, blobUrl);
-    cache.decoded.set(url, img);
   } catch {}
   loaded++;
 }
+
+// Decodificar (referencia viva) solo lo que se pinta de inmediato:
+// menú, config, modal, avatares display y sprites display.
+const DECODE_RE = /\/assets\/(menu principal|configuracion|comunes|instrucciones|creditos|avatars\/display|avatars\/thumbs|.*\/display|fonts)\//;
 
 async function preloadSound(url) {
   try {
@@ -76,7 +84,23 @@ async function preloadSound(url) {
   loaded++;
 }
 
+// Trae el manifiesto del servidor (todos los assets runtime) y lo fusiona
+// con la lista estática. Así nunca falta un asset por precargar.
+async function fetchManifest() {
+  try {
+    const r = await fetch('/api/assets-manifest');
+    if (!r.ok) return;
+    const m = await r.json();
+    const add = (list, u) => { if (!list.includes(u)) list.push(u); };
+    (m.images || []).forEach(u => add(ASSETS.images, u));
+    (m.sounds || []).forEach(u => add(ASSETS.sounds, u));
+    (m.music || []).forEach(u => add(ASSETS.sounds, u)); // música también precargada
+    if (m.music && m.music.length && !musicTrack) musicTrack = m.music[0];
+  } catch {}
+}
+
 async function preloadAll(onProgress) {
+  await fetchManifest();
   total = ASSETS.images.length + ASSETS.sounds.length;
   loaded = 0;
 
@@ -107,6 +131,7 @@ function isMusicEnabled() { return settings.music !== false; }
 function currentLang() { return settings.lang || 'es'; }
 async function setSetting(key, value) {
   settings[key] = value;
+  if (key === 'music') { value ? startMusic() : stopMusic(); }
   try {
     await fetch('/api/settings', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -116,6 +141,42 @@ async function setSetting(key, value) {
 }
 // La carga arranca sola para que los flags esten listos antes de interactuar
 loadSettings();
+
+// --- Música global: una pista en loop que sigue sonando entre pantallas ---
+// La posición se guarda en localStorage para retomar donde se quedó.
+const MUSIC_POS_KEY = 'runika-music-pos';
+let musicEl = null;
+let musicTrack = null;
+
+function saveMusicPos() {
+  if (!musicEl) return;
+  try { localStorage.setItem(MUSIC_POS_KEY, JSON.stringify({ src: musicTrack, t: musicEl.currentTime })); } catch {}
+}
+window.addEventListener('beforeunload', saveMusicPos);
+
+function startMusic(url) {
+  if (!isMusicEnabled()) return;
+  url = url || musicTrack;
+  if (!url) return;
+  if (musicEl) { if (musicEl.paused) musicEl.play().catch(() => {}); return; }
+  musicTrack = url;
+  musicEl = new Audio(getCachedSound(url) || url);
+  musicEl.loop = true;
+  musicEl.volume = 0.45;
+  try {
+    const s = JSON.parse(localStorage.getItem(MUSIC_POS_KEY) || 'null');
+    if (s && s.src === url && s.t > 0) musicEl.currentTime = s.t;
+  } catch {}
+  musicEl.addEventListener('timeupdate', saveMusicPos);
+  musicEl.play().catch(() => {});
+}
+
+function stopMusic() {
+  if (!musicEl) return;
+  saveMusicPos();
+  musicEl.pause();
+  musicEl = null;
+}
 
 function playSound(url, volume) {
   if (!isSoundEnabled()) return;
@@ -135,6 +196,8 @@ function unlockAudio() {
     audio.volume = 0;
     audio.play().then(() => { audio.pause(); }).catch(() => {});
   }
+  // La música arranca tras el primer gesto del usuario (autoplay policy)
+  startMusic();
 }
 
 // --- Transiciones entre pantallas ---
@@ -187,4 +250,5 @@ window.AssetsCache = {
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
+  startMusic, stopMusic,
 };

@@ -13,8 +13,8 @@
   "game.turn": "Turno",
   "game.moves": "Mosse",
   "game.victory": "Vittoria!",
-  "game.defeat": "Sei stato catturato",
-  "game.retry": "Riprova",
+  "game.defeat": "Sconfitta",
+  "game.retry": "Riprova (R)",
   "game.next": "Avanti",
   "game.exit": "Esci",
   "instructions.title": "Istruzioni",
@@ -97,5 +97,10 @@
   "selection.selected": "Selezionato",
   "config.sound": "Suono",
   "config.music": "Musica",
-  "config.langName": "Italiano"
+  "config.langName": "Italiano",
+  "loading.pressStart": "Premi un tasto per iniziare",
+  "game.caught": "Il nemico ti ha catturato",
+  "game.backToMap": "Torna alla mappa (R)",
+  "game.levelDone": "Isola {0} completata in {1} turni",
+  "game.goldEarned": "+{0} oro"
 }

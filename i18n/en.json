@@ -13,8 +13,8 @@
   "game.turn": "Turn",
   "game.moves": "Moves",
   "game.victory": "Victory!",
-  "game.defeat": "You have been captured",
-  "game.retry": "Retry",
+  "game.defeat": "Defeat",
+  "game.retry": "Retry (R)",
   "game.next": "Next",
   "game.exit": "Exit",
   "instructions.title": "Instructions",
@@ -97,5 +97,10 @@
   "selection.selected": "Selected",
   "config.sound": "Sound",
   "config.music": "Music",
-  "config.langName": "English"
+  "config.langName": "English",
+  "loading.pressStart": "Press any key to start",
+  "game.caught": "The enemy caught you",
+  "game.backToMap": "Back to map (R)",
+  "game.levelDone": "Island {0} completed in {1} turns",
+  "game.goldEarned": "+{0} gold"
 }

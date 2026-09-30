@@ -13,8 +13,8 @@
   "game.turn": "Tour",
   "game.moves": "Mouvements",
   "game.victory": "Victoire !",
-  "game.defeat": "Vous avez été capturé",
-  "game.retry": "Réessayer",
+  "game.defeat": "Défaite",
+  "game.retry": "Réessayer (R)",
   "game.next": "Suivant",
   "game.exit": "Quitter",
   "instructions.title": "Instructions",
@@ -97,5 +97,10 @@
   "selection.selected": "Sélectionné",
   "config.sound": "Son",
   "config.music": "Musique",
-  "config.langName": "Français"
+  "config.langName": "Français",
+  "loading.pressStart": "Appuyez sur une touche pour commencer",
+  "game.caught": "L’ennemi vous a attrapé",
+  "game.backToMap": "Retour à la carte (R)",
+  "game.levelDone": "Île {0} terminée en {1} tours",
+  "game.goldEarned": "+{0} or"
 }

@@ -17,42 +17,77 @@
     width: 100%; height: 100%; overflow: hidden;
     background: #000; font-family: 'ChelseaMarket', cursive;
   }
-  /* Pantalla de carga */
+  /* Pantalla de carga — estética clásica de aventura */
   #loading-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 100;
-    background: #0a0806;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, #1a1208 0%, #0a0806 70%),
+      #0a0806;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     color: #e8d4a8;
     cursor: pointer;
   }
+  /* Marco doble estilo grabado */
+  #loading-screen::before {
+    content: '';
+    position: absolute; top: 14px; left: 14px; right: 14px; bottom: 14px;
+    border: 2px solid rgba(180, 150, 80, 0.35);
+    box-shadow: inset 0 0 0 4px #0a0806, inset 0 0 0 6px rgba(180, 150, 80, 0.2);
+    pointer-events: none;
+  }
   #loading-screen .title {
     font-family: 'ChelseaMarket', cursive;
-    font-size: 2.5em; color: #f0d890;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-    margin-bottom: 30px; letter-spacing: 3px;
+    font-size: clamp(2.4em, 7vw, 5em);
+    color: #f0d890; letter-spacing: 6px;
+    /* Contorno grueso estilo texto de aventura gráfica */
+    text-shadow:
+      -2px -2px 0 #20140a, 2px -2px 0 #20140a,
+      -2px 2px 0 #20140a, 2px 2px 0 #20140a,
+      0 6px 14px rgba(0,0,0,0.9),
+      0 0 30px rgba(232, 180, 80, 0.25);
+    margin-bottom: 14px;
+  }
+  #loading-subtitle {
+    font-family: 'ChelseaMarket', cursive;
+    font-size: clamp(0.9em, 2vw, 1.3em); color: #a08850;
+    letter-spacing: 4px; margin-bottom: 46px;
+    text-shadow: 1px 1px 0 #20140a;
   }
   #loading-bar-bg {
-    width: 300px; height: 8px;
-    background: rgba(60, 42, 20, 0.5);
-    border: 1px solid rgba(180, 150, 80, 0.4);
-    border-radius: 4px; overflow: hidden;
+    width: min(560px, 70vw); height: 20px;
+    background: #140d05;
+    border: 3px solid #4a3820;
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.9),
+      0 0 0 1px rgba(240, 216, 144, 0.25),
+      0 4px 14px rgba(0,0,0,0.8);
+    overflow: hidden;
+    image-rendering: pixelated;
   }
   #loading-bar {
     width: 0%; height: 100%;
-    background: linear-gradient(90deg, #c4a050, #f0d890);
-    transition: width 0.2s ease;
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(0,0,0,0.22) 0 6px, transparent 6px 12px),
+      linear-gradient(180deg, #f0d890 0%, #c4a050 55%, #8a6a30 100%);
+    transition: width 0.15s ease;
   }
   #loading-text {
-    margin-top: 12px; font-size: 0.9em; color: #a08850;
-    font-family: 'ChelseaMarket', cursive;
+    margin-top: 16px; font-size: 1.05em; color: #c8a860;
+    font-family: 'ChelseaMarket', cursive; letter-spacing: 2px;
+    text-shadow: 1px 1px 0 #20140a;
   }
   #start-hint {
-    margin-top: 20px; font-size: 1em; color: #e8d4a8;
-    font-family: 'ChelseaMarket', cursive;
+    margin-top: 34px; font-size: clamp(1em, 2.4vw, 1.5em); color: #f0d890;
+    font-family: 'ChelseaMarket', cursive; letter-spacing: 3px;
     display: none;
-    animation: pulse 1.5s ease-in-out infinite;
+    text-shadow:
+      -1px -1px 0 #20140a, 1px -1px 0 #20140a,
+      -1px 1px 0 #20140a, 1px 1px 0 #20140a,
+      0 0 18px rgba(232, 180, 80, 0.4);
+    animation: pulse 1.4s ease-in-out infinite;
   }
   @keyframes pulse {
     0%, 100% { opacity: 0.5; }
@@ -188,9 +223,10 @@
 <!-- Pantalla de carga -->
 <div id="loading-screen">
   <div class="title">RUNIKA 2D</div>
+  <div id="loading-subtitle"></div>
   <div id="loading-bar-bg"><div id="loading-bar"></div></div>
-  <div id="loading-text">Cargando... 0%</div>
-  <div id="start-hint">Pulsa para empezar</div>
+  <div id="loading-text"></div>
+  <div id="start-hint"></div>
 </div>
 
 <!-- Overlay de transicion -->
@@ -575,17 +611,18 @@
     const loadingBar = document.getElementById('loading-bar');
     const loadingText = document.getElementById('loading-text');
 
-    // Precargar todo
-    await AssetsCache.preloadAll((loaded, total) => {
-      const pct = Math.round((loaded / total) * 100);
-      loadingBar.style.width = pct + '%';
-      loadingText.textContent = 'Cargando... ' + pct + '%';
-    });
-
-    // Cargar ajustes + idioma activo
+    // Ajustes + idioma primero: la pantalla de carga ya sale traducida
     await AssetsCache.loadSettings();
     fallback = await loadLang('es');
     translations = await loadLang();
+    document.getElementById('loading-subtitle').textContent = t('menu.subtitle');
+
+    // Precargar TODO (manifiesto completo de assets del servidor)
+    await AssetsCache.preloadAll((loaded, total) => {
+      const pct = Math.round((loaded / total) * 100);
+      loadingBar.style.width = pct + '%';
+      loadingText.textContent = t('loading.text') + ' ' + pct + '%';
+    });
 
     // Cargar botones calibrados
     await loadButtons();
@@ -609,16 +646,20 @@
     // Renderizar menu
     render();
 
-    // Mostrar "Pulsa para empezar" y esperar click para desbloquear audio
+    // "Pulsa para empezar": el gesto desbloquea audio y arranca la música
     const startHint = document.getElementById('start-hint');
+    startHint.textContent = t('loading.pressStart');
     startHint.style.display = 'block';
     const loadingScreen = document.getElementById('loading-screen');
-    loadingScreen.addEventListener('click', () => {
+    const enterGame = () => {
       unlockAudio();
+      AssetsCache.startMusic();
       sessionStorage.setItem('runika-session', 'active');
       AssetsCache.hideLoading();
       setTimeout(() => AssetsCache.transitionIn(), 500);
-    }, { once: true });
+    };
+    loadingScreen.addEventListener('click', enterGame, { once: true });
+    document.addEventListener('keydown', enterGame, { once: true });
   })();
 
   bg.addEventListener('load', render);

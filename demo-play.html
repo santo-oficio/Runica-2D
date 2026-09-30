@@ -154,6 +154,22 @@ const overlaySubtitle = document.getElementById('overlay-subtitle');
 let currentTier = 1;
 const COLS = 8, ROWS = 6;
 
+// === Modo real: ?world=X&level=N → la isla N del submundo X (progreso bbdd) ===
+const PARAMS = new URLSearchParams(location.search);
+const REAL_WORLD = PARAMS.get('world') || '';
+const REAL_LEVEL = Math.max(0, parseInt(PARAMS.get('level') || '0', 10) || 0);
+const REAL_MODE = !!REAL_WORLD;
+let playerData = null;
+let T = {};
+let currentMinMoves = 0;
+function tt(k, ...a) { return (T[k] ?? k).replace(/\{(\d+)\}/g, (m, i) => String(a[+i] ?? m)); }
+async function loadI18n() {
+  try { const r = await fetch(BASE + '/api/i18n'); if (r.ok) T = await r.json(); } catch {}
+}
+function backToSubmundo() {
+  location.href = '/submundo.html?world=' + encodeURIComponent(REAL_WORLD);
+}
+
 // Avatares ligeros (display webp 2048px) — regla a fuego: nada de masters 8K en el hot path
 const AVATARS = Array.from({ length: 8 }, (_, i) =>
   `/assets/avatars/display/avatar_${String(i + 1).padStart(2, '0')}.webp`);
@@ -301,13 +317,17 @@ function pickRandomImages(pool, n) {
   return out;
 }
 
-// === Cargar pantalla de demo (aleatoria del tier 1, sin bbdd) ===
+// === Cargar pantalla (demo: al azar del tier; real: la asignada a la isla) ===
 async function loadScreen() {
-  const res = await fetch(`${BASE}/api/demo-screen?tier=${currentTier}&t=${Date.now()}`);
+  const endpoint = REAL_MODE
+    ? `${BASE}/api/level-screen?world=${encodeURIComponent(REAL_WORLD)}&level=${REAL_LEVEL}`
+    : `${BASE}/api/demo-screen?tier=${currentTier}&t=${Date.now()}`;
+  const res = await fetch(endpoint);
   const data = await res.json();
   if (!data.ok) { worldLabel.textContent = 'Error: ' + data.error; return; }
   const s = data.screen;
   currentScreenId = s.id;
+  currentMinMoves = s.minMoves || 0;
 
   player = { c: s.player[0], r: s.player[1] };
   goal = { c: s.goal[0], r: s.goal[1] };
@@ -333,7 +353,9 @@ async function loadScreen() {
   overlay.classList.remove('show', 'win', 'lose');
 
   const world = detection.world;
-  worldLabel.textContent = `Runika 2D DEMO — ${world} · Tier ${currentTier}`;
+  worldLabel.textContent = REAL_MODE
+    ? `${tt('worlds.' + world)} — ${tt('submundo.level', REAL_LEVEL + 1, 12)}`
+    : `Runika 2D DEMO — ${world} · Tier ${currentTier}`;
   metaLabel.textContent = `pantalla ${s.id} · min. ${s.minMoves} mov. · tablero ${COLS}x${ROWS}`;
 
   positionSelector();
@@ -578,12 +600,23 @@ function trapEffect() {
   setTimeout(() => { avatarImg.style.animation = ''; }, 600);
 }
 
-// === Fin de partida (DEMO: no se guarda nada) ===
+// === Fin de partida ===
 function winGame() {
   gameOver = true; won = true;
   play(victoryAudio);
   overlay.classList.add('show', 'win');
-  overlayTitle.textContent = 'VICTORIA';
+  overlayTitle.textContent = tt('game.victory');
+  if (REAL_MODE) {
+    // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos
+    const goldEarned = Math.max(10, currentMinMoves * 5 - turn);
+    overlaySubtitle.textContent = tt('game.levelDone', REAL_LEVEL + 1, turn) + ' · ' + tt('game.goldEarned', goldEarned);
+    document.getElementById('overlay-restart').textContent = tt('game.backToMap');
+    fetch(BASE + '/api/level-complete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: goldEarned, screenId: currentScreenId }),
+    }).catch(() => {});
+    return;
+  }
   overlaySubtitle.textContent = `Completada en ${turn} turnos (demo, no se guarda)`;
   document.getElementById('overlay-restart').textContent = 'Otra pantalla (R)';
 }
@@ -592,9 +625,9 @@ function loseGame() {
   gameOver = true; won = false;
   play(defeatAudio);
   overlay.classList.add('show', 'lose');
-  overlayTitle.textContent = 'DERROTA';
-  overlaySubtitle.textContent = 'El enemigo te atrapó (demo, no se guarda)';
-  document.getElementById('overlay-restart').textContent = 'Reintentar (R)';
+  overlayTitle.textContent = REAL_MODE ? tt('game.defeat') : 'DERROTA';
+  overlaySubtitle.textContent = REAL_MODE ? tt('game.caught') : 'El enemigo te atrapó (demo, no se guarda)';
+  document.getElementById('overlay-restart').textContent = REAL_MODE ? tt('game.retry') : 'Reintentar (R)';
 }
 
 // === Mundo ===
@@ -635,6 +668,24 @@ function nextAvatar() {
 
 // === Teclado ===
 document.addEventListener('keydown', (e) => {
+  if (REAL_MODE) {
+    if (e.key === 'Escape') { e.preventDefault(); backToSubmundo(); return; }
+    if (e.key === 'r' || e.key === 'R' || e.code === 'Space') {
+      e.preventDefault();
+      if (won) backToSubmundo(); else loadScreen();
+      return;
+    }
+    if (gameOver) return;
+    const dirs = {
+      'ArrowUp': [0, -1], 'ArrowDown': [0, 1],
+      'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0],
+      'w': [0, -1], 's': [0, 1], 'a': [-1, 0], 'd': [1, 0],
+      'W': [0, -1], 'S': [0, 1], 'A': [-1, 0], 'D': [1, 0],
+    };
+    const d = dirs[e.key];
+    if (d) { e.preventDefault(); movePlayer(d[0], d[1]); }
+    return;
+  }
   if (e.code === 'Enter') { e.preventDefault(); nextAvatar(); return; }
   if (e.key === 'r' || e.key === 'R') { e.preventDefault(); loadScreen(); return; }
   // Cambiar tier: [ ] o - / +
@@ -662,7 +713,10 @@ document.addEventListener('keydown', (e) => {
   if (d) { e.preventDefault(); movePlayer(d[0], d[1]); }
 });
 
-document.getElementById('overlay-restart').addEventListener('click', () => loadScreen());
+document.getElementById('overlay-restart').addEventListener('click', () => {
+  if (REAL_MODE && won) { backToSubmundo(); return; }
+  loadScreen();
+});
 
 window.addEventListener('resize', () => {
   if (!detection) return;
@@ -675,6 +729,25 @@ window.addEventListener('resize', () => {
 async function init() {
   const res = await fetch(`${BASE}/api/worlds?t=${Date.now()}`);
   worlds = await res.json();
+
+  if (REAL_MODE) {
+    await loadI18n();
+    // Avatar de la partida (fijo, elegido en la selección de personaje)
+    try {
+      const r = await fetch(BASE + '/api/savegame');
+      if (r.ok) { const d = await r.json(); playerData = d.player || null; }
+    } catch {}
+    if (playerData && typeof playerData.avatarIndex === 'number') {
+      avatarIdx = playerData.avatarIndex;
+      avatarImg.src = BASE + AVATARS[avatarIdx];
+    }
+    document.getElementById('demo-tag').style.display = 'none';
+    document.getElementById('help').style.display = 'none';
+    const idx = worlds.findIndex(w => w.world === REAL_WORLD);
+    await loadWorld(idx >= 0 ? idx : 0);
+    return;
+  }
+
   // Avatares decodificados de antemano (Enter los cicla en el hot path)
   AVATARS.forEach(a => decodeImg(BASE + a));
   // Mundo al azar en cada recarga
