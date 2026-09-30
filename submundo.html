@@ -483,7 +483,7 @@
     }
 
     currentLevel = newLevel;
-    AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.5);
+    AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
     isMoving = true;
 
     // Calcular duracion segun distancia
@@ -537,6 +537,7 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
       AssetsCache.transitionTo('/mapamundi.html');
       return;
     }
@@ -547,7 +548,7 @@
     else if (e.key === 'Enter') {
       e.preventDefault();
       if (!isLevelUnlocked(currentLevel)) { bounceAvatar('down'); return; }
-      AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.7);
+      AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
       // La isla jugada se recuerda en la bbdd (completada o no)
       fetch('/api/level-position', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -558,7 +559,11 @@
   });
 
   document.getElementById('back-btn').addEventListener('click', () => {
+    AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
     AssetsCache.transitionTo('/mapamundi.html');
+  });
+  document.getElementById('back-btn').addEventListener('mouseenter', () => {
+    AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45);
   });
 
   (async () => {

@@ -1,4 +1,4 @@
-﻿// assets-cache.js — Sistema de cache de assets + transiciones
+// assets-cache.js — Sistema de cache de assets + transiciones
 // Sonidos: fetch + Blob URL + Audio elements (fiable)
 // Imagenes: fetch + Blob + object URLs
 
@@ -24,12 +24,15 @@ const ASSETS = {
     '/assets/salida/display/ESPACIO/image_20260921_155734.webp',
   ],
   sounds: [
-    '/assets/sounds/comun/menu_mover.wav',
-    '/assets/sounds/comun/menu_seleccionar.wav',
+    '/assets/sounds/comun/move.wav',
+    '/assets/sounds/comun/hover.wav',
+    '/assets/sounds/comun/press.wav',
+    '/assets/sounds/comun/back.wav',
     '/assets/sounds/comun/choque.wav',
     '/assets/sounds/comun/trampa.wav',
     '/assets/sounds/comun/pergamino.mp3',
-    '/assets/sounds/comun/victoria.mp3',
+    '/assets/sounds/comun/pulsacion maquina escribir.mp3',
+    '/assets/sounds/comun/victoria.wav',
     '/assets/sounds/comun/derrota.wav',
   ],
 };

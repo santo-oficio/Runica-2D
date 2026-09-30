@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -220,8 +220,15 @@ function tt(k, ...a) { return (T[k] ?? k).replace(/\{(\d+)\}/g, (m, i) => String
 async function loadI18n() {
   try { const r = await fetch(BASE + '/api/i18n'); if (r.ok) T = await r.json(); } catch {}
 }
+const FINAL_ISLAND_IDX = 11;
 function backToSubmundo() {
   location.href = '/submundo.html?world=' + encodeURIComponent(REAL_WORLD);
+}
+// Tras ganar: isla final (boss) -> mapamundi (el mundo queda completado y
+// se desactiva); cualquier otra isla -> submundo donde estabas
+function afterVictory() {
+  if (REAL_LEVEL === FINAL_ISLAND_IDX) location.href = '/mapamundi.html';
+  else backToSubmundo();
 }
 
 // Avatares ligeros (display webp 2048px) — regla a fuego: nada de masters 8K en el hot path
@@ -358,9 +365,11 @@ let currentScreenId = null;
 const stepAudio = document.getElementById('step-sound');
 const bounceAudio = new Audio(`${BASE}/assets/sounds/comun/choque.wav`);
 const trapAudio = new Audio(`${BASE}/assets/sounds/comun/trampa.wav`);
-const victoryAudio = new Audio(`${BASE}/assets/sounds/comun/victoria.mp3`);
+const victoryAudio = new Audio(`${BASE}/assets/sounds/comun/victoria.wav`);
 const defeatAudio = new Audio(`${BASE}/assets/sounds/comun/derrota.wav`);
-[bounceAudio, trapAudio, victoryAudio, defeatAudio].forEach(a => a.preload = true);
+const backAudio = new Audio(`${BASE}/assets/sounds/comun/back.wav`);
+const pressAudio = new Audio(`${BASE}/assets/sounds/comun/press.wav`);
+[bounceAudio, trapAudio, victoryAudio, defeatAudio, backAudio, pressAudio].forEach(a => a.preload = true);
 
 let sfxOn = true;
 fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d) sfxOn = d.sound !== false; }).catch(() => {});
@@ -783,7 +792,7 @@ function winGame() {
     const goldEarned = Math.max(10, currentMinMoves * 5 - turn);
     if (playerData) playerData.gold = (playerData.gold ?? 0) + goldEarned;
     overlaySubtitle.textContent = tt('game.levelDone', REAL_LEVEL + 1, turn) + ' · ' + tt('game.goldEarned', goldEarned);
-    document.getElementById('overlay-restart').textContent = tt('game.backToMap');
+    document.getElementById('overlay-restart').textContent = tt('instructions.continue');
     renderBoardTexts();
     fetch(BASE + '/api/level-complete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -859,11 +868,12 @@ function nextAvatar() {
 // === Teclado ===
 document.addEventListener('keydown', (e) => {
   if (REAL_MODE) {
-    if (e.key === 'Escape') { e.preventDefault(); backToSubmundo(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); play(backAudio); if (won) afterVictory(); else backToSubmundo(); return; }
     if (countingDown) return;
-    if (e.key === 'r' || e.key === 'R' || e.code === 'Space') {
+    if (e.key === 'r' || e.key === 'R' || e.code === 'Space' || e.key === 'Enter') {
       e.preventDefault();
-      if (won) backToSubmundo(); else loadScreen();
+      play(pressAudio);
+      if (won) afterVictory(); else loadScreen();
       return;
     }
     if (gameOver) return;
@@ -905,7 +915,8 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('overlay-restart').addEventListener('click', () => {
-  if (REAL_MODE && won) { backToSubmundo(); return; }
+  if (REAL_MODE && won) { play(pressAudio); afterVictory(); return; }
+  play(pressAudio);
   loadScreen();
 });
 

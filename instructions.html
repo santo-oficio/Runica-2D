@@ -423,23 +423,30 @@
   document.addEventListener('keydown', () => AssetsCache.unlockAudio(), { once: true });
 
   function playMove() {
-    AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.5);
+    AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
   }
   function playSelect() {
-    AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.7);
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
+  }
+  function playBack() {
+    AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
+  }
+  function playHover() {
+    AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45);
   }
 
   function goBack() { AssetsCache.transitionTo('/demo-menu.html'); }
 
   // Boton volver
   document.getElementById('btn-back').addEventListener('click', () => {
-    playSelect();
+    playBack();
     goBack();
   });
+  document.getElementById('btn-back').addEventListener('mouseenter', () => playHover());
 
   // Teclado
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { playMove(); goBack(); return; }
+    if (e.key === 'Escape') { playBack(); goBack(); return; }
 
     if (focus === 'scroll') {
       // Foco en el pergamino (WASD = flechas, como en el juego)
@@ -471,7 +478,7 @@
         e.preventDefault();
         // Si esta al fondo, Enter activa el boton
         if (isScrolledToBottom()) {
-          playSelect();
+          playBack();
           goBack();
         } else {
           // Sino, avanza scroll
@@ -502,7 +509,7 @@
         // No hace nada en el boton, solo Enter/Espacio activan
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        playSelect();
+        playBack();
         goBack();
       }
     }

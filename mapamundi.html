@@ -457,7 +457,7 @@
     const targetIdx = WORLD_ORDER.indexOf(targetWorld);
     if (targetIdx < 0) return;
     selectedWorld = targetIdx;
-    AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.5);
+    AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
     isMoving = true;
     render();
     // Calcular duracion segun distancia para velocidad constante
@@ -507,7 +507,7 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { AssetsCache.transitionTo('/demo-menu.html'); return; }
+    if (e.key === 'Escape') { AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6); AssetsCache.transitionTo('/demo-menu.html'); return; }
 
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); moveByPath('left'); }
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); moveByPath('right'); }
@@ -518,7 +518,7 @@
       const world = WORLD_ORDER[selectedWorld];
       // Mundo completado o bloqueado: rebote, no se entra
       if (worldLocked(world)) { bounceAvatar('down'); return; }
-      AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.6);
+      AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
       saveMapPosition();
       AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(world));
     }

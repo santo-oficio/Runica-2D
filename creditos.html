@@ -355,25 +355,32 @@
   document.addEventListener('keydown', () => AssetsCache.unlockAudio(), { once: true });
 
   function playMove() {
-    AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.5);
+    AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
   }
   function playSelect() {
-    AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.7);
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
+  }
+  function playBack() {
+    AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
+  }
+  function playHover() {
+    AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45);
   }
 
   function goBack() { AssetsCache.transitionTo('/demo-menu.html'); }
 
   // Boton volver
   document.getElementById('btn-back').addEventListener('click', () => {
-    playSelect();
+    playBack();
     goBack();
   });
+  document.getElementById('btn-back').addEventListener('mouseenter', () => playHover());
 
   // Teclado: mismas reglas a fuego que instrucciones (foco en el texto;
   // abajo hace scroll; al llegar al final baja al boton; arriba desde el
   // boton vuelve al texto conservando el scroll; flechas/WASD)
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { playMove(); goBack(); return; }
+    if (e.key === 'Escape') { playBack(); goBack(); return; }
 
     if (focus === 'scroll') {
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ' ||
@@ -393,7 +400,7 @@
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (isScrolledToBottom()) {
-          playSelect();
+          playBack();
           goBack();
         } else {
           manualScroll(1);
@@ -414,7 +421,7 @@
         // Vuelve al texto conservando la posicion del scroll
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        playSelect();
+        playBack();
         goBack();
       }
     }

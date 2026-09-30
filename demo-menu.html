@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -279,10 +279,13 @@
 
   // --- Sonidos (desde cache, Web Audio API) ---
   function playMove() {
-    AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.5);
+    AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
+  }
+  function playHover() {
+    AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45);
   }
   function playSelect() {
-    AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.7);
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
   }
 
   // Coordenadas calibradas: se cargan desde /api/load-menu-buttons
@@ -501,7 +504,8 @@
       }
 
       div.addEventListener('mouseenter', () => {
-        hoveredIdx = i; selectedIdx = i; updateActive(); playMove();
+        if (hoveredIdx !== i) playHover();
+        hoveredIdx = i; selectedIdx = i; updateActive();
       });
       div.addEventListener('mouseleave', () => {
         if (hoveredIdx === i) { hoveredIdx = -1; updateActive(); }

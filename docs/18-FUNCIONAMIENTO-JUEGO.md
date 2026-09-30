@@ -76,8 +76,31 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
 - Enemigos: imágenes de `assets/enemys/display/<M>/`; **bosses solo en la
   isla final** (índice 11) desde `assets/bosses/display/<M>/`.
 - Victoria → `POST /api/level-complete` (oro = `max(10, minMoves×5 − turnos)`)
-  → vuelve al submundo. Derrota → reintenta la misma pantalla.
+  → overlay con **"Pulsa para continuar"** (`instructions.continue`) →
+  Enter/Espacio/R/click:
+  - Isla final (índice 11) → `mapamundi.html` (el mundo queda completado:
+    gris y bloqueado).
+  - Resto de islas → `submundo.html?world=X`.
+- Derrota → sacudida de pantalla + flash rojo + reintenta la misma pantalla.
 - Sin `?world=` → modo demo aleatorio (no persiste; solo desarrollo).
+
+### Sonidos comunes (`assets/sounds/comun/`)
+
+| Acción | Sonido |
+|---|---|
+| Hover sobre botón/opción | `hover.wav` |
+| Navegar opciones con flechas | `move.wav` |
+| Pulsar botón (no "atrás") | `press.wav` |
+| Botón atrás / Escape | `back.wav` |
+| Colisión/bloqueo (rebote) | `choque.wav` |
+| Pisar trampa | `trampa.wav` |
+| Victoria | `victoria.wav` |
+| Derrota | `derrota.wav` |
+| Teclear nombre (selección) | `pulsacion maquina escribir.mp3` |
+
+Todos se sirven por `AssetsCache.playSound` y respetan el toggle de sonido de
+los ajustes. `game.html`/`demo-play.html` los usan como elementos `Audio`
+directos (modo offline de la cache).
 
 ## 7. Reglas "a fuego" activas
 

@@ -224,7 +224,7 @@
       p.style.pointerEvents = 'all';
       p.style.cursor = 'pointer';
       p.addEventListener('click', () => { cycleLang(dir); });
-      p.addEventListener('mouseenter', () => { setFocus('lang', true); });
+      p.addEventListener('mouseenter', () => { if (FIELDS[focusIdx] !== 'lang') playHover(); setFocus('lang', true); });
       polys.appendChild(p);
     }
 
@@ -236,7 +236,7 @@
       p.style.pointerEvents = 'all';
       p.style.cursor = 'pointer';
       p.addEventListener('click', () => goBack());
-      p.addEventListener('mouseenter', () => { setFocus('back', true); });
+      p.addEventListener('mouseenter', () => { if (FIELDS[focusIdx] !== 'back') playHover(); setFocus('back', true); });
       polys.appendChild(p);
     }
 
@@ -252,7 +252,7 @@
     d.style.width = rw(rect.w) + 'px';
     d.style.height = rh(rect.h) + 'px';
     d.addEventListener('click', onClick);
-    d.addEventListener('mouseenter', () => setFocus(field, true));
+    d.addEventListener('mouseenter', () => { if (FIELDS[focusIdx] !== field) playHover(); setFocus(field, true); });
     document.getElementById('overlay').appendChild(d);
   }
 
@@ -279,7 +279,7 @@
   async function toggle(key) {
     settings[key] = !settings[key];
     AssetsCache.setSetting(key, settings[key]);
-    AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.6);
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
     render();
   }
 
@@ -287,13 +287,17 @@
     const i = LANGS.indexOf(settings.lang);
     settings.lang = LANGS[(i + dir + LANGS.length) % LANGS.length];
     AssetsCache.setSetting('lang', settings.lang);
-    AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.6);
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
     translations = await loadLang();
     render();
   }
 
+  function playHover() {
+    AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45);
+  }
+
   function goBack() {
-    AssetsCache.playSound('/assets/sounds/comun/menu_seleccionar.wav', 0.6);
+    AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
     AssetsCache.transitionTo('/demo-menu.html');
   }
 
@@ -306,7 +310,7 @@
       focusIdx = (focusIdx + dir + FIELDS.length) % FIELDS.length;
       selVisible = true;
       drawRing();
-      AssetsCache.playSound('/assets/sounds/comun/menu_mover.wav', 0.5);
+      AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
       return;
     }
     const field = FIELDS[focusIdx];
