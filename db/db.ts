@@ -59,8 +59,8 @@ export interface ScreenProgress {
 export interface PlayerState {
   playerId: string;
   currentWorld: number; // 1..8
-  currentSubLevel: number; // 1..15
-  totalStagesCompleted: number; // 0..120 (contador global monótono)
+  currentSubLevel: number; // 1..12
+  totalStagesCompleted: number; // 0..96 (contador global monótono)
   updatedAt: number;
   /** true cuando el jugador ha pasado por "Nueva partida" (selección de personaje). */
   started?: boolean;
@@ -93,16 +93,16 @@ interface WorldTierAssignment {
 export const WORLDS = [
   "ESPACIO", "AGUA", "TIERRA", "FUEGO", "HIELO", "VIENTO", "INFRAMUNDO", "MAZMORRA",
 ] as const;
-export const SUBLEVELS_PER_WORLD = 15;
-export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 120
+export const SUBLEVELS_PER_WORLD = 12;
+export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
 export const TOTAL_TIERS = 14;
 export const CURVE_P = 0.6;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
-export const MAP_LEVELS_PER_WORLD = 12;
+export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
 export const FINAL_WORLD = "MAZMORRA";
 
-/** Etapa global (1..120) a partir de mundo y subnivel. */
+/** Etapa global (1..96) a partir de mundo y subnivel. */
 export function stageFor(world: number, subLevel: number): number {
   return (world - 1) * SUBLEVELS_PER_WORLD + subLevel;
 }
@@ -323,13 +323,11 @@ export function failScreen(_screenId: string): void {
 // Progreso por mapa (submundos de 12 islas)
 // ---------------------------------------------------------------------------
 
-/** Tier de dificultad para una isla del mapa (etapa 1..96, misma curva p=0.6). */
+/** Tier de dificultad para una isla del mapa (etapa 1..96, curva p=0.6). */
 export function mapTierFor(world: string, level: number): number {
   const wi = WORLDS.indexOf(world as (typeof WORLDS)[number]);
   if (wi < 0) return 1;
-  const s = wi * MAP_LEVELS_PER_WORLD + level + 1;
-  const x = (s - 1) / (WORLDS.length * MAP_LEVELS_PER_WORLD - 1);
-  return Math.min(TOTAL_TIERS - 1, Math.floor(Math.pow(x, CURVE_P) * TOTAL_TIERS)) + 1;
+  return tierForStage(stageFor(wi + 1, level + 1));
 }
 
 /** Recuerda el último mundo seleccionado en el mapamundi. */

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genera docs/15-TABLA-CURVA-DIFICULTAD-120-JUEGOS.md a partir de la curva.
+"""Genera docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md a partir de la curva.
 Ejecutar:  .sam-venv\\Scripts\\python.exe tools/gen-difficulty-table.py
 """
 import math
@@ -7,7 +7,7 @@ from collections import defaultdict
 
 WORLDS = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA']
 W = len(WORLDS)
-S = 15
+S = 12
 N = W * S
 T = 14
 P = 0.6
@@ -36,10 +36,10 @@ for r in rows:
     groups[r['tier']].append(r)
 
 lines = []
-lines.append('# 📈 Tabla de curva de dificultad — 120 juegos (8 mundos × 15 subniveles)')
+lines.append('# 📈 Tabla de curva de dificultad — 96 juegos (8 mundos × 12 subniveles)')
 lines.append('')
 lines.append('> Generada por `tools/gen-difficulty-table.py`. Parámetros:')
-lines.append('> `W=8`, `S=15`, `N=120`, `T=14` tramos, `p=0.6`.')
+lines.append('> `W=8`, `S=12`, `N=96`, `T=14` tramos, `p=0.6`.')
 lines.append('')
 lines.append('Esta tabla es la referencia **a fuego** de qué tier y qué banda de')
 lines.append('dificultad objetivo le toca a cada pantalla de la partida completa.')
@@ -72,7 +72,7 @@ lines.append('- **`banda`** es la dificultad objetivo continua (0.5 → 8.0), **
 lines.append('  creciente**: cada pantalla es más difícil que la anterior, sin bajones.')
 lines.append('  Como tier y banda comparten `y = x^p`, cada banda cae dentro del rango')
 lines.append('  de dificultad de su tier (ver docs/11, tabla 2.3).')
-lines.append('- El subnivel 15 (castillo) es la pantalla más difícil de su mundo; no')
+lines.append('- El subnivel 12 (isla final / boss) es la pantalla más difícil de su mundo; no')
 lines.append('  introduce picos artificiales, es el máximo natural del mundo en la rampa.')
 lines.append('')
 lines.append('## Resumen por tier')
@@ -96,6 +96,6 @@ for r in rows:
 lines.append('')
 
 out = '\n'.join(lines)
-with open('docs/15-TABLA-CURVA-DIFICULTAD-120-JUEGOS.md', 'w', encoding='utf-8') as f:
+with open('docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md', 'w', encoding='utf-8') as f:
     f.write(out)
-print(f'Escrito docs/15-TABLA-CURVA-DIFICULTAD-120-JUEGOS.md con {N} juegos.')
+print(f'Escrito docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md con {N} juegos.')

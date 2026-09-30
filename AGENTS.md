@@ -1,4 +1,4 @@
-﻿# Runika 2D — Wappo Infinito
+# Runika 2D — Wappo Infinito
 
 Juego de puzle determinista inspirado en Wappo. TypeScript puro + Vitest, Node ≥ 20, ESM.
 
@@ -285,7 +285,7 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   - **No es obligatorio mostrar todas** las imágenes del mundo en cada pantalla; basta con las que el nivel genere.
   - Si un mundo no tiene carpeta de obstáculos, se usa una imagen de marcador (placeholder) y se documenta el faltante.
   - Mapeo de carpetas especiales: `VIENTO` → `assets/obstaculos/AIRE/`.
-- **Curva de dificultad**: 8 mundos × 15 subniveles = 120 juegos, repartidos en 14 tiers con curva no lineal (p=0.6). Ver `docs/15-TABLA-CURVA-DIFICULTAD-120-JUEGOS.md`.
+- **Curva de dificultad**: 8 mundos × 12 subniveles = 96 juegos, repartidos en 14 tiers con curva no lineal (p=0.6). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
 - **A fuego — sin textos hardcodeados**: ningún texto visible al usuario puede estar
   escrito directamente en el código (HTML, TS, etc.). Todo texto debe venir de
   archivos de idioma en `i18n/` (`es.json`, `en.json`, `fr.json`, `de.json`,

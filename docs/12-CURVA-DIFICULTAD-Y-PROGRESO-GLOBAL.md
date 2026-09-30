@@ -9,28 +9,26 @@
 
 ## 0. Aclaración de la estructura (y una nota sobre tus números)
 
-- Cada mundo tiene **15 subniveles**: 14 "normales" + 1 final tipo
-  **castillo/jefe**.
-- Con **8 mundos** eso da **8 × 15 = 120 pantallas totales** en una partida
-  completa (de principio a fin, mundo 1 subnivel 1 → mundo 8 subnivel 15).
-- En tu mensaje mencionas también "180 juegos" en algún punto — puede que te
-  refirieras a más mundos (ej. 12 × 15 = 180) o fuera un cálculo de paso.
-  Todo lo de este documento está escrito como **fórmula parametrizada** (con
+- Cada mundo tiene **12 subniveles**: 11 "normales" + 1 final tipo
+  **castillo/jefe** (la isla del boss).
+- Con **8 mundos** eso da **8 × 12 = 96 pantallas totales** en una partida
+  completa (de principio a fin, mundo 1 subnivel 1 → mundo 8 subnivel 12).
+- Todo lo de este documento está escrito como **fórmula parametrizada** (con
   `W` = nº de mundos, `S` = subniveles por mundo, `T` = 14 tramos de
-  dificultad), así que funciona igual con 120, 180 o el número final que
-  fijéis — solo cambia el resultado de la tabla, no la lógica.
+  dificultad), así que funciona igual con 96 o el número final que fijéis —
+  solo cambia el resultado de la tabla, no la lógica.
 
 ```
 W = número de mundos (ej. 8)
-S = subniveles por mundo, incluyendo el castillo (15)
-N = W × S = pantallas totales de una partida completa
+S = subniveles por mundo, incluyendo el castillo (12)
+N = W × S = pantallas totales de una partida completa (96)
 T = 14 (tramos de dificultad global, fijos)
 ```
 
 ## 1. El problema que describiste
 
 Si repartes `N` pantallas entre `T=14` tramos de forma **lineal** (división
-simple), sale una media de `N/T` pantallas por tramo — con `N=120` son ~8-9
+simple), sale una media de `N/T` pantallas por tramo — con `N=96` son ~7
 pantallas seguidas con exactamente la misma dificultad, y con `N=180` unas 12.
 Eso se siente plano y aburrido, sobre todo al principio, que es donde más
 importa enganchar.
@@ -71,24 +69,27 @@ tier = 1 + floor( y * (T - 1) )    // tramo de dificultad final (1 a 14)
 - Ajusta `p` jugando y viendo cómo se siente — no hay un valor matemáticamente
   "correcto", es una decisión de diseño.
 
-### 2.2 Ejemplo real con W=8, S=15 (N=120), T=14, p=0.6
+### 2.2 Ejemplo real con W=8, S=12 (N=96), T=14, p=0.6
 
-Así quedan repartidas las primeras pantallas (nº de pantallas seguidas en
+Así quedan repartidas las pantallas (nº de pantallas seguidas en
 cada tramo, calculado con la fórmula de arriba):
 
 | Tramo | Pantallas seguidas en ese tramo |
 |---|---|
 | 1 | 2 |
-| 2 | 4 |
-| 3 | 5 |
-| 4 | 6 |
-| 5 | 8 |
-| 6 | 8 |
-| ... | ... (sube progresivamente) |
-| 11 | 14 |
-| 12 | 14 |
-| 13 | 14 |
-| 14 | 1 (la pantalla 120, el final absoluto del juego) |
+| 2 | 2 |
+| 3 | 4 |
+| 4 | 4 |
+| 5 | 6 |
+| 6 | 6 |
+| 7 | 6 |
+| 8 | 8 |
+| 9 | 8 |
+| 10 | 9 |
+| 11 | 9 |
+| 12 | 10 |
+| 13 | 10 |
+| 14 | 12 |
 
 Compara con el reparto lineal (p=1): ahí el tramo 1 dura **10 pantallas
 seguidas** y el tramo 2 otras 9 — justo el problema de "las primeras 12 o 24
@@ -99,7 +100,7 @@ más chicha.
 
 > Nota técnica: esta tabla se genera una vez (es pura matemática sobre `W`,
 > `S`, `T` y `p`), no depende de seeds ni de aleatoriedad — se puede calcular
-> en el momento o precalcular una tabla de 120/180 entradas `pantalla → tramo`
+> en el momento o precalcular una tabla de 96 entradas `pantalla → tramo`
 > y guardarla como configuración fija del juego.
 
 ### 2.3 Variación fina dentro de un mismo tramo (bandas de dificultad)
@@ -135,7 +136,7 @@ Esto te da lo mejor de ambos mundos: variedad de contenido (banco de 50.000
 por tramo) **y** una sensación de progresión continua incluso dentro del
 mismo tramo de dificultad global.
 
-### 2.4 El castillo (subnivel 15) como "pico" de cada mundo
+### 2.4 El castillo (subnivel 12) como "pico" de cada mundo
 
 Para que el castillo de cada mundo se sienta como un evento especial y no
 simplemente "la siguiente pantalla del mismo tramo":
@@ -210,7 +211,7 @@ debería ser siempre el caso salvo que permitas rejugar mundos ya superados).
       700.000 niveles definitivos.
 - [ ] Implementar el filtrado por banda de dificultad dentro de un tramo
       (sección 2.3) antes de aplicar el cursor/permutación de `11-...md`.
-- [ ] Marcar el subnivel 15 (castillo) de cada mundo para que siempre tome la
+- [ ] Marcar el subnivel 12 (castillo) de cada mundo para que siempre tome la
       banda alta del tramo correspondiente (sección 2.4).
 - [ ] Añadir `currentWorld`, `currentSubLevel` y `totalStagesCompleted` al
       esquema de progreso del jugador, incrementando este último en cada
