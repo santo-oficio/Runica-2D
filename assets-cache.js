@@ -98,7 +98,9 @@ async function fetchManifest() {
     (m.images || []).forEach(u => add(ASSETS.images, u));
     (m.sounds || []).forEach(u => add(ASSETS.sounds, u));
     (m.music || []).forEach(u => add(ASSETS.sounds, u)); // música también precargada
-    if (m.music && m.music.length && !musicTrack) musicTrack = m.music[0];
+    if (m.music && m.music.length && !musicTrack) {
+      musicTrack = m.music.includes(DEFAULT_MUSIC) ? DEFAULT_MUSIC : m.music[0];
+    }
   } catch {}
 }
 
@@ -148,6 +150,8 @@ loadSettings();
 // --- Música global: una pista en loop que sigue sonando entre pantallas ---
 // La posición se guarda en localStorage para retomar donde se quedó.
 const MUSIC_POS_KEY = 'runika-music-pos';
+// Tema principal del juego (si está en el manifiesto, manda sobre el resto)
+const DEFAULT_MUSIC = '/assets/music/The_Captain_s_Last_Map.mp3';
 let musicEl = null;
 let musicTrack = null;
 
