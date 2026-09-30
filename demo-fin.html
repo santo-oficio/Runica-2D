@@ -25,14 +25,7 @@
     55% { transform: rotate(78deg) translateY(6%); filter: grayscale(.7) brightness(.75) drop-shadow(3px 6px 10px rgba(0,0,0,.7)); opacity: 1; }
     100% { transform: rotate(92deg) translateY(34%); filter: grayscale(1) brightness(.35); opacity: 0; }
   }
-  /* Embestida del heroe: anticipacion -> dash hacia el boss -> regreso */
-  @keyframes heroStrike {
-    0%   { transform: translate(0,0) rotate(0); }
-    18%  { transform: translate(-14%,3%) rotate(-7deg) scaleY(.9); }
-    46%  { transform: translate(230%,-12%) rotate(10deg); }
-    62%  { transform: translate(215%,-5%) rotate(6deg); }
-    100% { transform: translate(0,0) rotate(0); }
-  }
+
   @keyframes heroCelebrate {
     0%,100% { transform: translateY(0) rotate(0); }
     25% { transform: translateY(-16%) rotate(-8deg); }
@@ -300,32 +293,45 @@ async function sceneBoard() {
   const hero = document.getElementById('hero-img');
   hero.src = `/assets/avatars/display/avatar_${String(avatarIdx + 1).padStart(2, '0')}.webp`;
 
-  // Posiciones sobre la zona del tablero (avatarArea calibrada)
-  let area = null;
-  try {
-    const r = await fetch('/assets/backgrounds/MAZMORRA/board-detection.json');
-    if (r.ok) { const d = await r.json(); area = d.avatarArea || d.boardArea || null; }
-  } catch {}
+  // Calibraciones reales del tablero: avatarArea (rejilla 8x6) vía
+  // /api/board-sprites-assets y sprites.json (size/offset por casilla)
+  // vía /api/load-board-sprites — igual que calibrate-board-sprites.html
+  let assets = null, cal = null;
+  try { const res = await fetch('/api/board-sprites-assets?world=MAZMORRA'); if (res.ok) assets = await res.json(); } catch {}
+  try { const res = await fetch('/api/load-board-sprites?world=MAZMORRA'); if (res.ok) cal = await res.json(); } catch {}
+  const boss = document.getElementById('boss-img');
+  if (assets?.boss?.[0]) boss.src = assets.boss[0];
+  if (assets?.avatar?.[avatarIdx]) hero.src = assets.avatar[avatarIdx];
+
+  const area = assets?.avatarArea || assets?.boardArea || { x: 0.25, y: 0.3, width: 0.5, height: 0.45 };
   const r = getImgRect(bg);
-  const ax = area ? area.x : 0.25, ay = area ? area.y : 0.3, aw = area ? area.w : 0.5, ah = area ? area.h : 0.45;
-  // Casillas del tablero (8x6): heroe al azar en la mitad izquierda,
-  // boss al azar en la mitad derecha — nunca coinciden
+  const bL = r.left + area.x * r.width, bT = r.top + area.y * r.height;
+  const bW = area.width * r.width, bH = area.height * r.height;
+  const cw = bW / 8, ch = bH / 6;
+  const g = cal?.global || {};
+  // Rect del sprite en una casilla — misma fórmula que el calibrador:
+  // tamaño = fracción de casilla, centrado + offset (casilla) + global (tablero)
+  const spriteRect = (c, row, entry) => {
+    const size = (entry?.size ?? 1) * (g.scale ?? 1);
+    const w = cw * size, h = ch * size;
+    const cx = bL + c * cw + cw / 2 + (entry?.offsetX ?? 0) * cw + (g.offsetX ?? 0) * bW;
+    const cy = bT + row * ch + ch / 2 + (entry?.offsetY ?? 0) * ch + (g.offsetY ?? 0) * bH;
+    return { left: cx - w / 2, top: cy - h / 2, w, h, cx, cy };
+  };
+  const heroCal = cal?.avatar?.[avatarIdx] || {};
+  const bossCal = cal?.boss?.[0] || {};
+  const setCell = (img, c, row, entry) => {
+    const rc = spriteRect(c, row, entry);
+    img.style.left = rc.left + 'px'; img.style.top = rc.top + 'px';
+    img.style.width = rc.w + 'px'; img.style.height = rc.h + 'px';
+    return rc;
+  };
+  // Heroe al azar en la mitad izquierda, boss en la derecha — nunca coinciden
   const ri = n => Math.floor(Math.random() * n);
   let hc = ri(4), hr = ri(6);
   let bc = 4 + ri(4), br = ri(6);
-  const cellW = aw * r.width / 8, cellH = ah * r.height / 6;
-  const cellX = c => r.left + ax * r.width + (c + 0.5) * cellW;
-  const cellBottom = row => r.top + ay * r.height + (row + 1) * cellH;
-  const boss = document.getElementById('boss-img');
-  const setCell = (img, w, h, c, row) => {
-    img.style.width = w + 'px'; img.style.height = h + 'px';
-    img.style.left = (cellX(c) - w / 2) + 'px';
-    img.style.top = (cellBottom(row) - h) + 'px';
-  };
-  const hW = cellW * 1.05, hH = cellH * 1.25;
-  const bW = cellW * 2.1, bH = cellH * 2.4;
-  setCell(boss, bW, bH, bc, br);
-  setCell(hero, hW, hH, hc, hr);
+  let heroRC = setCell(hero, hc, hr, heroCal);
+  const bossRC = setCell(boss, bc, br, bossCal);
 
   // Presentacion
   const sub = document.getElementById('sub-text');
@@ -341,7 +347,7 @@ async function sceneBoard() {
     if (hc < bc - 1) hc++;
     else if (hr < br) hr++;
     else if (hr > br) hr--;
-    setCell(hero, hW, hH, hc, hr);
+    heroRC = setCell(hero, hc, hr, heroCal);
     hero.style.animation = 'cellHop .3s ease';
     snd('/assets/sounds/comun/move.wav', 0.4);
     await wait(340);
@@ -350,15 +356,26 @@ async function sceneBoard() {
   }
   await wait(350);
 
-  // Lucha: 3 golpes con destello + sacudida (gana el avatar)
+  // Lucha: 3 golpes con destello + sacudida (gana el avatar).
+  // La embestida se calcula en px reales hacia el boss (distancia variable)
   for (let i = 0; i < 3; i++) {
-    hero.style.animation = 'heroStrike .55s ease';
+    const dx = bossRC.cx - heroRC.cx, dy = bossRC.cy - heroRC.cy;
+    const dist = Math.hypot(dx, dy) || 1;
+    const reach = Math.max(0, dist - cw * 0.75); // se planta junto al boss
+    const ux = dx / dist * reach, uy = dy / dist * reach;
+    hero.animate([
+      { transform: 'translate(0,0) rotate(0)' },
+      { transform: `translate(${-ux * 0.12}px,${-uy * 0.12 + 5}px) rotate(-7deg) scaleY(.9)`, offset: .18 },
+      { transform: `translate(${ux}px,${uy - 6}px) rotate(9deg)`, offset: .46 },
+      { transform: `translate(${ux * 0.82}px,${uy * 0.82}px) rotate(5deg)`, offset: .62 },
+      { transform: 'translate(0,0) rotate(0)' },
+    ], { duration: 560, easing: 'ease-in-out' });
     snd('/assets/sounds/comun/choque.wav', 0.5);
     boss.style.animation = 'bossHit .4s ease';
     flash(0.55, 260);
     shakeStage(true);
     await wait(520);
-    hero.style.animation = ''; boss.style.animation = '';
+    boss.style.animation = '';
     await wait(240);
   }
 
