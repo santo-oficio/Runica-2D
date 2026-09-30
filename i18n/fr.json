@@ -103,5 +103,6 @@
   "game.backToMap": "Retour à la carte (R)",
   "game.levelDone": "Île {0} terminée en {1} tours",
   "game.goldEarned": "+{0} or",
-  "board.level": "Niveau {0}"
+  "board.level": "Niveau {0}",
+  "game.go": "GO !"
 }

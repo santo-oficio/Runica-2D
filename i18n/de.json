@@ -103,5 +103,6 @@
   "game.backToMap": "Zurück zur Karte (R)",
   "game.levelDone": "Insel {0} in {1} Zügen geschafft",
   "game.goldEarned": "+{0} Gold",
-  "board.level": "Level {0}"
+  "board.level": "Level {0}",
+  "game.go": "LOS!"
 }

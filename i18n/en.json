@@ -103,5 +103,6 @@
   "game.backToMap": "Back to map (R)",
   "game.levelDone": "Island {0} completed in {1} turns",
   "game.goldEarned": "+{0} gold",
-  "board.level": "Level {0}"
+  "board.level": "Level {0}",
+  "game.go": "GO!"
 }

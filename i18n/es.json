@@ -103,5 +103,6 @@
   "game.backToMap": "Volver al mapa (R)",
   "game.levelDone": "Isla {0} completada en {1} turnos",
   "game.goldEarned": "+{0} de oro",
-  "board.level": "Nivel {0}"
+  "board.level": "Nivel {0}",
+  "game.go": "¡YA!"
 }

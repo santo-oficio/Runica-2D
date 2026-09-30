@@ -115,6 +115,23 @@
     justify-content: flex-end; color: #ffd34e;
     text-shadow: 1px 1px 2px #000, 0 0 12px rgba(255,180,0,.8), 0 0 26px rgba(255,140,0,.5);
   }
+  /* Cuenta atrás antes de empezar la pantallita (3 · 2 · 1 · YA) */
+  #countdown {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    display: none; z-index: 40; pointer-events: none;
+    font-family: 'ChelseaMarket','Trebuchet MS',sans-serif; font-weight: bold;
+    font-size: min(24vh, 20vw); color: #ffd34e; line-height: 1;
+    text-shadow: 3px 3px 0 #4a2c00, 6px 6px 14px #000,
+      0 0 24px rgba(255,180,0,.9), 0 0 60px rgba(255,140,0,.6);
+    -webkit-text-stroke: 4px #2a1600;
+    animation: cdPop .8s ease-out;
+  }
+  @keyframes cdPop {
+    0% { transform: translate(-50%,-50%) scale(1.8); opacity: 0; }
+    18% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    80% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%,-50%) scale(.85); opacity: 0; }
+  }
 </style>
 </head>
 <body>
@@ -122,6 +139,7 @@
   <div id="selector"><img id="avatar" alt="avatar"></div>
   <div id="entities"></div>
   <div id="boardtexts"></div>
+  <div id="countdown"></div>
   <audio id="step-sound" preload="auto"></audio>
 
   <div id="hud">
@@ -325,6 +343,53 @@ fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d) sfxO
 function play(a) { if (!sfxOn) return; a.pause(); a.currentTime = 0; a.play().catch(()=>{}); }
 function playStep() { play(stepAudio); }
 
+// === Cuenta atrás 3 · 2 · 1 · YA antes de cada pantallita ===
+// Beeps retro (onda cuadrada WebAudio): agudo y largo en el "YA".
+let countingDown = false;
+let audioCtx = null;
+const cdEl = document.getElementById('countdown');
+
+function countBeep(isGo) {
+  if (!sfxOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = audioCtx.currentTime;
+    const dur = isGo ? 0.45 : 0.16;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'square';
+    o.frequency.value = isGo ? 880 : 440;
+    g.gain.setValueAtTime(0.10, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(t); o.stop(t + dur);
+  } catch (e) {}
+}
+
+function startCountdown(done) {
+  if (!REAL_MODE) { done(); return; }
+  countingDown = true;
+  const seq = [3, 2, 1, 0]; // 0 = "¡YA!"
+  let i = 0;
+  const tick = () => {
+    if (i >= seq.length) {
+      cdEl.style.display = 'none';
+      countingDown = false;
+      done();
+      return;
+    }
+    const v = seq[i++];
+    cdEl.textContent = v === 0 ? tt('game.go') : String(v);
+    cdEl.style.display = 'block';
+    cdEl.style.animation = 'none';
+    void cdEl.offsetWidth;
+    cdEl.style.animation = '';
+    countBeep(v === 0);
+    setTimeout(tick, v === 0 ? 850 : 1000);
+  };
+  tick();
+}
+
 // === Assets por mundo (con fallback a AGUA si el mundo no los tiene) ===
 const assetCache = {};
 async function exists(path) {
@@ -440,6 +505,7 @@ async function loadScreen() {
   positionSelector();
   await renderEntities();
   renderBoardTexts();
+  startCountdown(() => {});
 }
 
 function positionSelector() {
@@ -570,7 +636,7 @@ function canEnemyEnter(c, r, selfIdx) {
 }
 
 function movePlayer(dc, dr) {
-  if (moving || gameOver) return;
+  if (moving || gameOver || countingDown) return;
 
   // Aturdido: input ignorado pero el turno avanza
   if (playerStunnedTurns > 0) {
@@ -754,6 +820,7 @@ function nextAvatar() {
 document.addEventListener('keydown', (e) => {
   if (REAL_MODE) {
     if (e.key === 'Escape') { e.preventDefault(); backToSubmundo(); return; }
+    if (countingDown) return;
     if (e.key === 'r' || e.key === 'R' || e.code === 'Space') {
       e.preventDefault();
       if (won) backToSubmundo(); else loadScreen();
