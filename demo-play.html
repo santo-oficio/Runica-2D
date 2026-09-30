@@ -132,6 +132,29 @@
     80% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
     100% { transform: translate(-50%,-50%) scale(.85); opacity: 0; }
   }
+  /* Golpe al ser atrapado: sacudida de pantalla + flash rojo */
+  @keyframes screenShake {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-14px, 9px); }
+    20% { transform: translate(12px, -10px); }
+    30% { transform: translate(-10px, -9px); }
+    40% { transform: translate(9px, 8px); }
+    50% { transform: translate(-8px, 6px); }
+    60% { transform: translate(7px, -6px); }
+    70% { transform: translate(-6px, -4px); }
+    80% { transform: translate(5px, 4px); }
+    90% { transform: translate(-3px, -2px); }
+  }
+  .shake { animation: screenShake .55s linear; }
+  #hitflash {
+    position: fixed; inset: 0; pointer-events: none; z-index: 35; display: none;
+    background: radial-gradient(ellipse at center,
+      rgba(255,30,10,0) 25%, rgba(255,30,10,.5) 78%, rgba(120,0,0,.75) 100%);
+  }
+  #hitflash.show { display: block; animation: hitFlash .7s ease-out forwards; }
+  @keyframes hitFlash {
+    0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; }
+  }
 </style>
 </head>
 <body>
@@ -140,6 +163,7 @@
   <div id="entities"></div>
   <div id="boardtexts"></div>
   <div id="countdown"></div>
+  <div id="hitflash"></div>
   <audio id="step-sound" preload="auto"></audio>
 
   <div id="hud">
@@ -771,9 +795,25 @@ function winGame() {
   document.getElementById('overlay-restart').textContent = 'Otra pantalla (R)';
 }
 
+// Golpe de cámara al ser atrapado: sacudida de todas las capas + flash rojo
+function screenShake() {
+  for (const id of ['stage', 'entities', 'boardtexts', 'selector']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
+  }
+  const f = document.getElementById('hitflash');
+  f.classList.remove('show');
+  void f.offsetWidth;
+  f.classList.add('show');
+}
+
 function loseGame() {
   gameOver = true; won = false;
   play(defeatAudio);
+  screenShake();
   overlay.classList.add('show', 'lose');
   overlayTitle.textContent = REAL_MODE ? tt('game.defeat') : 'DERROTA';
   overlaySubtitle.textContent = REAL_MODE ? tt('game.caught') : 'El enemigo te atrapó (demo, no se guarda)';
