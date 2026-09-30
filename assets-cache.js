@@ -219,6 +219,25 @@ function unlockAudio() {
   startMusic();
 }
 
+// Aura irregular determinista a partir de un circulo calibrado {cx,cy,r}.
+// cx,cy,r en fracciones del ancho de imagen; seed = nombre del mundo
+// (misma forma siempre para el mismo mundo). aspect = w/h de la imagen.
+function auraPoints(cx, cy, r, seed, aspect) {
+  let h = 2166136261;
+  const s = String(seed || 'aura');
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  const rnd = () => { h = (Math.imul(h ^ (h >>> 15), 2246822519) >>> 0) ^ Math.imul(h ^ (h >>> 13), 3266489917); h >>>= 0; return h / 4294967296; };
+  const ry = r * (aspect || 1.5);
+  const pts = [];
+  const n = 11;
+  for (let i = 0; i < n; i++) {
+    const ang = (Math.PI * 2 * i) / n + (rnd() - 0.5) * 0.24;
+    const jr = 1 + (rnd() - 0.5) * 0.55;
+    pts.push([cx + Math.cos(ang) * r * jr, cy + Math.sin(ang) * ry * jr]);
+  }
+  return pts;
+}
+
 // --- Transiciones entre pantallas ---
 function transitionTo(url) {
   const overlay = document.getElementById('transition-overlay');
@@ -265,7 +284,7 @@ function hideLoading() {
 }
 
 window.AssetsCache = {
-  preloadAll, preloadSounds, getCachedImage, getCachedImageUrl, getCachedSound, playSound,
+  preloadAll, preloadSounds, getCachedImage, getCachedImageUrl, getCachedSound, playSound, auraPoints,
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,

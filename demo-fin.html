@@ -433,9 +433,10 @@ async function sceneMap() {
     if (!pos) continue;
     const fx = document.createElement('div');
     fx.className = 'world-fx';
-    const pts = FIN_AREAS?.aura?.[w]?.points;
-    if (pts && pts.length >= 3) {
-      // Aura irregular calibrada (no circulo perfecto)
+    const circ = FIN_AREAS?.aura?.[w];
+    if (circ && circ.r > 0) {
+      // Circulo calibrado -> aura irregular determinista
+      const pts = AssetsCache.auraPoints(circ.cx, circ.cy, circ.r, w, r.width / r.height);
       fx.style.left = r.left + 'px'; fx.style.top = r.top + 'px';
       fx.style.width = r.width + 'px'; fx.style.height = r.height + 'px';
       fx.style.clipPath = `polygon(${pts.map(p => `${p[0] * r.width}px ${p[1] * r.height}px`).join(',')})`;

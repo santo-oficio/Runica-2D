@@ -75,6 +75,7 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-mapamundi-text.html` | `assets/mapamundi/text-areas.json` |
 | `calibrate-modal.html` | `assets/comunes/modal-areas.json` (`title` = polígono sobre el arco del cartel + `content`/`buttonLeft`/`buttonRight` rectángulos) |
 | `calibrate-config.html` | `assets/configuracion/config-areas.json` (textos/casillas sonido+música rectángulos; flechas idioma y atrás = polígonos) |
+| `calibrate-fin.html` | `assets/comunes/fin-areas.json` — fin del juego: **círculos** `{cx,cy,r}` por mundo (el aura irregular la genera `AssetsCache.auraPoints` de forma determinista) + rectángulos `hero`/`boss` del tablero final |
 
 ### `calibrate-board-sprites.html` — sprites + áreas
 

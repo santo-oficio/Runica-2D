@@ -341,8 +341,9 @@
       if (worldCompleted(w) || worldLocked(w)) {
         const fx = document.createElement('div');
         fx.className = 'world-fx ' + (worldCompleted(w) ? 'done' : 'locked');
-        const pts = FIN_AREAS?.aura?.[w]?.points;
-        if (pts && pts.length >= 3) {
+        const circ = FIN_AREAS?.aura?.[w];
+        if (circ && circ.r > 0) {
+          const pts = AssetsCache.auraPoints(circ.cx, circ.cy, circ.r, w, r.width / r.height);
           fx.style.left = r.left + 'px';
           fx.style.top = r.top + 'px';
           fx.style.width = r.width + 'px';
