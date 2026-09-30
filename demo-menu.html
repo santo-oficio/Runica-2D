@@ -204,18 +204,6 @@
   }
   #hud .key { color: #fc4; }
   #hud b { color: #0ff; }
-  #lang-bar {
-    position: absolute; bottom: 12px; right: 12px; z-index: 20;
-    background: rgba(0,0,0,0.7); padding: 6px 12px;
-    border-radius: 4px; font-family: 'ChelseaMarket', cursive;
-    font-size: 0.8em; color: #aaa;
-  }
-  #lang-bar select {
-    background: #1a1a2e; color: #e0e0e0;
-    border: 1px solid #555; border-radius: 3px;
-    padding: 2px 6px; font-size: 0.9em; cursor: pointer;
-  }
-  #lang-bar select:focus { outline: none; }
 </style>
 </head>
 <body>
@@ -250,16 +238,6 @@
   <span class="key">G</span> = guardar<br>
   <br>
   <span id="glow-info" style="color:#0ff">ancho:14 alto:0 op:0.6</span>
-</div>
-
-<div id="lang-bar">
-  <select id="lang-select">
-    <option value="es">Español</option>
-    <option value="en">English</option>
-    <option value="fr">Français</option>
-    <option value="de">Deutsch</option>
-    <option value="it">Italiano</option>
-  </select>
 </div>
 
 <script src="/assets-cache.js"></script>
@@ -573,12 +551,6 @@
         body: JSON.stringify({ glowX, glowY, glowOp, glowBlur })
       }).then(() => alert('Guardado'));
     }
-  });
-
-  document.getElementById('lang-select').addEventListener('change', async (e) => {
-    AssetsCache.setSetting('lang', e.target.value);
-    translations = await loadLang(e.target.value);
-    render();
   });
 
   // --- Init con cache + transicion ---

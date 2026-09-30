@@ -25,7 +25,20 @@
     55% { transform: rotate(78deg) translateY(6%); filter: grayscale(.7) brightness(.75) drop-shadow(3px 6px 10px rgba(0,0,0,.7)); opacity: 1; }
     100% { transform: rotate(92deg) translateY(34%); filter: grayscale(1) brightness(.35); opacity: 0; }
   }
-  @keyframes avatarJump { 0%,100%{transform:translateY(0)} 30%{transform:translateY(-26%)} 60%{transform:translateY(0)} 75%{transform:translateY(-10%)} }
+  /* Embestida del heroe: anticipacion -> dash hacia el boss -> regreso */
+  @keyframes heroStrike {
+    0%   { transform: translate(0,0) rotate(0); }
+    18%  { transform: translate(-14%,3%) rotate(-7deg) scaleY(.9); }
+    46%  { transform: translate(230%,-12%) rotate(10deg); }
+    62%  { transform: translate(215%,-5%) rotate(6deg); }
+    100% { transform: translate(0,0) rotate(0); }
+  }
+  @keyframes heroCelebrate {
+    0%,100% { transform: translateY(0) rotate(0); }
+    25% { transform: translateY(-16%) rotate(-8deg); }
+    55% { transform: translateY(-14%) rotate(8deg); }
+    80% { transform: translateY(-6%) rotate(0); }
+  }
   #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 40; }
   #vignette { position: absolute; inset: 0; pointer-events: none; z-index: 35; opacity: 0;
     background: radial-gradient(ellipse at center, transparent 45%, rgba(180,20,10,.55) 100%); }
@@ -48,7 +61,7 @@
   }
   .sub-text.on { opacity: 1; }
   #continue-hint {
-    position: absolute; left: 50%; top: 62%; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 50%; transform: translateX(-50%);
     z-index: 60; font-size: clamp(14px, 2.6vh, 28px); color: #ffe9a3;
     text-shadow: 2px 2px 0 #2a1a08; opacity: 0; pointer-events: none;
     text-align: center; width: 90%;
@@ -282,7 +295,7 @@ async function sceneBoard() {
   boss.style.width = bsz + 'px';
   boss.style.left = (r.left + (ax + aw * 0.66) * r.width - bsz / 2) + 'px';
   boss.style.top = (boardBottom - bsz) + 'px';
-  const hsz = r.width * aw * 0.16;
+  const hsz = r.width * aw * 0.12;
   hero.style.width = hsz + 'px';
   hero.style.left = (r.left + (ax + aw * 0.30) * r.width - hsz / 2) + 'px';
   hero.style.top = (boardBottom - hsz) + 'px';
@@ -296,7 +309,7 @@ async function sceneBoard() {
 
   // Combate: 3 golpes con destello + sacudida
   for (let i = 0; i < 3; i++) {
-    hero.style.animation = 'avatarJump .5s ease';
+    hero.style.animation = 'heroStrike .55s ease';
     snd('/assets/sounds/comun/choque.wav', 0.5);
     boss.style.animation = 'bossHit .4s ease';
     flash(0.55, 260);
@@ -316,7 +329,7 @@ async function sceneBoard() {
   const big = document.getElementById('big-text');
   big.textContent = tt('game.victory');
   big.classList.add('pop');
-  hero.style.animation = 'avatarJump .6s ease .1s';
+  hero.style.animation = 'heroCelebrate .7s ease .1s';
   await wait(1400);
 
   // Pulsa para continuar
