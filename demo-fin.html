@@ -61,7 +61,7 @@
   }
   .sub-text.on { opacity: 1; }
   #continue-hint {
-    position: absolute; left: 50%; top: 50%; transform: translateX(-50%);
+    position: absolute; left: 50%; top: 46%; transform: translateX(-50%);
     z-index: 60; font-size: clamp(14px, 2.6vh, 28px); color: #ffe9a3;
     text-shadow: 2px 2px 0 #2a1a08; opacity: 0; pointer-events: none;
     text-align: center; width: 90%;
@@ -79,14 +79,26 @@
 
   /* --- Escena 2: mapamundi que se derrumba --- */
   .world-fx {
-    position: absolute; z-index: 9; pointer-events: none; border-radius: 50%;
+    position: absolute; z-index: 9; pointer-events: none;
     backdrop-filter: grayscale(1) brightness(.5);
     -webkit-backdrop-filter: grayscale(1) brightness(.5);
     transform: scale(.15); opacity: 0;
+    transform-origin: center;
   }
   .world-fx.fall {
     transition: transform .55s cubic-bezier(.5,0,.9,.4), opacity .45s ease;
-    transform: scale(1) translateY(3.2%); opacity: 1;
+    transform: scale(1) translateY(1.5%); opacity: 1;
+  }
+  /* Derrumbe de la escena del tablero */
+  .scene.crumble { animation: boardCrumble 1.6s ease-in forwards; }
+  @keyframes boardCrumble {
+    0%   { transform: translate(0,0) rotate(0); }
+    15%  { transform: translate(-14px,8px) rotate(-.6deg); }
+    30%  { transform: translate(12px,-9px) rotate(.7deg); }
+    45%  { transform: translate(-10px,-7px) rotate(-.5deg); }
+    60%  { transform: translate(8px,6px) rotate(.4deg); }
+    75%  { transform: translate(-5px,14px) rotate(-.8deg); }
+    100% { transform: translate(0,9vh) rotate(-2.5deg); opacity: 0; }
   }
   @keyframes shakeHard {
     0%,100%{transform:translate(0,0) rotate(0)}
@@ -182,6 +194,7 @@
 const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
 let translations = {}, fallback = {}, player = null;
 let WORLD_POSITIONS = {}, WORLD_AVATAR_POS = {}, avatarSize = 0.06;
+let FIN_AREAS = null; // assets/comunes/fin-areas.json (calibrate-fin.html)
 let avatarIdx = 0;
 function avatarPos(w) { return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][avatarIdx]) || WORLD_POSITIONS[w]; }
 function worldSize(w) { return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][avatarIdx] && WORLD_AVATAR_POS[w][avatarIdx].size) || (WORLD_POSITIONS[w] && WORLD_POSITIONS[w].size) || avatarSize; }
@@ -288,17 +301,17 @@ async function sceneBoard() {
   } catch {}
   const r = getImgRect(bg);
   const ax = area ? area.x : 0.25, ay = area ? area.y : 0.3, aw = area ? area.w : 0.5, ah = area ? area.h : 0.45;
-  // Sprites con los pies en la base del tablero (alineados por abajo)
+  // Posiciones calibradas (fin-areas.json) con fallback al avatarArea
+  const bA = FIN_AREAS?.board?.boss || { x: ax + aw * 0.52, y: ay + ah * 0.30, w: aw * 0.22, h: ah * 0.44 };
+  const hA = FIN_AREAS?.board?.hero || { x: ax + aw * 0.28, y: ay + ah * 0.52, w: aw * 0.075, h: ah * 0.16 };
   const boss = document.getElementById('boss-img');
-  const boardBottom = r.top + (ay + ah * 0.92) * r.height;
-  const bsz = r.width * aw * 0.34;
-  boss.style.width = bsz + 'px';
-  boss.style.left = (r.left + (ax + aw * 0.66) * r.width - bsz / 2) + 'px';
-  boss.style.top = (boardBottom - bsz) + 'px';
-  const hsz = r.width * aw * 0.12;
-  hero.style.width = hsz + 'px';
-  hero.style.left = (r.left + (ax + aw * 0.30) * r.width - hsz / 2) + 'px';
-  hero.style.top = (boardBottom - hsz) + 'px';
+  const put = (img, a) => {
+    img.style.left = (r.left + a.x * r.width) + 'px';
+    img.style.top = (r.top + a.y * r.height) + 'px';
+    img.style.width = (a.w * r.width) + 'px';
+    img.style.height = (a.h * r.height) + 'px';
+  };
+  put(boss, bA); put(hero, hA);
 
   // Presentacion
   const sub = document.getElementById('sub-text');
@@ -338,12 +351,39 @@ async function sceneBoard() {
   hint.classList.add('on');
 }
 
+// ---------- ESCENA 1.5: el tablero se desmorona ----------
+async function crumbleBoard() {
+  const sc = document.getElementById('scene-board');
+  const hero = document.getElementById('hero-img');
+  const boss = document.getElementById('boss-img');
+  // 3 temblores crecientes con polvo y truenos
+  for (let i = 0; i < 3; i++) {
+    shakeStage(i < 2);
+    snd('/assets/sounds/comun/choque.wav', 0.45 + i * 0.15);
+    const bx = innerWidth * (0.3 + Math.random() * 0.45);
+    const by = innerHeight * (0.35 + Math.random() * 0.4);
+    dust(bx, by, innerWidth * 0.10);
+    burst(bx, by, 35, ['#8a7a60', '#b09a75', '#6a5a45'], 6, { size: 5, g: 0.2 });
+    if (i === 1) { hero.style.animation = 'heroCelebrate .5s ease'; }
+    await wait(420);
+  }
+  // La escena entera se hunde
+  sc.classList.add('crumble');
+  snd('/assets/sounds/comun/choque.wav', 0.85);
+  shakeStage(false);
+  const bx = innerWidth * 0.5, by = innerHeight * 0.7;
+  dust(bx, by, innerWidth * 0.3);
+  burst(bx, by, 80, ['#8a7a60', '#b09a75', '#6a5a45', '#d0b890'], 9, { size: 6, g: 0.16 });
+  await wait(1500);
+}
+
 // ---------- ESCENA 2: los mundos se derrumban ----------
 async function sceneMap() {
   scene = 2; busy = true;
   document.getElementById('continue-hint').classList.remove('on');
   document.getElementById('big-text').classList.remove('pop');
   document.getElementById('big-text').style.opacity = 0;
+  await crumbleBoard();
   showScene('scene-map');
   const bg = document.querySelector('#scene-map .bgimg');
   await (bg.complete ? Promise.resolve() : new Promise(r => { bg.onload = r; bg.onerror = r; }));
@@ -360,13 +400,23 @@ async function sceneMap() {
   for (const w of WORLD_ORDER) {
     const pos = avatarPos(w);
     if (!pos) continue;
-    const sz = worldSize(w) * r.width * 2.4;
     const fx = document.createElement('div');
     fx.className = 'world-fx';
-    fx.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
-    fx.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
-    fx.style.width = sz + 'px'; fx.style.height = sz + 'px';
+    const pts = FIN_AREAS?.aura?.[w]?.points;
+    if (pts && pts.length >= 3) {
+      // Aura irregular calibrada (no circulo perfecto)
+      fx.style.left = r.left + 'px'; fx.style.top = r.top + 'px';
+      fx.style.width = r.width + 'px'; fx.style.height = r.height + 'px';
+      fx.style.clipPath = `polygon(${pts.map(p => `${p[0] * r.width}px ${p[1] * r.height}px`).join(',')})`;
+    } else {
+      const sz = worldSize(w) * r.width * 2.4;
+      fx.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
+      fx.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
+      fx.style.width = sz + 'px'; fx.style.height = sz + 'px';
+      fx.style.borderRadius = '50%';
+    }
     overlay.appendChild(fx);
+    const sz = worldSize(w) * r.width * 2.4;
     overlayDivs[w] = { fx, cx: r.left + pos.x * r.width, cy: r.top + pos.y * r.height, sz };
   }
 
@@ -504,6 +554,10 @@ function begin() {
   try {
     const r = await fetch('/api/load-avatar-positions');
     if (r.ok) { const d = await r.json(); if (d.positions) WORLD_POSITIONS = d.positions; if (d.avatars) WORLD_AVATAR_POS = d.avatars; if (d.avatarSize) avatarSize = d.avatarSize; }
+  } catch {}
+  try {
+    const r = await fetch('/api/load-fin-areas');
+    if (r.ok) FIN_AREAS = await r.json();
   } catch {}
   WORLD_ORDER.forEach(w => { if (!WORLD_POSITIONS[w]) WORLD_POSITIONS[w] = { x: 0.5, y: 0.5 }; });
   document.getElementById('press-start').textContent = tt('loading.pressStart');

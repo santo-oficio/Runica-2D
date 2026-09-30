@@ -594,6 +594,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: guardar areas del fin del juego (POST /api/save-fin-areas)
+  if (url === "/api/save-fin-areas" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "comunes", "fin-areas.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: cargar areas del fin del juego (GET /api/load-fin-areas)
+  if (url === "/api/load-fin-areas") {
+    const loadPath = join(ROOT, "assets", "comunes", "fin-areas.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
   // API: guardar botones del menu (POST /api/save-menu-buttons)
   if (url === "/api/save-menu-buttons" && req.method === "POST") {
     let body = "";

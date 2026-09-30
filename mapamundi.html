@@ -256,6 +256,7 @@
   let WORLD_POSITIONS = {};
   let WORLD_AVATAR_POS = {};
   let WORLD_PATHS = {};
+  let FIN_AREAS = null; // assets/comunes/fin-areas.json: auras irregulares por mundo
   let avatarSize = 0.06;
   function worldAvatarIdx(w) { return WORLD_ORDER.indexOf(w); }
   function avatarPos(w) { const i = worldAvatarIdx(w); return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][i]) || WORLD_POSITIONS[w]; }
@@ -327,24 +328,27 @@
       if (!pos) return;
       const sz = worldSize(w) * r.width;
 
-      // Máscara visual: completado (B/N) o mundo central bloqueado
-      if (worldCompleted(w)) {
+      // Máscara visual: completado (B/N) o mundo central bloqueado.
+      // Aura irregular calibrada en fin-areas.json (no circulo perfecto);
+      // fallback: circulo sobre el punto del mundo.
+      if (worldCompleted(w) || worldLocked(w)) {
         const fx = document.createElement('div');
-        fx.className = 'world-fx done';
-        const fxSz = sz * 2.4; // cubrir la isla entera, no solo el hitbox
-        fx.style.left = (r.left + pos.x * r.width - fxSz / 2) + 'px';
-        fx.style.top = (r.top + pos.y * r.height - fxSz / 2) + 'px';
-        fx.style.width = fxSz + 'px';
-        fx.style.height = fxSz + 'px';
-        overlay.appendChild(fx);
-      } else if (worldLocked(w)) {
-        const fx = document.createElement('div');
-        fx.className = 'world-fx locked';
-        const fxSz = sz * 2.4;
-        fx.style.left = (r.left + pos.x * r.width - fxSz / 2) + 'px';
-        fx.style.top = (r.top + pos.y * r.height - fxSz / 2) + 'px';
-        fx.style.width = fxSz + 'px';
-        fx.style.height = fxSz + 'px';
+        fx.className = 'world-fx ' + (worldCompleted(w) ? 'done' : 'locked');
+        const pts = FIN_AREAS?.aura?.[w]?.points;
+        if (pts && pts.length >= 3) {
+          fx.style.left = r.left + 'px';
+          fx.style.top = r.top + 'px';
+          fx.style.width = r.width + 'px';
+          fx.style.height = r.height + 'px';
+          fx.style.borderRadius = '0';
+          fx.style.clipPath = `polygon(${pts.map(p => `${p[0] * r.width}px ${p[1] * r.height}px`).join(',')})`;
+        } else {
+          const fxSz = sz * 2.4; // cubrir la isla entera, no solo el hitbox
+          fx.style.left = (r.left + pos.x * r.width - fxSz / 2) + 'px';
+          fx.style.top = (r.top + pos.y * r.height - fxSz / 2) + 'px';
+          fx.style.width = fxSz + 'px';
+          fx.style.height = fxSz + 'px';
+        }
         overlay.appendChild(fx);
       }
 
@@ -550,6 +554,13 @@
     });
   }
 
+  async function loadFinAreas() {
+    try {
+      const r = await fetch('/api/load-fin-areas');
+      if (r.ok) FIN_AREAS = await r.json();
+    } catch {}
+  }
+
   async function loadPaths() {
     try {
       const r = await fetch('/api/load-world-paths');
@@ -586,6 +597,7 @@
       await loadPositions();
       await loadPaths();
       await loadTextAreas();
+      await loadFinAreas();
       render();
       AssetsCache.hideLoading();
       setTimeout(() => AssetsCache.transitionIn(), 100);

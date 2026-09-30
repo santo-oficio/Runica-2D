@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Calibrador Fin del Juego</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px Arial,sans-serif}
+#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#image{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block}
+#overlay{position:absolute;inset:0;pointer-events:none;z-index:2}
+#draw{position:absolute;inset:0;pointer-events:none;z-index:3}
+#hud{position:absolute;z-index:5;top:10px;left:10px;padding:12px;background:rgba(0,0,0,.88);border:1px solid #789;border-radius:6px;max-width:340px}
+#hud .key{color:#ffd54f}
+#status{position:absolute;z-index:5;bottom:12px;left:50%;transform:translateX(-50%);padding:7px 14px;background:rgba(0,0,0,.88);border-radius:4px;color:#9de}
+.ok{color:#7f7}
+.area{position:absolute;border:2px dashed #4af;background:rgba(0,120,255,.08)}
+.area.active{border-color:#0ff;background:rgba(0,255,255,.12)}
+.area label{position:absolute;top:-18px;left:0;font-size:11px;color:#4af;background:rgba(0,0,0,.7);padding:0 4px}
+.area.active label{color:#0ff}
+.sprite-prev{position:absolute;object-fit:contain;pointer-events:none;opacity:.9}
+#draw polygon.aura{fill:rgba(160,160,160,.18);stroke:#9a9a9a;stroke-width:2;stroke-dasharray:6 4}
+#draw polygon.selected{fill:rgba(255,213,79,.16);stroke:#ffd54f;stroke-width:3;stroke-dasharray:none}
+#draw circle.vx{fill:#ffd54f;stroke:#000;stroke-width:1;r:5}
+#draw polyline{fill:rgba(255,213,79,.12);stroke:#ffd54f;stroke-width:3;stroke-dasharray:8 5}
+</style>
+</head>
+<body>
+<div id="stage">
+  <img id="image" src="/assets/mapamundi/mapamundi.webp">
+  <svg id="draw"></svg>
+  <div id="overlay"></div>
+</div>
+<div id="hud">
+  <b>Calibrador FIN DEL JUEGO</b><br><br>
+  <span class="key">Tab</span> escena MAPA / TABLERO<br>
+  <span class="key">[ ]</span> mundo (MAPA) / campo (TABLERO)<br>
+  <br>
+  <b>MAPA — aura irregular por mundo</b><br>
+  <span class="key">Click</span> añadir vértice (min 3) · <span class="key">Supr</span> quitar último<br>
+  <span class="key">Flechas</span> mover polígono (Shift fino)<br>
+  <span class="key">+ / -</span> escalar desde centro · <span class="key">X</span> vaciar mundo<br>
+  <br>
+  <b>TABLERO — rectángulos hero/boss</b><br>
+  <span class="key">Arrastrar</span> definir área · <span class="key">Flechas</span> mover<br>
+  <span class="key">+/-</span> tamaño · <span class="key">Q/E</span> ancho · <span class="key">Z/X</span> alto<br>
+  <br>
+  <span class="key">G</span> guardar · <span class="key">C</span> cargar
+  <div id="info" style="margin-top:8px;color:#8cf"></div>
+</div>
+<div id="status"></div>
+
+<script>
+'use strict';
+const WORLD_ORDER=['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+const IMGS={map:'/assets/mapamundi/mapamundi.webp',board:'/assets/backgrounds/MAZMORRA/bg_01.webp'};
+const SPRITES={hero:'/assets/avatars/display/avatar_01.webp',boss:'/assets/bosses/display/MAZMORRA/boss_MAZMORRA.webp'};
+let mode='map',worldIdx=7,fieldIdx=0;
+const FIELDS=['hero','boss'];
+let DATA={board:{hero:{x:.28,y:.52,w:.075,h:.16},boss:{x:.52,y:.30,w:.22,h:.44}},aura:{}};
+WORLD_ORDER.forEach(w=>{if(!DATA.aura[w])DATA.aura[w]={points:[]}});
+let imgRect={left:0,top:0,width:0,height:0};
+const img=document.getElementById('image'),svg=document.getElementById('draw'),ov=document.getElementById('overlay'),status=document.getElementById('status');
+function msg(t){status.textContent=t;setTimeout(()=>status.textContent='',2500)}
+function updateRect(){const nw=img.naturalWidth,nh=img.naturalHeight;if(!nw)return;const s=Math.min(innerWidth/nw,innerHeight/nh);imgRect={left:(innerWidth-nw*s)/2,top:(innerHeight-nh*s)/2,width:nw*s,height:nh*s}}
+const rx=x=>imgRect.left+x*imgRect.width,ry=y=>imgRect.top+y*imgRect.height,rw=w=>w*imgRect.width,rh=h=>h*imgRect.height;
+const nx=x=>(x-imgRect.left)/imgRect.width,ny=y=>(y-imgRect.top)/imgRect.height;
+
+function render(){
+  svg.innerHTML='';ov.innerHTML='';
+  svg.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);
+  document.getElementById('info').innerHTML=mode==='map'
+    ?`Escena: <b>MAPA</b> · Mundo: <b>${WORLD_ORDER[worldIdx]}</b> · puntos: ${DATA.aura[WORLD_ORDER[worldIdx]].points.length}`
+    :`Escena: <b>TABLERO</b> · Campo: <b>${FIELDS[fieldIdx]}</b>`;
+  if(mode==='map'){
+    WORLD_ORDER.forEach((w,i)=>{
+      const pts=DATA.aura[w].points;
+      if(pts.length>=3){
+        const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+        p.setAttribute('class','aura'+(i===worldIdx?' selected':''));
+        p.setAttribute('points',pts.map(pt=>`${rx(pt[0])},${ry(pt[1])}`).join(' '));
+        svg.appendChild(p);
+      }
+      if(i===worldIdx&&pts.length){
+        pts.forEach(pt=>{const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('class','vx');c.setAttribute('cx',rx(pt[0]));c.setAttribute('cy',ry(pt[1]));svg.appendChild(c)});
+        if(pts.length<3){const l=document.createElementNS('http://www.w3.org/2000/svg','polyline');l.setAttribute('points',pts.map(pt=>`${rx(pt[0])},${ry(pt[1])}`).join(' '));svg.appendChild(l)}
+      }
+    });
+  }else{
+    FIELDS.forEach((f,i)=>{
+      const a=DATA.board[f];if(!a)return;
+      const d=document.createElement('div');
+      d.className='area'+(i===fieldIdx?' active':'');
+      d.style.left=rx(a.x)+'px';d.style.top=ry(a.y)+'px';d.style.width=rw(a.w)+'px';d.style.height=rh(a.h)+'px';
+      d.innerHTML=`<label>${f}</label>`;
+      ov.appendChild(d);
+      const s=document.createElement('img');
+      s.src=SPRITES[f];s.className='sprite-prev';
+      s.style.left=d.style.left;s.style.top=d.style.top;s.style.width=d.style.width;s.style.height=d.style.height;
+      ov.appendChild(s);
+    });
+  }
+}
+function polyCentroid(pts){return pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0])}
+function movePoly(dx,dy){DATA.aura[WORLD_ORDER[worldIdx]].points.forEach(p=>{p[0]+=dx;p[1]+=dy})}
+function scalePoly(f){const pts=DATA.aura[WORLD_ORDER[worldIdx]].points;const[cx,cy]=polyCentroid(pts);pts.forEach(p=>{p[0]=cx+(p[0]-cx)*f;p[1]=cy+(p[1]-cy)*f})}
+
+// --- Raton: click vertice (MAPA) / arrastrar rect (TABLERO) ---
+let dragStart=null;
+document.addEventListener('pointerdown',e=>{
+  if(e.target.closest('#hud'))return;
+  if(mode==='map'){
+    DATA.aura[WORLD_ORDER[worldIdx]].points.push([+nx(e.clientX).toFixed(4),+ny(e.clientY).toFixed(4)]);
+    render();
+  }else{
+    dragStart=[nx(e.clientX),ny(e.clientY)];
+  }
+});
+document.addEventListener('pointermove',e=>{
+  if(!dragStart||mode!=='board')return;
+  const a=DATA.board[FIELDS[fieldIdx]];
+  const x0=Math.min(dragStart[0],nx(e.clientX)),y0=Math.min(dragStart[1],ny(e.clientY));
+  a.x=x0;a.y=y0;a.w=Math.abs(nx(e.clientX)-dragStart[0]);a.h=Math.abs(ny(e.clientY)-dragStart[1]);
+  render();
+});
+document.addEventListener('pointerup',()=>{dragStart=null});
+
+document.addEventListener('keydown',e=>{
+  const fine=e.shiftKey?0.001:0.005;
+  if(e.key==='Tab'){e.preventDefault();mode=mode==='map'?'board':'map';render();return}
+  if(e.key==='['){e.preventDefault();if(mode==='map')worldIdx=(worldIdx+7)%8;else fieldIdx=(fieldIdx+1)%2;render();return}
+  if(e.key===']'){e.preventDefault();if(mode==='map')worldIdx=(worldIdx+1)%8;else fieldIdx=(fieldIdx+1)%2;render();return}
+  if(e.key==='g'||e.key==='G'){e.preventDefault();save();return}
+  if(e.key==='c'||e.key==='C'){e.preventDefault();load();return}
+  if(mode==='map'){
+    const w=WORLD_ORDER[worldIdx];
+    if(e.key==='Delete'||e.key==='Backspace'){DATA.aura[w].points.pop();render();return}
+    if(e.key==='x'||e.key==='X'){DATA.aura[w].points=[];render();return}
+    if(e.key==='ArrowLeft'){e.preventDefault();movePoly(-fine,0);render();return}
+    if(e.key==='ArrowRight'){e.preventDefault();movePoly(fine,0);render();return}
+    if(e.key==='ArrowUp'){e.preventDefault();movePoly(0,-fine);render();return}
+    if(e.key==='ArrowDown'){e.preventDefault();movePoly(0,fine);render();return}
+    if(e.key==='+'||e.key==='='){scalePoly(1.05);render();return}
+    if(e.key==='-'){scalePoly(0.95);render();return}
+  }else{
+    const a=DATA.board[FIELDS[fieldIdx]];
+    if(e.key==='ArrowLeft'){e.preventDefault();a.x-=fine;render();return}
+    if(e.key==='ArrowRight'){e.preventDefault();a.x+=fine;render();return}
+    if(e.key==='ArrowUp'){e.preventDefault();a.y-=fine;render();return}
+    if(e.key==='ArrowDown'){e.preventDefault();a.y+=fine;render();return}
+    if(e.key==='+'||e.key==='='){a.w*=1.05;a.h*=1.05;render();return}
+    if(e.key==='-'){a.w*=0.95;a.h*=0.95;render();return}
+    if(e.key==='q'||e.key==='Q'){a.w*=0.97;render();return}
+    if(e.key==='e'||e.key==='E'){a.w*=1.03;render();return}
+    if(e.key==='z'||e.key==='Z'){a.h*=0.97;render();return}
+    if(e.key==='x'||e.key==='X'){a.h*=1.03;render();return}
+  }
+});
+
+async function save(){
+  try{
+    const r=await fetch('/api/save-fin-areas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(DATA,null,2)});
+    const d=await r.json();msg(d.ok?'✔ Guardado en fin-areas.json':'✘ Error al guardar');
+    if(d.ok)status.className='ok';
+  }catch(e){msg('✘ '+e)}
+}
+async function load(){
+  try{
+    const r=await fetch('/api/load-fin-areas');
+    if(r.ok){const d=await r.json();if(d.board)DATA.board=d.board;if(d.aura)DATA.aura=d.aura;WORLD_ORDER.forEach(w=>{if(!DATA.aura[w])DATA.aura[w]={points:[]}});render();msg('✔ Cargado')}
+    else msg('Sin datos guardados');
+  }catch(e){msg('✘ '+e)}
+}
+img.onload=()=>{updateRect();render()};
+window.addEventListener('resize',()=>{updateRect();render()});
+function setMode(m){mode=m;img.src=IMGS[m];if(img.complete){updateRect();render()}}
+const origTab=mode;
+load().then(()=>{updateRect();render()});
+// Cambio de escena tambien cambia la imagen
+document.addEventListener('keydown',e=>{if(e.key==='Tab')setTimeout(()=>{img.src=IMGS[mode]},0)});
+updateRect();
+</script>
+</body>
+</html>
