@@ -115,7 +115,7 @@
     justify-content: flex-end; color: #ffd34e;
     text-shadow: 1px 1px 2px #000, 0 0 12px rgba(255,180,0,.8), 0 0 26px rgba(255,140,0,.5);
   }
-  /* Cuenta atrás antes de empezar la pantallita (3 · 2 · 1 · YA) */
+  /* Cuenta atrás antes de empezar la pantallita (5 · 4 · 3 · 2 · 1 · YA) */
   #countdown {
     position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
     display: none; z-index: 40; pointer-events: none;
@@ -343,7 +343,7 @@ fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d) sfxO
 function play(a) { if (!sfxOn) return; a.pause(); a.currentTime = 0; a.play().catch(()=>{}); }
 function playStep() { play(stepAudio); }
 
-// === Cuenta atrás 3 · 2 · 1 · YA antes de cada pantallita ===
+// === Cuenta atrás 5 · 4 · 3 · 2 · 1 · YA antes de cada pantallita ===
 // Beeps retro (onda cuadrada WebAudio): agudo y largo en el "YA".
 let countingDown = false;
 let audioCtx = null;
@@ -369,7 +369,7 @@ function countBeep(isGo) {
 function startCountdown(done) {
   if (!REAL_MODE) { done(); return; }
   countingDown = true;
-  const seq = [3, 2, 1, 0]; // 0 = "¡YA!"
+  const seq = [5, 4, 3, 2, 1, 0]; // 0 = "¡YA!"
   let i = 0;
   const tick = () => {
     if (i >= seq.length) {
