@@ -96,7 +96,6 @@ export const WORLDS = [
 export const SUBLEVELS_PER_WORLD = 12;
 export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
 export const TOTAL_TIERS = 14;
-export const CURVE_P = 0.6;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
 export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
@@ -107,18 +106,20 @@ export function stageFor(world: number, subLevel: number): number {
   return (world - 1) * SUBLEVELS_PER_WORLD + subLevel;
 }
 
-/** Tier de dificultad (1..14) para una etapa global, con la curva p=0.6. */
-export function tierForStage(g: number): number {
-  const x = (g - 1) / (TOTAL_STAGES - 1);
-  const y = Math.pow(x, CURVE_P);
-  return Math.min(TOTAL_TIERS - 1, Math.floor(y * TOTAL_TIERS)) + 1;
+/**
+ * Tier de dificultad (1..14) según el Nº DE PANTALLAS SUPERADAS, no la
+ * posición en el mapa: los mundos se pueden jugar en cualquier orden, así que
+ * el nivel del jugador es `floor(completadas * 14 / 96) + 1` (~7 por nivel).
+ */
+export function tierForCompleted(completed: number): number {
+  const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
+  return Math.min(TOTAL_TIERS, Math.floor((c * TOTAL_TIERS) / TOTAL_STAGES) + 1);
 }
 
-/** Banda de dificultad continua (0.5..8.0) para una etapa global. */
-export function bandForStage(g: number): number {
-  const x = (g - 1) / (TOTAL_STAGES - 1);
-  const y = Math.pow(x, CURVE_P);
-  return 0.5 + y * 7.5;
+/** Banda de dificultad continua (0.5..8.0) según pantallas superadas. */
+export function bandForCompleted(completed: number): number {
+  const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
+  return 0.5 + (c / (TOTAL_STAGES - 1)) * 7.5;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,9 +224,9 @@ export function currentStage(): number {
   return stageFor(player.currentWorld, player.currentSubLevel);
 }
 
-/** Tier de dificultad de la etapa actual. */
+/** Tier de dificultad actual: depende de las pantallas superadas. */
 export function currentTier(): number {
-  return tierForStage(currentStage());
+  return tierForCompleted(player.totalStagesCompleted);
 }
 
 /** Mundo de la etapa actual. */
@@ -241,7 +242,7 @@ export function currentWorldName(): string {
  */
 export function getNextScreen(): { screen: Screen; tier: number; world: string; stage: number } {
   const stage = currentStage();
-  const tier = tierForStage(stage);
+  const tier = currentTier();
   const world = currentWorldName();
   const key = assignmentKey(world, tier);
 
@@ -279,8 +280,7 @@ export function getNextScreen(): { screen: Screen; tier: number; world: string; 
 
 /** Marca una pantalla como completada y avanza al siguiente subnivel/mundo. */
 export function completeScreen(screenId: string, _turns: number): PlayerState {
-  const stage = currentStage();
-  const tier = tierForStage(stage);
+  const tier = currentTier();
   const world = currentWorldName();
   const key = assignmentKey(world, tier);
 
@@ -323,11 +323,12 @@ export function failScreen(_screenId: string): void {
 // Progreso por mapa (submundos de 12 islas)
 // ---------------------------------------------------------------------------
 
-/** Tier de dificultad para una isla del mapa (etapa 1..96, curva p=0.6). */
-export function mapTierFor(world: string, level: number): number {
-  const wi = WORLDS.indexOf(world as (typeof WORLDS)[number]);
-  if (wi < 0) return 1;
-  return tierForStage(stageFor(wi + 1, level + 1));
+/**
+ * Tier de dificultad de la pantalla que toca jugar: por pantallas superadas
+ * (los mundos se juegan en orden libre, el nivel no depende de la isla).
+ */
+export function mapTierFor(_world: string, _level: number): number {
+  return currentTier();
 }
 
 /** Recuerda el último mundo seleccionado en el mapamundi. */
@@ -347,7 +348,7 @@ export function setLevelPosition(world: string, level: number): PlayerState {
   wp[world] = w;
   player.worldProgress = wp;
   player.lastWorld = world;
-  player.gameLevel = mapTierFor(world, level);
+  player.gameLevel = currentTier();
   player.updatedAt = Date.now();
   persist();
   return { ...player };
@@ -392,13 +393,17 @@ export function completeLevel(world: string, level: number, goldEarned = 0, scre
 
   const wp = { ...(player.worldProgress ?? {}) };
   const w = { completed: [] as number[], ...(wp[world] ?? {}) };
-  if (!w.completed!.includes(level)) w.completed!.push(level);
+  const isNew = !w.completed!.includes(level);
+  if (isNew) {
+    w.completed!.push(level);
+    player.totalStagesCompleted += 1; // el nivel de juego sube por pantallas superadas
+  }
   w.last = level;
   wp[world] = w;
   player.worldProgress = wp;
   player.lastWorld = world;
   player.gold = (player.gold ?? 0) + goldEarned;
-  player.gameLevel = mapTierFor(world, level);
+  player.gameLevel = tierForCompleted(player.totalStagesCompleted);
   player.updatedAt = Date.now();
   persist();
   return { ...player };
@@ -429,8 +434,8 @@ export function getStats() {
   return {
     player: { ...player },
     currentStage: stage,
-    currentTier: tierForStage(stage),
-    currentBand: Number(bandForStage(stage).toFixed(2)),
+    currentTier: currentTier(),
+    currentBand: Number(bandForCompleted(player.totalStagesCompleted).toFixed(2)),
     totalStages: TOTAL_STAGES,
     screensCompleted: totalCompleted,
   };

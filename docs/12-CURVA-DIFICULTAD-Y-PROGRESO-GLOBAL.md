@@ -7,6 +7,23 @@
 > todos los mundos, y cada mundo aporta una tanda de pantallas (subniveles)
 > que se reparten a lo largo de esa escala.
 
+> ⚠️ **Corrección a fuego (implementada en `db/db.ts`)**: el nivel de juego
+> (`tier` 1–14) **no depende de la posición** (mundo/isla) ni de la curva
+> `p=0.6` descrita abajo — depende del **número de pantallas superadas**
+> (`totalStagesCompleted`), reparto **lineal**:
+>
+> ```
+> tier = min(14, floor(completadas × 14 / 96) + 1)   // ~7 pantallas por nivel
+> banda = 0.5 + completadas / 95 × 7.5               // 0.5 → 8.0
+> ```
+>
+> Motivo: los mundos se pueden jugar en **orden libre** (solo MAZMORRA va
+> bloqueada hasta completar los otros 7), así que dos islas "tempranas" de
+> mundos distintos deben dar la misma dificultad. La tabla generada es
+> `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`. El resto del documento
+> (estructura mundo→subnivel, sticky screens, contador global) sigue vigente;
+> donde diga "curva p=0.6" léease "reparto lineal por pantallas superadas".
+
 ## 0. Aclaración de la estructura (y una nota sobre tus números)
 
 - Cada mundo tiene **12 subniveles**: 11 "normales" + 1 final tipo

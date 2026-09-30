@@ -5,9 +5,18 @@
     "currentSubLevel": 1,
     "totalStagesCompleted": 0,
     "updatedAt": 1790517333297,
+    "gold": 0,
+    "lastWorld": "AGUA",
+    "worldProgress": {},
+    "gameLevel": 1,
     "started": true,
     "playerName": "GQ",
     "avatarIndex": 0
   },
-  "assignments": {}
+  "assignments": {
+    "map:MAZMORRA:11": {
+      "current": "l1-s1",
+      "completed": []
+    }
+  }
 }

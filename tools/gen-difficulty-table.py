@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genera docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md a partir de la curva.
+"""Genera docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md a partir de la progresión.
 Ejecutar:  .sam-venv\\Scripts\\python.exe tools/gen-difficulty-table.py
 """
 import math
@@ -8,9 +8,16 @@ from collections import defaultdict
 WORLDS = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA']
 W = len(WORLDS)
 S = 12
-N = W * S
+N = W * S  # 96
 T = 14
-P = 0.6
+
+# El nivel de juego NO depende de la isla/mundo: los mundos se juegan en orden
+# libre. Depende del Nº DE PANTALLAS SUPERADAS (reparto lineal: ~7 por nivel).
+def tier_for(c):  # c = pantallas superadas 0..95
+    return min(T, math.floor(c * T / N) + 1)
+
+def band_for(c):
+    return 0.5 + (c / (N - 1)) * 7.5
 
 # Rango de dificultad objetivo por tier (docs/11, tabla 2.3)
 TIER_RANGE = [
@@ -20,29 +27,22 @@ TIER_RANGE = [
 ]
 
 rows = []
-for w in range(W):
-    for s in range(1, S + 1):
-        g = w * S + s
-        x = (g - 1) / (N - 1)
-        y = x ** P
-        tier = min(T - 1, math.floor(y * T))
-        # Banda global estrictamente creciente: 0.5 -> 8.0 siguiendo la misma curva.
-        # Como tier y banda comparten y = x^p, cada banda cae dentro del rango de su tier.
-        band = 0.5 + y * 7.5
-        rows.append(dict(g=g, world=WORLDS[w], sub=s, tier=tier, band=round(band, 2), castle=(s == S)))
+for c in range(N):  # c = 0..95 pantallas superadas → la pantalla nº c+1 que juegas
+    rows.append(dict(n=c + 1, tier=tier_for(c), band=round(band_for(c), 2)))
 
 groups = defaultdict(list)
 for r in rows:
     groups[r['tier']].append(r)
 
 lines = []
-lines.append('# 📈 Tabla de curva de dificultad — 96 juegos (8 mundos × 12 subniveles)')
+lines.append('# 📈 Tabla de progresión — 96 pantallas (8 mundos × 12 islas)')
 lines.append('')
 lines.append('> Generada por `tools/gen-difficulty-table.py`. Parámetros:')
-lines.append('> `W=8`, `S=12`, `N=96`, `T=14` tramos, `p=0.6`.')
+lines.append('> `W=8`, `S=12`, `N=96`, `T=14` niveles, reparto lineal.')
 lines.append('')
-lines.append('Esta tabla es la referencia **a fuego** de qué tier y qué banda de')
-lines.append('dificultad objetivo le toca a cada pantalla de la partida completa.')
+lines.append('El nivel de juego (tier 1–14) depende del **número de pantallas')
+lines.append('superadas**, no de la isla/mundo (los mundos se juegan en orden')
+lines.append('libre). Con 96 pantallas y 14 niveles salen ~7 pantallas por nivel.')
 lines.append('')
 lines.append('## Reglas "a fuego"')
 lines.append('')
@@ -56,46 +56,38 @@ lines.append('3. **Máximo 3 enemigos** en cualquier pantalla, en cualquier tier
 lines.append('4. **Trampa**: aturde 3 turnos a quien la pisa (jugador o enemigo), de')
 lines.append('   forma individual por entidad.')
 lines.append('5. **Obstáculo (`X`)**: bloquea el 100% de su casilla, igual que una pared.')
+lines.append('6. **Bosses**: solo la isla 12 de cada mundo usa sprites de boss.')
 lines.append('')
 lines.append('## Fórmula')
 lines.append('')
 lines.append('```')
-lines.append('x = (g - 1) / (N - 1)        // progreso global 0..1')
-lines.append('y = x ^ p                    // p = 0.6')
-lines.append('tier  = 1 + floor(y * 14)    // 1..14 (receta de generación: qué se permite)')
-lines.append('banda = 0.5 + y * 7.5        // dificultad global, estrictamente creciente')
+lines.append('c = pantallas superadas (0..95)')
+lines.append('tier  = min(14, floor(c * 14 / 96) + 1)   // nivel de juego')
+lines.append('banda = 0.5 + c / 95 * 7.5               // dificultad continua')
 lines.append('```')
 lines.append('')
-lines.append('- **`tier`** decide qué puede generar (máx. enemigos/trampas/obstáculos y')
-lines.append('  arquetipos). Es un número entero 1–14.')
-lines.append('- **`banda`** es la dificultad objetivo continua (0.5 → 8.0), **siempre')
-lines.append('  creciente**: cada pantalla es más difícil que la anterior, sin bajones.')
-lines.append('  Como tier y banda comparten `y = x^p`, cada banda cae dentro del rango')
-lines.append('  de dificultad de su tier (ver docs/11, tabla 2.3).')
-lines.append('- El subnivel 12 (isla final / boss) es la pantalla más difícil de su mundo; no')
-lines.append('  introduce picos artificiales, es el máximo natural del mundo en la rampa.')
+lines.append('## Resumen por nivel')
 lines.append('')
-lines.append('## Resumen por tier')
-lines.append('')
-lines.append('| Tier | Juegos | Rango objetivo | Bandas reales |')
+lines.append('| Nivel | Pantallas | Rango objetivo | Bandas reales |')
 lines.append('|---|---|---|---|')
-for t in range(T):
-    grp = groups[t]
-    lo, hi = TIER_RANGE[t]
+for t in range(1, T + 1):
+    grp = groups.get(t, [])
+    if not grp:
+        continue
+    lo, hi = TIER_RANGE[t - 1]
     lo_b = min(r['band'] for r in grp)
     hi_b = max(r['band'] for r in grp)
-    lines.append(f'| {t + 1} | {len(grp)} | {lo:.1f}–{hi:.1f} | {lo_b:.2f}–{hi_b:.2f} |')
+    lines.append(f'| {t} | {len(grp)} | {lo:.1f}–{hi:.1f} | {lo_b:.2f}–{hi_b:.2f} |')
 lines.append('')
 lines.append('## Tabla completa')
 lines.append('')
-lines.append('| # | Mundo | Sub | Tier | Banda | Nota |')
-lines.append('|---|---|---|---|---|---|')
+lines.append('| Pantalla nº (orden de superación) | Nivel | Banda |')
+lines.append('|---|---|---|')
 for r in rows:
-    mark = '🏰 castillo' if r['castle'] else ''
-    lines.append(f"| {r['g']} | {r['world']} | {r['sub']} | {r['tier'] + 1} | {r['band']:.2f} | {mark} |")
+    lines.append(f"| {r['n']} | {r['tier']} | {r['band']:.2f} |")
 lines.append('')
 
 out = '\n'.join(lines)
 with open('docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md', 'w', encoding='utf-8') as f:
     f.write(out)
-print(f'Escrito docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md con {N} juegos.')
+print(f'Escrito docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md con {N} pantallas.')

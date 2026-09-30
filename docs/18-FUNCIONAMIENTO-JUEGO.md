@@ -37,7 +37,7 @@
 | `lastWorld` | último mundo seleccionado en el mapamundi |
 | `worldProgress.<M>.last` | última isla jugada del mundo (completada o no) |
 | `worldProgress.<M>.completed` | islas completadas del mundo |
-| `gameLevel` | nivel de juego actual = **tier 1..14** de la curva global |
+| `gameLevel` | nivel de juego actual = **tier 1..14** por pantallas superadas (`tierForCompleted`) |
 | `currentWorld`, `currentSubLevel`, `totalStagesCompleted` | modelo lineal legacy (1..15) |
 
 APIs de progreso: `/api/map-position`, `/api/level-position`,
@@ -66,8 +66,9 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
 
 - `GET /api/level-screen?world&level` → pantalla **sticky** del tier
   correspondiente (`mapTierFor`: misma pantalla hasta completar la isla).
-- El **nivel de juego** mostrado es el **tier de la curva global**
-  (1..14, p=0.6 sobre 96 etapas = 8 mundos × 12 islas) — no el índice de isla.
+- El **nivel de juego** mostrado es el **tier por progreso** (1..14):
+  `floor(pantallas superadas × 14 / 96) + 1` — depende del contador global,
+  no de la isla/mundo (los mundos se juegan en orden libre).
 - Textos en áreas calibradas (`text-areas.json` del mundo): `turn`/`nTurn`
   (turno actual), `optimal`/`nOptimal` (movimientos mínimos del solver),
   `info` = `board.level` "Nivel X", `gold` = oro (moneda + número,
