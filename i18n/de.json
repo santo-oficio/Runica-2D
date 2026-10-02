@@ -1,6 +1,6 @@
 {
   "menu.title": "RUNIKA 2D",
-  "menu.subtitle": "Wappo Endlos",
+  "menu.subtitle": "Endloses Abenteuer",
   "menu.newGame": "Neues Spiel",
   "menu.continue": "Fortsetzen",
   "menu.instructions": "Anleitung",
@@ -107,5 +107,6 @@
   "game.go": "LOS!",
   "fin.completed": "Du hast Runika 2D abgeschlossen!",
   "fin.worldsFell": "Alle Welten sind gefallen",
-  "fin.finalBoss": "Der letzte Wächter..."
+  "fin.finalBoss": "Der letzte Wächter...",
+  "fin.replay": "Runika 2D ist endlos: Fang von vorn an – kein Level wiederholt sich. Du kannst deine Rekorde und dein Gold immer weiter verbessern. Das Abenteuer ist noch nicht vorbei!"
 }

@@ -1,6 +1,6 @@
 {
   "menu.title": "RUNIKA 2D",
-  "menu.subtitle": "Wappo Infinito",
+  "menu.subtitle": "Aventura Infinita",
   "menu.newGame": "Nueva Partida",
   "menu.continue": "Continuar",
   "menu.instructions": "Instrucciones",
@@ -107,5 +107,6 @@
   "game.go": "¡YA!",
   "fin.completed": "¡Has completado Runika 2D!",
   "fin.worldsFell": "Todos los mundos han caído",
-  "fin.finalBoss": "El último guardián..."
+  "fin.finalBoss": "El último guardián...",
+  "fin.replay": "Runika 2D es infinito: vuelve a empezar y ningún nivel se repetirá. Siempre puedes superar tus marcas y ganar más oro. ¡La aventura no acaba aquí!"
 }
