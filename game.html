@@ -583,10 +583,13 @@ async function renderEntities() {
   const FINAL_ISLAND = 11;
   const isBossLevel = REAL_MODE && REAL_LEVEL === FINAL_ISLAND;
   const enemyPool = isBossLevel ? (assets.boss?.length ? assets.boss : assets.enemy) : assets.enemy;
+  // Todas las variantes de enemigo conviven: reparto al azar sin repetir
+  // imagen mientras sea posible (misma regla que los obstáculos)
+  const enemyPicks = pickRandomImages(enemyPool, enemies.length);
   enemies.forEach((e, i) => {
     const el = document.createElement('img');
     el.className = 'entity';
-    el.src = BASE + (enemyPool?.[isBossLevel ? i % (enemyPool.length || 1) : 0] || '');
+    el.src = BASE + (enemyPicks[i] || '');
     el.dataset.col = e.c; el.dataset.row = e.r;
     el.dataset.type = 'enemy'; el.dataset.idx = i;
     place(el, e.c, e.r, true);

@@ -62,6 +62,11 @@
       "size": 0.9600000000000002,
       "offsetX": 0,
       "offsetY": -0.01
+    },
+    {
+      "size": 0.8,
+      "offsetX": 0,
+      "offsetY": 0
     }
   ],
   "boss": [
