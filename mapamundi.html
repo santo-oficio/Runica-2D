@@ -504,7 +504,7 @@
     avatarEl.style.transition = 'left 0.15s ease-out, top 0.15s ease-out';
     avatarEl.style.left = bounceX + 'px';
     avatarEl.style.top = bounceY + 'px';
-    AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.4);
+    AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.7);
 
     // Volver con rebote elastico
     setTimeout(() => {
@@ -537,6 +537,7 @@
   });
 
   document.getElementById('back-btn').addEventListener('click', () => {
+    AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
     AssetsCache.transitionTo('/demo-menu.html');
   });
 
@@ -593,10 +594,18 @@
     } catch {}
   }
 
+  // Pista forzada por la pantalla anterior (p.ej. victoria de mundo):
+  // se consume una sola vez y retoma su posicion guardada.
+  function consumeMusicOverride() {
+    const ov = sessionStorage.getItem('runika-music-override');
+    if (ov) { sessionStorage.removeItem('runika-music-override'); AssetsCache.setMusicTrack(ov); }
+  }
+
   (async () => {
     if (sessionStorage.getItem('runika-session') === 'active') {
       // Ya en sesion, ir directo
       await AssetsCache.loadSettings();
+      consumeMusicOverride();
       fallback = await loadLang('es');
       translations = await loadLang();
       applyI18n();
@@ -623,6 +632,7 @@
     });
 
     await AssetsCache.loadSettings();
+    consumeMusicOverride();
     fallback = await loadLang('es');
     translations = await loadLang();
     applyI18n();
@@ -631,6 +641,7 @@
     await loadPositions();
     await loadPaths();
     await loadTextAreas();
+    await loadFinAreas();
     render();
 
     AssetsCache.hideLoading();

@@ -17,9 +17,12 @@
    La posición se conserva en `localStorage` **por pista** — no se corta entre
    pantallas. Pistas por contexto (`AssetsCache.MUSIC`): `main` = mapamundi y
    menús (`The_Captain_s_Last_Map.mp3`), `world` = dentro de un mundo
-   (`mistery.mp3`, submundo + tablero), `fin` = cinemática final tras derrotar
-   al boss (`victory.mp3`). `setMusicTrack()` cambia de pista y cada una
-   retoma su posición al volver.
+   (`mistery.mp3`, submundo + tablero), `worldWin` = victoria de un mundo no
+   final (`victory_mundo.mp3`, sigue sonando en el mapamundi vía
+   `runika-music-override` en sessionStorage), `fin` = cinemática final tras
+   derrotar al boss (`victory.mp3`). `setMusicTrack()` cambia de pista y cada
+   una retoma su posición al volver. Intentar entrar a un mundo completado o
+   bloqueado suena `choque.wav` (denegación).
 5. `GET /api/savegame` → `{exists, player}`. Sin partida empezada
    (`player.started !== true`), **Continuar** está deshabilitado y se salta en
    la navegación.

@@ -789,6 +789,12 @@ function winGame() {
   overlay.classList.add('show', 'win');
   overlayTitle.textContent = tt('game.victory');
   if (REAL_MODE) {
+    // Boss de mundo derrotado (isla 12, no MAZMORRA): fanfarria de mundo
+    // que sigue sonando al volver al mapamundi
+    if (REAL_LEVEL === FINAL_ISLAND_IDX && REAL_WORLD !== 'MAZMORRA') {
+      AssetsCache.setMusicTrack(AssetsCache.MUSIC.worldWin);
+      sessionStorage.setItem('runika-music-override', AssetsCache.MUSIC.worldWin);
+    }
     // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos
     const goldEarned = Math.max(10, currentMinMoves * 5 - turn);
     if (playerData) playerData.gold = (playerData.gold ?? 0) + goldEarned;
