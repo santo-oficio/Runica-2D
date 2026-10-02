@@ -14,7 +14,11 @@
    excluye `old */`). Las imágenes del hot path se decodifican con
    `Image.decode()` y quedan retenidas en `AssetsCache`.
 4. `AssetsCache.startMusic()`: música en bucle si `settings.music` y hay track.
-   La posición se conserva en `localStorage` — **no se corta entre pantallas**.
+   La posición se conserva en `localStorage` **por pista** — no se corta entre
+   pantallas. Pistas por contexto (`AssetsCache.MUSIC`): `main` = mapamundi y
+   menús (`The_Captain_s_Last_Map.mp3`), `world` = dentro de un mundo
+   (`mistery.mp3`, submundo + tablero). `setMusicTrack()` cambia de pista y
+   cada una retoma su posición al volver.
 5. `GET /api/savegame` → `{exists, player}`. Sin partida empezada
    (`player.started !== true`), **Continuar** está deshabilitado y se salta en
    la navegación.

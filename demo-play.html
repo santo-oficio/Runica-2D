@@ -189,6 +189,7 @@
     <div class="restart" id="overlay-restart">Otra pantalla (R)</div>
   </div>
 
+<script src="/assets-cache.js"></script>
 <script>
 // Base URL: si estamos en un preview proxy (puerto != 3000), apuntar al 3000.
 const BASE = (window.location.port && window.location.port !== '3000') ? 'http://localhost:3000' : '';
@@ -930,6 +931,10 @@ window.addEventListener('resize', () => {
 
 // === Init ===
 async function init() {
+  // Dentro de un mundo suena la pista de mundo (mistery), no la del mapa
+  AssetsCache.loadSettings().then(() => AssetsCache.setMusicTrack(AssetsCache.MUSIC.world));
+  document.addEventListener('click', () => AssetsCache.unlockAudio(), { once: true });
+  document.addEventListener('keydown', () => AssetsCache.unlockAudio(), { once: true });
   const res = await fetch(`${BASE}/api/worlds?t=${Date.now()}`);
   worlds = await res.json();
 

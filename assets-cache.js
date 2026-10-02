@@ -148,16 +148,22 @@ async function setSetting(key, value) {
 loadSettings();
 
 // --- Música global: una pista en loop que sigue sonando entre pantallas ---
-// La posición se guarda en localStorage para retomar donde se quedó.
+// La posición se guarda en localStorage POR PISTA para retomar donde se quedó.
 const MUSIC_POS_KEY = 'runika-music-pos';
 // Tema principal del juego (si está en el manifiesto, manda sobre el resto)
 const DEFAULT_MUSIC = '/assets/music/The_Captain_s_Last_Map.mp3';
+// Pistas por contexto: main = mapamundi/menus · world = dentro de un mundo
+const MUSIC = { main: DEFAULT_MUSIC, world: '/assets/music/mistery.mp3' };
 let musicEl = null;
 let musicTrack = null;
 
 function saveMusicPos() {
-  if (!musicEl) return;
-  try { localStorage.setItem(MUSIC_POS_KEY, JSON.stringify({ src: musicTrack, t: musicEl.currentTime })); } catch {}
+  if (!musicEl || !musicTrack) return;
+  try {
+    const map = JSON.parse(localStorage.getItem(MUSIC_POS_KEY) || '{}');
+    map[musicTrack] = musicEl.currentTime;
+    localStorage.setItem(MUSIC_POS_KEY, JSON.stringify(map));
+  } catch {}
 }
 window.addEventListener('beforeunload', saveMusicPos);
 
@@ -171,11 +177,20 @@ function startMusic(url) {
   musicEl.loop = true;
   musicEl.volume = 0.45;
   try {
-    const s = JSON.parse(localStorage.getItem(MUSIC_POS_KEY) || 'null');
-    if (s && s.src === url && s.t > 0) musicEl.currentTime = s.t;
+    const map = JSON.parse(localStorage.getItem(MUSIC_POS_KEY) || '{}');
+    if (map[url] > 0) musicEl.currentTime = map[url];
   } catch {}
   musicEl.addEventListener('timeupdate', saveMusicPos);
   musicEl.play().catch(() => {});
+}
+
+// Cambia la pista en curso (ej. entrar en un mundo = MUSIC.world).
+// Cada pista retoma su propia posición al volver a ella.
+function setMusicTrack(url) {
+  if (!url || url === musicTrack) return;
+  if (musicEl) { saveMusicPos(); musicEl.pause(); musicEl = null; }
+  musicTrack = url;
+  startMusic();
 }
 
 function stopMusic() {
@@ -288,5 +303,5 @@ window.AssetsCache = {
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
-  startMusic, stopMusic,
+  startMusic, stopMusic, setMusicTrack, MUSIC,
 };
