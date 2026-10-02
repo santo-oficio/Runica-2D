@@ -519,7 +519,7 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6); AssetsCache.transitionTo('/demo-menu.html'); return; }
+    if (e.key === 'Escape') { AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6); AssetsCache.transitionTo('/menu.html'); return; }
 
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); moveByPath('left'); }
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); moveByPath('right'); }
@@ -538,7 +538,7 @@
 
   document.getElementById('back-btn').addEventListener('click', () => {
     AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
-    AssetsCache.transitionTo('/demo-menu.html');
+    AssetsCache.transitionTo('/menu.html');
   });
 
   document.getElementById('lang-select').addEventListener('change', async (e) => {

@@ -108,5 +108,20 @@
   "fin.completed": "Du hast Runika 2D abgeschlossen!",
   "fin.worldsFell": "Alle Welten sind gefallen",
   "fin.finalBoss": "Der letzte Wächter...",
-  "fin.replay": "Runika 2D ist endlos: Fang von vorn an – kein Level wiederholt sich. Du kannst deine Rekorde und dein Gold immer weiter verbessern. Das Abenteuer ist noch nicht vorbei!"
+  "fin.replay": "Runika 2D ist endlos: Fang von vorn an – kein Level wiederholt sich. Du kannst deine Rekorde und dein Gold immer weiter verbessern. Das Abenteuer ist noch nicht vorbei!",
+  "game.practice": "Übung",
+  "game.practiceTag": "Übung · nichts wird gespeichert",
+  "game.practiceTier": "Tier {0}",
+  "game.practiceDone": "Geschafft in {0} Zügen · nichts wird gespeichert",
+  "game.practiceCaught": "Der Feind hat dich erwischt · nichts wird gespeichert",
+  "game.practiceNext": "Anderer Bildschirm (R)",
+  "game.practiceMeta": "Bildschirm {0} · min. {1} Züge · Brett {2}x{3}",
+  "game.practiceCell": "Zelle [{0}, {1}]",
+  "game.helpMove": "bewegen",
+  "game.helpRandom": "anderer Zufallsbildschirm",
+  "game.helpTier": "Tier − / +",
+  "game.helpAvatar": "Avatar wechseln",
+  "game.helpWorld": "Welt wechseln",
+  "game.keysMove": "Pfeiltasten/WASD",
+  "game.keySpace": "Leertaste"
 }

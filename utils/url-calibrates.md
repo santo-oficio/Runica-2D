@@ -1,6 +1,6 @@
 # URLs de calibración
 
-Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
+Servidor: `npx tsx server.ts` → base `http://localhost:3000`
 
 ## Tablero (por mundo)
 
@@ -8,7 +8,7 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 |---|---|---|
 | http://localhost:3000/calibrate-board-sprites.html | Sprites: avatar / enemigos / boss / trampas / salidas / obstáculos (teclas 1-6) + áreas del tablero (modo TABLERO) | `assets/backgrounds/<M>/sprites.json`, `board-detection.json` |
 | http://localhost:3000/calibrate-board-texts.html | 6 textos del tablero: turno, nº turno, óptimo, nº óptimo, info, oro (dinámicos i18n; la fuente se auto-ajusta al área) | `assets/backgrounds/<M>/text-areas.json` |
-| http://localhost:3000/demo.html | Áreas del tablero: `boardArea` (losas) y `avatarArea` (avatar/enemigos/meta) — calibrador original | `assets/backgrounds/<M>/board-detection.json` |
+| http://localhost:3000/calibrate-areas.html | Áreas del tablero: `boardArea` (losas) y `avatarArea` (avatar/enemigos/meta) — calibrador original | `assets/backgrounds/<M>/board-detection.json` |
 
 ## Submundos (por mundo)
 
@@ -70,16 +70,16 @@ Servidor: `npx tsx demo-server.ts` → base `http://localhost:3000`
 | http://localhost:3000/calibrate-cells.html | Celdas | `assets/backgrounds/<M>/` |
 | http://localhost:3000/calibrate-grid.html | Esquinas de la rejilla | `assets/backgrounds/<M>/grid-corners.json` |
 
-## Demos (no calibran, pero sirven para comprobar)
+## Pantallas del juego (no calibran)
 
 | URL | Qué hace |
 |---|---|
-| http://localhost:3000/demo-play.html | Demo jugable: pantalla al azar del tier 1. Con `?world=X&level=N` = modo real (isla del submundo, guarda progreso/oro en bbdd) |
-| http://localhost:3000/demo-menu.html | Menú principal |
-| http://localhost:3000/demo-seleccion-personaje.html | Selección de personaje |
+| http://localhost:3000/game.html | Modo práctica: pantalla al azar del tier 1. Con `?world=X&level=N` = modo real (isla del submundo, guarda progreso/oro en bbdd) |
+| http://localhost:3000/menu.html | Menú principal |
+| http://localhost:3000/seleccion-personaje.html | Selección de personaje |
 | http://localhost:3000/instructions.html | Pantalla de instrucciones (usa el área calibrada) |
 | http://localhost:3000/creditos.html | Pantalla de créditos (usa `creditos-areas.json`) |
 | http://localhost:3000/submundo.html | Submundo (usa avatar-positions + text-areas) |
-| http://localhost:3000/demo-config.html | Pantalla de configuración real (usa `config-areas.json`); guarda `db/settings.json` vía `/api/settings` — sonido, música e idioma se aplican a todo el juego |
-| http://localhost:3000/demo-fin.html | Cinemática demo del final del juego: boss final cae → tablero se desmorona → mapamundi con los 8 mundos derrumbándose en cadena → final épico (letras pop, monedas, fuegos artificiales). Usa `load-avatar-positions` + `fin-areas.json` |
+| http://localhost:3000/ajustes.html | Pantalla de configuración real (usa `config-areas.json`); guarda `db/settings.json` vía `/api/settings` — sonido, música e idioma se aplican a todo el juego |
+| http://localhost:3000/fin.html | Cinemática del final del juego: boss final cae → tablero se desmorona → mapamundi con los 8 mundos derrumbándose en cadena → final épico (letras pop, monedas, fuegos artificiales). Usa `load-avatar-positions` + `fin-areas.json` |
 | http://localhost:3000/calibrate-fin.html | Fin del juego: **círculos** sobre cada mundo del mapa (el aura irregular se genera sola vía `auraPoints`) + rectángulos hero/boss en la escena del tablero | `assets/comunes/fin-areas.json` |

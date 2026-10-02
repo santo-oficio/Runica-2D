@@ -1,10 +1,10 @@
 # 🎮 Funcionamiento del juego — estado definitivo
 
 > Documento de referencia del flujo completo de Runika 2D tal como está
-> implementado. Manda sobre los "demos": el flujo real es el que se describe
-> aquí; `demo-*`/`calibrate-*` son herramientas de desarrollo.
+> implementado. El flujo real es el que se describe aquí; los `calibrate-*` son
+> herramientas de desarrollo.
 
-## 1. Arranque (`demo-menu.html` = punto de entrada)
+## 1. Arranque (`menu.html` = punto de entrada)
 
 1. `GET /api/settings` → si no existe `db/settings.json`, defaults
    `{sound:true, music:true, lang:'es'}`.
@@ -29,7 +29,7 @@
 
 ## 2. Nueva partida / Continuar
 
-- **Nueva partida** → `demo-seleccion-personaje.html` → modal de confirmación
+- **Nueva partida** → `seleccion-personaje.html` → modal de confirmación
   (`assets/comunes/modal.webp` + `modal-areas.json`) → `POST /api/new-game
   {name, avatar}` (`started:true`, progreso reseteado) → `mapamundi.html`.
 - **Continuar** → `mapamundi.html` restaurando todo lo persistido en
@@ -68,9 +68,9 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
   N-1 está completada. Intentos bloqueados → rebote + choque.
 - Isla completada → blanco y negro; isla bloqueada → oscurecida.
 - `Enter` en isla disponible → `POST /api/level-position` →
-  `demo-play.html?world=X&level=N` (la pantallita real).
+  `game.html?world=X&level=N` (la pantallita real).
 
-## 6. Pantallita / tablero (`demo-play.html?world=X&level=N`)
+## 6. Pantallita / tablero (`game.html?world=X&level=N`)
 
 - `GET /api/level-screen?world&level` → pantalla **sticky** del tier
   correspondiente (`mapTierFor`: misma pantalla hasta completar la isla).
@@ -90,7 +90,7 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
     gris y bloqueado).
   - Resto de islas → `submundo.html?world=X`.
 - Derrota → sacudida de pantalla + flash rojo + reintenta la misma pantalla.
-- Sin `?world=` → modo demo aleatorio (no persiste; solo desarrollo).
+- Sin `?world=` → modo práctica aleatorio (no persiste; solo desarrollo).
 
 ### Sonidos comunes (`assets/sounds/comun/`)
 
@@ -107,7 +107,7 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
 | Teclear nombre (selección) | `pulsacion maquina escribir.mp3` |
 
 Todos se sirven por `AssetsCache.playSound` y respetan el toggle de sonido de
-los ajustes. `game.html`/`demo-play.html` los usan como elementos `Audio`
+los ajustes. `game.html`/`game.html` los usan como elementos `Audio`
 directos (modo offline de la cache).
 
 ## 7. Reglas "a fuego" activas

@@ -35,7 +35,7 @@
     "schemas/**/*.ts",
     "tests/**/*.ts",
     "db/**/*.ts",
-    "demo-server.ts"
+    "server.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }

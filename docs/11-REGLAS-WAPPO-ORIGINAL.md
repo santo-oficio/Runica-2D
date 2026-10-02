@@ -1,4 +1,4 @@
-﻿# 🎮 Reglas del Wappo — Referencia Original y Adaptación a Runika 2D
+# 🎮 Reglas del Wappo — Referencia Original y Adaptación a Runika 2D
 
 Este documento define **a fuego** las reglas del juego. Runika 2D hereda las reglas
 del Wappo original (Siemens M50, 2003) y las adapta a su temática de 8 mundos.
@@ -144,7 +144,7 @@ corregirse:
 | Preferencia del enemigo | Eje con mayor distancia | **Horizontal primero** | Cambiar |
 | Trampas/pozos | No implementado | Enemigo pierde 3 turnos | Implementar |
 | Salida en perímetro | `G` en cualquier sitio | Perímetro del tablero | Restringir |
-| Rebote visual/sonido | No en motor | Efecto + sonido | Ya en demo |
+| Rebote visual/sonido | No en motor | Efecto + sonido | Ya en el juego |
 
 ### Prioridad de implementación
 1. **Enemigo 2 pasos/turno** — cambiar `playTurn` para que el enemigo se mueva 2 veces.

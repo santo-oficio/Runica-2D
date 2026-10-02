@@ -23,7 +23,7 @@ MobileSAM (background/sam-detect.py)
         ↓
 board-detection.json (boardArea en coordenadas normalizadas)
         ↓
-Calibración manual fina (demo visual)
+Calibración manual fina (calibrador visual)
         ↓
 Motor del juego (en tiempo real, usa la boardArea, no la imagen en bruto)
 ```

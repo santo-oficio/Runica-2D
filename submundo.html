@@ -554,7 +554,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ world: currentWorld, level: currentLevel }),
       }).catch(() => {});
-      AssetsCache.transitionTo('/demo-play.html?world=' + encodeURIComponent(currentWorld) + '&level=' + currentLevel);
+      AssetsCache.transitionTo('/game.html?world=' + encodeURIComponent(currentWorld) + '&level=' + currentLevel);
     }
   });
 

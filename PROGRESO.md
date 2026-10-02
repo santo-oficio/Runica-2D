@@ -1,4 +1,4 @@
-﻿# Progreso de implementación — Wappo Infinito
+# Progreso de implementación — Wappo Infinito
 
 Seguimiento fase a fase del plan de `docs/09-SUPER-PROMPT-IMPLEMENTACION.md`.
 Cada fase deja aquí un resumen breve: qué se implementó, qué tests existen y
@@ -630,7 +630,7 @@ niveles validados.
   - Lee los JSON de detección y muestra las coordenadas de cada casilla
     (6×5 = 30 casillas) en píxeles y normalizadas.
   - No modifica ningún archivo.
-- **Demo visual** `demo-server.ts` + `demo.html`:
+- **Servidor visual** `server.ts` + `calibrate-areas.html`:
   - Muestra los 8 fondos a pantalla completa, adaptados sin recortar
     (object-fit: contain).
   - Selector de casilla retro con esquinas iluminadas (color temático
@@ -678,7 +678,7 @@ Los 8 mundos comparten el mismo `boardArea` calibrado:
   rico en detalles. MobileSAM con box prompts sí detectó el tablero
   correctamente en los 8 mundos.
 - **Calibración manual final**: SAM dio una buena aproximación inicial,
-  pero el ajuste fino se hizo manualmente con el demo visual
+  pero el ajuste fino se hizo manualmente con el calibrador visual
   interactivo. El resultado final es el mismo `boardArea` para los 8
   mundos.
 - **Sin recortes**: no se recortó ni modificó ninguna imagen de fondo.

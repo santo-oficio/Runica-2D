@@ -7,13 +7,13 @@ Juego de puzle determinista inspirado en Wappo. TypeScript puro + Vitest, Node �
 ```bash
 npm run typecheck   # tsc --noEmit (strict + noUncheckedIndexedAccess)
 npm test            # vitest (300 tests, 13 archivos)
-npx tsx demo-server.ts  # demo visual + demo jugable en http://localhost:3000
+npx tsx server.ts  # juego y calibradores en http://localhost:3000
 ```
 
-## Demo jugable (`demo-play.html`)
+## Modo práctica (`game.html`)
 
-`http://localhost:3000/demo-play.html` — demo jugable que elige una pantalla
-**al azar** del tier 1 (endpoint `/api/demo-screen?tier=1`) en cada recarga y un
+`http://localhost:3000/game.html` — modo práctica que elige una pantalla
+**al azar** del tier 1 (endpoint `/api/practice-screen?tier=1`) en cada recarga y un
 mundo al azar. **No guarda nada en la bbdd** (solo lectura).
 
 Controles: `Flechas/WASD` mover · `R` otra pantalla · `Espacio` cambiar mundo ·
@@ -33,17 +33,17 @@ npx tsx tools/detect-cells.ts [MUNDO]
 - Entorno Python: `.sam-venv` (torch 2.1.2+cu121, opencv 4.8, numpy 1.26).
 - Tablero fijo: **8 columnas × 6 filas** (48 casillas). No se generan tableros nuevos al azar.
 - La calibración es **manual por mundo** (no se usa SAM automático de forma fiable):
-  abrir `demo.html`, arrastrar el ratón sobre el tablero y pulsar `G`.
+  abrir `calibrate-areas.html`, arrastrar el ratón sobre el tablero y pulsar `G`.
 
-## Calibración manual (`demo.html`)
+## Calibración manual (`calibrate-areas.html`)
 
-`npx tsx demo-server.ts` → http://localhost:3000. Cada mundo guarda **dos áreas**
+`npx tsx server.ts` → http://localhost:3000. Cada mundo guarda **dos áreas**
 normalizadas en su `board-detection.json`:
 
 - `boardArea` — tablero para **losas/obstáculos/trampas**.
 - `avatarArea` — tablero para **avatar/enemigos/meta** (puede diferir del anterior).
 
-Controles en `demo.html`:
+Controles en `calibrate-areas.html`:
 
 | Tecla | Acción |
 |---|---|
@@ -144,8 +144,8 @@ renderizarla igual.
 
 ## Flujo del menú y partida guardada (bbdd)
 
-- `demo-menu.html` es el **punto de entrada** del juego. **Nueva partida** lleva
-  a `demo-seleccion-personaje.html`; **Continuar** lleva a `mapamundi.html` y se
+- `menu.html` es el **punto de entrada** del juego. **Nueva partida** lleva
+  a `seleccion-personaje.html`; **Continuar** lleva a `mapamundi.html` y se
   muestra **deshabilitado** (y se salta en la navegación por flechas) si no hay
   partida empezada (GET `/api/savegame` → `{exists, player}`). `menu.html`
   replica el mismo comportamiento.
@@ -155,7 +155,7 @@ renderizarla igual.
 - En la selección, **Atrás** vuelve al menú y **Adelante** llama a
   `POST /api/new-game {name, avatar}` (resetea progreso, `started:true`) y va a
   `mapamundi.html`.
-- **Ajustes** lleva a `demo-config.html` (usa `assets/configuracion/config-areas.json`).
+- **Ajustes** lleva a `ajustes.html` (usa `assets/configuracion/config-areas.json`).
   Los ajustes globales viven en `db/settings.json` (`{sound, music, lang}`) y se
   leen/escriben con `GET`/`POST /api/settings`. `GET /api/i18n` (sin idioma)
   devuelve el archivo del idioma activo guardado en settings; todas las
@@ -166,7 +166,7 @@ renderizarla igual.
 
 ## Flujo de arranque y progreso por mapa
 
-- **Arranque**: `demo-menu.html` muestra la pantalla de carga (estilo aventura
+- **Arranque**: `menu.html` muestra la pantalla de carga (estilo aventura
   clásica: marco grabado, título oro con contorno, barra chunky). Precarga
   **todos** los assets listados por `GET /api/assets-manifest` (el servidor
   escanea `assets/` excluyendo `old */`); solo se decodifican en memoria los
@@ -194,7 +194,7 @@ renderizarla igual.
   (`island-fx locked`). **Progreso secuencial**: solo se puede ir a la isla N
   si la N-1 está completada — el movimiento y el Enter a islas bloqueadas
   rebotan. `Enter` en una isla desbloqueada guarda la posición y entra a
-  `demo-play.html?world=X&level=N` (modo real: pantalla sticky, avatar fijo,
+  `game.html?world=X&level=N` (modo real: pantalla sticky, avatar fijo,
   victoria → `POST /api/level-complete` y vuelta al submundo; `Esc` vuelve).
 - **Bosses**: los sprites de `assets/bosses/<M>/` solo se usan en la **última
   isla** (índice 11) de cada submundo; el resto de islas usan siempre imágenes
@@ -207,16 +207,16 @@ renderizarla igual.
   `tierForCompleted(totalStagesCompleted)`). Funcionamiento completo:
   `docs/18-FUNCIONAMIENTO-JUEGO.md`.
 
-## Selección de personaje (demo + calibradores)
+## Selección de personaje (pantalla + calibradores)
 
-- Demo: `http://localhost:3000/demo-seleccion-personaje.html`.
+- Pantalla: `http://localhost:3000/seleccion-personaje.html`.
 - Calibradores: `calibrate-selection-avatars.html` (avatares / cuadros / bordes / cuerpo completo), `calibrate-selection-buttons.html` (teclas + flechas), `calibrate-selection-name.html` (zona del nombre).
 - Datos (todo es **data-driven**, el juego los consume dinámicamente):
   - `assets/menu principal/character-positions.json` — `polygons` (clip), `borderPolygons` (marco), `avatarTransforms` (thumb en cuadro), `fullBodyAreas` (**por avatar**; `fullBodyArea` es legacy/fallback). Los 4 arrays tienen siempre 8 entradas.
   - `assets/menu principal/selection-buttons.json` — 29 polígonos (A–Z, Borrar, Atrás, Adelante).
   - `assets/menu principal/selection-name-area.json` — rectángulo del nombre.
 - Coordenadas normalizadas 0–1 en espacio **`image-content`** (se descuenta el letterbox del `object-fit: contain`, ratio 3:2). Nunca contra el viewport.
-- API: `/api/load-character-positions`, `/api/save-character-positions`, `/api/load-selection-buttons`, `/api/save-selection-buttons`, `/api/load-selection-name`, `/api/save-selection-name`. El servidor resuelve la raíz desde `demo-server.ts`, no `process.cwd()`.
+- API: `/api/load-character-positions`, `/api/save-character-positions`, `/api/load-selection-buttons`, `/api/save-selection-buttons`, `/api/load-selection-name`, `/api/save-selection-name`. El servidor resuelve la raíz desde `server.ts`, no `process.cwd()`.
 - Al guardar se reemplaza **solo la entrada del índice editado** — nunca se envían los otros 7 desde memoria.
 - Avatares: `assets/avatars/avatar_0N.webp` 7680×7680 RGBA (masters) + `thumbs/` 512×512 + `display/` 2048×2048 webp (los que usa el cuerpo completo en pantalla; regenerar con `tools/convert-display-assets.py`). Cache-busting `?v=avatars-N` / `?v=display-N` (incrementar al regenerar). Para calidad extrema: Real-ESRGAN x4plus en `.sam-venv`.
 - Navegación y bordes: ver `docs/17-PANTALLA-SELECCION-PERSONAJE.md` (orden lineal, filas con memoria entre bloques, excepción Borrar R/S/T/Z→T, borde irregular feTurbulence, click=dorado fuerte / hover=suave, cuerpo completo por hover real).
@@ -334,8 +334,8 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
 - **A fuego — imagenes del hot path (TODAS las pantallas)**: cualquier imagen
   que se pinte o cambie durante la interaccion (hover, seleccion, sprites del
   tablero, iconos) NUNCA usa los masters 8K y NUNCA se decodifica en caliente.
-  En todas las pantallas (game, demo-play, submundo, mapamundi, menus,
-  seleccion de personaje, instrucciones, demos y futuras):
+  En todas las pantallas (game, submundo, mapamundi, menus,
+  seleccion de personaje, instrucciones y futuras):
   1. **Derivados display**: se usan versiones ligeras `.webp` generadas con
      `tools/convert-display-assets.py` (`assets/<cat>/display/`):
      avatares 2048px, sprites de tablero (enemys/trampas/obstaculos/salida/

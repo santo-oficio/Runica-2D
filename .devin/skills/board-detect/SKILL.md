@@ -1,6 +1,6 @@
-﻿---
+---
 name: board-detect
-description: Detectar y calibrar el tablero 8x6 de un fondo con MobileSAM y la demo visual.
+description: Detectar y calibrar el tablero 8x6 de un fondo con MobileSAM y el calibrador visual.
 ---
 
 # Detección y calibración de tableros
@@ -23,10 +23,10 @@ el tablero **8×6 dibujado**. Este skill cubre cómo localizarlo y calibrarlo.
 - ⚠️ MobileSAM da resultados inconsistentes entre mundos. La calibración fiable
   es **manual** (sección 2).
 
-## 2. Calibrar con la demo visual (método recomendado)
+## 2. Calibrar con el calibrador visual (método recomendado)
 
 ```bash
-npx tsx demo-server.ts
+npx tsx server.ts
 ```
 
 Abrir http://localhost:3000 y calibrar cada mundo. Cada mundo guarda **dos áreas**

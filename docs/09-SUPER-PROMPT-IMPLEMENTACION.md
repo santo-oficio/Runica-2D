@@ -1,4 +1,4 @@
-﻿# 🚀 Super Prompt — Loop de Implementación con IA de Código
+# 🚀 Super Prompt — Loop de Implementación con IA de Código
 
 Este documento contiene un **prompt maestro** pensado para pegarlo en una IA de
 código con acceso a herramientas (Claude Code, Cursor, Windsurf, un agente con
@@ -23,7 +23,7 @@ JS/TS/Python). Sustituye los placeholders entre `<...>` antes de enviarlo.
   La detección de `boardArea` se hace con **MobileSAM**
   (`background/sam-detect.py`) y el resultado se guarda en
   `assets/backgrounds/<MUNDO>/board-detection.json`. La calibración final
-  (ajuste fino) se hace con la demo visual (`demo-server.ts`).
+  (ajuste fino) se hace con la calibrador visual (`server.ts`).
 - **Tablero fijo**: `allowedBoardSizes` es `[[6,5]]`. No se generan tableros
   con otras dimensiones por ahora.
 
@@ -137,7 +137,7 @@ FASE 1 — Motor gráfico (02-MOTOR-GRAFICO.md + 10-ANALIZADOR-IA-FONDOS.md)
 - Implementa los chequeos automáticos de la sección 5 de
   10-ANALIZADOR-IA-FONDOS.md (boardArea dentro de límites, proporción ~6:5,
   boardSize = [6,5]) como funciones testeables independientes del modelo.
-- Implementa la demo visual de calibración (demo-server.ts + demo.html) con
+- Implementa la calibrador visual de calibración (server.ts + calibrate-areas.html) con
   selector de casilla retro y ajuste fino (Shift/Ctrl + flechas).
 - Implementa el Screen Layout: dado un BackgroundTemplate y una resolución de
   pantalla real, calcula el boardArea en píxeles sin deformar el arte

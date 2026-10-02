@@ -1,6 +1,6 @@
 # 🧑‍🎤 Pantalla de selección de personaje y sistema de calibración
 
-Documento vivo que describe la pantalla de selección de personaje: su demo,
+Documento vivo que describe la pantalla de selección de personaje: su pantalla,
 sus calibradores visuales, el formato de los JSON que la alimentan y las reglas
 de comportamiento. **El juego definitivo debe consumir estos mismos JSON de forma
 dinámica** — ninguna coordenada, polígono ni zona va hardcodeada en el código.
@@ -9,7 +9,7 @@ dinámica** — ninguna coordenada, polígono ni zona va hardcodeada en el códi
 
 | Pieza | Archivo | Rol |
 |---|---|---|
-| Demo de selección | `demo-seleccion-personaje.html` | Vista previa interactiva idéntica a la pantalla final |
+| Pantalla de selección | `seleccion-personaje.html` | Vista previa interactiva idéntica a la pantalla final |
 | Calibrador de avatares | `calibrate-selection-avatars.html` | Posiciona avatares, cuadros, bordes y zonas de cuerpo completo |
 | Calibrador de botones | `calibrate-selection-buttons.html` | Polígonos de las teclas A–Z, Borrar, Atrás y Adelante |
 | Calibrador del nombre | `calibrate-selection-name.html` | Zona donde se escribe el nombre |
@@ -21,7 +21,7 @@ dinámica** — ninguna coordenada, polígono ni zona va hardcodeada en el códi
 | Avatares | `assets/avatars/avatar_01.webp`–`avatar_08.webp` | Originales 7680×7680 RGBA |
 | Thumbnails | `assets/avatars/thumbs/avatar_01.webp`–`avatar_08.webp` | 512×512 RGBA para los cuadros |
 
-API en `demo-server.ts` (un par load/save por cada JSON, patrón común):
+API en `server.ts` (un par load/save por cada JSON, patrón común):
 
 ```text
 GET  /api/load-character-positions    POST /api/save-character-positions
@@ -29,7 +29,7 @@ GET  /api/load-selection-buttons      POST /api/save-selection-buttons
 GET  /api/load-selection-name         POST /api/save-selection-name
 ```
 
-La raíz del proyecto se resuelve desde la ubicación real de `demo-server.ts`
+La raíz del proyecto se resuelve desde la ubicación real de `server.ts`
 (nunca `process.cwd()`), así que las rutas son estables desde cualquier cwd.
 
 ## 2. Espacio de coordenadas: `image-content`
@@ -50,7 +50,7 @@ function contentRect() {
 
 Los JSON llevan `"coordinateSpace": "image-content"`. Si falta la marca
 (JSON antiguos), el consumidor puede aplicar el espacio de viewport completo
-como fallback (`legacy*` flags en la demo). **Cualquier pantalla nueva debe
+como fallback (`legacy*` flags en la pantalla). **Cualquier pantalla nueva debe
 escribir y leer siempre `image-content`.**
 
 ## 3. Esquemas JSON
@@ -94,7 +94,7 @@ Orden: `A`–`Z` (26), `Borrar`, `Atrás`, `Adelante`.
 { "x": 0.35, "y": 0.55, "w": 0.18, "h": 0.05, "coordinateSpace": "image-content" }
 ```
 
-## 4. Comportamiento de la demo (referencia para el juego)
+## 4. Comportamiento de la pantalla (referencia para el juego)
 
 ### Precarga total
 
@@ -178,9 +178,9 @@ fondo. Modos:
   **Real-ESRGAN x4plus** en `.sam-venv` (GPU): 1900→7600→7680, con el canal
   alfa escalado aparte por Lanczos. El modelo queda en
   `.sam-venv/.../weights/RealESRGAN_x4plus.pth`.
-- Los `<img>` llevan cache-busting `?v=avatars-N`; **incrementar N** en demo y
+- Los `<img>` llevan cache-busting `?v=avatars-N`; **incrementar N** en la pantalla y
   calibrador cada vez que se regeneren avatares para forzar recarga.
-- La demo pide los JSON con `cache: 'no-store'`.
+- La pantalla pide los JSON con `cache: 'no-store'`.
 
 ## 7. Reglas para el juego definitivo
 

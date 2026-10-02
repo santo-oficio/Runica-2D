@@ -243,7 +243,7 @@ export const LEVEL_10: LevelMap = mkLevel(
 );
 
 // ---------------------------------------------------------------------------
-// Exportar todos para tests y demo
+// Exportar todos para tests y modo práctica
 // ---------------------------------------------------------------------------
 export const ALL_LEVELS: readonly LevelMap[] = [
   LEVEL_01, LEVEL_02, LEVEL_03, LEVEL_04, LEVEL_05,

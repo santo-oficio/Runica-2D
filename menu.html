@@ -1,433 +1,651 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Runika 2D — Menú</title>
+<title>Runika 2D</title>
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  :root {
+    --glow-x: 14px;
+    --glow-y: 0px;
+    --glow-op: 0.6;
+    --glow-blur: 8px;
+  }
   html, body {
-    width: 100%; height: 100%;
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; font-family: 'ChelseaMarket', cursive;
+  }
+  /* Pantalla de carga — estética clásica de aventura */
+  #loading-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 100;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 40%, #1a1208 0%, #0a0806 70%),
+      #0a0806;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #e8d4a8;
+    cursor: pointer;
+  }
+  /* Marco doble estilo grabado */
+  #loading-screen::before {
+    content: '';
+    position: absolute; top: 14px; left: 14px; right: 14px; bottom: 14px;
+    border: 2px solid rgba(180, 150, 80, 0.35);
+    box-shadow: inset 0 0 0 4px #0a0806, inset 0 0 0 6px rgba(180, 150, 80, 0.2);
+    pointer-events: none;
+  }
+  #loading-screen .title {
+    font-family: 'ChelseaMarket', cursive;
+    font-size: clamp(2.4em, 7vw, 5em);
+    color: #f0d890; letter-spacing: 6px;
+    /* Contorno grueso estilo texto de aventura gráfica */
+    text-shadow:
+      -2px -2px 0 #20140a, 2px -2px 0 #20140a,
+      -2px 2px 0 #20140a, 2px 2px 0 #20140a,
+      0 6px 14px rgba(0,0,0,0.9),
+      0 0 30px rgba(232, 180, 80, 0.25);
+    margin-bottom: 14px;
+  }
+  #loading-subtitle {
+    font-family: 'ChelseaMarket', cursive;
+    font-size: clamp(0.9em, 2vw, 1.3em); color: #a08850;
+    letter-spacing: 4px; margin-bottom: 46px;
+    text-shadow: 1px 1px 0 #20140a;
+  }
+  #loading-bar-bg {
+    width: min(560px, 70vw); height: 20px;
+    background: #140d05;
+    border: 3px solid #4a3820;
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.9),
+      0 0 0 1px rgba(240, 216, 144, 0.25),
+      0 4px 14px rgba(0,0,0,0.8);
     overflow: hidden;
-    background: #0a0a12;
-    font-family: 'ChelseaMarket', cursive;
+    image-rendering: pixelated;
   }
-
-  /* Fondo: gradiente oscuro con viñeta */
-  #bg {
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%;
+  #loading-bar {
+    width: 0%; height: 100%;
     background:
-      radial-gradient(ellipse at 50% 40%, #1a1a2e 0%, #0a0a12 60%, #050508 100%);
+      repeating-linear-gradient(90deg,
+        rgba(0,0,0,0.22) 0 6px, transparent 6px 12px),
+      linear-gradient(180deg, #f0d890 0%, #c4a050 55%, #8a6a30 100%);
+    transition: width 0.15s ease;
   }
-
-  /* Estrellas sutiles de fondo */
-  #bg::before {
-    content: '';
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%;
-    background-image:
-      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.3), transparent),
-      radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.2), transparent),
-      radial-gradient(1px 1px at 80% 20%, rgba(255,255,255,0.25), transparent),
-      radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.15), transparent),
-      radial-gradient(1px 1px at 90% 50%, rgba(255,255,255,0.2), transparent),
-      radial-gradient(1px 1px at 10% 60%, rgba(255,255,255,0.18), transparent),
-      radial-gradient(2px 2px at 70% 40%, rgba(126,200,227,0.15), transparent),
-      radial-gradient(1px 1px at 30% 50%, rgba(255,204,68,0.12), transparent);
-    background-size: 300px 300px;
-    opacity: 0.6;
+  #loading-text {
+    margin-top: 16px; font-size: 1.05em; color: #c8a860;
+    font-family: 'ChelseaMarket', cursive; letter-spacing: 2px;
+    text-shadow: 1px 1px 0 #20140a;
   }
-
-  /* Pergamino central */
-  #scroll {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 520px;
-    max-width: 90vw;
-    z-index: 10;
-    animation: fadeIn 0.8s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translate(-50%, -45%) scale(0.95); }
-    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  }
-
-  /* Borde superior del pergamino (rodillo) */
-  .rod-top, .rod-bottom {
-    width: 100%;
-    height: 28px;
-    background: linear-gradient(180deg, #6b4a2a 0%, #8b6a3a 30%, #5b3a1a 100%);
-    border-radius: 14px;
-    position: relative;
-    box-shadow:
-      0 4px 12px rgba(0,0,0,0.6),
-      inset 0 2px 4px rgba(255,220,150,0.3),
-      inset 0 -2px 4px rgba(0,0,0,0.4);
-  }
-  .rod-top::before, .rod-bottom::before,
-  .rod-top::after, .rod-bottom::after {
-    content: '';
-    position: absolute;
-    top: 50%; transform: translateY(-50%);
-    width: 36px; height: 36px;
-    background: radial-gradient(circle, #8b6a3a 30%, #5b3a1a 70%, #3b2a0a 100%);
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
-  }
-  .rod-top::before, .rod-bottom::before { left: -18px; }
-  .rod-top::after, .rod-bottom::after { right: -18px; }
-
-  /* Cuerpo del pergamino */
-  .parchment {
-    background:
-      /* Manchas y envejecimiento */
-      radial-gradient(ellipse at 20% 15%, rgba(180,150,100,0.15) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 85%, rgba(160,120,80,0.12) 0%, transparent 50%),
-      radial-gradient(ellipse at 60% 30%, rgba(200,170,120,0.08) 0%, transparent 40%),
-      radial-gradient(ellipse at 30% 70%, rgba(140,100,60,0.1) 0%, transparent 45%),
-      /* Textura base */
-      linear-gradient(180deg, #f0e0c0 0%, #e8d4a8 40%, #e0c898 70%, #d8c088 100%);
-    padding: 40px 50px 35px;
-    border-left: 3px solid #c0a868;
-    border-right: 3px solid #c0a868;
-    box-shadow:
-      0 0 30px rgba(0,0,0,0.5),
-      inset 0 0 60px rgba(180,140,80,0.15);
-    position: relative;
-  }
-
-  /* Borde decorativo interior */
-  .parchment::before {
-    content: '';
-    position: absolute;
-    top: 12px; left: 12px; right: 12px; bottom: 12px;
-    border: 1px solid rgba(139,90,43,0.3);
-    border-radius: 2px;
-    pointer-events: none;
-  }
-
-  /* Esquinas decorativas */
-  .parchment::after {
-    content: '';
-    position: absolute;
-    top: 8px; left: 8px;
-    width: 20px; height: 20px;
-    border-top: 2px solid rgba(139,90,43,0.4);
-    border-left: 2px solid rgba(139,90,43,0.4);
-    pointer-events: none;
-  }
-
-  /* Título */
-  .title {
-    text-align: center;
-    font-size: 2.8em;
-    font-weight: bold;
-    color: #4a2a0a;
-    letter-spacing: 6px;
-    text-shadow: 1px 1px 0 rgba(255,240,200,0.5), 2px 2px 4px rgba(100,60,20,0.3);
-    margin-bottom: 2px;
-  }
-
-  .subtitle {
-    text-align: center;
-    font-size: 0.95em;
-    color: #7a5a2a;
-    font-style: italic;
-    letter-spacing: 2px;
-    margin-bottom: 28px;
-  }
-
-  /* Separador ornamental */
-  .separator {
-    text-align: center;
-    color: #a08050;
-    font-size: 1.2em;
-    margin: 18px 0;
-    letter-spacing: 8px;
-  }
-
-  /* Opciones del menú */
-  .menu-list {
-    list-style: none;
-    text-align: center;
-  }
-
-  .menu-item {
-    font-size: 1.3em;
-    color: #5a3a1a;
-    padding: 10px 20px;
-    margin: 6px 0;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    letter-spacing: 1px;
-    position: relative;
-    display: inline-block;
-    min-width: 260px;
-  }
-
-  .menu-item:hover {
-    color: #8b4a0a;
-    text-shadow: 0 0 8px rgba(200,100,30,0.4);
-    transform: scale(1.05);
-  }
-
-  .menu-item::before {
-    content: '◆';
-    font-size: 0.6em;
-    color: #a08050;
-    margin-right: 10px;
-    vertical-align: middle;
-    transition: color 0.2s ease;
-  }
-
-  .menu-item::after {
-    content: '◆';
-    font-size: 0.6em;
-    color: #a08050;
-    margin-left: 10px;
-    vertical-align: middle;
-    transition: color 0.2s ease;
-  }
-
-  .menu-item:hover::before,
-  .menu-item:hover::after {
-    color: #c08030;
-  }
-
-  .menu-item.disabled {
-    color: #b0a080;
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
-  .menu-item.disabled:hover {
-    color: #b0a080;
-    text-shadow: none;
-    transform: none;
-  }
-
-  /* Panel de instrucciones/créditos (overlay) */
-  #panel-overlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.75);
-    z-index: 50;
+  #start-hint {
+    margin-top: 34px; font-size: clamp(1em, 2.4vw, 1.5em); color: #f0d890;
+    font-family: 'ChelseaMarket', cursive; letter-spacing: 3px;
     display: none;
-    align-items: center;
-    justify-content: center;
+    text-shadow:
+      -1px -1px 0 #20140a, 1px -1px 0 #20140a,
+      -1px 1px 0 #20140a, 1px 1px 0 #20140a,
+      0 0 18px rgba(232, 180, 80, 0.4);
+    animation: pulse 1.4s ease-in-out infinite;
   }
-
-  #panel-overlay.show { display: flex; }
-
-  .panel-scroll {
-    width: 560px;
-    max-width: 90vw;
-    max-height: 80vh;
-    animation: fadeIn 0.4s ease-out;
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
   }
-
-  .panel-content {
-    max-height: 55vh;
-    overflow-y: auto;
+  /* Transicion */
+  #transition-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 90; background: #000;
+    opacity: 0; pointer-events: none; display: none;
   }
-
-  .panel-content h2 {
-    text-align: center;
-    font-size: 1.8em;
-    color: #4a2a0a;
-    margin-bottom: 18px;
-    letter-spacing: 3px;
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
   }
-
-  .panel-content p {
-    color: #5a3a1a;
-    font-size: 1.05em;
-    line-height: 1.7;
-    margin: 10px 0;
-    padding-left: 16px;
-    position: relative;
+  #bg {
+    width: 100%; height: 100%;
+    object-fit: contain; display: block;
   }
-
-  .panel-content p::before {
-    content: '•';
-    color: #a08050;
+  #overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10; pointer-events: none;
+  }
+  #borders {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 12; pointer-events: none;
+  }
+  .btn {
     position: absolute;
-    left: 0;
-  }
-
-  .panel-content .credit-line {
-    text-align: center;
-    padding-left: 0;
-    font-size: 1.1em;
-  }
-
-  .panel-content .credit-line::before { content: ''; }
-
-  .panel-back {
-    text-align: center;
-    margin-top: 20px;
-  }
-
-  .panel-back button {
-    background: transparent;
-    border: 2px solid #8b6a3a;
-    color: #5a3a1a;
-    font-family: 'ChelseaMarket', cursive;
-    font-size: 1em;
-    padding: 8px 30px;
     cursor: pointer;
-    border-radius: 3px;
-    transition: all 0.2s ease;
-    letter-spacing: 1px;
+    pointer-events: auto;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 11;
+    border-radius: 6px;
+    background: transparent;
   }
-
-  .panel-back button:hover {
-    background: rgba(139,106,58,0.2);
-    color: #8b4a0a;
+  .btn-text {
+    font-family: 'ChelseaMarket', cursive;
+    color: #e8d4a8;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+    text-align: center;
+    transition: all 0.25s ease;
+    user-select: none;
+    white-space: nowrap;
   }
-
-  /* Scrollbar del panel */
-  .panel-content::-webkit-scrollbar { width: 8px; }
-  .panel-content::-webkit-scrollbar-track { background: rgba(180,150,100,0.1); }
-  .panel-content::-webkit-scrollbar-thumb {
-    background: rgba(139,106,58,0.4);
-    border-radius: 4px;
+  .btn:hover {
+    background: transparent;
+    box-shadow:
+      var(--glow-x) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      calc(-1 * var(--glow-x)) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      0 var(--glow-y) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      0 calc(-1 * var(--glow-y)) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op));
   }
+  .btn:hover .btn-text {
+    color: #fff8e0;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.9), 0 0 12px rgba(255, 200, 80, 0.6), 0 0 24px rgba(255, 180, 60, 0.4);
+    transform: scale(1.08);
+  }
+  .btn.active {
+    background: transparent;
+    box-shadow:
+      var(--glow-x) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      calc(-1 * var(--glow-x)) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      0 var(--glow-y) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+      0 calc(-1 * var(--glow-y)) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op));
+    animation: btnPulse 1.5s ease-in-out infinite;
+  }
+  .btn.active .btn-text {
+    color: #fff8e0;
+    font-weight: bold;
+    text-shadow:
+      1px 1px 2px rgba(0,0,0,0.9),
+      0 0 10px rgba(255,220,120,1),
+      0 0 20px rgba(255,200,80,0.9),
+      0 0 40px rgba(255,180,60,0.7),
+      0 0 60px rgba(255,160,40,0.5);
+    transform: scale(1.15);
+  }
+  .btn.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn.disabled .btn-text {
+    color: #6b5d45 !important;
+    opacity: 0.55;
+    text-shadow: none !important;
+    transform: none !important;
+  }
+  @keyframes btnPulse {
+    0%, 100% {
+      box-shadow:
+        var(--glow-x) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+        calc(-1 * var(--glow-x)) 0 var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+        0 var(--glow-y) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op)),
+        0 calc(-1 * var(--glow-y)) var(--glow-blur) -2px rgba(232, 212, 168, var(--glow-op));
+    }
+    50% {
+      box-shadow:
+        calc(var(--glow-x) * 1.4) 0 calc(var(--glow-blur) * 1.5) -2px rgba(232, 212, 168, calc(var(--glow-op) * 1.3)),
+        calc(-1 * var(--glow-x) * 1.4) 0 calc(var(--glow-blur) * 1.5) -2px rgba(232, 212, 168, calc(var(--glow-op) * 1.3)),
+        0 calc(var(--glow-y) * 1.4) calc(var(--glow-blur) * 1.5) -2px rgba(232, 212, 168, calc(var(--glow-op) * 1.3)),
+        0 calc(-1 * var(--glow-y) * 1.4) calc(var(--glow-blur) * 1.5) -2px rgba(232, 212, 168, calc(var(--glow-op) * 1.3));
+    }
+  }
+  #hud {
+    position: absolute; top: 12px; left: 12px; z-index: 20;
+    background: rgba(0,0,0,0.7); padding: 8px 14px;
+    border-radius: 4px; font-family: 'ChelseaMarket', cursive;
+    font-size: 0.8em; color: #aaa;
+  }
+  #hud .key { color: #fc4; }
+  #hud b { color: #0ff; }
 </style>
 </head>
 <body>
 
-<div id="bg"></div>
-
-<!-- Menú principal en pergamino -->
-<div id="scroll">
-  <div class="rod-top"></div>
-  <div class="parchment">
-    <div class="title" data-i18n="menu.title"></div>
-    <div class="subtitle" data-i18n="menu.subtitle"></div>
-    <div class="separator">✦ ✦ ✦</div>
-    <ul class="menu-list">
-      <li class="menu-item" data-i18n="menu.newGame" data-action="newGame"></li>
-      <li class="menu-item" data-i18n="menu.continue" data-action="continue"></li>
-      <li class="menu-item" data-i18n="menu.instructions" data-action="instructions"></li>
-      <li class="menu-item" data-i18n="menu.settings" data-action="settings"></li>
-      <li class="menu-item" data-i18n="menu.credits" data-action="credits"></li>
-      <li class="menu-item" data-i18n="menu.exit" data-action="exit"></li>
-    </ul>
-  </div>
-  <div class="rod-bottom"></div>
+<!-- Pantalla de carga -->
+<div id="loading-screen">
+  <div class="title">RUNIKA 2D</div>
+  <div id="loading-subtitle"></div>
+  <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+  <div id="loading-text"></div>
+  <div id="start-hint"></div>
 </div>
 
-<!-- Panel overlay para instrucciones/créditos -->
-<div id="panel-overlay">
-  <div class="panel-scroll">
-    <div class="rod-top"></div>
-    <div class="parchment">
-      <div class="panel-content" id="panel-content"></div>
-      <div class="panel-back">
-        <button data-i18n="instructions.back" id="btn-back"></button>
-      </div>
-    </div>
-    <div class="rod-bottom"></div>
-  </div>
+<!-- Overlay de transicion -->
+<div id="transition-overlay"></div>
+
+<div id="stage">
+  <img id="bg" src="/assets/menu%20principal/menu%20principal.webp?v=menu8k-3" />
+  <div id="overlay"></div>
+  <svg id="borders"></svg>
 </div>
 
+<div id="hud">
+  <b>Runika 2D</b><br>
+  <span class="key">Raton</span> = hover<br>
+  <span class="key">Flechas ↑↓</span> = cambiar seleccion<br>
+  <span class="key">Enter</span> = activar boton<br>
+  <br>
+  <b>Ajustar glow</b><br>
+  <span class="key">A/D</span> = ancho · <span class="key">W/S</span> = alto<br>
+  <span class="key">Q/E</span> = opacidad · <span class="key">Z/X</span> = blur<br>
+  <span class="key">G</span> = guardar<br>
+  <br>
+  <span id="glow-info" style="color:#0ff">ancho:14 alto:0 op:0.6</span>
+</div>
+
+<script src="/assets-cache.js"></script>
 <script>
-  // --- i18n cliente ---
+  // --- Desbloquear audio al primer gesto ---
+  let audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    AssetsCache.unlockAudio();
+  }
+  document.addEventListener('click', unlockAudio, { once: true });
+  document.addEventListener('keydown', unlockAudio, { once: true });
+  document.addEventListener('touchstart', unlockAudio, { once: true });
+  document.addEventListener('mouseenter', unlockAudio, { once: true });
+  document.addEventListener('mousemove', unlockAudio, { once: true });
+
+  // --- Sonidos (desde cache, Web Audio API) ---
+  function playMove() {
+    AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
+  }
+  function playHover() {
+    AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45);
+  }
+  function playSelect() {
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
+  }
+
+  // Coordenadas calibradas: se cargan desde /api/load-menu-buttons
+  let BUTTONS = [];      // [{ label, polygon|rect, textPolygon|text }]
+  let I18N_KEYS = [
+    'menu.newGame', 'menu.continue', 'menu.instructions',
+    'menu.settings', 'menu.credits', 'menu.exit'
+  ];
+
   let translations = {};
   let fallback = {};
-  const SUPPORTED = ['es', 'en', 'fr', 'de', 'it'];
+  let selectedIdx = 0, hoveredIdx = -1, selVisible = false;
+  // "Continuar" (indice 1) solo activo si hay partida empezada en la bbdd
+  let hasSave = false;
+  const CONTINUE_IDX = 1;
 
-  async function loadLang(lang) {
-    const resp = await fetch('/api/i18n' + (lang ? `/${lang}` : ''));
-    if (!resp.ok) return {};
-    return await resp.json();
-  }
-
-  function t(key) {
-    return translations[key] ?? fallback[key] ?? key;
-  }
-
-  function applyTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-      const key = el.getAttribute('data-i18n');
-      el.textContent = t(key);
-    });
-    document.title = t('menu.title') + ' — ' + t('menu.subtitle');
-  }
-
-  // --- Panel de instrucciones / créditos ---
-  function showPanel(type) {
-    if (type === 'instructions') {
-      window.location.href = '/instructions.html';
-      return;
-    }
-    const content = document.getElementById('panel-content');
-    if (type === 'credits') {
-      window.location.href = '/creditos.html';
-      return;
-    }
-    if (type === 'settings') {
-      window.location.href = '/demo-config.html';
-      return;
-    }
-    document.getElementById('panel-overlay').classList.add('show');
-  }
-
-  function hidePanel() {
-    document.getElementById('panel-overlay').classList.remove('show');
-  }
-
-  // --- Eventos ---
-  document.querySelectorAll('.menu-item[data-action]').forEach(el => {
-    el.addEventListener('click', () => {
-      if (el.classList.contains('disabled')) return;
-      const action = el.getAttribute('data-action');
-      if (action === 'instructions') showPanel('instructions');
-      else if (action === 'credits') showPanel('credits');
-      else if (action === 'settings') showPanel('settings');
-      else if (action === 'newGame') {
-        window.location.href = '/demo-seleccion-personaje.html';
-      } else if (action === 'continue') {
-        window.location.href = '/mapamundi.html';
-      } else if (action === 'exit') {
-        window.close();
-      }
-    });
-  });
-
-  document.getElementById('btn-back').addEventListener('click', hidePanel);
-  document.getElementById('panel-overlay').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) hidePanel();
-  });
-
-  // "Continuar" solo disponible si existe una partida empezada (bbdd del usuario)
   async function refreshSaveState() {
-    let hasSave = false;
     try {
       const r = await fetch('/api/savegame');
-      if (r.ok) {
-        const d = await r.json();
-        hasSave = !!d.exists;
-      }
+      if (r.ok) hasSave = !!(await r.json()).exists;
     } catch {}
-    const el = document.querySelector('.menu-item[data-action="continue"]');
-    if (el) el.classList.toggle('disabled', !hasSave);
   }
 
-  // --- Init ---
+  async function loadLang(lang) {
+    const r = await fetch('/api/i18n' + (lang ? '/' + lang : ''));
+    if (!r.ok) return {};
+    return await r.json();
+  }
+  function t(key) { return translations[key] ?? fallback[key] ?? key; }
+
+  async function loadButtons() {
+    try {
+      const r = await fetch('/api/load-menu-buttons');
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data.buttons) {
+        BUTTONS = data.buttons.map((b, i) => ({
+          label: b.label || ('boton ' + i),
+          polygon: b.polygon || null,
+          rect: b.rect || null,
+          textPolygon: b.textPolygon || null,
+          text: b.text || null
+        }));
+      }
+    } catch (e) { console.error('No se pudieron cargar botones', e); }
+  }
+
+  // Devuelve el bounding box normalizado de un area (polygon o rect)
+  function areaBBox(area, poly) {
+    if (area && area.w > 0) {
+      return { x: area.x, y: area.y, w: area.w, h: area.h, angle: area.angle || 0 };
+    }
+    if (poly && poly.length >= 2) {
+      const xs = poly.map(p => p[0]);
+      const ys = poly.map(p => p[1]);
+      return {
+        x: Math.min(...xs), y: Math.min(...ys),
+        w: Math.max(...xs) - Math.min(...xs),
+        h: Math.max(...ys) - Math.min(...ys),
+        angle: polyAngle(poly)
+      };
+    }
+    return null;
+  }
+
+  // Angulo del poligono: la arista mas horizontal define la rotacion del area
+  function polyAngle(poly) {
+    if (!poly || poly.length < 2) return 0;
+    let bestAngle = 0, bestScore = Infinity;
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i], b = poly[(i + 1) % poly.length];
+      const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+      let a2 = Math.abs(ang) > Math.PI / 2 ? ang - Math.sign(ang) * Math.PI : ang;
+      if (Math.abs(a2) < bestScore) { bestScore = Math.abs(a2); bestAngle = a2; }
+    }
+    return bestAngle;
+  }
+
+  const bg = document.getElementById('bg');
+  const overlay = document.getElementById('overlay');
+
+  function getImgRect() { return bg.getBoundingClientRect(); }
+
+  const borders = document.getElementById('borders');
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  function renderBorders() {
+    const r = getImgRect();
+    borders.setAttribute('viewBox', '0 0 ' + window.innerWidth + ' ' + window.innerHeight);
+    borders.innerHTML = '';
+    BUTTONS.forEach((b, i) => {
+      const isSel = (selVisible && i === selectedIdx) || i === hoveredIdx;
+      if (!isSel) return;
+      const stroke = '#ffd860';
+      const sw = 3.5;
+      if (b.polygon && b.polygon.length >= 3 && !b.rect) {
+        const pts = b.polygon.map(p =>
+          (r.left + p[0] * r.width) + ',' + (r.top + p[1] * r.height)
+        ).join(' ');
+        const poly = document.createElementNS(SVGNS, 'polygon');
+        poly.setAttribute('points', pts);
+        poly.setAttribute('fill', 'none');
+        poly.setAttribute('stroke', stroke);
+        poly.setAttribute('stroke-width', sw);
+        if (isSel) poly.style.filter = 'drop-shadow(0 0 6px rgba(255,200,80,0.9))';
+        borders.appendChild(poly);
+      } else if (b.rect && b.rect.w > 0) {
+        const cx = r.left + (b.rect.x + b.rect.w / 2) * r.width;
+        const cy = r.top + (b.rect.y + b.rect.h / 2) * r.height;
+        const w = b.rect.w * r.width, h = b.rect.h * r.height;
+        const ang = b.rect.angle || 0;
+        const cos = Math.cos(ang), sin = Math.sin(ang);
+        const corners = [[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].map(([x,y]) =>
+          (cx + x*cos - y*sin) + ',' + (cy + x*sin + y*cos)
+        ).join(' ');
+        const poly = document.createElementNS(SVGNS, 'polygon');
+        poly.setAttribute('points', corners);
+        poly.setAttribute('fill', 'none');
+        poly.setAttribute('stroke', stroke);
+        poly.setAttribute('stroke-width', sw);
+        if (isSel) poly.style.filter = 'drop-shadow(0 0 6px rgba(255,200,80,0.9))';
+        borders.appendChild(poly);
+      }
+    });
+  }
+
+  function render() {
+    overlay.innerHTML = '';
+    renderBorders();
+    const r = getImgRect();
+    BUTTONS.forEach((b, i) => {
+      const btnBBox = areaBBox(b.rect, b.polygon);
+      if (!btnBBox) return;
+      const div = document.createElement('div');
+      div.className = 'btn' + (i === selectedIdx && selVisible ? ' active' : '')
+        + (i === CONTINUE_IDX && !hasSave ? ' disabled' : '');
+      div.style.left = (r.left + btnBBox.x * r.width) + 'px';
+      div.style.top = (r.top + btnBBox.y * r.height) + 'px';
+      div.style.width = (btnBBox.w * r.width) + 'px';
+      div.style.height = (btnBBox.h * r.height) + 'px';
+
+      // Si es rectangulo rotado, aplicar transform
+      if (b.rect && b.rect.angle) {
+        div.style.transformOrigin = 'center center';
+        div.style.transform = 'rotate(' + b.rect.angle + 'rad)';
+      }
+
+      // Si es poligono, usar clip-path para recortar la forma
+      if (b.polygon && b.polygon.length >= 3 && !b.rect) {
+        const clipPoints = b.polygon.map(p => {
+          const cx = ((p[0] - btnBBox.x) / btnBBox.w * 100).toFixed(2);
+          const cy = ((p[1] - btnBBox.y) / btnBBox.h * 100).toFixed(2);
+          return cx + '% ' + cy + '%';
+        }).join(', ');
+        div.style.clipPath = 'polygon(' + clipPoints + ')';
+      }
+
+      // Area de texto
+      const textBBox = areaBBox(b.text, b.textPolygon);
+      if (textBBox) {
+        const textDiv = document.createElement('div');
+        textDiv.className = 'btn-text';
+        const txOffset = (textBBox.x - btnBBox.x) / btnBBox.w;
+        const tyOffset = (textBBox.y - btnBBox.y) / btnBBox.h;
+        const twRel = textBBox.w / btnBBox.w;
+        const thRel = textBBox.h / btnBBox.h;
+        textDiv.style.position = 'absolute';
+        textDiv.style.left = (txOffset * 100) + '%';
+        textDiv.style.top = (tyOffset * 100) + '%';
+        textDiv.style.width = (twRel * 100) + '%';
+        textDiv.style.height = (thRel * 100) + '%';
+        textDiv.style.display = 'flex';
+        textDiv.style.alignItems = 'center';
+        textDiv.style.justifyContent = 'center';
+        const fontSize = textBBox.h * r.height * 0.65;
+        textDiv.style.fontSize = fontSize + 'px';
+        const str = t(I18N_KEYS[i] || b.label);
+        if (b.textPolygon && b.textPolygon.length >= 4) {
+          // Texto curvo: cada letra sigue el borde inferior del poligono (p1->p2)
+          const p0 = b.textPolygon[0], p1 = b.textPolygon[1],
+                p2 = b.textPolygon[2], p3 = b.textPolygon[3];
+          const baseAng = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+          const N = str.length;
+          const slotW = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) * r.width / Math.max(1, N);
+          for (let k = 0; k < N; k++) {
+            const ch = str[k];
+            if (ch === ' ') continue;
+            const t2 = (k + 0.5) / N;
+            const bx = p1[0] + (p2[0] - p1[0]) * t2;
+            const by = p1[1] + (p2[1] - p1[1]) * t2;
+            const tx = p0[0] + (p3[0] - p0[0]) * t2;
+            const ty = p0[1] + (p3[1] - p0[1]) * t2;
+            const cx = (bx + tx) / 2, cy = (by + ty) / 2;
+            const lh = Math.hypot(tx - bx, ty - by);
+            const span = document.createElement('span');
+            span.textContent = ch;
+            span.style.position = 'absolute';
+            span.style.left = (((cx - textBBox.x) / textBBox.w) * 100) + '%';
+            span.style.top = (((cy - textBBox.y) / textBBox.h) * 100) + '%';
+            span.style.transform = 'translate(-50%, -50%) rotate(' + baseAng + 'rad)';
+            span.style.fontSize = Math.min(lh * r.height * 0.72, slotW * 1.9) + 'px';
+            textDiv.appendChild(span);
+          }
+        } else {
+          // La rotacion va en un span interno: si la ponemos en .btn-text,
+          // el inline transform anula el scale del hover/active en CSS
+          const inner = document.createElement('span');
+          inner.textContent = str;
+          inner.style.display = 'inline-block';
+          inner.style.whiteSpace = 'nowrap';
+          const btnRot = (b.rect && b.rect.angle) ? b.rect.angle : 0;
+          const textAngle = (textBBox.angle || 0) - btnRot;
+          if (Math.abs(textAngle) > 0.0001) {
+            inner.style.transform = 'rotate(' + textAngle + 'rad)';
+            inner.style.transformOrigin = 'center center';
+          }
+          textDiv.appendChild(inner);
+          let fs = fontSize;
+          while (fs > 6 && inner.offsetWidth > textDiv.clientWidth + 1) { fs -= 1; textDiv.style.fontSize = fs + 'px'; }
+        }
+        div.appendChild(textDiv);
+      }
+
+      div.addEventListener('mouseenter', () => {
+        if (hoveredIdx !== i) playHover();
+        hoveredIdx = i; selectedIdx = i; updateActive();
+      });
+      div.addEventListener('mouseleave', () => {
+        if (hoveredIdx === i) { hoveredIdx = -1; updateActive(); }
+      });
+      div.addEventListener('click', () => {
+        selectedIdx = i; updateActive(); playSelect(); activate(i);
+      });
+      div.addEventListener('touchstart', (e) => {
+        e.preventDefault(); selectedIdx = i; updateActive(); playSelect(); activate(i);
+      });
+      overlay.appendChild(div);
+    });
+  }
+
+  function updateActive() {
+    overlay.querySelectorAll('.btn').forEach((el, i) => {
+      el.classList.toggle('active', selVisible && i === selectedIdx);
+    });
+    renderBorders();
+  }
+
+  function activate(i) {
+    if (i === CONTINUE_IDX && !hasSave) return;
+    if (i === 0) AssetsCache.transitionTo('/seleccion-personaje.html');
+    if (i === 1) AssetsCache.transitionTo('/mapamundi.html');
+    if (i === 2) AssetsCache.transitionTo('/instructions.html');
+    if (i === 3) AssetsCache.transitionTo('/ajustes.html');
+    if (i === 4) AssetsCache.transitionTo('/creditos.html');
+    if (i === 5) AssetsCache.transitionTo('/exit.html');
+  }
+
+  // --- Ajustes de glow ---
+  let glowX = 14, glowY = 0, glowOp = 0.6, glowBlur = 8;
+  const glowInfo = document.getElementById('glow-info');
+
+  function applyGlow() {
+    document.documentElement.style.setProperty('--glow-x', glowX + 'px');
+    document.documentElement.style.setProperty('--glow-y', glowY + 'px');
+    document.documentElement.style.setProperty('--glow-op', glowOp);
+    document.documentElement.style.setProperty('--glow-blur', glowBlur + 'px');
+    glowInfo.textContent = 'ancho:' + glowX + ' alto:' + glowY + ' op:' + glowOp.toFixed(2) + ' blur:' + glowBlur;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const dir = e.key === 'ArrowDown' ? 1 : -1;
+      let next = selectedIdx;
+      do { next = (next + dir + BUTTONS.length) % BUTTONS.length; }
+      while (next === CONTINUE_IDX && !hasSave && next !== selectedIdx);
+      selectedIdx = next; selVisible = true; updateActive(); playMove();
+    } else if (e.key === 'Enter') {
+      e.preventDefault(); playSelect(); activate(selectedIdx);
+    } else if (e.key === 'a' || e.key === 'A') { glowX = Math.max(0, glowX - 2); applyGlow(); }
+    else if (e.key === 'd' || e.key === 'D') { glowX = Math.min(80, glowX + 2); applyGlow(); }
+    else if (e.key === 'w' || e.key === 'W') { glowY = Math.max(0, glowY - 2); applyGlow(); }
+    else if (e.key === 's' || e.key === 'S') { glowY = Math.min(80, glowY + 2); applyGlow(); }
+    else if (e.key === 'q' || e.key === 'Q') { glowOp = Math.max(0, glowOp - 0.05); applyGlow(); }
+    else if (e.key === 'e' || e.key === 'E') { glowOp = Math.min(1, glowOp + 0.05); applyGlow(); }
+    else if (e.key === 'z' || e.key === 'Z') { glowBlur = Math.max(0, glowBlur - 2); applyGlow(); }
+    else if (e.key === 'x' || e.key === 'X') { glowBlur = Math.min(60, glowBlur + 2); applyGlow(); }
+    else if (e.key === 'g' || e.key === 'G') {
+      fetch('/api/save-glow', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glowX, glowY, glowOp, glowBlur })
+      }).then(() => alert('Guardado'));
+    }
+  });
+
+  // --- Init con cache + transicion ---
   (async () => {
+    // Si ya estamos en sesion (venimos de otra pantalla), no recargar
+    if (sessionStorage.getItem('runika-session') === 'active') {
+      // Audio ya desbloqueado, ir directo al menu
+      await AssetsCache.loadSettings();
+      fallback = await loadLang('es');
+      translations = await loadLang();
+      await loadButtons();
+      try {
+        const r = await fetch('/api/load-glow');
+        if (r.ok) {
+          const cfg = await r.json();
+          if (cfg.glowX !== undefined) glowX = cfg.glowX;
+          if (cfg.glowY !== undefined) glowY = cfg.glowY;
+          if (cfg.glowOp !== undefined) glowOp = cfg.glowOp;
+          if (cfg.glowBlur !== undefined) glowBlur = cfg.glowBlur;
+          applyGlow();
+        }
+      } catch {}
+      audioUnlocked = true;
+      AssetsCache.unlockAudio();
+      await refreshSaveState();
+      render();
+      AssetsCache.hideLoading();
+      setTimeout(() => AssetsCache.transitionIn(), 100);
+      return;
+    }
+
+    // Primera vez: mostrar pantalla de carga
+    AssetsCache.showLoading();
+    const loadingBar = document.getElementById('loading-bar');
+    const loadingText = document.getElementById('loading-text');
+
+    // Ajustes + idioma primero: la pantalla de carga ya sale traducida
+    await AssetsCache.loadSettings();
     fallback = await loadLang('es');
     translations = await loadLang();
-    applyTranslations();
-    refreshSaveState();
+    document.getElementById('loading-subtitle').textContent = t('menu.subtitle');
+
+    // Precargar TODO (manifiesto completo de assets del servidor)
+    await AssetsCache.preloadAll((loaded, total) => {
+      const pct = Math.round((loaded / total) * 100);
+      loadingBar.style.width = pct + '%';
+      loadingText.textContent = t('loading.text') + ' ' + pct + '%';
+    });
+
+    // Cargar botones calibrados
+    await loadButtons();
+
+    // Cargar glow guardado
+    try {
+      const r = await fetch('/api/load-glow');
+      if (r.ok) {
+        const cfg = await r.json();
+        if (cfg.glowX !== undefined) glowX = cfg.glowX;
+        if (cfg.glowY !== undefined) glowY = cfg.glowY;
+        if (cfg.glowOp !== undefined) glowOp = cfg.glowOp;
+        if (cfg.glowBlur !== undefined) glowBlur = cfg.glowBlur;
+        applyGlow();
+      }
+    } catch {}
+
+    // Estado de partida guardada (habilita/deshabilita Continuar)
+    await refreshSaveState();
+
+    // Renderizar menu
+    render();
+
+    // "Pulsa para empezar": el gesto desbloquea audio y arranca la música
+    const startHint = document.getElementById('start-hint');
+    startHint.textContent = t('loading.pressStart');
+    startHint.style.display = 'block';
+    const loadingScreen = document.getElementById('loading-screen');
+    const enterGame = () => {
+      unlockAudio();
+      AssetsCache.startMusic();
+      sessionStorage.setItem('runika-session', 'active');
+      AssetsCache.hideLoading();
+      setTimeout(() => AssetsCache.transitionIn(), 500);
+    };
+    loadingScreen.addEventListener('click', enterGame, { once: true });
+    document.addEventListener('keydown', enterGame, { once: true });
   })();
+
+  bg.addEventListener('load', render);
+  window.addEventListener('resize', render);
 </script>
 
 </body>

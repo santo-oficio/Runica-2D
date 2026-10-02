@@ -108,5 +108,20 @@
   "fin.completed": "Hai completato Runika 2D!",
   "fin.worldsFell": "Tutti i mondi sono caduti",
   "fin.finalBoss": "L'ultimo guardiano...",
-  "fin.replay": "Runika 2D è infinito: ricomincia e nessun livello si ripeterà mai. Puoi sempre battere i tuoi record e guadagnare più oro. L’avventura non è finita!"
+  "fin.replay": "Runika 2D è infinito: ricomincia e nessun livello si ripeterà mai. Puoi sempre battere i tuoi record e guadagnare più oro. L’avventura non è finita!",
+  "game.practice": "Allenamento",
+  "game.practiceTag": "Allenamento · niente viene salvato",
+  "game.practiceTier": "Tier {0}",
+  "game.practiceDone": "Completata in {0} turni · niente viene salvato",
+  "game.practiceCaught": "Il nemico ti ha catturato · niente viene salvato",
+  "game.practiceNext": "Altra schermata (R)",
+  "game.practiceMeta": "schermata {0} · min. {1} mosse · tavola {2}x{3}",
+  "game.practiceCell": "casella [{0}, {1}]",
+  "game.helpMove": "muoviti",
+  "game.helpRandom": "altra schermata casuale",
+  "game.helpTier": "tier − / +",
+  "game.helpAvatar": "cambia avatar",
+  "game.helpWorld": "cambia mondo",
+  "game.keysMove": "Frecce/WASD",
+  "game.keySpace": "Spazio"
 }

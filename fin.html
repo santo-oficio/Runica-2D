@@ -573,12 +573,12 @@ let started = false;
 function advance() {
   if (!started || busy) return;
   if (scene === 1) { sceneMap(); return; }
-  if (scene === 3) { AssetsCache.transitionTo('/demo-menu.html'); return; }
+  if (scene === 3) { AssetsCache.transitionTo('/menu.html'); return; }
 }
 document.addEventListener('keydown', e => {
   if (!started) { begin(); return; }
   AssetsCache.unlockAudio();
-  if (e.key === 'Escape') { AssetsCache.transitionTo('/demo-menu.html'); return; }
+  if (e.key === 'Escape') { AssetsCache.transitionTo('/menu.html'); return; }
   advance();
 });
 document.addEventListener('pointerdown', () => {

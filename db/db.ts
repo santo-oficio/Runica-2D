@@ -455,7 +455,7 @@ export function getProgress(): { world: string; tier: number; current: string | 
 
 /**
  * Pantalla aleatoria de un tier, SIN tocar el progreso ni persistir.
- * Uso: demos jugables (no cuentan para las estadísticas del jugador).
+ * Uso: modo práctica (no cuentan para las estadísticas del jugador).
  */
 export function getRandomScreenByTier(tier: number): Screen | null {
   const pool = ensureTierLoaded(tier);

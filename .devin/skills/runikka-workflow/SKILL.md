@@ -1,6 +1,6 @@
-﻿---
+---
 name: Runika 2D-workflow
-description: Comandos y arquitectura del proyecto Runika 2D (typecheck, tests, demo, mundos).
+description: Comandos y arquitectura del proyecto Runika 2D (typecheck, tests, servidor, mundos).
 ---
 
 # Runika 2D — flujo de trabajo del proyecto
@@ -12,13 +12,13 @@ Juego de puzle determinista. TypeScript puro + Vitest, Node ≥ 20, ESM.
 ```bash
 npm run typecheck   # tsc --noEmit (strict + noUncheckedIndexedAccess)
 npm test            # vitest (300 tests, 13 archivos)
-npx tsx demo-server.ts  # demo visual + demo jugable en http://localhost:3000
+npx tsx server.ts  # juego y calibradores en http://localhost:3000
 ```
 
-## Demos
+## Pantallas
 
-- `demo.html` — calibración manual de tableros (arrastrar ratón, `G` guardar).
-- `demo-play.html` — demo jugable: pantalla al azar del tier 1 (`/api/demo-screen?tier=1`),
+- `calibrate-areas.html` — calibración manual de tableros (arrastrar ratón, `G` guardar).
+- `game.html` — modo práctica: pantalla al azar del tier 1 (`/api/practice-screen?tier=1`),
   mundo al azar, sin persistencia. Controles: `Flechas/WASD` mover, `R` otra
   pantalla, `Espacio` cambiar mundo, `Enter` cambiar avatar.
 

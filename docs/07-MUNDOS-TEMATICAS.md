@@ -1,4 +1,4 @@
-﻿# 🌍 Mundos y Temáticas
+# 🌍 Mundos y Temáticas
 
 ## Estructura general
 
@@ -72,9 +72,9 @@ Los 8 mundos usan la misma `boardArea`:
 | INFRAMUNDO | 1376×768 | ✅ |
 | MAZMORRA | 1376×768 | ✅ |
 
-## Colores temáticos del selector (demo visual)
+## Colores temáticos del selector (calibrador visual)
 
-La demo usa un selector de casilla retro con color por mundo:
+El calibrador usa un selector de casilla retro con color por mundo:
 
 - ESPACIO → blanco brillante con fondo azul celeste
 - AGUA → cian
@@ -123,7 +123,7 @@ Los "jefes" pueden tratarse como niveles manuales (no procedurales) que:
 
 1. Diseñar el fondo base del mundo (arte, 1376×768, con tablero 6×5 dibujado).
 2. Detectarlo con MobileSAM (`background/sam-detect.py`) → `board-detection.json`.
-3. Calibrarlo con la demo visual (`demo-server.ts`).
+3. Calibrarlo con la calibrador visual (`server.ts`).
 4. Crear el set de `tileAssets` del mundo (suelo, bordes, esquinas, marco,
    jugador, enemigos, objetivo — mínimo indispensable para el auto-tiling).
 5. Definir el `WorldConfig` (tablero [6,5], tabla de dificultad, reglas

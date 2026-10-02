@@ -1,5 +1,5 @@
 /**
- * Servidor de demo visual de todos los fondos.
+ * Servidor local de Runika 2D.
  *
  * Sirve las detecciones de los 8 mundos. El cliente cambia de uno a otro
  * con la tecla espacio.
@@ -1019,9 +1019,9 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API DEMO: pantalla aleatoria de un tier, sin guardar nada en la bbdd
-  // GET /api/demo-screen?tier=1
-  if (url.startsWith("/api/demo-screen")) {
+  // API práctica: pantalla aleatoria de un tier, sin guardar nada en la bbdd
+  // GET /api/practice-screen?tier=1
+  if (url.startsWith("/api/practice-screen")) {
     const u = new URL(url, `http://localhost:${PORT}`);
     const tier = Number(u.searchParams.get("tier") ?? "1") || 1;
     const screen = getRandomScreenByTier(tier);
@@ -1178,7 +1178,7 @@ const server = http.createServer((req, res) => {
 
   // Archivos estáticos (ignorar query string y decodificar %20 etc.)
   const cleanUrl = url.split("?")[0] ?? "/";
-  let filePath = cleanUrl === "/" ? "/demo.html" : decodeURIComponent(cleanUrl);
+  let filePath = cleanUrl === "/" ? "/menu.html" : decodeURIComponent(cleanUrl);
   filePath = join(ROOT, filePath);
 
   if (!existsSync(filePath)) {
@@ -1203,7 +1203,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n  Demo visual de todos los fondos`);
+  console.log(`\n  Servidor de Runika 2D`);
   console.log(`  → http://localhost:${PORT}\n`);
   console.log(`  ${detections.length} mundos disponibles:`);
   detections.forEach((d, i) => console.log(`    ${i + 1}. ${d.world}`));

@@ -22,7 +22,7 @@ IMAGEN DE FONDO (ya con tablero dibujado)
         ↓
 background/sam-detect.py (MobileSAM) → board-detection.json
         ↓
-Calibración manual fina (demo visual interactivo)
+Calibración manual fina (calibrador visual interactivo)
         ↓
 board-detection.json final (coordenadas normalizadas)
         ↓
@@ -77,9 +77,9 @@ El resultado se guarda en `assets/backgrounds/<MUNDO>/board-detection.json`.
 ## 4. Calibración manual final
 
 La detección de MobileSAM da una **buena aproximación inicial**, pero el
-ajuste fino se hace a mano con la demo visual (`demo-server.ts` + `demo.html`):
+ajuste fino se hace a mano con la calibrador visual (`server.ts` + `calibrate-areas.html`):
 
-- La demo muestra el fondo a pantalla completa (`object-fit: contain`, sin
+- El calibrador muestra el fondo a pantalla completa (`object-fit: contain`, sin
   recortar) y superpone la rejilla 8×6 sobre la `boardArea` detectada.
 - Controles de calibración:
   - `Flechas/WASD` — mover el selector de casilla.
@@ -102,7 +102,7 @@ La salida de MobileSAM no se usa a ciegas. Se comprueba:
 2. `boardArea` con proporciones razonables (~6:5).
 3. `boardSize` = [6, 5] (tablero fijo).
 4. Que la rejilla resultante tenga casillas de tamaño coherente.
-5. Calibración manual con la demo visual (visto bueno humano).
+5. Calibración manual con la calibrador visual (visto bueno humano).
 
 ## 6. Comandos
 
@@ -113,8 +113,8 @@ La salida de MobileSAM no se usa a ciegas. Se comprueba:
 # Informe de casillas (solo lectura)
 npx tsx tools/detect-cells.ts [MUNDO]
 
-# Demo visual interactiva (calibración)
-npx tsx demo-server.ts
+# Calibrador visual interactivo (calibración)
+npx tsx server.ts
 ```
 
 ## 7. Por qué esto no rompe la "regla de oro"
