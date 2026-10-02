@@ -7,9 +7,9 @@
   },
   "avatar": [
     {
-      "size": 0.9900000000000001,
+      "size": 1.1500000000000001,
       "offsetX": 0,
-      "offsetY": -0.01
+      "offsetY": -0.026000000000000002
     },
     {
       "size": 0.9199999999999999,
@@ -17,32 +17,32 @@
       "offsetY": 0
     },
     {
-      "size": 0.87,
+      "size": 0.92,
       "offsetX": 0.02,
       "offsetY": -0.01
     },
     {
       "size": 0.92,
       "offsetX": 0.05,
-      "offsetY": 0
+      "offsetY": -0.02
     },
     {
-      "size": 0.92,
+      "size": 0.9600000000000001,
       "offsetX": -0.01,
       "offsetY": -0.04
     },
     {
-      "size": 0.85,
+      "size": 0.88,
       "offsetX": 0,
       "offsetY": -0.01
     },
     {
-      "size": 0.85,
+      "size": 0.9900000000000001,
       "offsetX": 0,
       "offsetY": -0.04
     },
     {
-      "size": 1.02,
+      "size": 1.04,
       "offsetX": 0.01,
       "offsetY": -0.03400000000000001
     }
