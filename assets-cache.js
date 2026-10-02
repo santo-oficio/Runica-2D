@@ -153,7 +153,8 @@ const MUSIC_POS_KEY = 'runika-music-pos';
 // Tema principal del juego (si está en el manifiesto, manda sobre el resto)
 const DEFAULT_MUSIC = '/assets/music/The_Captain_s_Last_Map.mp3';
 // Pistas por contexto: main = mapamundi/menus · world = dentro de un mundo
-const MUSIC = { main: DEFAULT_MUSIC, world: '/assets/music/mistery.mp3' };
+// fin = cinemática final del juego (tras derrotar al boss)
+const MUSIC = { main: DEFAULT_MUSIC, world: '/assets/music/mistery.mp3', fin: '/assets/music/victory.mp3' };
 let musicEl = null;
 let musicTrack = null;
 

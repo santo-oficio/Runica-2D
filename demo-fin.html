@@ -386,6 +386,8 @@ async function sceneBoard() {
   burst(innerWidth * 0.6, innerHeight * 0.45, 60, ['#9a8a70', '#c0aa80', '#6a5a45'], 6, { size: 5, g: 0.18 });
   await wait(900);
   snd('/assets/sounds/comun/victoria.wav', 0.8);
+  // Canción del final del juego — suena desde la derrota del boss
+  AssetsCache.setMusicTrack(AssetsCache.MUSIC.fin);
   const big = document.getElementById('big-text');
   big.textContent = tt('game.victory');
   big.classList.add('pop');
