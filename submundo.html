@@ -390,10 +390,18 @@
           fx.style.top = r.top + 'px';
           fx.style.width = r.width + 'px';
           fx.style.height = r.height + 'px';
-          const rr = sz * 1.2; // cubrir la isla entera, no solo el hitbox
-          const mask = `radial-gradient(circle ${rr.toFixed(1)}px at ${(pos.x * r.width).toFixed(1)}px ${(pos.y * r.height).toFixed(1)}px, #000 55%, transparent 92%)`;
-          fx.style.webkitMaskImage = mask;
-          fx.style.maskImage = mask;
+          // Mancha organica: nucleo suave + 3 blobs desplazados de forma
+          // determinista por isla (nunca un circulo perfecto)
+          const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.15;
+          const a = i * 2.399963; // angulo dorado: dispersa los blobs por isla
+          const g = (x, y, rad, s, f) =>
+            `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
+          fx.style.webkitMaskImage = fx.style.maskImage = [
+            g(px, py, rr, 58, 88),
+            g(px + Math.cos(a) * rr * 0.55, py + Math.sin(a) * rr * 0.55, rr * 0.6, 42, 80),
+            g(px + Math.cos(a + 2.1) * rr * 0.6, py + Math.sin(a + 2.1) * rr * 0.6, rr * 0.55, 42, 80),
+            g(px + Math.cos(a + 4.2) * rr * 0.5, py + Math.sin(a + 4.2) * rr * 0.5, rr * 0.5, 42, 80),
+          ].join(',');
           overlay.appendChild(fx);
         }
       }

@@ -337,28 +337,33 @@
       const sz = worldSize(w) * r.width;
 
       // Máscara visual: completado (B/N) o mundo central bloqueado.
-      // Copia gris del mapa recortada con la forma irregular del aura
-      // calibrada (fin-areas.json) y bordes difuminados con mascara radial.
+      // Copia gris del mapa con mascara organica: nucleo difuminado +
+      // un blob suave en cada vertice irregular del aura calibrada
+      // (determinista por mundo). Sin clip-path: cero bordes duros.
       if (worldCompleted(w) || worldLocked(w)) {
         const fx = document.createElement('img');
         fx.src = document.getElementById('bg').src;
         fx.className = 'world-fx ' + (worldCompleted(w) ? 'done' : 'locked');
-        const circ = FIN_AREAS?.aura?.[w];
-        let cx, cy, rr;
-        if (circ && circ.r > 0) {
-          cx = circ.cx; cy = circ.cy; rr = circ.r * 1.12;
-          const pts = AssetsCache.auraPoints(circ.cx, circ.cy, circ.r, w, r.width / r.height);
-          fx.style.clipPath = `polygon(${pts.map(p => `${p[0] * r.width}px ${p[1] * r.height}px`).join(',')})`;
-        } else {
-          cx = pos.x; cy = pos.y; rr = (sz * 1.2) / r.width;
-        }
         fx.style.left = r.left + 'px';
         fx.style.top = r.top + 'px';
         fx.style.width = r.width + 'px';
         fx.style.height = r.height + 'px';
-        const mask = `radial-gradient(circle ${(rr * r.width).toFixed(1)}px at ${(cx * r.width).toFixed(1)}px ${(cy * r.height).toFixed(1)}px, #000 55%, transparent 92%)`;
-        fx.style.webkitMaskImage = mask;
-        fx.style.maskImage = mask;
+        const circ = FIN_AREAS?.aura?.[w];
+        const grads = [];
+        const grad = (px, py, rr, solid, fade) =>
+          `radial-gradient(circle ${rr.toFixed(1)}px at ${px.toFixed(1)}px ${py.toFixed(1)}px, #000 ${solid}%, transparent ${fade}%)`;
+        if (circ && circ.r > 0) {
+          const coreR = circ.r * r.width * 1.05;
+          const blobR = coreR * 0.55;
+          grads.push(grad(circ.cx * r.width, circ.cy * r.height, coreR, 60, 88));
+          for (const p of AssetsCache.auraPoints(circ.cx, circ.cy, circ.r, w, r.width / r.height)) {
+            grads.push(grad(p[0] * r.width, p[1] * r.height, blobR, 45, 82));
+          }
+        } else {
+          grads.push(grad(pos.x * r.width, pos.y * r.height, sz * 1.2, 55, 90));
+        }
+        fx.style.webkitMaskImage = grads.join(',');
+        fx.style.maskImage = fx.style.webkitMaskImage;
         overlay.appendChild(fx);
       }
 

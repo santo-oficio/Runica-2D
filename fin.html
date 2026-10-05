@@ -460,19 +460,26 @@ async function sceneMap() {
     fx.style.left = r.left + 'px'; fx.style.top = r.top + 'px';
     fx.style.width = r.width + 'px'; fx.style.height = r.height + 'px';
     const circ = FIN_AREAS?.aura?.[w];
-    let cx, cy, rr;
+    let cx, cy;
+    const grads = [];
+    const grad = (px, py, rr, solid, fade) =>
+      `radial-gradient(circle ${rr.toFixed(1)}px at ${px.toFixed(1)}px ${py.toFixed(1)}px, #000 ${solid}%, transparent ${fade}%)`;
     if (circ && circ.r > 0) {
-      // Circulo calibrado -> aura irregular determinista
-      cx = circ.cx; cy = circ.cy; rr = circ.r * 1.12;
-      const pts = AssetsCache.auraPoints(circ.cx, circ.cy, circ.r, w, r.width / r.height);
-      fx.style.clipPath = `polygon(${pts.map(p => `${p[0] * r.width}px ${p[1] * r.height}px`).join(',')})`;
+      // Circulo calibrado -> aura irregular determinista: nucleo suave +
+      // blobs difuminados en los vertices (sin clip-path: cero bordes duros)
+      cx = circ.cx; cy = circ.cy;
+      const coreR = circ.r * r.width * 1.05;
+      const blobR = coreR * 0.55;
+      grads.push(grad(cx * r.width, cy * r.height, coreR, 60, 88));
+      for (const p of AssetsCache.auraPoints(circ.cx, circ.cy, circ.r, w, r.width / r.height)) {
+        grads.push(grad(p[0] * r.width, p[1] * r.height, blobR, 45, 82));
+      }
     } else {
-      cx = pos.x; cy = pos.y; rr = worldSize(w) * 1.2;
+      cx = pos.x; cy = pos.y;
+      grads.push(grad(cx * r.width, cy * r.height, worldSize(w) * r.width * 1.2, 55, 90));
     }
-    // Máscara radial: bordes difuminados para que parezca aura, no recorte
-    const mask = `radial-gradient(circle ${(rr * r.width).toFixed(1)}px at ${(cx * r.width).toFixed(1)}px ${(cy * r.height).toFixed(1)}px, #000 55%, transparent 92%)`;
-    fx.style.webkitMaskImage = mask;
-    fx.style.maskImage = mask;
+    fx.style.webkitMaskImage = grads.join(',');
+    fx.style.maskImage = fx.style.webkitMaskImage;
     // La "caida" escala la copia: el origen debe ser el centro del aura,
     // no el centro de la imagen entera
     fx.style.transformOrigin = `${(cx * r.width).toFixed(1)}px ${(cy * r.height).toFixed(1)}px`;
