@@ -82,27 +82,28 @@
     box-shadow: none;
   }
   /* Mundo completado: la zona queda en blanco y negro, "vencida" */
+  /* Mundo completado/bloqueado: copia gris del mapa recortada con la
+     forma del aura y bordes difuminados (mask radial). Una img clonada,
+     no backdrop-filter, porque el filtro de fondo no hereda la mascara. */
   .world-fx {
     position: absolute;
     z-index: 9;
     pointer-events: none;
-    border-radius: 50%;
+    object-fit: contain; /* mismo fit que #bg para que la copia coincida pixel a pixel */
   }
   .world-fx.done {
-    backdrop-filter: grayscale(1) brightness(0.55);
-    -webkit-backdrop-filter: grayscale(1) brightness(0.55);
-    animation: auraPulse 4s ease-in-out infinite;
+    filter: grayscale(1) brightness(0.55);
+    animation: auraFade 4s ease-in-out infinite;
   }
-  /* Mundo central bloqueado: oscurecido hasta completar el resto */
   .world-fx.locked {
-    backdrop-filter: grayscale(0.6) brightness(0.35);
-    -webkit-backdrop-filter: grayscale(0.6) brightness(0.35);
-    animation: auraPulse 5s ease-in-out infinite;
+    filter: grayscale(0.6) brightness(0.35);
+    animation: auraFade 5s ease-in-out infinite;
   }
-  /* Aura "viva": respiracion sutil de la forma irregular calibrada */
-  @keyframes auraPulse {
-    0%,100% { transform: scale(1) rotate(0deg); }
-    50% { transform: scale(1.04) rotate(0.8deg); }
+  /* Aura "viva": respiracion de intensidad (sin escalar la imagen, que
+     desalinearia la copia respecto al fondo) */
+  @keyframes auraFade {
+    0%,100% { opacity: 0.9; }
+    50% { opacity: 1; }
   }
   /* Contador de oro (área calibrada, alineado a la derecha) */
   .gold-text {
@@ -336,27 +337,28 @@
       const sz = worldSize(w) * r.width;
 
       // Máscara visual: completado (B/N) o mundo central bloqueado.
-      // Aura irregular calibrada en fin-areas.json (no circulo perfecto);
-      // fallback: circulo sobre el punto del mundo.
+      // Copia gris del mapa recortada con la forma irregular del aura
+      // calibrada (fin-areas.json) y bordes difuminados con mascara radial.
       if (worldCompleted(w) || worldLocked(w)) {
-        const fx = document.createElement('div');
+        const fx = document.createElement('img');
+        fx.src = document.getElementById('bg').src;
         fx.className = 'world-fx ' + (worldCompleted(w) ? 'done' : 'locked');
         const circ = FIN_AREAS?.aura?.[w];
+        let cx, cy, rr;
         if (circ && circ.r > 0) {
+          cx = circ.cx; cy = circ.cy; rr = circ.r * 1.12;
           const pts = AssetsCache.auraPoints(circ.cx, circ.cy, circ.r, w, r.width / r.height);
-          fx.style.left = r.left + 'px';
-          fx.style.top = r.top + 'px';
-          fx.style.width = r.width + 'px';
-          fx.style.height = r.height + 'px';
-          fx.style.borderRadius = '0';
           fx.style.clipPath = `polygon(${pts.map(p => `${p[0] * r.width}px ${p[1] * r.height}px`).join(',')})`;
         } else {
-          const fxSz = sz * 2.4; // cubrir la isla entera, no solo el hitbox
-          fx.style.left = (r.left + pos.x * r.width - fxSz / 2) + 'px';
-          fx.style.top = (r.top + pos.y * r.height - fxSz / 2) + 'px';
-          fx.style.width = fxSz + 'px';
-          fx.style.height = fxSz + 'px';
+          cx = pos.x; cy = pos.y; rr = (sz * 1.2) / r.width;
         }
+        fx.style.left = r.left + 'px';
+        fx.style.top = r.top + 'px';
+        fx.style.width = r.width + 'px';
+        fx.style.height = r.height + 'px';
+        const mask = `radial-gradient(circle ${(rr * r.width).toFixed(1)}px at ${(cx * r.width).toFixed(1)}px ${(cy * r.height).toFixed(1)}px, #000 55%, transparent 92%)`;
+        fx.style.webkitMaskImage = mask;
+        fx.style.maskImage = mask;
         overlay.appendChild(fx);
       }
 

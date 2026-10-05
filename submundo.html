@@ -86,20 +86,20 @@
     border: none;
     background: transparent;
   }
-  /* Isla completada o bloqueada: misma estrategia que los mundos del mapa */
+  /* Isla completada o bloqueada: copia gris del fondo con bordes
+     difuminados (mask radial). Una img clonada, no backdrop-filter,
+     porque el filtro de fondo no hereda la mascara. */
   .island-fx {
     position: absolute;
     z-index: 9;
     pointer-events: none;
-    border-radius: 50%;
+    object-fit: contain; /* mismo fit que #bg para alinear la copia */
   }
   .island-fx.done {
-    backdrop-filter: grayscale(1) brightness(0.55);
-    -webkit-backdrop-filter: grayscale(1) brightness(0.55);
+    filter: grayscale(1) brightness(0.55);
   }
   .island-fx.locked {
-    backdrop-filter: grayscale(0.6) brightness(0.35);
-    -webkit-backdrop-filter: grayscale(0.6) brightness(0.35);
+    filter: grayscale(0.6) brightness(0.35);
   }
   #avatar {
     position: absolute;
@@ -383,13 +383,17 @@
         const done = completedLevels.has(i);
         const locked = !isLevelUnlocked(i);
         if (done || locked) {
-          const fx = document.createElement('div');
+          const fx = document.createElement('img');
+          fx.src = bg.src;
           fx.className = 'island-fx ' + (done ? 'done' : 'locked');
-          const fxSz = sz * 2.4;
-          fx.style.left = (r.left + pos.x * r.width - fxSz / 2) + 'px';
-          fx.style.top = (r.top + pos.y * r.height - fxSz / 2) + 'px';
-          fx.style.width = fxSz + 'px';
-          fx.style.height = fxSz + 'px';
+          fx.style.left = r.left + 'px';
+          fx.style.top = r.top + 'px';
+          fx.style.width = r.width + 'px';
+          fx.style.height = r.height + 'px';
+          const rr = sz * 1.2; // cubrir la isla entera, no solo el hitbox
+          const mask = `radial-gradient(circle ${rr.toFixed(1)}px at ${(pos.x * r.width).toFixed(1)}px ${(pos.y * r.height).toFixed(1)}px, #000 55%, transparent 92%)`;
+          fx.style.webkitMaskImage = mask;
+          fx.style.maskImage = mask;
           overlay.appendChild(fx);
         }
       }

@@ -71,21 +71,25 @@
   @keyframes hintBlink { 0%,100%{opacity:.25} 50%{opacity:1} }
 
   /* --- Escena 2: mapamundi que se derrumba --- */
+  /* Copia gris del mapa recortada con la forma del aura y bordes
+     difuminados (mask radial). Una img clonada, no backdrop-filter,
+     porque el filtro de fondo no hereda la mascara. El transform-origin
+     se fija en el centro del aura para que la "caida" sea puntual. */
   .world-fx {
     position: absolute; z-index: 9; pointer-events: none;
-    backdrop-filter: grayscale(1) brightness(.5);
-    -webkit-backdrop-filter: grayscale(1) brightness(.5);
+    object-fit: contain; /* mismo fit que el fondo para alinear la copia */
+    filter: grayscale(1) brightness(.5);
     transform: scale(.15); opacity: 0;
     transform-origin: center;
   }
   .world-fx.fall {
     transition: transform .55s cubic-bezier(.5,0,.9,.4), opacity .45s ease;
-    transform: scale(1) translateY(1.5%); opacity: 1;
-    animation: auraPulse 3.2s ease-in-out .7s infinite;
+    transform: scale(1); opacity: 1;
+    animation: auraFade 3.2s ease-in-out .7s infinite;
   }
-  @keyframes auraPulse {
-    0%,100% { transform: scale(1) translateY(1.5%) rotate(0deg); }
-    50% { transform: scale(1.045) translateY(1.2%) rotate(1.2deg); }
+  @keyframes auraFade {
+    0%,100% { opacity: 0.9; }
+    50% { opacity: 1; }
   }
   /* Paso del heroe entre casillas (hop corto) */
   @keyframes cellHop { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18%)} }
@@ -450,22 +454,28 @@ async function sceneMap() {
   for (const w of WORLD_ORDER) {
     const pos = avatarPos(w);
     if (!pos) continue;
-    const fx = document.createElement('div');
+    const fx = document.createElement('img');
+    fx.src = bg.src;
     fx.className = 'world-fx';
+    fx.style.left = r.left + 'px'; fx.style.top = r.top + 'px';
+    fx.style.width = r.width + 'px'; fx.style.height = r.height + 'px';
     const circ = FIN_AREAS?.aura?.[w];
+    let cx, cy, rr;
     if (circ && circ.r > 0) {
       // Circulo calibrado -> aura irregular determinista
+      cx = circ.cx; cy = circ.cy; rr = circ.r * 1.12;
       const pts = AssetsCache.auraPoints(circ.cx, circ.cy, circ.r, w, r.width / r.height);
-      fx.style.left = r.left + 'px'; fx.style.top = r.top + 'px';
-      fx.style.width = r.width + 'px'; fx.style.height = r.height + 'px';
       fx.style.clipPath = `polygon(${pts.map(p => `${p[0] * r.width}px ${p[1] * r.height}px`).join(',')})`;
     } else {
-      const sz = worldSize(w) * r.width * 2.4;
-      fx.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
-      fx.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
-      fx.style.width = sz + 'px'; fx.style.height = sz + 'px';
-      fx.style.borderRadius = '50%';
+      cx = pos.x; cy = pos.y; rr = worldSize(w) * 1.2;
     }
+    // Máscara radial: bordes difuminados para que parezca aura, no recorte
+    const mask = `radial-gradient(circle ${(rr * r.width).toFixed(1)}px at ${(cx * r.width).toFixed(1)}px ${(cy * r.height).toFixed(1)}px, #000 55%, transparent 92%)`;
+    fx.style.webkitMaskImage = mask;
+    fx.style.maskImage = mask;
+    // La "caida" escala la copia: el origen debe ser el centro del aura,
+    // no el centro de la imagen entera
+    fx.style.transformOrigin = `${(cx * r.width).toFixed(1)}px ${(cy * r.height).toFixed(1)}px`;
     overlay.appendChild(fx);
     const sz = worldSize(w) * r.width * 2.4;
     overlayDivs[w] = { fx, cx: r.left + pos.x * r.width, cy: r.top + pos.y * r.height, sz };
