@@ -145,7 +145,7 @@ async function setSetting(key, value) {
   } catch {}
 }
 // La carga arranca sola para que los flags esten listos antes de interactuar
-loadSettings();
+const settingsReady = loadSettings();
 
 // --- Música global: una pista en loop que sigue sonando entre pantallas ---
 // La posición se guarda en localStorage POR PISTA para retomar donde se quedó.
@@ -161,7 +161,11 @@ const MUSIC = {
   fin: '/assets/music/victory.mp3',
 };
 let musicEl = null;
+// La pista activa se persiste para que cualquier pantalla retome la
+// musica correcta aunque no haya pasado por preloadAll (ej. instrucciones).
+const MUSIC_TRACK_KEY = 'runika-music-track';
 let musicTrack = null;
+try { musicTrack = localStorage.getItem(MUSIC_TRACK_KEY) || null; } catch {}
 
 function saveMusicPos() {
   if (!musicEl || !musicTrack) return;
@@ -173,12 +177,14 @@ function saveMusicPos() {
 }
 window.addEventListener('beforeunload', saveMusicPos);
 
-function startMusic(url) {
+async function startMusic(url) {
+  await settingsReady;
   if (!isMusicEnabled()) return;
   url = url || musicTrack;
   if (!url) return;
   if (musicEl) { if (musicEl.paused) musicEl.play().catch(() => {}); return; }
   musicTrack = url;
+  try { localStorage.setItem(MUSIC_TRACK_KEY, url); } catch {}
   musicEl = new Audio(getCachedSound(url) || url);
   musicEl.loop = true;
   musicEl.volume = 0.45;
@@ -196,6 +202,7 @@ function setMusicTrack(url) {
   if (!url || url === musicTrack) return;
   if (musicEl) { saveMusicPos(); musicEl.pause(); musicEl = null; }
   musicTrack = url;
+  try { localStorage.setItem(MUSIC_TRACK_KEY, url); } catch {}
   startMusic();
 }
 
@@ -220,10 +227,14 @@ async function preloadSounds(urls) {
 
 function playSound(url, volume) {
   if (!isSoundEnabled()) return;
-  const blobUrl = cache.sounds.get(url);
-  if (!blobUrl) return;
+  let src = cache.sounds.get(url);
+  if (!src) {
+    // Fuera de precarga: sonar igual y cachear para la proxima vez
+    src = url;
+    preloadSound(url);
+  }
   // Crear un Audio nuevo cada vez — fiable, sin cortes
-  const audio = new Audio(blobUrl);
+  const audio = new Audio(src);
   audio.volume = volume ?? 1;
   audio.play().catch(() => {});
 }

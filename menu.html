@@ -565,6 +565,7 @@
     if (sessionStorage.getItem('runika-session') === 'active') {
       // Audio ya desbloqueado, ir directo al menu
       await AssetsCache.loadSettings();
+      AssetsCache.setMusicTrack(AssetsCache.MUSIC.main);
       fallback = await loadLang('es');
       translations = await loadLang();
       await loadButtons();
@@ -635,7 +636,7 @@
     const loadingScreen = document.getElementById('loading-screen');
     const enterGame = () => {
       unlockAudio();
-      AssetsCache.startMusic();
+      AssetsCache.startMusic(AssetsCache.MUSIC.main);
       sessionStorage.setItem('runika-session', 'active');
       AssetsCache.hideLoading();
       setTimeout(() => AssetsCache.transitionIn(), 500);

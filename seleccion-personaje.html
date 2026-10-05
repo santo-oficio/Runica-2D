@@ -12,7 +12,12 @@
 <div id="loading-screen" aria-hidden="true"><div id="loading-box"><div id="loading-title"></div><div id="loading-message"></div><div id="loading-track"><div id="loading-progress"></div></div><div id="loading-percent">0%</div></div></div>
 <div id="stage" tabindex="0"><img id="bg" src="/assets/menu%20principal/seleccion_personaje.webp?v=sel8k-3" alt=""><div id="overlay"><svg id="border-overlay"></svg><div id="avatar-slots"></div><img id="full-body" alt=""><svg id="button-overlay"></svg></div><div id="confirm"></div></div>
 <div id="modal-overlay"><div id="modal-box"><img id="modal-img" src="/assets/comunes/modal.webp?v=modal8k-1" alt=""><svg id="modal-svg"></svg><div id="modal-content"></div><div id="modal-btn-l" class="modal-btn"></div><div id="modal-btn-r" class="modal-btn"></div></div></div>
+<script src="/assets-cache.js"></script>
 <script>
+// Retoma la musica de la pantalla anterior (el desbloqueo real espera al gesto)
+AssetsCache.unlockAudio();
+document.addEventListener('click', () => AssetsCache.unlockAudio(), { once: true });
+document.addEventListener('keydown', () => AssetsCache.unlockAudio(), { once: true });
 const bg=document.getElementById('bg'),overlay=document.getElementById('overlay'),avatarSlotsEl=document.getElementById('avatar-slots'),buttonOverlay=document.getElementById('button-overlay'),borderOverlay=document.getElementById('border-overlay'),fullBody=document.getElementById('full-body'),loadingMessage=document.getElementById('loading-message'),loadingProgress=document.getElementById('loading-progress'),loadingPercent=document.getElementById('loading-percent'),nameDisplay=document.createElement('div'),confirm=document.getElementById('confirm');
 function setLoading(message,progress){loadingMessage.textContent=message;const value=Math.max(0,Math.min(100,progress));loadingProgress.style.width=value+'%';loadingPercent.textContent=value+'%'}
 const moveSound=new Audio('/assets/sounds/comun/move.wav');

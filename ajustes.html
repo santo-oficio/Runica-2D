@@ -91,7 +91,7 @@
   let imgRect = { x: 0, y: 0, w: 0, h: 0 };
   let focusIdx = 0;
   let selVisible = false;
-  let settings = { sound: true, music: true, lang: 'es' };
+  let cfg = { sound: true, music: true, lang: 'es' };
   let bgImage = null; // referencia viva de la imagen decodificada
 
   function t(key) { return translations[key] ?? fallback[key] ?? key; }
@@ -201,11 +201,11 @@
     ov.appendChild(makeText(areas.soundText, t('config.sound')));
     ov.appendChild(makeText(areas.musicText, t('config.music')));
     if (areas.langLabel) ov.appendChild(makeText(areas.langLabel, t('menu.language')));
-    ov.appendChild(makeText(areas.langText, LANG_NAMES[settings.lang] || settings.lang));
+    ov.appendChild(makeText(areas.langText, LANG_NAMES[cfg.lang] || cfg.lang));
 
     // Checkboxes
-    ov.appendChild(makeCheck(areas.soundCheck, settings.sound !== false));
-    ov.appendChild(makeCheck(areas.musicCheck, settings.music !== false));
+    ov.appendChild(makeCheck(areas.soundCheck, cfg.sound !== false));
+    ov.appendChild(makeCheck(areas.musicCheck, cfg.music !== false));
 
     // Hotspot fila sonido
     addHotspot(fieldBounds('sound'), () => toggle('sound'), 'sound');
@@ -277,20 +277,25 @@
   }
 
   async function toggle(key) {
-    settings[key] = !settings[key];
-    AssetsCache.setSetting(key, settings[key]);
+    cfg[key] = !cfg[key];
+    AssetsCache.setSetting(key, cfg[key]);
     AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
     render();
   }
 
   async function cycleLang(dir) {
-    const i = LANGS.indexOf(settings.lang);
-    settings.lang = LANGS[(i + dir + LANGS.length) % LANGS.length];
-    AssetsCache.setSetting('lang', settings.lang);
+    const i = LANGS.indexOf(cfg.lang);
+    cfg.lang = LANGS[(i + dir + LANGS.length) % LANGS.length];
+    AssetsCache.setSetting('lang', cfg.lang);
     AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
     translations = await loadLang();
     render();
   }
+
+  // Audio: desbloqueo + retomar la musica de la pantalla anterior
+  AssetsCache.unlockAudio();
+  document.addEventListener('click', () => AssetsCache.unlockAudio(), { once: true });
+  document.addEventListener('keydown', () => AssetsCache.unlockAudio(), { once: true });
 
   function playHover() {
     AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45);
@@ -333,15 +338,22 @@
 
   // --- Init ---
   (async () => {
-    settings = await AssetsCache.loadSettings();
+    try {
+    cfg = await AssetsCache.loadSettings();
     fallback = await loadLang('es');
     translations = await loadLang();
     await loadAreas();
+    AssetsCache.setMusicTrack(AssetsCache.MUSIC.main);
 
-    // Precargar y decodificar la imagen antes de mostrar
+    // Precargar la imagen antes de mostrar (con red de seguridad por si decode cuelga)
     bgImage = new Image();
     bgImage.src = AssetsCache.getCachedImageUrl(IMG_URL);
-    try { await bgImage.decode(); } catch {}
+    try {
+      await Promise.race([
+        bgImage.decode(),
+        new Promise(r => setTimeout(r, 3000)),
+      ]);
+    } catch {}
     document.getElementById('bg').src = bgImage.src;
 
     updateImgRect();
@@ -351,6 +363,7 @@
     // Fade-in
     const ov = document.getElementById('transition-overlay');
     requestAnimationFrame(() => { ov.style.opacity = '0'; });
+    } catch (e) { console.error('[aj] init fail', e); }
   })();
 </script>
 

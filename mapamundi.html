@@ -599,6 +599,7 @@
   function consumeMusicOverride() {
     const ov = sessionStorage.getItem('runika-music-override');
     if (ov) { sessionStorage.removeItem('runika-music-override'); AssetsCache.setMusicTrack(ov); }
+    else AssetsCache.setMusicTrack(AssetsCache.MUSIC.main);
   }
 
   (async () => {
