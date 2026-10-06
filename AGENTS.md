@@ -134,7 +134,8 @@ selector de mundo. La fuente se auto-ajusta al área para no cortar letras.
 
 **Regla del texto oro (`gold`)**: en TODAS las pantallas (tablero, submundo,
 mapamundi…) el texto `gold` se alinea **a la derecha** dentro de su área,
-dejando un margen (~6% del ancho del área) para que no choque con el borde.
+pegado al borde derecho con un margen de ~20px (1% del ancho de la imagen
+visible) para que no choque con el borde.
 A la **izquierda** del texto va el icono `assets/comunes/monedas.webp` (8K
 RGBA): altura igual a la del área `gold`, casi pegado al texto (gap ~12% de
 la altura). Como el texto es dinámico (0 → N), el conjunto icono+texto se

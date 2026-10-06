@@ -112,7 +112,7 @@
     white-space: nowrap; overflow: hidden;
   }
   .btext.gold {
-    justify-content: flex-end; color: #ffd34e;
+    justify-content: flex-end; color: #ffd34e; text-align: right;
     text-shadow: 1px 1px 2px #000, 0 0 12px rgba(255,180,0,.8), 0 0 26px rgba(255,140,0,.5);
   }
   /* Cuenta atrás antes de empezar la pantallita (5 · 4 · 3 · 2 · 1 · YA) */
@@ -328,8 +328,9 @@ function renderBoardTexts() {
                 w: a.w * rect.width, h: a.h * rect.height };
     el.style.cssText = `left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;
     if (k === 'gold') {
-      // Regla a fuego: moneda a la izquierda del número, conjunto a la derecha
-      el.style.paddingRight = (p.w * 0.06) + 'px';
+      // Regla a fuego: moneda a la izquierda del número, conjunto pegado a la
+      // derecha con ~20px de margen (1% del ancho de imagen visible)
+      el.style.paddingRight = (rect.width * 0.01) + 'px';
       el.innerHTML = '';
       const coin = document.createElement('img');
       coin.src = BASE + '/assets/comunes/monedas.webp';

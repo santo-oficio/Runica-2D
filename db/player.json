@@ -3,12 +3,54 @@
     "playerId": "player-1",
     "currentWorld": 1,
     "currentSubLevel": 1,
-    "totalStagesCompleted": 0,
-    "updatedAt": 0,
-    "gold": 0,
+    "totalStagesCompleted": 4,
+    "updatedAt": 1791285407656,
+    "gold": 88,
     "lastWorld": "AGUA",
-    "worldProgress": {},
-    "gameLevel": 1
+    "worldProgress": {
+      "AGUA": {
+        "completed": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "last": 3
+      }
+    },
+    "gameLevel": 2,
+    "started": true,
+    "playerName": "SABELA",
+    "avatarIndex": 2
   },
-  "assignments": {}
+  "assignments": {
+    "map:AGUA:0": {
+      "current": null,
+      "completed": [
+        "l1-s1"
+      ]
+    },
+    "map:AGUA:1": {
+      "current": null,
+      "completed": [
+        "l1-s2"
+      ]
+    },
+    "map:AGUA:2": {
+      "current": null,
+      "completed": [
+        "l1-s3"
+      ]
+    },
+    "map:AGUA:3": {
+      "current": "l2-s3",
+      "completed": [
+        "l2-s1"
+      ]
+    },
+    "map:AGUA:4": {
+      "current": "l2-s2",
+      "completed": []
+    }
+  }
 }

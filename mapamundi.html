@@ -430,7 +430,7 @@
       goldEl.style.width = (GOLD_AREA.w * ir.width) + 'px';
       goldEl.style.height = (GOLD_AREA.h * ir.height) + 'px';
       goldEl.style.fontSize = Math.max(10, GOLD_AREA.h * ir.height * 0.62 * (GOLD_AREA.fontScale || 1)) + 'px';
-      goldEl.style.paddingRight = (GOLD_AREA.w * ir.width * 0.06) + 'px';
+      goldEl.style.paddingRight = (ir.width * 0.01) + 'px';
       const coin = document.createElement('img');
       coin.src = AssetsCache.getCachedImageUrl('/assets/comunes/monedas.webp');
       coin.alt = '';

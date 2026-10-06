@@ -1,1 +1,100 @@
-{"world":"AGUA","global":{"offsetX":0,"offsetY":0,"scale":1},"avatar":[{"size":1.1500000000000001,"offsetX":0,"offsetY":-0.026000000000000002},{"size":0.8799999999999999,"offsetX":0,"offsetY":0},{"size":0.92,"offsetX":0.02,"offsetY":-0.01},{"size":0.92,"offsetX":0.05,"offsetY":-0.02},{"size":0.92,"offsetX":-0.01,"offsetY":-0.04},{"size":0.88,"offsetX":0,"offsetY":-0.01},{"size":0.9900000000000001,"offsetX":0,"offsetY":-0.04},{"size":1.04,"offsetX":0.01,"offsetY":-0.03400000000000001}],"enemy":[{"size":0.8900000000000001,"offsetX":0,"offsetY":0},{"size":0.8700000000000001,"offsetX":0,"offsetY":0},{"size":0.8,"offsetX":0,"offsetY":0}],"boss":[{"size":0.98,"offsetX":0,"offsetY":-0.01}],"trap":[{"size":0.9500000000000004,"offsetX":0,"offsetY":-0.02},{"size":0.7100000000000002,"offsetX":0,"offsetY":-0.04}],"exit":[{"size":0.7499999999999998,"offsetX":0,"offsetY":-0.04}],"obstacle":[{"size":0.7199999999999998,"offsetX":0,"offsetY":0}]}
+{
+  "world": "AGUA",
+  "global": {
+    "offsetX": 0,
+    "offsetY": 0,
+    "scale": 1
+  },
+  "avatar": [
+    {
+      "size": 1.1500000000000001,
+      "offsetX": 0,
+      "offsetY": -0.026000000000000002
+    },
+    {
+      "size": 0.8799999999999999,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.92,
+      "offsetX": 0.02,
+      "offsetY": -0.01
+    },
+    {
+      "size": 0.92,
+      "offsetX": 0.05,
+      "offsetY": -0.02
+    },
+    {
+      "size": 0.92,
+      "offsetX": -0.01,
+      "offsetY": -0.04
+    },
+    {
+      "size": 0.88,
+      "offsetX": 0,
+      "offsetY": -0.01
+    },
+    {
+      "size": 0.9900000000000001,
+      "offsetX": 0,
+      "offsetY": -0.04
+    },
+    {
+      "size": 1.04,
+      "offsetX": 0.01,
+      "offsetY": -0.03400000000000001
+    }
+  ],
+  "enemy": [
+    {
+      "size": 0.9100000000000001,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 0.9700000000000002,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "size": 1.3500000000000005,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ],
+  "boss": [
+    {
+      "size": 1.1900000000000002,
+      "offsetX": 0,
+      "offsetY": -0.01
+    }
+  ],
+  "trap": [
+    {
+      "size": 0.9500000000000004,
+      "offsetX": 0,
+      "offsetY": -0.02
+    },
+    {
+      "size": 0.7100000000000002,
+      "offsetX": 0,
+      "offsetY": -0.04
+    }
+  ],
+  "exit": [
+    {
+      "size": 0.7199999999999998,
+      "offsetX": 0,
+      "offsetY": -0.04
+    }
+  ],
+  "obstacle": [
+    {
+      "size": 0.7199999999999998,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ]
+}
