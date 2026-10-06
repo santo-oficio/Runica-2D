@@ -192,6 +192,24 @@ function ensureTierLoaded(tier: number): Screen[] {
   return tierScreens;
 }
 
+/**
+ * Busca una pantalla por id en el tier donde vive. El id codifica el nivel
+ * ("l3-s12" → tier 3); si no, se recorren todos los tiers. Necesario para
+ * re-jugar puzzles de islas ya completadas cuando el tier actual ha subido.
+ */
+function findScreenById(id: string): Screen | null {
+  const m = /^l(\d+)-/.exec(id);
+  if (m) {
+    const s = ensureTierLoaded(Number(m[1])).find((sc) => sc.id === id);
+    if (s) return s;
+  }
+  for (let t = 1; t <= TOTAL_TIERS; t++) {
+    const s = ensureTierLoaded(t).find((sc) => sc.id === id);
+    if (s) return s;
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Operaciones
 // ---------------------------------------------------------------------------
@@ -374,6 +392,9 @@ function usedScreenIds(): Set<string> {
  * complete, siempre devuelve la misma pantalla del tier correspondiente.
  * La elección excluye TODAS las pantallas ya usadas en el juego, así dos
  * islas nunca reciben el mismo puzzle.
+ * Al re-entrar a una isla YA COMPLETADA siempre sale el mismo puzzle que
+ * se completó ahí (buscado en su tier original, aunque el tier actual haya
+ * subido) — nunca una pantalla nueva.
  */
 export function getLevelScreen(world: string, level: number): { screen: Screen; tier: number } {
   const tier = mapTierFor(world, level);
@@ -381,9 +402,15 @@ export function getLevelScreen(world: string, level: number): { screen: Screen; 
   let assign = assignments.get(key) ?? { current: null, completed: [] };
 
   if (assign.current !== null) {
-    const s = ensureTierLoaded(tier).find((sc) => sc.id === assign.current);
+    const s = findScreenById(assign.current);
     if (s) return { screen: s, tier };
     assign.current = null;
+  }
+
+  const replayId = assign.completed[0] ?? null;
+  if (replayId !== null) {
+    const s = findScreenById(replayId);
+    if (s) return { screen: s, tier };
   }
 
   const pool = ensureTierLoaded(tier);

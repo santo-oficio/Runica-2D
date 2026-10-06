@@ -181,7 +181,9 @@ renderizarla igual.
   mapamundi) y `worldProgress` = `{MUNDO: {last, completed[]}}` con 12 islas por
   mundo (`MAP_LEVELS_PER_WORLD`). Endpoints: `POST /api/map-position`,
   `POST /api/level-position`, `POST /api/level-complete {world, level, gold,
-  screenId}`, `GET /api/level-screen?world&level` (pantalla sticky por isla).
+  screenId}`, `GET /api/level-screen?world&level` (pantalla sticky por isla;
+  al re-entrar a una isla **completada** siempre sale el MISMO puzzle que se
+  completó ahí — se busca en su tier original aunque el tier global suba).
 - **Mapamundi**: el avatar siempre es `player.avatarIndex` (el elegido al crear
   la partida — nunca cambia). Se restaura `lastWorld` al entrar y se guarda al
   avanzar. Un mundo con las 12 islas completadas se muestra en blanco y negro
