@@ -334,7 +334,7 @@ function renderBoardTexts() {
       el.innerHTML = '';
       const coin = document.createElement('img');
       coin.src = BASE + '/assets/comunes/monedas.webp';
-      coin.style.cssText = `height:100%;width:auto;margin-right:${p.h * 0.12}px;flex:none`;
+      coin.style.cssText = `height:100%;width:auto;margin-right:${p.h * 0.06}px;flex:none`;
       const span = document.createElement('span');
       span.textContent = btValue(k);
       el.appendChild(coin); el.appendChild(span);
@@ -827,10 +827,53 @@ function trapEffect() {
 }
 
 // === Fin de partida ===
+// Monedas que vuelan del cofre al contador de oro; cada una que llega
+// incrementa el número mostrado. Al terminar se muestra el overlay.
+function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
+  const goldEl = btEls.gold;
+  if (!goldEl || !earned) {
+    if (playerData) playerData.gold = goldBefore + earned;
+    renderBoardTexts(); onDone(); return;
+  }
+  const icon = goldEl.querySelector('img');
+  const tr = (icon || goldEl).getBoundingClientRect();
+  const tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
+  const n = Math.min(9, Math.max(4, Math.round(earned / 8)));
+  const per = Math.floor(earned / n);
+  let arrived = 0, shown = goldBefore;
+  for (let i = 0; i < n; i++) {
+    const gain = i === n - 1 ? earned - per * (n - 1) : per;
+    const size = 26 + Math.random() * 14;
+    const c = document.createElement('img');
+    c.src = BASE + '/assets/comunes/monedas.webp';
+    c.style.cssText = `position:fixed;left:${fromX - size / 2}px;top:${fromY - size / 2}px;` +
+      `width:${size}px;height:${size}px;object-fit:contain;z-index:60;pointer-events:none;` +
+      `filter:drop-shadow(0 0 6px rgba(255,200,0,.85));`;
+    document.body.appendChild(c);
+    // Arco bezier: sube un poco antes de caer sobre el contador
+    const mx = fromX + (tx - fromX) * 0.4 + (Math.random() - 0.5) * 220;
+    const my = Math.min(fromY, ty) - 90 - Math.random() * 70;
+    const t0 = performance.now() + i * 110, dur = 620 + Math.random() * 160;
+    const step = (t) => {
+      const k = Math.min(1, Math.max(0, (t - t0) / dur)), e = k * k * (3 - 2 * k);
+      const u = 1 - e;
+      c.style.left = (u * u * fromX + 2 * u * e * mx + e * e * tx - size / 2) + 'px';
+      c.style.top = (u * u * fromY + 2 * u * e * my + e * e * ty - size / 2) + 'px';
+      if (k < 1) { requestAnimationFrame(step); return; }
+      c.remove();
+      shown += gain;
+      if (playerData) playerData.gold = shown;
+      const s = goldEl.querySelector('span');
+      if (s) s.textContent = String(shown);
+      if (++arrived === n) onDone();
+    };
+    requestAnimationFrame(step);
+  }
+}
+
 function winGame() {
   gameOver = true; won = true;
   play(victoryAudio);
-  overlay.classList.add('show', 'win');
   overlayTitle.textContent = tt('game.victory');
   if (REAL_MODE) {
     // Boss de mundo derrotado (isla 12, no MAZMORRA): fanfarria de mundo
@@ -841,16 +884,20 @@ function winGame() {
     }
     // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos
     const goldEarned = Math.max(10, currentMinMoves * 5 - turn);
-    if (playerData) playerData.gold = (playerData.gold ?? 0) + goldEarned;
+    const goldBefore = playerData?.gold ?? 0;
     overlaySubtitle.textContent = tt('game.levelDone', REAL_LEVEL + 1, turn) + ' · ' + tt('game.goldEarned', goldEarned);
     document.getElementById('overlay-restart').textContent = tt('instructions.continue');
     renderBoardTexts();
+    const gp = cellPos(goal.c, goal.r, true);
+    flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, goldBefore, goldEarned,
+      () => overlay.classList.add('show', 'win'));
     fetch(BASE + '/api/level-complete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: goldEarned, screenId: currentScreenId }),
     }).catch(() => {});
     return;
   }
+  overlay.classList.add('show', 'win');
   overlaySubtitle.textContent = tt('game.practiceDone', turn);
   document.getElementById('overlay-restart').textContent = tt('game.practiceNext');
 }

@@ -3,9 +3,9 @@
     "playerId": "player-1",
     "currentWorld": 1,
     "currentSubLevel": 1,
-    "totalStagesCompleted": 4,
-    "updatedAt": 1791285407656,
-    "gold": 88,
+    "totalStagesCompleted": 5,
+    "updatedAt": 1791295355353,
+    "gold": 187,
     "lastWorld": "AGUA",
     "worldProgress": {
       "AGUA": {
@@ -13,9 +13,10 @@
           0,
           1,
           2,
-          3
+          3,
+          4
         ],
-        "last": 3
+        "last": 4
       }
     },
     "gameLevel": 2,
@@ -25,9 +26,10 @@
   },
   "assignments": {
     "map:AGUA:0": {
-      "current": null,
+      "current": "l2-s5",
       "completed": [
-        "l1-s1"
+        "l1-s1",
+        "l2-s4"
       ]
     },
     "map:AGUA:1": {
@@ -43,13 +45,21 @@
       ]
     },
     "map:AGUA:3": {
-      "current": "l2-s3",
+      "current": null,
       "completed": [
-        "l2-s1"
+        "l2-s1",
+        "l2-s3"
       ]
     },
     "map:AGUA:4": {
-      "current": "l2-s2",
+      "current": null,
+      "completed": [
+        "l2-s2",
+        "l2-s7"
+      ]
+    },
+    "map:ESPACIO:0": {
+      "current": "l2-s6",
       "completed": []
     }
   }
