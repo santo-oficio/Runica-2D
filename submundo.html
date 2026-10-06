@@ -588,6 +588,21 @@
     completedLevels = new Set(player?.worldProgress?.[currentWorld]?.completed ?? []);
     currentLevel = getStartLevel(currentWorld);
 
+    // El fondo decide cuándo quitar la carga, pero NUNCA puede colgarla:
+    // si ya está cacheada (complete), si falla (error) o si tarda >8s,
+    // se pinta igual (un fondo que falta es mejor que una pantalla muerta).
+    let bgDone = false;
+    const onBgReady = (delay) => {
+      if (bgDone) return;
+      bgDone = true;
+      render();
+      AssetsCache.hideLoading();
+      setTimeout(() => AssetsCache.transitionIn(), delay);
+    };
+    bg.addEventListener('load', () => onBgReady(100), { once: true });
+    bg.addEventListener('error', () => onBgReady(100), { once: true });
+    setTimeout(() => onBgReady(100), 8000);
+
     if (sessionStorage.getItem('runika-session') === 'active') {
       AssetsCache.unlockAudio();
       await AssetsCache.loadSettings();
@@ -598,11 +613,7 @@
       bg.src = WORLD_IMAGES[currentWorld];
       await loadPositions(currentWorld);
       await loadTextAreas(currentWorld);
-      bg.addEventListener('load', () => {
-        render();
-        AssetsCache.hideLoading();
-        setTimeout(() => AssetsCache.transitionIn(), 100);
-      }, { once: true });
+      if (bg.complete && bg.naturalWidth) onBgReady(100);
       return;
     }
 
@@ -624,12 +635,7 @@
     bg.src = WORLD_IMAGES[currentWorld];
     await loadPositions(currentWorld);
     await loadTextAreas(currentWorld);
-
-    bg.addEventListener('load', () => {
-      render();
-      AssetsCache.hideLoading();
-      setTimeout(() => AssetsCache.transitionIn(), 500);
-    }, { once: true });
+    if (bg.complete && bg.naturalWidth) onBgReady(500);
   })();
 
   window.addEventListener('resize', () => {

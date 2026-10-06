@@ -46,26 +46,39 @@ const cache = {
 let loaded = 0;
 let total = 0;
 
+// Un fetch/imagen que tarda demasiado no debe colgar la pantalla de carga:
+// timeout a todo lo que espere a la red o al decodificador.
+const FETCH_TIMEOUT = 30000; // 30s por asset
+const IMG_TIMEOUT = 15000;
+
 async function fetchBlob(url) {
-  const r = await fetch(url);
+  const r = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
   if (!r.ok) throw new Error('fetch failed: ' + url);
   const blob = await r.blob();
   return URL.createObjectURL(blob);
+}
+
+function timeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
 }
 
 async function preloadImage(url) {
   try {
     const blobUrl = await fetchBlob(url);
     const img = new Image();
-    await new Promise((resolve, reject) => {
+    await timeout(new Promise((resolve, reject) => {
       img.onload = resolve;
       img.onerror = reject;
       img.src = blobUrl;
-    });
+    }), IMG_TIMEOUT);
     // Solo se decodifica el hot path: los fondos/submundos 8K (~130MB decod.
     // cada uno) quedan como blob en cache y se decodifican al entrar.
     if (DECODE_RE.test(url) && img.decode) {
-      await img.decode().catch(() => {});
+      // decode() de webp a veces no resuelve nunca: timeout de seguridad
+      await timeout(img.decode(), 3000).catch(() => {});
       cache.decoded.set(url, img);
     }
     cache.images.set(url, blobUrl);
