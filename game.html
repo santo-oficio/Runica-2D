@@ -476,8 +476,10 @@ function decodeImg(src) {
   return new Promise(res => {
     const im = new Image();
     im.onload = () => {
-      (im.decode ? im.decode().catch(() => {}) : Promise.resolve())
-        .finally(() => { decodedImgs.set(src, im); res(im); });
+      // El decode() de un webp 8K puede no resolver nunca: no bloqueamos el
+      // render — se retiene la imagen y se decodifica en segundo plano.
+      decodedImgs.set(src, im); res(im);
+      if (im.decode) im.decode().catch(() => {});
     };
     im.onerror = () => { decodedImgs.set(src, null); res(null); };
     im.src = src;
@@ -895,7 +897,7 @@ async function loadWorld(idx) {
     img.onerror = res;
     img.src = `${BASE}/` + detection.image;
   });
-  if (img.decode) await img.decode().catch(() => {});
+  if (img.decode) await Promise.race([img.decode().catch(() => {}), new Promise(r => setTimeout(r, 3000))]);
 
   // Sprites del mundo: rutas reales + calibración + decodificados ANTES de pintar
   spriteAssets = await boardAssets(detection.world);
