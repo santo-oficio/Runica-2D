@@ -200,14 +200,18 @@ function ensureTierLoaded(tier: number): Screen[] {
  * re-jugar puzzles de islas ya completadas cuando el tier actual ha subido.
  */
 function findScreenById(id: string): Screen | null {
-  const m = /^l(\d+)-/.exec(id);
-  if (m) {
-    const s = ensureTierLoaded(Number(m[1])).find((sc) => sc.id === id);
-    if (s) return s;
-  }
-  for (let t = 1; t <= TOTAL_TIERS; t++) {
-    const s = ensureTierLoaded(t).find((sc) => sc.id === id);
-    if (s) return s;
+  const tiers = (() => {
+    const m = /^l(\d+)-/.exec(id);
+    const t = m ? Number(m[1]) : 0;
+    return t >= 1 && t <= TOTAL_TIERS
+      ? [t]
+      : Array.from({ length: TOTAL_TIERS }, (_, i) => i + 1);
+  })();
+  for (const t of tiers) {
+    try {
+      const s = ensureTierLoaded(t).find((sc) => sc.id === id);
+      if (s) return s;
+    } catch { /* tier sin banco (p.ej. tiers archivados 1-4) */ }
   }
   return null;
 }
