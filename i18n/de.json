@@ -123,5 +123,6 @@
   "game.helpAvatar": "Avatar wechseln",
   "game.helpWorld": "Welt wechseln",
   "game.keysMove": "Pfeiltasten/WASD",
-  "game.keySpace": "Leertaste"
+  "game.keySpace": "Leertaste",
+  "game.restart": "Neustart"
 }

@@ -196,7 +196,12 @@ renderizarla igual.
   si la N-1 está completada — el movimiento y el Enter a islas bloqueadas
   rebotan. `Enter` en una isla desbloqueada guarda la posición y entra a
   `game.html?world=X&level=N` (modo real: pantalla sticky, avatar fijo,
-  victoria → `POST /api/level-complete` y vuelta al submundo; `Esc` vuelve).
+  `Esc` vuelve). **Victoria**: las monedas vuelan del cofre al contador de
+  oro y luego sale el **modal** (`assets/comunes/modal.webp` +
+  `modal-areas.json`): botón **rojo (izq) = Reiniciar** — revierte el oro
+  ganado y re-juega el MISMO puzzle (la isla no se confirma) — y botón
+  **verde (der) = Continuar** — `POST /api/level-complete` y al submundo.
+  El `level-complete` solo se envía al pulsar Continuar.
 - **Bosses**: los sprites de `assets/bosses/<M>/` solo se usan en la **última
   isla** (índice 11) de cada submundo; el resto de islas usan siempre imágenes
   de `assets/enemys/<M>/`.

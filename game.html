@@ -104,6 +104,17 @@
     border: 1px solid #0ff; padding: 8px 20px; border-radius: 4px;
   }
   #overlay .restart:hover { background: rgba(0,255,255,0.1); }
+  /* Modal de victoria (calibrado en calibrate-modal.html): rojo=reiniciar, verde=continuar */
+  #modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
+  #modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}
+  #modal-box{position:relative;width:min(80vh,64vw);aspect-ratio:3/2}
+  #modal-img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+  #modal-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  #modal-svg text{font-family:'ChelseaMarket',cursive;fill:#ffe9b0;paint-order:stroke;stroke:rgba(60,30,10,.7);stroke-width:1.5px}
+  #modal-content{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'ChelseaMarket',cursive;color:#3a2810;line-height:1.3;pointer-events:none}
+  .modal-btn{position:absolute;display:flex;align-items:center;justify-content:center;font-family:'ChelseaMarket',cursive;color:#ffe9b0;text-shadow:0 1px 3px rgba(0,0,0,.75);cursor:pointer;user-select:none}
+  polygon.modal-sel{fill:rgba(255,213,79,.08);stroke:#ffd54f;stroke-width:3px;display:none;filter:drop-shadow(0 0 6px rgba(255,213,79,.85))}
+  polygon.modal-sel.focused{display:block}
   #boardtexts { position: fixed; inset: 0; pointer-events: none; z-index: 15; display: none; }
   .btext {
     position: absolute; display: flex; align-items: center; justify-content: center;
@@ -182,6 +193,8 @@
     <div class="subtitle" id="overlay-subtitle"></div>
     <div class="restart" id="overlay-restart"></div>
   </div>
+
+  <div id="modal-overlay"><div id="modal-box"><img id="modal-img" src="/assets/comunes/modal.webp" alt=""><svg id="modal-svg"></svg><div id="modal-content"></div><div id="modal-btn-l" class="modal-btn"></div><div id="modal-btn-r" class="modal-btn"></div></div></div>
 
 <script src="/assets-cache.js"></script>
 <script>
@@ -376,6 +389,7 @@ const victoryAudio = new Audio(`${BASE}/assets/sounds/comun/victoria.wav`);
 const defeatAudio = new Audio(`${BASE}/assets/sounds/comun/derrota.wav`);
 const backAudio = new Audio(`${BASE}/assets/sounds/comun/back.wav`);
 const pressAudio = new Audio(`${BASE}/assets/sounds/comun/press.wav`);
+const hoverAudio = new Audio(`${BASE}/assets/sounds/comun/hover.wav`);
 [bounceAudio, trapAudio, victoryAudio, defeatAudio, backAudio, pressAudio].forEach(a => a.preload = true);
 
 let sfxOn = true;
@@ -871,6 +885,113 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
   }
 }
 
+// === Modal de victoria (calibrado en calibrate-modal.html) ===
+// Boton rojo (izq) = reiniciar la isla · boton verde (der) = continuar.
+// La victoria solo se confirma al pulsar Continuar: reiniciar revierte
+// el oro y re-juega el mismo puzzle (la isla sigue sin completarse).
+const modalOverlay = document.getElementById('modal-overlay'),
+      modalBox = document.getElementById('modal-box'),
+      modalSvg = document.getElementById('modal-svg'),
+      modalContent = document.getElementById('modal-content'),
+      modalBtnL = document.getElementById('modal-btn-l'),
+      modalBtnR = document.getElementById('modal-btn-r');
+const MODAL_DEFAULTS = { title: { polygon: [[.30,.19],[.42,.115],[.58,.115],[.70,.19]], fontScale: 1 },
+  content: { x: .20, y: .30, w: .60, h: .22, fontScale: 1 },
+  buttonLeft: { x: .21, y: .60, w: .26, h: .13, fontScale: 1 },
+  buttonRight: { x: .53, y: .60, w: .26, h: .13, fontScale: 1 },
+  buttonLeftBorder: { x: .18, y: .55, w: .32, h: .20, fontScale: 1 },
+  buttonRightBorder: { x: .50, y: .55, w: .32, h: .20, fontScale: 1 } };
+let modalAreas = null, modalOpen = false, modalSel = 1; // 0=izq(rojo:reiniciar) 1=der(verde:continuar)
+let winGoldEarned = 0, winGoldBefore = 0, winBodyText = '';
+
+function modalCurvePath(poly, W, H) {
+  if (!poly || poly.length < 2) return null;
+  const pts = [];
+  for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length];
+    for (let t = 0; t < 400; t++) { const u = t / 400; pts.push([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]); } }
+  const buckets = new Map();
+  for (const p of pts) { const k = Math.round(p[0] * 160); if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(p[1]); }
+  const sorted = [...buckets].sort((a, b) => a[0] - b[0]);
+  const thicks = sorted.map(([, ys]) => Math.max(...ys) - Math.min(...ys));
+  const avgT = thicks.reduce((s, v) => s + v, 0) / thicks.length;
+  let mid;
+  if (avgT < 0.008) { mid = poly.slice(); if (mid[0][0] > mid[mid.length - 1][0]) mid.reverse(); }
+  else mid = sorted.map(([k, ys]) => [k / 160, (Math.min(...ys) + Math.max(...ys)) / 2]);
+  if (mid.length < 2) return null;
+  return { d: 'M ' + mid.map(p => `${(p[0] * W).toFixed(1)} ${(p[1] * H).toFixed(1)}`).join(' L '), bandH: Math.max(avgT, .05) };
+}
+
+function renderModal() {
+  const W = modalBox.clientWidth, H = modalBox.clientHeight;
+  const A = k => Object.assign({}, MODAL_DEFAULTS[k], modalAreas?.[k]);
+  modalSvg.setAttribute('viewBox', `0 0 ${W} ${H}`); modalSvg.innerHTML = '';
+  const title = A('title');
+  const curve = modalCurvePath(title.polygon, W, H);
+  if (curve) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('id', 'modal-arc'); path.setAttribute('d', curve.d); path.setAttribute('fill', 'none');
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs'); defs.appendChild(path); modalSvg.appendChild(defs);
+    const tx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    const tp = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
+    tp.setAttribute('href', '#modal-arc'); tp.setAttribute('startOffset', '50%'); tp.setAttribute('text-anchor', 'middle');
+    tp.textContent = tt('game.victory');
+    tx.setAttribute('font-size', Math.max(8, curve.bandH * H * .62 * (title.fontScale || 1)));
+    tx.appendChild(tp); modalSvg.appendChild(tx);
+  }
+  const put = (el, a, text) => {
+    el.style.left = a.x * W + 'px'; el.style.top = a.y * H + 'px';
+    el.style.width = a.w * W + 'px'; el.style.height = a.h * H + 'px';
+    el.textContent = text;
+    let fs = Math.max(8, a.h * H * .62 * (a.fontScale || 1));
+    el.style.fontSize = fs + 'px';
+    while ((el.scrollWidth > a.w * W + 1 || el.scrollHeight > a.h * H + 1) && fs > 6) { fs--; el.style.fontSize = fs + 'px'; }
+  };
+  put(modalContent, A('content'), winBodyText);
+  put(modalBtnL, A('buttonLeft'), tt('game.restart'));
+  put(modalBtnR, A('buttonRight'), tt('menu.continue'));
+  const polyOf = a => a.polygon?.length >= 3 ? a.polygon : [[a.x, a.y], [a.x + a.w, a.y], [a.x + a.w, a.y + a.h], [a.x, a.y + a.h]];
+  for (const [k, on] of [['buttonLeftBorder', modalSel === 0], ['buttonRightBorder', modalSel === 1]]) {
+    const pg = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    pg.setAttribute('points', polyOf(A(k)).map(p => `${(p[0] * W).toFixed(1)},${(p[1] * H).toFixed(1)}`).join(' '));
+    pg.setAttribute('class', 'modal-sel' + (on ? ' focused' : '')); modalSvg.appendChild(pg);
+  }
+}
+
+function openWinModal() {
+  modalOpen = true; modalSel = 1;
+  modalOverlay.classList.add('show');
+  requestAnimationFrame(() => requestAnimationFrame(() => modalOverlay.classList.add('visible')));
+  renderModal();
+}
+function closeWinModal() {
+  modalOpen = false;
+  modalOverlay.classList.remove('visible');
+  setTimeout(() => modalOverlay.classList.remove('show'), 320);
+}
+
+// Continuar (verde): confirma la victoria — se guarda nivel+oro y se avanza
+function confirmWin() {
+  closeWinModal();
+  fetch(BASE + '/api/level-complete', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: winGoldEarned, screenId: currentScreenId }),
+  }).catch(() => {});
+  afterVictory();
+}
+// Reiniciar (rojo): el oro vuelve al de antes y se repite la misma pantalla
+// (la asignacion de la isla es sticky: como no se confirmo, es el mismo puzzle)
+function restartWin() {
+  closeWinModal();
+  if (playerData) playerData.gold = winGoldBefore;
+  renderBoardTexts();
+  loadScreen();
+}
+modalBtnL.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); modalSel = 0; play(pressAudio); restartWin(); });
+modalBtnR.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); modalSel = 1; play(pressAudio); confirmWin(); });
+modalBtnL.addEventListener('pointerenter', () => { modalSel = 0; play(hoverAudio); renderModal(); });
+modalBtnR.addEventListener('pointerenter', () => { modalSel = 1; play(hoverAudio); renderModal(); });
+window.addEventListener('resize', () => { if (modalOpen) renderModal(); });
+
 function winGame() {
   gameOver = true; won = true;
   play(victoryAudio);
@@ -882,19 +1003,15 @@ function winGame() {
       AssetsCache.setMusicTrack(AssetsCache.MUSIC.worldWin);
       sessionStorage.setItem('runika-music-override', AssetsCache.MUSIC.worldWin);
     }
-    // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos
-    const goldEarned = Math.max(10, currentMinMoves * 5 - turn);
-    const goldBefore = playerData?.gold ?? 0;
-    overlaySubtitle.textContent = tt('game.levelDone', REAL_LEVEL + 1, turn) + ' · ' + tt('game.goldEarned', goldEarned);
-    document.getElementById('overlay-restart').textContent = tt('instructions.continue');
+    // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos.
+    // Se suma visualmente con el vuelo de monedas; se confirma al pulsar
+    // Continuar en el modal (Reiniciar lo revierte).
+    winGoldEarned = Math.max(10, currentMinMoves * 5 - turn);
+    winGoldBefore = playerData?.gold ?? 0;
+    winBodyText = tt('game.levelDone', REAL_LEVEL + 1, turn) + ' · ' + tt('game.goldEarned', winGoldEarned);
     renderBoardTexts();
     const gp = cellPos(goal.c, goal.r, true);
-    flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, goldBefore, goldEarned,
-      () => overlay.classList.add('show', 'win'));
-    fetch(BASE + '/api/level-complete', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: goldEarned, screenId: currentScreenId }),
-    }).catch(() => {});
+    flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal);
     return;
   }
   overlay.classList.add('show', 'win');
@@ -970,12 +1087,23 @@ function nextAvatar() {
 // === Teclado ===
 document.addEventListener('keydown', (e) => {
   if (REAL_MODE) {
-    if (e.key === 'Escape') { e.preventDefault(); play(backAudio); if (won) afterVictory(); else backToSubmundo(); return; }
+    // Modal de victoria abierto: flechas eligen, Enter confirma, Esc = continuar
+    if (modalOpen) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault(); modalSel = modalSel === 0 ? 1 : 0; play(hoverAudio); renderModal();
+      } else if (e.key === 'Enter' || e.code === 'Space') {
+        e.preventDefault(); play(pressAudio); modalSel === 1 ? confirmWin() : restartWin();
+      } else if (e.key === 'Escape') {
+        e.preventDefault(); play(backAudio); confirmWin();
+      }
+      return;
+    }
+    if (e.key === 'Escape') { e.preventDefault(); play(backAudio); if (won) confirmWin(); else backToSubmundo(); return; }
     if (countingDown) return;
     if (e.key === 'r' || e.key === 'R' || e.code === 'Space' || e.key === 'Enter') {
       e.preventDefault();
       play(pressAudio);
-      if (won) afterVictory(); else loadScreen();
+      if (won) confirmWin(); else loadScreen();
       return;
     }
     if (gameOver) return;
@@ -1017,7 +1145,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('overlay-restart').addEventListener('click', () => {
-  if (REAL_MODE && won) { play(pressAudio); afterVictory(); return; }
+  if (REAL_MODE && won) { play(pressAudio); confirmWin(); return; }
   play(pressAudio);
   loadScreen();
 });
@@ -1055,6 +1183,12 @@ async function init() {
       const r = await fetch(`${BASE}/api/load-board-text-areas?world=${encodeURIComponent(REAL_WORLD)}`);
       if (r.ok) { const d = await r.json(); textAreas = d.areas || null; }
     } catch {}
+    // Áreas del modal de victoria (título en arco, contenido, botones)
+    try {
+      const r = await fetch(`${BASE}/api/load-modal-areas`);
+      if (r.ok) { const d = await r.json(); modalAreas = d.areas || null; }
+    } catch {}
+    decodeImg(BASE + '/assets/comunes/modal.webp');
     document.getElementById('hud').style.display = 'none';
     document.getElementById('practice-tag').style.display = 'none';
     document.getElementById('help').style.display = 'none';

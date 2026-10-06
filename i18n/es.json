@@ -123,5 +123,6 @@
   "game.helpAvatar": "cambiar avatar",
   "game.helpWorld": "cambiar mundo",
   "game.keysMove": "Flechas/WASD",
-  "game.keySpace": "Espacio"
+  "game.keySpace": "Espacio",
+  "game.restart": "Reiniciar"
 }
