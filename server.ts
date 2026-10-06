@@ -24,6 +24,7 @@ import {
   setLevelPosition,
   getLevelScreen,
   completeLevel,
+  FIRST_TIER,
 } from "./db/db.js";
 
 const PORT = 3000;
@@ -1023,7 +1024,7 @@ const server = http.createServer((req, res) => {
   // GET /api/practice-screen?tier=1
   if (url.startsWith("/api/practice-screen")) {
     const u = new URL(url, `http://localhost:${PORT}`);
-    const tier = Number(u.searchParams.get("tier") ?? "1") || 1;
+    const tier = Math.max(FIRST_TIER, Number(u.searchParams.get("tier") ?? String(FIRST_TIER)) || FIRST_TIER);
     const screen = getRandomScreenByTier(tier);
     res.writeHead(screen ? 200 : 404, { "Content-Type": "application/json" });
     res.end(JSON.stringify(screen ? { ok: true, screen, tier } : { ok: false, error: "Tier sin pantallas" }));

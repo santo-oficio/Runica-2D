@@ -1122,7 +1122,7 @@ document.addEventListener('keydown', (e) => {
   // Cambiar tier: [ ] o - / +
   if (e.key === '[' || e.key === '-') {
     e.preventDefault();
-    currentTier = Math.max(1, currentTier - 1);
+    currentTier = Math.max(5, currentTier - 1); // el nivel más bajo es el 5
     loadScreen();
     return;
   }
