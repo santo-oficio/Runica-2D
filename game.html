@@ -583,9 +583,11 @@ async function renderEntities() {
   const FINAL_ISLAND = 11;
   const isBossLevel = REAL_MODE && REAL_LEVEL === FINAL_ISLAND;
   const enemyPool = isBossLevel ? (assets.boss?.length ? assets.boss : assets.enemy) : assets.enemy;
-  // Todas las variantes de enemigo conviven: reparto al azar sin repetir
-  // imagen mientras sea posible (misma regla que los obstáculos)
-  const enemyPicks = pickRandomImages(enemyPool, enemies.length);
+  // Regla: los enemigos normales usan siempre la última variante del
+  // mundo (enemy_XX_04 — la más nueva). Los bosses de la isla 12 no cambian.
+  const enemySrc = isBossLevel ? null : (enemyPool?.[enemyPool.length - 1] || '');
+  const enemyPicks = isBossLevel ? pickRandomImages(enemyPool, enemies.length)
+                                : enemies.map(() => enemySrc);
   enemies.forEach((e, i) => {
     const el = document.createElement('img');
     el.className = 'entity';
