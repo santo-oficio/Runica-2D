@@ -324,6 +324,15 @@
   const avatarImg = avatarEl.querySelector('img');
 
   function getImgRect() { return bg.getBoundingClientRect(); }
+  // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain);
+  // los textos calibrados (text-areas.json) viven en ese espacio.
+  function imageRect() {
+    const er = getImgRect();
+    const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
+    const s = Math.min(er.width / iw, er.height / ih);
+    const w = iw * s, h = ih * s;
+    return { left: er.left + (er.width - w) / 2, top: er.top + (er.height - h) / 2, width: w, height: h };
+  }
 
   function render() {
     const r = getImgRect();
@@ -413,14 +422,15 @@
 
     // Oro acumulado (área calibrada, alineado a la derecha con moneda)
     if (GOLD_AREA && player) {
+      const ir = imageRect();
       const goldEl = document.createElement('div');
       goldEl.className = 'gold-text';
-      goldEl.style.left = (r.left + GOLD_AREA.x * r.width) + 'px';
-      goldEl.style.top = (r.top + GOLD_AREA.y * r.height) + 'px';
-      goldEl.style.width = (GOLD_AREA.w * r.width) + 'px';
-      goldEl.style.height = (GOLD_AREA.h * r.height) + 'px';
-      goldEl.style.fontSize = Math.max(10, GOLD_AREA.h * r.height * 0.62 * (GOLD_AREA.fontScale || 1)) + 'px';
-      goldEl.style.paddingRight = (GOLD_AREA.w * r.width * 0.06) + 'px';
+      goldEl.style.left = (ir.left + GOLD_AREA.x * ir.width) + 'px';
+      goldEl.style.top = (ir.top + GOLD_AREA.y * ir.height) + 'px';
+      goldEl.style.width = (GOLD_AREA.w * ir.width) + 'px';
+      goldEl.style.height = (GOLD_AREA.h * ir.height) + 'px';
+      goldEl.style.fontSize = Math.max(10, GOLD_AREA.h * ir.height * 0.62 * (GOLD_AREA.fontScale || 1)) + 'px';
+      goldEl.style.paddingRight = (GOLD_AREA.w * ir.width * 0.06) + 'px';
       const coin = document.createElement('img');
       coin.src = AssetsCache.getCachedImageUrl('/assets/comunes/monedas.webp');
       coin.alt = '';
