@@ -449,6 +449,7 @@
       goldEl.style.height = (goldArea.h * r.height) + 'px';
       goldEl.style.fontSize = Math.max(14, goldArea.h * r.height * 0.62 * (goldArea.fontScale || 1)) + 'px';
       goldEl.style.justifyContent = 'flex-end';
+      goldEl.style.paddingRight = (goldArea.w * r.width * 0.06) + 'px';
       const coin = document.createElement('img');
       coin.src = AssetsCache.getCachedImageUrl('/assets/comunes/monedas.webp');
       coin.alt = '';
