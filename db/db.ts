@@ -357,8 +357,23 @@ export function setLevelPosition(world: string, level: number): PlayerState {
 }
 
 /**
+ * IDs de pantallas ya usadas en TODO el juego (asignadas o completadas en
+ * cualquier isla). Garantiza que ninguna pantalla se repita jamás.
+ */
+function usedScreenIds(): Set<string> {
+  const used = new Set<string>();
+  for (const a of assignments.values()) {
+    if (a.current) used.add(a.current);
+    for (const id of a.completed) used.add(id);
+  }
+  return used;
+}
+
+/**
  * Pantalla asignada a una isla del mapa (sticky): mientras la isla no se
  * complete, siempre devuelve la misma pantalla del tier correspondiente.
+ * La elección excluye TODAS las pantallas ya usadas en el juego, así dos
+ * islas nunca reciben el mismo puzzle.
  */
 export function getLevelScreen(world: string, level: number): { screen: Screen; tier: number } {
   const tier = mapTierFor(world, level);
@@ -372,8 +387,8 @@ export function getLevelScreen(world: string, level: number): { screen: Screen; 
   }
 
   const pool = ensureTierLoaded(tier);
-  const done = new Set(assign.completed);
-  const chosen = pool.find((s) => !done.has(s.id)) ?? pool[0]!;
+  const used = usedScreenIds();
+  const chosen = pool.find((s) => !used.has(s.id)) ?? pool[0]!;
   assign.current = chosen.id;
   assignments.set(key, assign);
   persist();
