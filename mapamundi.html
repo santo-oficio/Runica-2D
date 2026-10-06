@@ -349,10 +349,10 @@
       // Copia gris del mapa con mascara organica: nucleo difuminado +
       // un blob suave en cada vertice irregular del aura calibrada
       // (determinista por mundo). Sin clip-path: cero bordes duros.
-      if (worldCompleted(w) || worldLocked(w)) {
+      if (worldLocked(w) && !worldCompleted(w)) { // solo lo bloqueado se oscurece; lo completado queda a color
         const fx = document.createElement('img');
         fx.src = document.getElementById('bg').src;
-        fx.className = 'world-fx ' + (worldCompleted(w) ? 'done' : 'locked');
+        fx.className = 'world-fx locked';
         fx.style.left = r.left + 'px';
         fx.style.top = r.top + 'px';
         fx.style.width = r.width + 'px';

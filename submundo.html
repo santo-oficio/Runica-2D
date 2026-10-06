@@ -380,12 +380,11 @@
 
       // Máscara visual sobre la isla: completada (B/N) o bloqueada (oscura)
       if (i !== currentLevel) {
-        const done = completedLevels.has(i);
         const locked = !isLevelUnlocked(i);
-        if (done || locked) {
+        if (locked) { // solo lo bloqueado se oscurece; lo completado queda a color
           const fx = document.createElement('img');
           fx.src = bg.src;
-          fx.className = 'island-fx ' + (done ? 'done' : 'locked');
+          fx.className = 'island-fx locked';
           fx.style.left = r.left + 'px';
           fx.style.top = r.top + 'px';
           fx.style.width = r.width + 'px';

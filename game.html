@@ -483,6 +483,21 @@ function decodeImg(src) {
   });
 }
 
+// Calibración de sprites por mundo (sprites.json: global + por tipo/instancia)
+// size = fracción de casilla; offsetX/Y = fracción de casilla desde el centro.
+let spriteCalib = null;
+const FINAL_ISLAND = 11;
+const isBossLevel = () => REAL_MODE && REAL_LEVEL === FINAL_ISLAND;
+function calibFor(type, inst) {
+  const e = spriteCalib?.[type]?.[inst];
+  const g = spriteCalib?.global;
+  return {
+    size: (e?.size ?? 1) * (g?.scale ?? 1),
+    ox: (e?.offsetX ?? 0) + (g?.offsetX ?? 0),
+    oy: (e?.offsetY ?? 0) + (g?.offsetY ?? 0),
+  };
+}
+
 // Elegir N imágenes al azar sin repetir mientras sea posible (regla a fuego)
 function pickRandomImages(pool, n) {
   if (!pool || !pool.length) return [];
@@ -553,16 +568,29 @@ function positionSelector() {
   selector.style.top = p.top + 'px';
   selector.style.width = p.w + 'px';
   selector.style.height = p.h + 'px';
+  // Calibración del avatar: el selector queda a tamaño casilla (el rebote y
+  // el movimiento no se tocan); el img interno lleva size/offset calibrado.
+  const cl = calibFor('avatar', avatarIdx);
+  avatarImg.style.width = (p.w * cl.size) + 'px';
+  avatarImg.style.height = (p.h * cl.size) + 'px';
+  avatarImg.style.left = ((p.w - p.w * cl.size) / 2 + cl.ox * p.w) + 'px';
+  avatarImg.style.top = ((p.h - p.h * cl.size) / 2 + cl.oy * p.h) + 'px';
   posLabel.textContent = tt('game.practiceCell', player.c, player.r);
   updateTurnDisplay();
 }
 
 function place(el, c, r, useAvatarArea) {
   const p = cellPos(c, r, useAvatarArea);
-  el.style.left = p.left + 'px';
-  el.style.top = p.top + 'px';
-  el.style.width = p.w + 'px';
-  el.style.height = p.h + 'px';
+  // Calibración por tipo+instancia de sprites.json (la pared es un div sin imagen)
+  const t = el.dataset.type;
+  const ck = t === 'goal' ? 'exit' : (t === 'enemy' && isBossLevel() ? 'boss' : t);
+  const cl = (ck && ck !== 'wall') ? calibFor(ck, +(el.dataset.inst || 0))
+                                  : { size: 1, ox: 0, oy: 0 };
+  const w = p.w * cl.size, h = p.h * cl.size;
+  el.style.left = (p.left + (p.w - w) / 2 + cl.ox * p.w) + 'px';
+  el.style.top = (p.top + (p.h - h) / 2 + cl.oy * p.h) + 'px';
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
 }
 
 async function renderEntities() {
@@ -576,17 +604,17 @@ async function renderEntities() {
   goalEl.className = 'entity goal';
   goalEl.src = BASE + (assets.exit?.[0] || '');
   goalEl.dataset.col = goal.c; goalEl.dataset.row = goal.r; goalEl.dataset.type = 'goal';
+  goalEl.dataset.inst = '0';
   place(goalEl, goal.c, goal.r, true);
   container.appendChild(goalEl);
 
   // Enemigos — en la última isla del submundo (modo real) salen los bosses
-  const FINAL_ISLAND = 11;
-  const isBossLevel = REAL_MODE && REAL_LEVEL === FINAL_ISLAND;
-  const enemyPool = isBossLevel ? (assets.boss?.length ? assets.boss : assets.enemy) : assets.enemy;
+  const enemyPool = isBossLevel() ? (assets.boss?.length ? assets.boss : assets.enemy) : assets.enemy;
   // Regla: los enemigos normales usan siempre la última variante del
   // mundo (enemy_XX_04 — la más nueva). Los bosses de la isla 12 no cambian.
-  const enemySrc = isBossLevel ? null : (enemyPool?.[enemyPool.length - 1] || '');
-  const enemyPicks = isBossLevel ? pickRandomImages(enemyPool, enemies.length)
+  const enemyInst = enemyPool ? enemyPool.length - 1 : 0;
+  const enemySrc = isBossLevel() ? null : (enemyPool?.[enemyInst] || '');
+  const enemyPicks = isBossLevel() ? pickRandomImages(enemyPool, enemies.length)
                                 : enemies.map(() => enemySrc);
   enemies.forEach((e, i) => {
     const el = document.createElement('img');
@@ -594,6 +622,7 @@ async function renderEntities() {
     el.src = BASE + (enemyPicks[i] || '');
     el.dataset.col = e.c; el.dataset.row = e.r;
     el.dataset.type = 'enemy'; el.dataset.idx = i;
+    el.dataset.inst = isBossLevel() ? Math.max(0, enemyPool.indexOf(enemyPicks[i])) : enemyInst;
     place(el, e.c, e.r, true);
     container.appendChild(el);
   });
@@ -620,6 +649,7 @@ async function renderEntities() {
     el.className = 'entity';
     el.src = BASE + src;
     el.dataset.col = c; el.dataset.row = r; el.dataset.type = 'obstacle';
+    el.dataset.inst = Math.max(0, pool.indexOf(src));
     place(el, c, r, false);
     container.appendChild(el);
   });
@@ -633,6 +663,7 @@ async function renderEntities() {
       el.className = 'entity trap';
       el.src = trapSrc;
       el.dataset.col = c; el.dataset.row = r; el.dataset.type = 'trap';
+      el.dataset.inst = '0';
       place(el, c, r, false);
       container.appendChild(el);
     });
@@ -865,8 +896,12 @@ async function loadWorld(idx) {
   });
   if (img.decode) await img.decode().catch(() => {});
 
-  // Sprites del mundo: rutas reales + decodificados ANTES de pintar
+  // Sprites del mundo: rutas reales + calibración + decodificados ANTES de pintar
   spriteAssets = await boardAssets(detection.world);
+  try {
+    const r = await fetch(`${BASE}/api/load-board-sprites?world=${encodeURIComponent(detection.world)}`);
+    spriteCalib = r.ok ? await r.json() : null;
+  } catch { spriteCalib = null; }
   if (spriteAssets) {
     const srcs = ['enemy', 'boss', 'trap', 'exit', 'obstacle']
       .flatMap(k => spriteAssets[k] || []).map(s => BASE + s);
