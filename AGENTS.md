@@ -13,7 +13,7 @@ npx tsx server.ts  # juego y calibradores en http://localhost:3000
 ## Modo práctica (`game.html`)
 
 `http://localhost:3000/game.html` — modo práctica que elige una pantalla
-**al azar** del tier 1 (endpoint `/api/practice-screen?tier=1`) en cada recarga y un
+**al azar** del tier 5 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
 mundo al azar. **No guarda nada en la bbdd** (solo lectura).
 
 Controles: `Flechas/WASD` mover · `R` otra pantalla · `Espacio` cambiar mundo ·
@@ -294,10 +294,10 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   - **No es obligatorio mostrar todas** las imágenes del mundo en cada pantalla; basta con las que el nivel genere.
   - Si un mundo no tiene carpeta de obstáculos, se usa una imagen de marcador (placeholder) y se documenta el faltante.
   - Mapeo de carpetas especiales: `VIENTO` → `assets/obstaculos/AIRE/`.
-- **Progresión de dificultad**: 8 mundos × 12 islas = 96 pantallas, repartidas en 14 niveles (tier) según el **nº de pantallas superadas** — niveles 1-3
-  de solo 3 pantallas (muy fáciles), el resto `floor((c-9) × 11 / 87) + 4`
-  (~8 por nivel). NO depende de la isla/mundo (los mundos se juegan en orden
-  libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
+- **Progresión de dificultad**: 8 mundos × 12 islas = 96 pantallas, repartidas en los tiers **5..14** (la partida
+  siempre empieza en el nivel 5) según el **nº de pantallas superadas** —
+  `min(14, 5 + floor(c × 10 / 96))`, ~9-10 islas por tier. NO depende de la
+  isla/mundo (los mundos se juegan en orden libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
 - **A fuego — sin textos hardcodeados**: ningún texto visible al usuario puede estar
   escrito directamente en el código (HTML, TS, etc.). Todo texto debe venir de
   archivos de idioma en `i18n/` (`es.json`, `en.json`, `fr.json`, `de.json`,

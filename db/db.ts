@@ -96,6 +96,8 @@ export const WORLDS = [
 export const SUBLEVELS_PER_WORLD = 12;
 export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
 export const TOTAL_TIERS = 14;
+/** Tier de dificultad inicial: la partida siempre empieza en el nivel 5. */
+export const FIRST_TIER = 5;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
 export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
@@ -107,15 +109,14 @@ export function stageFor(world: number, subLevel: number): number {
 }
 
 /**
- * Tier de dificultad (1..14) según el Nº DE PANTALLAS SUPERADAS, no la
- * posición en el mapa (los mundos se juegan en orden libre). Los niveles 1-3
- * son cortos (3 pantallas cada uno, son muy fáciles); el resto reparte las
- * 87 pantallas restantes en 11 niveles (~8 por nivel).
+ * Tier de dificultad (5..14) según el Nº DE PANTALLAS SUPERADAS, no la
+ * posición en el mapa (los mundos se juegan en orden libre). La partida
+ * siempre empieza en el tier 5 y los 96 escenarios se reparten de forma
+ * uniforme entre los 10 tiers restantes (~9-10 islas por tier).
  */
 export function tierForCompleted(completed: number): number {
   const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
-  if (c < 9) return Math.floor(c / 3) + 1; // 0-2 → 1, 3-5 → 2, 6-8 → 3
-  return Math.min(TOTAL_TIERS, Math.floor(((c - 9) * (TOTAL_TIERS - 3)) / (TOTAL_STAGES - 9)) + 4);
+  return Math.min(TOTAL_TIERS, FIRST_TIER + Math.floor((c * (TOTAL_TIERS - FIRST_TIER + 1)) / TOTAL_STAGES));
 }
 
 /** Banda de dificultad continua (0.5..8.0) según pantallas superadas. */
@@ -148,7 +149,7 @@ function defaultPlayer(): PlayerState {
     gold: 0,
     lastWorld: "AGUA",
     worldProgress: {},
-    gameLevel: 1,
+    gameLevel: FIRST_TIER,
   };
 }
 
@@ -173,6 +174,7 @@ export function loadDb(): void {
       assignments?: Record<string, WorldTierAssignment>;
     };
     if (data.player) player = { ...defaultPlayer(), ...data.player };
+    player.gameLevel = tierForCompleted(player.totalStagesCompleted);
     assignments = new Map(Object.entries(data.assignments ?? {}));
   } else {
     player = defaultPlayer();
