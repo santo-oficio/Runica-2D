@@ -39,6 +39,10 @@
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
   }
   .entity.trap { animation: spin 3s linear infinite; }
+  .entity.stunned {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)) brightness(0.55) saturate(0.4);
+    opacity: 0.75;
+  }
   .entity.wall {
     background: rgba(20, 20, 30, 0.85);
     border: 2px solid rgba(80, 80, 100, 0.6);
@@ -703,6 +707,7 @@ function updateEnemyPositions() {
     place(el, e.c, e.r, true);
     el.dataset.col = e.c; el.dataset.row = e.r;
     el.style.zIndex = (e.c === player.c && e.r === player.r) ? 20 : '';
+    el.classList.toggle('stunned', e.stunnedTurns > 0);
   });
 }
 
@@ -717,13 +722,11 @@ function canEnter(c, r) {
 }
 function enemyAt(c, r) { return enemies.some(e => e.c === c && e.r === r); }
 
-function canEnemyEnter(c, r, selfIdx) {
+function canEnemyEnter(c, r) {
   if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
   if (isBlocked(c, r)) return false;
-  for (let i = 0; i < enemies.length; i++) {
-    if (i === selfIdx) continue;
-    if (enemies[i].c === c && enemies[i].r === r) return false;
-  }
+  // Los enemigos PUEDEN solaparse entre sí (isWalkableForEnemy del motor
+  // no lo bloquea — el solver calcula el óptimo con esa regla).
   return true;
 }
 
@@ -782,25 +785,38 @@ function movePlayer(dc, dr) {
   }, 80);
 }
 
-// 2 pasos por turno, horizontal primero, luego vertical
+// 2 sub-pasos por turno, horizontal primero, luego vertical.
+// Réplica del motor (engine/rules.ts): el aturdimiento descuenta UNA vez
+// por turno y congela los DOS sub-pasos → 3 turnos completos inmóvil y
+// al despertar se mueve sus 2 casillas. Pisar una trampa a mitad de turno
+// aturde al instante y cancela el sub-paso que le quedaba.
 function moveEnemiesAnimated() {
   return new Promise(resolve => {
     let step = 0;
+    const frozen = new Set(); // enemigos que saltan el turno entero
     function doStep() {
       if (step >= 2) { resolve(false); return; }
       let anyMoved = false;
       for (let i = 0; i < enemies.length; i++) {
         const e = enemies[i];
-        if (e.stunnedTurns > 0) { e.stunnedTurns--; continue; }
+        // El descuento es por turno, no por sub-paso (antes se contaba 2
+        // veces → solo esperaba 1.5 turnos y al salir movía 1 casilla).
+        if (step === 0 && e.stunnedTurns > 0) { e.stunnedTurns--; frozen.add(i); }
+        if (frozen.has(i)) continue;
         const dx = Math.sign(player.c - e.c);
         const dy = Math.sign(player.r - e.r);
         const cands = [];
         if (dx !== 0) cands.push([e.c + dx, e.r]);
         if (dy !== 0) cands.push([e.c, e.r + dy]);
         for (const [c, r] of cands) {
-          if (canEnemyEnter(c, r, i)) {
+          if (canEnemyEnter(c, r)) {
             e.c = c; e.r = r; anyMoved = true;
-            if (trapCells.has(`${c},${r}`)) e.stunnedTurns = 3;
+            // Entra en trampa: sonido + aturdido 3 turnos, y se salta el
+            // sub-paso que le quedaba (como el 'break' del motor).
+            if (trapCells.has(`${c},${r}`)) {
+              e.stunnedTurns = 3; frozen.add(i);
+              play(trapAudio); enemyTrapFx(i);
+            }
             break;
           }
         }
@@ -838,6 +854,16 @@ function trapEffect() {
   void avatarImg.offsetWidth;
   avatarImg.style.animation = 'trapShake 0.6s ease-out';
   setTimeout(() => { avatarImg.style.animation = ''; }, 600);
+}
+
+// El enemigo que pisa una trampa hace el mismo temblor que el jugador
+function enemyTrapFx(i) {
+  const el = document.querySelector(`.entity[data-idx="${i}"]`);
+  if (!el) return;
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = 'trapShake 0.6s ease-out';
+  setTimeout(() => { el.style.animation = ''; }, 600);
 }
 
 // === Fin de partida ===
