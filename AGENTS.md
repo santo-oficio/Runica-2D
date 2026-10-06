@@ -202,8 +202,8 @@ renderizarla igual.
 - **Nivel de juego (tier)** en el tablero: en modo real el HUD dev se oculta y
   se pintan las áreas calibradas de `assets/backgrounds/<M>/text-areas.json`:
   `turn`/`nTurn`, `optimal`/`nOptimal`, `info` = `board.level` ("Nivel {0}" →
-  tier 1..14 por pantallas superadas, viene en `/api/level-screen` como
-  `tier`), y `gold`. El tier se persiste en `player.gameLevel` (`db/db.ts`,
+  **número de isla** `level+1`, 1..12; en modo práctica muestra el tier),
+  y `gold`. El tier se persiste en `player.gameLevel` (`db/db.ts`,
   `tierForCompleted(totalStagesCompleted)`). Funcionamiento completo:
   `docs/18-FUNCIONAMIENTO-JUEGO.md`.
 

@@ -306,7 +306,7 @@ function btValue(k) {
   if (k === 'optimal') return tt('board.optimal');
   if (k === 'nOptimal') return String(currentMinMoves);
   if (k === 'gold') return String(playerData?.gold ?? 0);
-  return tt('board.level', gameLevel); // info → "Nivel X" (tier de la pantallita)
+  return tt('board.level', REAL_MODE ? REAL_LEVEL + 1 : gameLevel); // info → isla (modo real) o tier (práctica)
 }
 
 function renderBoardTexts() {
@@ -982,10 +982,7 @@ window.addEventListener('resize', () => {
 
 // === Init ===
 async function init() {
-  // Dentro de un mundo suena la pista de mundo (mistery), no la del mapa
-  AssetsCache.loadSettings().then(() => AssetsCache.setMusicTrack(AssetsCache.MUSIC.world));
-  document.addEventListener('click', () => AssetsCache.unlockAudio(), { once: true });
-  document.addEventListener('keydown', () => AssetsCache.unlockAudio(), { once: true });
+  // De momento sin música dentro del tablero (solo SFX propios)
   const res = await fetch(`${BASE}/api/worlds?t=${Date.now()}`);
   worlds = await res.json();
 
