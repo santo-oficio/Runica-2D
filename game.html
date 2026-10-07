@@ -156,8 +156,12 @@
     background:radial-gradient(circle at 35% 28%,#9c8b74,#5b4a38 55%,#32271c);
     border-radius:42% 58% 55% 45%/48% 44% 56% 52%;
     box-shadow:inset -2px -3px 6px rgba(0,0,0,.55),0 3px 8px rgba(0,0,0,.45);
-    animation:debrisFall var(--dur,1.2s) cubic-bezier(.55,.02,.9,.5) forwards}
-  @keyframes debrisFall{0%{transform:translate(0,0) rotate(0)}88%{opacity:1}
+    animation:debrisFall var(--dur,1.2s) cubic-bezier(.55,.02,.9,.5) both}
+  /* 0% opacity 0: durante el animation-delay la roca es invisible (fill
+     backwards aplica el primer frame) y los primeros metros de caída la
+     desvanecen desde arriba — aparece "de la nada", no levitando */
+  @keyframes debrisFall{0%{transform:translate(0,-30px) rotate(0);opacity:0}
+    8%{opacity:1}88%{opacity:1}
     100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
   .win-dust{position:fixed;z-index:62;pointer-events:none;border-radius:50%;
     background:radial-gradient(circle,rgba(160,140,105,.6),transparent 70%);
