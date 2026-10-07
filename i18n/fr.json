@@ -124,5 +124,6 @@
   "game.helpWorld": "changer de monde",
   "game.keysMove": "Flèches/WASD",
   "game.keySpace": "Espace",
-  "game.restart": "Recommencer"
+  "game.restart": "Recommencer",
+  "map.worldDone": "{0} conquis !"
 }

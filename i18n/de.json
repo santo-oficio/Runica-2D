@@ -124,5 +124,6 @@
   "game.helpWorld": "Welt wechseln",
   "game.keysMove": "Pfeiltasten/WASD",
   "game.keySpace": "Leertaste",
-  "game.restart": "Neustart"
+  "game.restart": "Neustart",
+  "map.worldDone": "{0} erobert!"
 }

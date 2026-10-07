@@ -124,5 +124,6 @@
   "game.helpWorld": "change world",
   "game.keysMove": "Arrows/WASD",
   "game.keySpace": "Space",
-  "game.restart": "Restart"
+  "game.restart": "Restart",
+  "map.worldDone": "{0} conquered!"
 }

@@ -250,7 +250,11 @@ function backToSubmundo() {
 // Tras ganar: isla final (boss) -> mapamundi (el mundo queda completado y
 // se desactiva); cualquier otra isla -> submundo donde estabas
 function afterVictory() {
-  if (REAL_LEVEL === FINAL_ISLAND_IDX) location.href = '/mapamundi.html';
+  if (REAL_LEVEL === FINAL_ISLAND_IDX) {
+    // El mapamundi celebra la conquista del mundo (animación + B/N)
+    sessionStorage.setItem('runika-world-done', REAL_WORLD);
+    location.href = '/mapamundi.html';
+  }
   else backToSubmundo();
 }
 
