@@ -227,17 +227,7 @@
   #hud .key { color: #fc4; }
   #hud b { color: #0ff; }
   #hud .green { color: #0f0; }
-  #lang-bar {
-    position: absolute; bottom: 12px; right: 12px; z-index: 20;
-    background: rgba(0,0,0,0.7); padding: 6px 12px;
-    border-radius: 4px; font-family: 'ChelseaMarket', cursive;
-    font-size: 0.8em; color: #aaa;
-  }
-  #lang-bar select {
-    background: #1a1a2e; color: #e0e0e0;
-    border: 1px solid #555; border-radius: 3px;
-    padding: 2px 6px; font-size: 0.9em; cursor: pointer;
-  }
+
   #back-btn {
     position: absolute; bottom: 12px; left: 12px; z-index: 20;
     font-family: 'ChelseaMarket', cursive;
@@ -285,15 +275,6 @@
 
 <button id="back-btn" data-i18n="instructions.back"></button>
 
-<div id="lang-bar">
-  <select id="lang-select">
-    <option value="es">Español</option>
-    <option value="en">English</option>
-    <option value="fr">Français</option>
-    <option value="de">Deutsch</option>
-    <option value="it">Italiano</option>
-  </select>
-</div>
 
 <script src="/assets-cache.js"></script>
 <script>
@@ -674,13 +655,6 @@
   document.getElementById('back-btn').addEventListener('click', () => {
     AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
     AssetsCache.transitionTo('/menu.html');
-  });
-
-  document.getElementById('lang-select').addEventListener('change', async (e) => {
-    AssetsCache.setSetting('lang', e.target.value);
-    translations = await loadLang(e.target.value);
-    applyI18n();
-    render();
   });
 
   async function loadPositions() {

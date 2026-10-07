@@ -126,12 +126,6 @@
     box-shadow: 0 0 18px rgba(255, 204, 68, 0.6), inset 0 0 12px rgba(255, 204, 68, 0.25);
   }
 
-  #lang-bar { position: absolute; top: 10px; right: 12px; z-index: 30; }
-  #lang-bar select {
-    background: rgba(20,14,6,0.85); color: #e8d4a8;
-    border: 1px solid rgba(180,150,80,0.5); border-radius: 4px;
-    padding: 4px 8px; font-family: 'ChelseaMarket', cursive; font-size: 0.85em;
-  }
 </style>
 </head>
 <body>
@@ -174,15 +168,6 @@
 
 <button id="btn-back" data-i18n="credits.back"></button>
 
-<div id="lang-bar">
-  <select id="lang-select">
-    <option value="es">Español</option>
-    <option value="en">English</option>
-    <option value="fr">Français</option>
-    <option value="de">Deutsch</option>
-    <option value="it">Italiano</option>
-  </select>
-</div>
 
 <script src="/assets-cache.js"></script>
 <script>
@@ -435,12 +420,6 @@
     }
   });
 
-  document.getElementById('lang-select').addEventListener('change', async (e) => {
-    AssetsCache.setSetting('lang', e.target.value);
-    translations = await loadLang(e.target.value);
-    applyI18n();
-    positionAreas();
-  });
 
   // --- Init con cache + transicion ---
   (async () => {
