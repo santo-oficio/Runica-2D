@@ -1162,7 +1162,21 @@ function closeWinModal() {
 
 // Continuar (verde): confirma la victoria — se guarda nivel+oro y se avanza
 function confirmWin() {
-  if (DEMO_WIN) { closeWinModal(); setTimeout(() => location.reload(), 350); return; }
+  if (DEMO_WIN) {
+    closeWinModal();
+    // Demo boss: sigue el flujo real → mapamundi con el mundo recién
+    // conquistado (celebración + drenaje a B/N), sin tocar la partida
+    if (DEMO_BOSS) {
+      const w = worlds[worldIdx] && worlds[worldIdx].world;
+      if (w) {
+        sessionStorage.setItem('runika-world-done', w);
+        setTimeout(() => location.href = '/mapamundi.html?demo=' + w, 350);
+        return;
+      }
+    }
+    setTimeout(() => location.reload(), 350);
+    return;
+  }
   closeWinModal();
   fetch(BASE + '/api/level-complete', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
