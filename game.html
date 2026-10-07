@@ -1116,7 +1116,8 @@ function nextAvatar() {
 }
 
 // === Teclado ===
-// F12: muestra/oculta el tier de dificultad actual (debug, esquina sup-izq)
+// T (de Tier): muestra/oculta el nivel de dificultad actual (debug,
+// esquina sup-izq). No choca con el navegador ni con WASD/flechas.
 const debugTierEl = document.createElement('div');
 debugTierEl.style.cssText = 'position:fixed;left:8px;top:8px;z-index:300;display:none;' +
   'font:bold 14px monospace;color:#0f0;background:rgba(0,0,0,.75);padding:4px 8px;' +
@@ -1126,7 +1127,7 @@ function updateDebugTier() {
   debugTierEl.textContent = tt('game.tier') + ' ' + (REAL_MODE ? gameLevel : currentTier);
 }
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'F12') {
+  if (e.key === 't' || e.key === 'T') {
     e.preventDefault();
     const on = debugTierEl.style.display === 'none';
     debugTierEl.style.display = on ? 'block' : 'none';
