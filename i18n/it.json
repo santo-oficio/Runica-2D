@@ -125,5 +125,8 @@
   "game.keysMove": "Frecce/WASD",
   "game.keySpace": "Spazio",
   "game.restart": "Ricomincia",
-  "map.worldDone": "{0} conquistato!"
+  "map.worldDone": "{0} conquistato!",
+  "demo.worldLabel": "Mondo:",
+  "demo.launch": "Lancia celebrazione",
+  "demo.hint": "segna il mondo come conquistato e ricarica la mappa"
 }

@@ -125,5 +125,8 @@
   "game.keysMove": "Arrows/WASD",
   "game.keySpace": "Space",
   "game.restart": "Restart",
-  "map.worldDone": "{0} conquered!"
+  "map.worldDone": "{0} conquered!",
+  "demo.worldLabel": "World:",
+  "demo.launch": "Launch celebration",
+  "demo.hint": "flags the world as just conquered and reloads the world map"
 }

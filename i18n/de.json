@@ -125,5 +125,8 @@
   "game.keysMove": "Pfeiltasten/WASD",
   "game.keySpace": "Leertaste",
   "game.restart": "Neustart",
-  "map.worldDone": "{0} erobert!"
+  "map.worldDone": "{0} erobert!",
+  "demo.worldLabel": "Welt:",
+  "demo.launch": "Feier starten",
+  "demo.hint": "markiert die Welt als erobert und lädt die Weltkarte neu"
 }
