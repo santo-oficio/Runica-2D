@@ -131,5 +131,6 @@
   "demo.hint": "simula la vittoria senza giocare — non tocca il salvataggio",
   "demo.mode": "Mostra:",
   "demo.modeMap": "Celebrazione mappa",
-  "demo.modeBoard": "Vittoria tabellone"
+  "demo.modeBoard": "Vittoria tabellone",
+  "demo.modeBoss": "Vittoria boss"
 }

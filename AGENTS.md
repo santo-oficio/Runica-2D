@@ -197,7 +197,9 @@ renderizarla igual.
   `assets/mapamundi/avatar-positions.json` (indexado por avatar del jugador).
   `mapamundi.html?demo=<MUNDO>` finge ese mundo conquistado (B/N + avatar
   encima, sin escribir nada) — lo usa `demo-mapa-victoria.html`, que también
-  muestra `game.html?demo=win` (victoria real: monedas + modal, sin bbdd).
+  muestra `game.html?demo=win` (victoria real: monedas + modal, sin bbdd) y
+  `?demo=winboss` (celebración de boss: destello + anillos + chispas + título
+  `map.worldDone` en el modal).
 - **Submundo**: el avatar aparece en la última isla jugada (completada o no) y
   el oro se muestra en el área `gold` calibrada (alineado a la derecha + icono
   `comunes/monedas.webp`). Las islas siguen la misma estrategia visual que los

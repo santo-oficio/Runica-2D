@@ -131,5 +131,6 @@
   "demo.hint": "simula la victoria sin jugar — no toca la partida guardada",
   "demo.mode": "Ver:",
   "demo.modeMap": "Celebración mapa",
-  "demo.modeBoard": "Victoria tablero"
+  "demo.modeBoard": "Victoria tablero",
+  "demo.modeBoss": "Victoria boss"
 }

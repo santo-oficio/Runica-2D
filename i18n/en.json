@@ -131,5 +131,6 @@
   "demo.hint": "simulates victory without playing — does not touch the savegame",
   "demo.mode": "Show:",
   "demo.modeMap": "Map celebration",
-  "demo.modeBoard": "Board victory"
+  "demo.modeBoard": "Board victory",
+  "demo.modeBoss": "Boss victory"
 }

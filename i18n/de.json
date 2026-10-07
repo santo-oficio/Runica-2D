@@ -131,5 +131,6 @@
   "demo.hint": "simuliert den Sieg ohne zu spielen — Speicherstand bleibt unberührt",
   "demo.mode": "Anzeigen:",
   "demo.modeMap": "Kartenfeier",
-  "demo.modeBoard": "Brettsieg"
+  "demo.modeBoard": "Brettsieg",
+  "demo.modeBoss": "Bosssieg"
 }

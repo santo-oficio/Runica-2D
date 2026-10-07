@@ -21,6 +21,7 @@
     <select id="mode">
       <option value="map" data-i18n="demo.modeMap">Celebración mapa</option>
       <option value="board" data-i18n="demo.modeBoard">Victoria tablero</option>
+      <option value="boss" data-i18n="demo.modeBoss">Victoria boss</option>
     </select>
   </label>
   <label id="worldRow"><span data-i18n="demo.worldLabel">Mundo:</span>
@@ -58,9 +59,9 @@ for (const w of WORLDS) {
 }
 selWorld.value = 'INFRAMUNDO';
 function go() {
-  if (selMode.value === 'board') {
+  if (selMode.value === 'board' || selMode.value === 'boss') {
     worldRow.style.display = 'none';
-    f.src = '/game.html?demo=win&t=' + Date.now();
+    f.src = '/game.html?demo=' + (selMode.value === 'boss' ? 'winboss' : 'win') + '&t=' + Date.now();
     return;
   }
   worldRow.style.display = '';
