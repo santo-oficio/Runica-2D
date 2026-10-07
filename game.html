@@ -1090,7 +1090,7 @@ function modalCurvePath(poly, W, H) {
   if (avgT < 0.008) { mid = poly.slice(); if (mid[0][0] > mid[mid.length - 1][0]) mid.reverse(); }
   else mid = sorted.map(([k, ys]) => [k / 160, (Math.min(...ys) + Math.max(...ys)) / 2]);
   if (mid.length < 2) return null;
-  return { d: 'M ' + mid.map(p => `${(p[0] * W).toFixed(1)} ${(p[1] * H).toFixed(1)}`).join(' L '), bandH: Math.max(avgT, .05) };
+  return { mid, d: 'M ' + mid.map(p => `${(p[0] * W).toFixed(1)} ${(p[1] * H).toFixed(1)}`).join(' L '), bandH: Math.max(avgT, .05) };
 }
 
 function renderModal() {
@@ -1101,38 +1101,32 @@ function renderModal() {
   const curve = modalCurvePath(title.polygon, W, H);
   const titleStr = winTitleText || tt('game.victory');
   if (curve) {
-    // Títulos largos van RECTOS centrados en el arco: en el textPath los
-    // glifos de los extremos (¡ ! M…) se rotan con la curva y quedan raros.
-    const LONG = 14;
-    if (titleStr.length > LONG) {
-      const xs = title.polygon.map(p => p[0]), ys = title.polygon.map(p => p[1]);
-      const cx = (Math.min(...xs) + Math.max(...xs)) / 2 * W;
-      const cy = (Math.min(...ys) + Math.max(...ys)) / 2 * H;
-      const tx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      tx.setAttribute('x', cx); tx.setAttribute('y', cy);
-      tx.setAttribute('text-anchor', 'middle'); tx.setAttribute('dominant-baseline', 'central');
-      let tfs = Math.max(8, curve.bandH * H * .62 * (title.fontScale || 1));
-      tx.setAttribute('font-size', tfs);
-      tx.textContent = titleStr; modalSvg.appendChild(tx);
-      const maxW = (Math.max(...xs) - Math.min(...xs)) * W * .96;
-      const tlen = tx.getComputedTextLength ? tx.getComputedTextLength() : 0;
-      if (tlen > maxW) tx.setAttribute('font-size', Math.max(8, tfs * maxW / tlen));
-    } else {
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('id', 'modal-arc'); path.setAttribute('d', curve.d); path.setAttribute('fill', 'none');
-      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs'); defs.appendChild(path); modalSvg.appendChild(defs);
-      const tx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      const tp = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
-      tp.setAttribute('href', '#modal-arc'); tp.setAttribute('startOffset', '50%'); tp.setAttribute('text-anchor', 'middle');
-      tp.textContent = titleStr;
-      let tfs = Math.max(8, curve.bandH * H * .62 * (title.fontScale || 1));
-      tx.setAttribute('font-size', tfs);
-      tx.appendChild(tp); modalSvg.appendChild(tx);
-      const pathLen = path.getTotalLength();
-      const tlen = tp.getComputedTextLength ? tp.getComputedTextLength() : 0;
-      if (tlen > pathLen * 0.96) {
-        tx.setAttribute('font-size', Math.max(8, tfs * pathLen * 0.96 / tlen));
-      }
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('id', 'modal-arc'); path.setAttribute('fill', 'none');
+    let d = curve.d;
+    // Títulos largos ("¡Mundo conquistado!"): mismo arco pero APLANADO —
+    // la línea media del cartel curva demasiado en los extremos y los
+    // glifos de fuera (¡ ! M…) se rotaban mucho. Suavizarla a la mitad
+    // mantiene la forma del cartel sin deformar las letras.
+    if (titleStr.length > 14 && curve.mid.length >= 2) {
+      const ys = curve.mid.map(p => p[1]);
+      const yAvg = ys.reduce((s, v) => s + v, 0) / ys.length;
+      const flat = curve.mid.map(p => [p[0], yAvg + (p[1] - yAvg) * .45]);
+      d = 'M ' + flat.map(p => `${(p[0] * W).toFixed(1)} ${(p[1] * H).toFixed(1)}`).join(' L ');
+    }
+    path.setAttribute('d', d);
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs'); defs.appendChild(path); modalSvg.appendChild(defs);
+    const tx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    const tp = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
+    tp.setAttribute('href', '#modal-arc'); tp.setAttribute('startOffset', '50%'); tp.setAttribute('text-anchor', 'middle');
+    tp.textContent = titleStr;
+    let tfs = Math.max(8, curve.bandH * H * .62 * (title.fontScale || 1));
+    tx.setAttribute('font-size', tfs);
+    tx.appendChild(tp); modalSvg.appendChild(tx);
+    const pathLen = path.getTotalLength();
+    const tlen = tp.getComputedTextLength ? tp.getComputedTextLength() : 0;
+    if (tlen > pathLen * 0.96) {
+      tx.setAttribute('font-size', Math.max(8, tfs * pathLen * 0.96 / tlen));
     }
   }
   const put = (el, a, text) => {
