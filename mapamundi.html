@@ -89,7 +89,9 @@
     position: absolute;
     z-index: 9;
     pointer-events: none;
-    object-fit: contain; /* mismo fit que #bg para que la copia coincida pixel a pixel */
+    background-size: contain; /* mismo fit que #bg para que la copia coincida pixel a pixel */
+    background-position: center;
+    background-repeat: no-repeat;
   }
   .world-fx.done {
     filter: grayscale(1) brightness(0.55);
@@ -441,13 +443,17 @@
       // (determinista por mundo). Sin clip-path: cero bordes duros.
       const done = worldCompleted(w), locked = worldLocked(w) && !done;
       if (done || locked) {
-        const fx = document.createElement('img');
-        fx.src = document.getElementById('bg').src;
+        // Div con background en vez de <img>: los backgrounds se repintan
+        // solos cuando la imagen termina de decodificar; en un <img> con
+        // mask+filter aplicados pre-decode el raster quedaba vacío para
+        // siempre y el mundo no se oscurecía.
+        const fx = document.createElement('div');
         fx.className = 'world-fx ' + (done ? 'done' : 'locked');
         fx.style.left = r.left + 'px';
         fx.style.top = r.top + 'px';
         fx.style.width = r.width + 'px';
         fx.style.height = r.height + 'px';
+        fx.style.backgroundImage = `url("${document.getElementById('bg').src}")`;
         const circ = FIN_AREAS?.aura?.[w];
         const grads = [];
         const grad = (px, py, rr, solid, fade) =>

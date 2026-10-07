@@ -77,7 +77,8 @@
      se fija en el centro del aura para que la "caida" sea puntual. */
   .world-fx {
     position: absolute; z-index: 9; pointer-events: none;
-    object-fit: contain; /* mismo fit que el fondo para alinear la copia */
+    background-size: contain; /* mismo fit que el fondo para alinear la copia */
+    background-position: center; background-repeat: no-repeat;
     filter: grayscale(1) brightness(.5);
     transform: scale(.15); opacity: 0;
     transform-origin: center;
@@ -454,11 +455,14 @@ async function sceneMap() {
   for (const w of WORLD_ORDER) {
     const pos = avatarPos(w);
     if (!pos) continue;
-    const fx = document.createElement('img');
-    fx.src = bg.src;
+    // Div con background en vez de <img>: los backgrounds se repintan al
+    // decodificar; un <img> con mask+filter pre-decode rasterizaba vacío
+    // y nunca se repintaba (mismo bug que el mapamundi)
+    const fx = document.createElement('div');
     fx.className = 'world-fx';
     fx.style.left = r.left + 'px'; fx.style.top = r.top + 'px';
     fx.style.width = r.width + 'px'; fx.style.height = r.height + 'px';
+    fx.style.backgroundImage = `url("${bg.src}")`;
     const circ = FIN_AREAS?.aura?.[w];
     let cx, cy;
     const grads = [];

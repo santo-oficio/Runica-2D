@@ -93,7 +93,9 @@
     position: absolute;
     z-index: 9;
     pointer-events: none;
-    object-fit: contain; /* mismo fit que #bg para alinear la copia */
+    background-size: contain; /* mismo fit que #bg para alinear la copia */
+    background-position: center;
+    background-repeat: no-repeat;
   }
   .island-fx.done {
     filter: grayscale(1) brightness(0.55);
@@ -382,13 +384,16 @@
       if (i !== currentLevel) {
         const locked = !isLevelUnlocked(i);
         if (locked) { // solo lo bloqueado se oscurece; lo completado queda a color
-          const fx = document.createElement('img');
-          fx.src = bg.src;
+          // Div con background en vez de <img>: los backgrounds se repintan
+          // solos al decodificar; un <img> con mask+filter pre-decode
+          // rasterizaba vacío y jamás se repintaba (mundo sin oscurecer)
+          const fx = document.createElement('div');
           fx.className = 'island-fx locked';
           fx.style.left = r.left + 'px';
           fx.style.top = r.top + 'px';
           fx.style.width = r.width + 'px';
           fx.style.height = r.height + 'px';
+          fx.style.backgroundImage = `url("${bg.src}")`;
           // Mancha organica: nucleo suave + 3 blobs desplazados de forma
           // determinista por isla (nunca un circulo perfecto)
           const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.15;

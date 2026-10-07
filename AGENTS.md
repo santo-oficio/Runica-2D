@@ -190,7 +190,10 @@ renderizarla igual.
 - **Mapamundi**: el avatar siempre es `player.avatarIndex` (el elegido al crear
   la partida — nunca cambia). Se restaura `lastWorld` al entrar y se guarda al
   avanzar. Un mundo con las 12 islas completadas se muestra en blanco y negro
-  (`backdrop-filter: grayscale`) y no se puede volver a entrar. **MAZMORRA**
+  (div `.world-fx.done` = copia del fondo con `background-size:contain` +
+  `filter: grayscale` + `mask-image` radial con el aura calibrada; **jamás
+  `<img>` + mask + filter**: rasteriza vacío si la imagen aún no está
+  decodificada y nunca se repinta) y no se puede volver a entrar. **MAZMORRA**
   (centro del mapa) permanece bloqueado y oscurecido hasta completar los otros
   7 mundos.
   Posición/tamaño del avatar por mundo: `avatars[M][avatarIndex]` de
