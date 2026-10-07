@@ -103,6 +103,8 @@
   "game.backToMap": "Torna alla mappa (R)",
   "game.levelDone": "Isola {0} completata in {1} turni",
   "game.goldEarned": "+{0} oro",
+  "game.bossTitle": "Mondo conquistato!",
+  "game.bossBody": "Hai sconfitto il guardiano di {0} in {1} turni",
   "board.level": "Livello {0}",
   "game.go": "VIA!",
   "fin.completed": "Hai completato Runika 2D!",

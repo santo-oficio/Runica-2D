@@ -972,9 +972,9 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
 // cayendo grisáceo. Encima, destello dorado + anillos + chispas.
 // Más épica que una isla normal, más ligera que la cinemática de fin.html.
 function bossWinFx(x, y) {
-  // Terremoto: sacudidas encadenadas durante ~2s (sin el flash rojo de daño)
+  // Terremoto: sacudidas encadenadas durante ~3s (sin el flash rojo de daño)
   shakeLayers();
-  for (const t of [500, 1000, 1500]) setTimeout(shakeLayers, t);
+  for (const t of [500, 1000, 1500, 2000, 2500]) setTimeout(shakeLayers, t);
 
   // El boss/los enemigos caen derrotados
   document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
@@ -993,13 +993,13 @@ function bossWinFx(x, y) {
   // Lluvia de escombros: rocas cayendo desde arriba del tablero,
   // con nube de polvo al impactar contra el suelo del área de juego
   const b = avatarBoard;
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 26; i++) {
     const d = document.createElement('div');
     d.className = 'win-debris';
     const sz = 14 + Math.random() * 34;
     const dx = b.left + Math.random() * b.w;
-    const dur = 0.8 + Math.random() * 0.7;
-    const delay = 0.1 + Math.random() * 0.9;
+    const dur = 1.2 + Math.random() * 1.0;
+    const delay = 0.1 + Math.random() * 2.2;
     d.style.width = d.style.height = sz + 'px';
     d.style.left = (dx - sz / 2) + 'px';
     d.style.top = (b.top - sz - Math.random() * 60) + 'px';
@@ -1188,17 +1188,23 @@ function winGame() {
       AssetsCache.setMusicTrack(AssetsCache.MUSIC.worldWin);
       sessionStorage.setItem('runika-music-override', AssetsCache.MUSIC.worldWin);
     }
-    // Título del modal: "¡X conquistado!" si es boss, "¡Victoria!" si no
+    // Título del modal: "¡Mundo conquistado!" si es boss, "¡Victoria!" si no
     const bossWorld = REAL_MODE ? REAL_WORLD : (worlds[worldIdx] && worlds[worldIdx].world);
-    winTitleText = isBossWin ? tt('map.worldDone', tt('worlds.' + bossWorld)) : '';
+    const bossWorldName = tt('worlds.' + bossWorld);
+    winTitleText = isBossWin ? tt('game.bossTitle') : '';
     // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos.
+    // El boss de mundo siempre da bastante más que una isla normal.
     // Solo la PRIMERA vez: re-jugar una isla ya completada no da oro (el
     // servidor tampoco lo suma). Se confirma al pulsar Continuar (Reiniciar
     // lo revierte).
     const isReplay = (playerData?.worldProgress?.[REAL_WORLD]?.completed ?? []).includes(REAL_LEVEL);
-    winGoldEarned = isReplay ? 0 : Math.max(10, currentMinMoves * 5 - turn);
+    winGoldEarned = isReplay ? 0
+      : isBossWin ? Math.max(50, currentMinMoves * 10 - turn * 2)
+                  : Math.max(10, currentMinMoves * 5 - turn);
     winGoldBefore = playerData?.gold ?? 0;
-    winBodyText = tt('game.levelDone', REAL_LEVEL + 1, turn)
+    winBodyText = (isBossWin
+        ? tt('game.bossBody', bossWorldName, turn)
+        : tt('game.levelDone', REAL_LEVEL + 1, turn))
       + (winGoldEarned > 0 ? ' · ' + tt('game.goldEarned', winGoldEarned) : '');
     renderBoardTexts();
     const gp = cellPos(goal.c, goal.r, true);
