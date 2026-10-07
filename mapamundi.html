@@ -96,6 +96,13 @@
   .world-fx.done {
     filter: grayscale(1) brightness(0.55);
     animation: auraFade 4s ease-in-out infinite;
+    /* Transición color→B/N: el mundo recién conquistado arranca con
+       .start-color (grayscale 0) y al quitarla drena a gris en 2.4s */
+    transition: filter 2.4s ease-in-out;
+  }
+  .world-fx.done.start-color {
+    filter: grayscale(0) brightness(1);
+    animation: none;
   }
   .world-fx.locked {
     filter: grayscale(0.6) brightness(0.35);
@@ -301,6 +308,10 @@
   // encima). Solo visual para demo-mapa-victoria.html — no escribe nada.
   const DEMO_WORLD = new URLSearchParams(location.search).get('demo') || '';
   const DEMO_MODE = WORLD_ORDER.includes(DEMO_WORLD);
+  // Mundo recién conquistado (lo marca game.html al ganar la isla 12):
+  // se pinta A COLOR y se desatura a B/N durante la celebración.
+  const JUST_DONE_WORLD = sessionStorage.getItem('runika-world-done');
+  let pendingFade = JUST_DONE_WORLD;
 
   let WORLD_POSITIONS = {};
   let WORLD_AVATAR_POS = {};
@@ -375,9 +386,15 @@
   // explota en anillos dorados + chispas + rótulo con su nombre (y queda
   // en blanco y negro gracias al .world-fx.done). Marcado por game.html.
   function celebrateWorldDone() {
-    const w = sessionStorage.getItem('runika-world-done');
+    const w = JUST_DONE_WORLD;
     if (!w || !WORLD_ORDER.includes(w)) return;
     sessionStorage.removeItem('runika-world-done');
+    // El mundo conquistado drena de color a B/N ~1s después de empezar
+    // la celebración (los anillos explotan sobre el mundo aún en color)
+    setTimeout(() => {
+      overlay.querySelector('.world-fx.start-color')?.classList.remove('start-color');
+      pendingFade = null;
+    }, 900);
     const r = imageRect();
     const circ = FIN_AREAS?.aura?.[w];
     const pos = WORLD_POSITIONS[w];
@@ -448,7 +465,8 @@
         // mask+filter aplicados pre-decode el raster quedaba vacío para
         // siempre y el mundo no se oscurecía.
         const fx = document.createElement('div');
-        fx.className = 'world-fx ' + (done ? 'done' : 'locked');
+        fx.className = 'world-fx ' + (done ? 'done' : 'locked')
+          + (done && w === pendingFade ? ' start-color' : '');
         fx.style.left = r.left + 'px';
         fx.style.top = r.top + 'px';
         fx.style.width = r.width + 'px';
