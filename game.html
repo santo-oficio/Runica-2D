@@ -119,6 +119,9 @@
   .win-spark{position:fixed;border-radius:50%;background:radial-gradient(circle,#fff6c0,#ffc93c 60%,transparent);
     animation:winSparkFly 1.9s ease-out forwards;pointer-events:none;z-index:65}
   @keyframes winSparkFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}
+  /* Boss derrotado: el enemigo/boss cae grisáceo al ganar la isla 12 */
+  .entity.defeated{filter:grayscale(1) brightness(.5)!important;transform:rotate(72deg) scale(.85)!important;
+    opacity:.4;transition:filter .7s ease,transform .7s ease,opacity .7s ease;animation:none!important}
   /* Modal de victoria (calibrado en calibrate-modal.html): rojo=reiniciar, verde=continuar */
   #modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
   #modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}
@@ -902,11 +905,24 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
   const tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
   const n = Math.min(9, Math.max(4, Math.round(earned / 8)));
   const per = Math.floor(earned / n);
-  let arrived = 0, shown = goldBefore;
+  let arrived = 0, shown = goldBefore, finished = false;
+  const finish = () => {
+    if (finished) return; finished = true;
+    document.querySelectorAll('img.flycoin').forEach(x => x.remove());
+    shown = goldBefore + earned;
+    if (playerData) playerData.gold = shown;
+    const s = goldEl.querySelector('span');
+    if (s) s.textContent = String(shown);
+    onDone();
+  };
+  // Red de seguridad: si rAF se estrangula (iframe dormido, ahorro de
+  // energía), el vuelo termina por tiempo y el modal llega siempre.
+  setTimeout(finish, n * 110 + 1200);
   for (let i = 0; i < n; i++) {
     const gain = i === n - 1 ? earned - per * (n - 1) : per;
     const size = 26 + Math.random() * 14;
     const c = document.createElement('img');
+    c.className = 'flycoin';
     c.src = BASE + '/assets/comunes/monedas.webp';
     c.style.cssText = `position:fixed;left:${fromX - size / 2}px;top:${fromY - size / 2}px;` +
       `width:${size}px;height:${size}px;object-fit:contain;z-index:60;pointer-events:none;` +
@@ -917,6 +933,7 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
     const my = Math.min(fromY, ty) - 90 - Math.random() * 70;
     const t0 = performance.now() + i * 110, dur = 620 + Math.random() * 160;
     const step = (t) => {
+      if (finished) return;
       const k = Math.min(1, Math.max(0, (t - t0) / dur)), e = k * k * (3 - 2 * k);
       const u = 1 - e;
       c.style.left = (u * u * fromX + 2 * u * e * mx + e * e * tx - size / 2) + 'px';
@@ -927,7 +944,7 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
       if (playerData) playerData.gold = shown;
       const s = goldEl.querySelector('span');
       if (s) s.textContent = String(shown);
-      if (++arrived === n) onDone();
+      if (++arrived === n) finish();
     };
     requestAnimationFrame(step);
   }
@@ -937,11 +954,16 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
 // expansivos + 36 chispas saliendo del cofre. Más épica que una isla
 // normal pero mucho más ligera que la cinemática de fin.html.
 function bossWinFx(x, y) {
+  // Sacudida de impacto + destello dorado
+  screenShake();
   const flash = document.createElement('div');
   flash.className = 'win-flash';
   flash.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,222,120,.6), transparent 55%)`;
   document.body.appendChild(flash);
   setTimeout(() => flash.remove(), 1200);
+  // El boss/los enemigos caen derrotados
+  document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
+    .forEach(e => e.classList.add('defeated'));
   for (let i = 0; i < 3; i++) {
     const ring = document.createElement('div');
     ring.className = 'win-ring';
@@ -950,20 +972,24 @@ function bossWinFx(x, y) {
     document.body.appendChild(ring);
     setTimeout(() => ring.remove(), 1900 + i * 250);
   }
-  for (let i = 0; i < 36; i++) {
-    const sp = document.createElement('div');
-    sp.className = 'win-spark';
-    const ang = Math.random() * Math.PI * 2;
-    const dist = 90 + Math.random() * 240;
-    const sz = 5 + Math.random() * 9;
-    sp.style.width = sp.style.height = sz + 'px';
-    sp.style.left = (x - sz / 2) + 'px'; sp.style.top = (y - sz / 2) + 'px';
-    sp.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
-    sp.style.setProperty('--dy', Math.sin(ang) * dist - 60 + 'px');
-    sp.style.animationDelay = (Math.random() * .3) + 's';
-    document.body.appendChild(sp);
-    setTimeout(() => sp.remove(), 2400);
-  }
+  const sparks = () => {
+    for (let i = 0; i < 36; i++) {
+      const sp = document.createElement('div');
+      sp.className = 'win-spark';
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 90 + Math.random() * 280;
+      const sz = 5 + Math.random() * 10;
+      sp.style.width = sp.style.height = sz + 'px';
+      sp.style.left = (x - sz / 2) + 'px'; sp.style.top = (y - sz / 2) + 'px';
+      sp.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+      sp.style.setProperty('--dy', Math.sin(ang) * dist - 70 + 'px');
+      sp.style.animationDelay = (Math.random() * .3) + 's';
+      document.body.appendChild(sp);
+      setTimeout(() => sp.remove(), 2500);
+    }
+  };
+  sparks();
+  setTimeout(sparks, 600); // segunda oleada
 }
 
 // === Modal de victoria (calibrado en calibrate-modal.html) ===
@@ -1016,8 +1042,15 @@ function renderModal() {
     const tp = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
     tp.setAttribute('href', '#modal-arc'); tp.setAttribute('startOffset', '50%'); tp.setAttribute('text-anchor', 'middle');
     tp.textContent = winTitleText || tt('game.victory');
-    tx.setAttribute('font-size', Math.max(8, curve.bandH * H * .62 * (title.fontScale || 1)));
+    let tfs = Math.max(8, curve.bandH * H * .62 * (title.fontScale || 1));
+    tx.setAttribute('font-size', tfs);
     tx.appendChild(tp); modalSvg.appendChild(tx);
+    // Si el título es largo ("¡Inframundo conquistado!"), encogerlo al arco
+    const pathLen = path.getTotalLength();
+    const tlen = tp.getComputedTextLength ? tp.getComputedTextLength() : 0;
+    if (tlen > pathLen * 0.96) {
+      tx.setAttribute('font-size', Math.max(8, tfs * pathLen * 0.96 / tlen));
+    }
   }
   const put = (el, a, text) => {
     el.style.left = a.x * W + 'px'; el.style.top = a.y * H + 'px';
