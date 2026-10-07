@@ -122,6 +122,22 @@
   /* Boss derrotado: el enemigo/boss cae grisáceo al ganar la isla 12 */
   .entity.defeated{filter:grayscale(1) brightness(.5)!important;transform:rotate(72deg) scale(.85)!important;
     opacity:.4;transition:filter .7s ease,transform .7s ease,opacity .7s ease;animation:none!important}
+  /* Derrumbe del mundo tras el boss: escombros cayendo, polvo al
+     impactar y la estructura del tablero desmoronándose */
+  .win-debris{position:fixed;z-index:66;pointer-events:none;
+    background:radial-gradient(circle at 35% 28%,#9c8b74,#5b4a38 55%,#32271c);
+    border-radius:42% 58% 55% 45%/48% 44% 56% 52%;
+    box-shadow:inset -2px -3px 6px rgba(0,0,0,.55),0 3px 8px rgba(0,0,0,.45);
+    animation:debrisFall var(--dur,1.2s) cubic-bezier(.55,.02,.9,.5) forwards}
+  @keyframes debrisFall{0%{transform:translate(0,0) rotate(0)}88%{opacity:1}
+    100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+  .win-dust{position:fixed;z-index:62;pointer-events:none;border-radius:50%;
+    background:radial-gradient(circle,rgba(160,140,105,.6),transparent 70%);
+    animation:dustPuff 1s ease-out forwards}
+  @keyframes dustPuff{0%{transform:scale(.3);opacity:0}18%{opacity:1}100%{transform:scale(2.4);opacity:0}}
+  .entity.crumble{animation:crumbleFall 1.25s ease-in forwards!important}
+  @keyframes crumbleFall{0%{transform:translate(0,0) rotate(0);opacity:1}
+    100%{transform:translate(var(--cdx),var(--cdy)) rotate(var(--crot));opacity:0;filter:grayscale(1) brightness(.5)}}
   /* Modal de victoria (calibrado en calibrate-modal.html): rojo=reiniciar, verde=continuar */
   #modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
   #modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}
@@ -950,20 +966,69 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
   }
 }
 
-// Celebración de boss de mundo (isla 12): destello dorado + 3 anillos
-// expansivos + 36 chispas saliendo del cofre. Más épica que una isla
-// normal pero mucho más ligera que la cinemática de fin.html.
+// Celebración de boss de mundo (isla 12): el mundo se derrumba —
+// terremoto prolongado, lluvia de escombros sobre el tablero, nubes de
+// polvo al impactar, muros/obstáculos/trampas desmoronándose y el boss
+// cayendo grisáceo. Encima, destello dorado + anillos + chispas.
+// Más épica que una isla normal, más ligera que la cinemática de fin.html.
 function bossWinFx(x, y) {
-  // Sacudida de impacto + destello dorado
-  screenShake();
+  // Terremoto: sacudidas encadenadas durante ~2s (sin el flash rojo de daño)
+  shakeLayers();
+  for (const t of [500, 1000, 1500]) setTimeout(shakeLayers, t);
+
+  // El boss/los enemigos caen derrotados
+  document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
+    .forEach(e => e.classList.add('defeated'));
+
+  // La estructura del tablero se desmorona (muros, obstáculos, trampas)
+  document.querySelectorAll('.entity[data-type="wall"], .entity[data-type="obstacle"], .entity[data-type="trap"]')
+    .forEach(e => {
+      e.style.setProperty('--cdx', (Math.random() * 60 - 30) + 'px');
+      e.style.setProperty('--cdy', (30 + Math.random() * 60) + 'px');
+      e.style.setProperty('--crot', (Math.random() * 120 - 60) + 'deg');
+      e.style.animationDelay = (0.15 + Math.random() * 0.5) + 's';
+      e.classList.add('crumble');
+    });
+
+  // Lluvia de escombros: rocas cayendo desde arriba del tablero,
+  // con nube de polvo al impactar contra el suelo del área de juego
+  const b = avatarBoard;
+  for (let i = 0; i < 14; i++) {
+    const d = document.createElement('div');
+    d.className = 'win-debris';
+    const sz = 14 + Math.random() * 34;
+    const dx = b.left + Math.random() * b.w;
+    const dur = 0.8 + Math.random() * 0.7;
+    const delay = 0.1 + Math.random() * 0.9;
+    d.style.width = d.style.height = sz + 'px';
+    d.style.left = (dx - sz / 2) + 'px';
+    d.style.top = (b.top - sz - Math.random() * 60) + 'px';
+    d.style.setProperty('--dx', (Math.random() * 50 - 25) + 'px');
+    d.style.setProperty('--dy', (b.h + sz + 80) + 'px');
+    d.style.setProperty('--rot', (Math.random() * 540 - 270) + 'deg');
+    d.style.setProperty('--dur', dur + 's');
+    d.style.animationDelay = delay + 's';
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), (delay + dur) * 1000 + 400);
+    // Polvo al impactar (justo cuando la roca llega al suelo del área)
+    setTimeout(() => {
+      const puff = document.createElement('div');
+      puff.className = 'win-dust';
+      const psz = sz * 2.2;
+      puff.style.width = puff.style.height = psz + 'px';
+      puff.style.left = (dx - psz / 2) + 'px';
+      puff.style.top = (b.top + b.h - psz * 0.4) + 'px';
+      document.body.appendChild(puff);
+      setTimeout(() => puff.remove(), 1100);
+    }, (delay + dur * 0.82) * 1000);
+  }
+
+  // Destello dorado + anillos + doble oleada de chispas
   const flash = document.createElement('div');
   flash.className = 'win-flash';
   flash.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,222,120,.6), transparent 55%)`;
   document.body.appendChild(flash);
   setTimeout(() => flash.remove(), 1200);
-  // El boss/los enemigos caen derrotados
-  document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
-    .forEach(e => e.classList.add('defeated'));
   for (let i = 0; i < 3; i++) {
     const ring = document.createElement('div');
     ring.className = 'win-ring';
@@ -1146,8 +1211,9 @@ function winGame() {
   document.getElementById('overlay-restart').textContent = tt('game.practiceNext');
 }
 
-// Golpe de cámara al ser atrapado: sacudida de todas las capas + flash rojo
-function screenShake() {
+// Sacudida de las capas del tablero (sin flash — reusable para el
+// terremoto de la victoria de boss)
+function shakeLayers() {
   for (const id of ['stage', 'entities', 'boardtexts', 'selector']) {
     const el = document.getElementById(id);
     if (!el) continue;
@@ -1155,6 +1221,11 @@ function screenShake() {
     void el.offsetWidth;
     el.classList.add('shake');
   }
+}
+
+// Golpe de cámara al ser atrapado: sacudida + flash rojo
+function screenShake() {
+  shakeLayers();
   const f = document.getElementById('hitflash');
   f.classList.remove('show');
   void f.offsetWidth;
