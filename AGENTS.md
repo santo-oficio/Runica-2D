@@ -186,7 +186,7 @@ renderizarla igual.
   completó ahí — se busca en su tier original aunque el tier global suba).
   **Re-jugar una isla completada no suma oro** — `completeLevel` solo lo añade
   la primera vez (`isNew`), y el tablero ni siquiera muestra monedas si la
-  isla ya estaba completada. **Debug**: `F12` en el tablero muestra el tier.
+  isla ya estaba completada. **Debug**: `T` en el tablero muestra/oculta el tier de dificultad actual.
 - **Mapamundi**: el avatar siempre es `player.avatarIndex` (el elegido al crear
   la partida — nunca cambia). Se restaura `lastWorld` al entrar y se guarda al
   avanzar. Un mundo con las 12 islas completadas se muestra en blanco y negro
