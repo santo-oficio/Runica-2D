@@ -13,7 +13,7 @@ npx tsx server.ts  # juego y calibradores en http://localhost:3000
 ## Modo práctica (`game.html`)
 
 `http://localhost:3000/game.html` — modo práctica que elige una pantalla
-**al azar** del tier 5 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
+**al azar** del tier 4 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
 mundo al azar. **No guarda nada en la bbdd** (solo lectura).
 
 Controles: `Flechas/WASD` mover · `R` otra pantalla · `Espacio` cambiar mundo ·
@@ -184,6 +184,9 @@ renderizarla igual.
   screenId}`, `GET /api/level-screen?world&level` (pantalla sticky por isla;
   al re-entrar a una isla **completada** siempre sale el MISMO puzzle que se
   completó ahí — se busca en su tier original aunque el tier global suba).
+  **Re-jugar una isla completada no suma oro** — `completeLevel` solo lo añade
+  la primera vez (`isNew`), y el tablero ni siquiera muestra monedas si la
+  isla ya estaba completada. **Debug**: `F12` en el tablero muestra el tier.
 - **Mapamundi**: el avatar siempre es `player.avatarIndex` (el elegido al crear
   la partida — nunca cambia). Se restaura `lastWorld` al entrar y se guarda al
   avanzar. Un mundo con las 12 islas completadas se muestra en blanco y negro
@@ -295,8 +298,8 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   - Si un mundo no tiene carpeta de obstáculos, se usa una imagen de marcador (placeholder) y se documenta el faltante.
   - Mapeo de carpetas especiales: `VIENTO` → `assets/obstaculos/AIRE/`.
 - **Progresión de dificultad**: 8 mundos × 12 islas = 96 pantallas, repartidas en los tiers **5..14** (la partida
-  siempre empieza en el nivel 5) según el **nº de pantallas superadas** —
-  `min(14, 5 + floor(c × 10 / 96))`, ~9-10 islas por tier. NO depende de la
+  siempre empieza en el nivel 4) según el **nº de pantallas superadas** —
+  `min(14, 4 + floor(c × 11 / 96))`, ~8-9 islas por tier. NO depende de la
   isla/mundo (los mundos se juegan en orden libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
 - **A fuego — sin textos hardcodeados**: ningún texto visible al usuario puede estar
   escrito directamente en el código (HTML, TS, etc.). Todo texto debe venir de

@@ -96,8 +96,8 @@ export const WORLDS = [
 export const SUBLEVELS_PER_WORLD = 12;
 export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
 export const TOTAL_TIERS = 14;
-/** Tier de dificultad inicial: la partida siempre empieza en el nivel 5. */
-export const FIRST_TIER = 5;
+/** Tier de dificultad inicial: la partida siempre empieza en el nivel 4. */
+export const FIRST_TIER = 4;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
 export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
@@ -109,10 +109,10 @@ export function stageFor(world: number, subLevel: number): number {
 }
 
 /**
- * Tier de dificultad (5..14) según el Nº DE PANTALLAS SUPERADAS, no la
+ * Tier de dificultad (4..14) según el Nº DE PANTALLAS SUPERADAS, no la
  * posición en el mapa (los mundos se juegan en orden libre). La partida
- * siempre empieza en el tier 5 y los 96 escenarios se reparten de forma
- * uniforme entre los 10 tiers restantes (~9-10 islas por tier).
+ * siempre empieza en el tier 4 y los 96 escenarios se reparten de forma
+ * uniforme entre los 11 tiers restantes (~8-9 islas por tier).
  */
 export function tierForCompleted(completed: number): number {
   const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
@@ -447,12 +447,13 @@ export function completeLevel(world: string, level: number, goldEarned = 0, scre
   if (isNew) {
     w.completed!.push(level);
     player.totalStagesCompleted += 1; // el nivel de juego sube por pantallas superadas
+    // El oro solo se gana la PRIMERA vez: re-jugar una isla completada no suma
+    player.gold = (player.gold ?? 0) + goldEarned;
   }
   w.last = level;
   wp[world] = w;
   player.worldProgress = wp;
   player.lastWorld = world;
-  player.gold = (player.gold ?? 0) + goldEarned;
   player.gameLevel = tierForCompleted(player.totalStagesCompleted);
   player.updatedAt = Date.now();
   persist();

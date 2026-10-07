@@ -217,7 +217,7 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlaySubtitle = document.getElementById('overlay-subtitle');
 
 // === Práctica: tier seleccionable, pantalla al azar en cada recarga ===
-let currentTier = 5; // la partida siempre empieza en el tier 5
+let currentTier = 4; // la partida siempre empieza en el tier 4
 const COLS = 8, ROWS = 6;
 
 // === Modo real: ?world=X&level=N → la isla N del submundo X (progreso bbdd) ===
@@ -547,6 +547,7 @@ async function loadScreen() {
   currentScreenId = s.id;
   currentMinMoves = s.minMoves || 0;
   if (REAL_MODE && (data.tier || s.level)) gameLevel = data.tier ?? s.level;
+  if (debugTierEl.style.display !== 'none') updateDebugTier();
 
   player = { c: s.player[0], r: s.player[1] };
   goal = { c: s.goal[0], r: s.goal[1] };
@@ -1031,11 +1032,14 @@ function winGame() {
       sessionStorage.setItem('runika-music-override', AssetsCache.MUSIC.worldWin);
     }
     // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos.
-    // Se suma visualmente con el vuelo de monedas; se confirma al pulsar
-    // Continuar en el modal (Reiniciar lo revierte).
-    winGoldEarned = Math.max(10, currentMinMoves * 5 - turn);
+    // Solo la PRIMERA vez: re-jugar una isla ya completada no da oro (el
+    // servidor tampoco lo suma). Se confirma al pulsar Continuar (Reiniciar
+    // lo revierte).
+    const isReplay = (playerData?.worldProgress?.[REAL_WORLD]?.completed ?? []).includes(REAL_LEVEL);
+    winGoldEarned = isReplay ? 0 : Math.max(10, currentMinMoves * 5 - turn);
     winGoldBefore = playerData?.gold ?? 0;
-    winBodyText = tt('game.levelDone', REAL_LEVEL + 1, turn) + ' · ' + tt('game.goldEarned', winGoldEarned);
+    winBodyText = tt('game.levelDone', REAL_LEVEL + 1, turn)
+      + (winGoldEarned > 0 ? ' · ' + tt('game.goldEarned', winGoldEarned) : '');
     renderBoardTexts();
     const gp = cellPos(goal.c, goal.r, true);
     flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal);
@@ -1112,7 +1116,23 @@ function nextAvatar() {
 }
 
 // === Teclado ===
+// F12: muestra/oculta el tier de dificultad actual (debug, esquina sup-izq)
+const debugTierEl = document.createElement('div');
+debugTierEl.style.cssText = 'position:fixed;left:8px;top:8px;z-index:300;display:none;' +
+  'font:bold 14px monospace;color:#0f0;background:rgba(0,0,0,.75);padding:4px 8px;' +
+  'border-radius:4px;pointer-events:none;';
+document.body.appendChild(debugTierEl);
+function updateDebugTier() {
+  debugTierEl.textContent = tt('game.tier') + ' ' + (REAL_MODE ? gameLevel : currentTier);
+}
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'F12') {
+    e.preventDefault();
+    const on = debugTierEl.style.display === 'none';
+    debugTierEl.style.display = on ? 'block' : 'none';
+    if (on) updateDebugTier();
+    return;
+  }
   if (REAL_MODE) {
     // Modal de victoria abierto: flechas eligen, Enter confirma, Esc = continuar
     if (modalOpen) {
@@ -1149,7 +1169,7 @@ document.addEventListener('keydown', (e) => {
   // Cambiar tier: [ ] o - / +
   if (e.key === '[' || e.key === '-') {
     e.preventDefault();
-    currentTier = Math.max(5, currentTier - 1); // el nivel más bajo es el 5
+    currentTier = Math.max(4, currentTier - 1); // el nivel más bajo es el 4
     loadScreen();
     return;
   }
