@@ -295,6 +295,10 @@
   const FINAL_WORLD = 'MAZMORRA'; // centro del mapa: solo con todos los demás completados
   const LEVELS_PER_WORLD = 12;
   const DIRS = ['up', 'down', 'left', 'right'];
+  // ?demo=<MUNDO>: finge ese mundo como recién conquistado (B/N + avatar
+  // encima). Solo visual para demo-mapa-victoria.html — no escribe nada.
+  const DEMO_WORLD = new URLSearchParams(location.search).get('demo') || '';
+  const DEMO_MODE = WORLD_ORDER.includes(DEMO_WORLD);
 
   let WORLD_POSITIONS = {};
   let WORLD_AVATAR_POS = {};
@@ -302,7 +306,11 @@
   let FIN_AREAS = null; // assets/comunes/fin-areas.json: auras irregulares por mundo
   let avatarSize = 0.06;
   function worldAvatarIdx(w) { return WORLD_ORDER.indexOf(w); }
-  function avatarPos(w) { const i = worldAvatarIdx(w); return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][i]) || WORLD_POSITIONS[w]; }
+  function playerAvatarIdx() { return (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0; }
+  // avatars[w] está indexado por avatarIndex del jugador (calibrado por avatar)
+  function avatarEntry(w) { return (WORLD_AVATAR_POS[w] || [])[playerAvatarIdx()] || null; }
+  function avatarPos(w) { return avatarEntry(w) || WORLD_POSITIONS[w]; }
+  function avatarSz(w) { return (avatarEntry(w) && avatarEntry(w).size) || (WORLD_POSITIONS[w] && WORLD_POSITIONS[w].size) || avatarSize; }
   function worldSize(w) { const i = worldAvatarIdx(w); return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][i] && WORLD_AVATAR_POS[w][i].size) || (WORLD_POSITIONS[w] && WORLD_POSITIONS[w].size) || avatarSize; }
 
   // Estado de la partida (bbdd): avatar elegido, oro, progreso por mundo
@@ -312,6 +320,7 @@
     return `/assets/avatars/display/avatar_${String(idx + 1).padStart(2, '0')}.webp`;
   }
   function worldCompleted(w) {
+    if (DEMO_MODE && w === DEMO_WORLD) return true; // demo: fingir conquistado
     return ((player?.worldProgress?.[w]?.completed?.length) ?? 0) >= LEVELS_PER_WORLD;
   }
   function worldLocked(w) {
@@ -326,6 +335,7 @@
     } catch {}
   }
   function saveMapPosition() {
+    if (DEMO_MODE) return; // demo: jamás escribir la partida
     fetch('/api/map-position', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ world: WORLD_ORDER[selectedWorld] }),
@@ -336,6 +346,7 @@
     const lw = player?.lastWorld;
     const idx = lw ? WORLD_ORDER.indexOf(lw) : -1;
     if (idx >= 0) selectedWorld = idx;
+    if (DEMO_MODE) selectedWorld = WORLD_ORDER.indexOf(DEMO_WORLD);
   }
 
   let selectedWorld = 0; // ESPACIO por defecto; luego manda player.lastWorld
@@ -472,6 +483,7 @@
       div.appendChild(dot);
 
       div.addEventListener('click', () => {
+        if (DEMO_MODE) return; // demo: sin navegación ni escrituras
         // Solo permitir si es alcanzable desde el mundo actual
         const dir = DIRS.find(d => paths[d] === w);
         if (!dir) return;
@@ -484,7 +496,7 @@
         // Esperar a que termine el movimiento antes de entrar
         const r = getImgRect();
         const pos = avatarPos(w);
-        const sz = worldSize(w) * r.width;
+        const sz = avatarSz(w) * r.width;
         const oldX = parseFloat(avatarEl.style.left) || 0;
         const oldY = parseFloat(avatarEl.style.top) || 0;
         const newX = r.left + pos.x * r.width - sz / 2;
@@ -529,7 +541,7 @@
         avatarImg.src = src;
       };
       avatarEl.style.display = 'block';
-      const asz = worldSize(world) * r.width;
+      const asz = avatarSz(world) * r.width;
       const newX = r.left + pos.x * r.width - asz / 2;
       const newY = r.top + pos.y * r.height - asz / 2;
       // Calcular duracion segun distancia para velocidad constante
@@ -573,7 +585,7 @@
     // Calcular duracion segun distancia para velocidad constante
     const r = getImgRect();
     const pos = avatarPos(targetWorld);
-    const sz = worldSize(targetWorld) * r.width;
+    const sz = avatarSz(targetWorld) * r.width;
     const oldX = parseFloat(avatarEl.style.left) || 0;
     const oldY = parseFloat(avatarEl.style.top) || 0;
     const newX = r.left + pos.x * r.width - sz / 2;
@@ -589,7 +601,7 @@
     const [dx, dy] = offsets[dir];
     const r = getImgRect();
     const world = WORLD_ORDER[selectedWorld];
-    const sz = worldSize(world) * r.width;
+    const sz = avatarSz(world) * r.width;
     const pos = avatarPos(world);
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;
@@ -617,6 +629,7 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    if (DEMO_MODE) return; // demo: el avatar se queda en el mundo conquistado
     if (e.key === 'Escape') { AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6); AssetsCache.transitionTo('/menu.html'); return; }
 
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); moveByPath('left'); }

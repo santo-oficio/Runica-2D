@@ -128,5 +128,8 @@
   "map.worldDone": "{0} conquered!",
   "demo.worldLabel": "World:",
   "demo.launch": "Launch celebration",
-  "demo.hint": "flags the world as just conquered and reloads the world map"
+  "demo.hint": "simulates victory without playing — does not touch the savegame",
+  "demo.mode": "Show:",
+  "demo.modeMap": "Map celebration",
+  "demo.modeBoard": "Board victory"
 }

@@ -193,6 +193,11 @@ renderizarla igual.
   (`backdrop-filter: grayscale`) y no se puede volver a entrar. **MAZMORRA**
   (centro del mapa) permanece bloqueado y oscurecido hasta completar los otros
   7 mundos.
+  Posición/tamaño del avatar por mundo: `avatars[M][avatarIndex]` de
+  `assets/mapamundi/avatar-positions.json` (indexado por avatar del jugador).
+  `mapamundi.html?demo=<MUNDO>` finge ese mundo conquistado (B/N + avatar
+  encima, sin escribir nada) — lo usa `demo-mapa-victoria.html`, que también
+  muestra `game.html?demo=win` (victoria real: monedas + modal, sin bbdd).
 - **Submundo**: el avatar aparece en la última isla jugada (completada o no) y
   el oro se muestra en el área `gold` calibrada (alineado a la derecha + icono
   `comunes/monedas.webp`). Las islas siguen la misma estrategia visual que los

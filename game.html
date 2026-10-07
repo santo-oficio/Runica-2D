@@ -225,6 +225,9 @@ const PARAMS = new URLSearchParams(location.search);
 const REAL_WORLD = PARAMS.get('world') || '';
 const REAL_LEVEL = Math.max(0, parseInt(PARAMS.get('level') || '0', 10) || 0);
 const REAL_MODE = !!REAL_WORLD;
+// ?demo=win — tablero de práctica que se auto-gana para mostrar el vuelo
+// de monedas + modal de victoria reales. No toca la bbdd.
+const DEMO_WIN = PARAMS.get('demo') === 'win';
 let playerData = null;
 let T = {};
 let currentMinMoves = 0;
@@ -332,7 +335,7 @@ function btValue(k) {
 
 function renderBoardTexts() {
   const box = boardTextsBox();
-  if (!REAL_MODE || !textAreas) { box.style.display = 'none'; return; }
+  if (!(REAL_MODE || DEMO_WIN) || !textAreas) { box.style.display = 'none'; return; }
   box.style.display = 'block';
   const rect = visibleImageRect();
   for (const k of BT_KINDS) {
@@ -1003,6 +1006,7 @@ function closeWinModal() {
 
 // Continuar (verde): confirma la victoria — se guarda nivel+oro y se avanza
 function confirmWin() {
+  if (DEMO_WIN) { closeWinModal(); setTimeout(() => location.reload(), 350); return; }
   closeWinModal();
   fetch(BASE + '/api/level-complete', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1013,6 +1017,7 @@ function confirmWin() {
 // Reiniciar (rojo): el oro vuelve al de antes y se repite la misma pantalla
 // (la asignacion de la isla es sticky: como no se confirmo, es el mismo puzzle)
 function restartWin() {
+  if (DEMO_WIN) { closeWinModal(); setTimeout(() => location.reload(), 350); return; }
   closeWinModal();
   if (playerData) playerData.gold = winGoldBefore;
   renderBoardTexts();
@@ -1028,7 +1033,8 @@ function winGame() {
   gameOver = true; won = true;
   play(victoryAudio);
   overlayTitle.textContent = tt('game.victory');
-  if (REAL_MODE) {
+  if (REAL_MODE || DEMO_WIN) {
+    if (DEMO_WIN) turn = currentMinMoves; // demo: cifra verosímil en el modal
     // Boss de mundo derrotado (isla 12, no MAZMORRA): fanfarria de mundo
     // que sigue sonando al volver al mapamundi
     if (REAL_LEVEL === FINAL_ISLAND_IDX && REAL_WORLD !== 'MAZMORRA') {
@@ -1252,7 +1258,36 @@ async function init() {
   // Avatares decodificados de antemano (Enter los cicla en el hot path)
   AVATARS.forEach(a => decodeImg(BASE + a));
   // Mundo al azar en cada recarga
-  await loadWorld(Math.floor(Math.random() * worlds.length));
+  const wi = Math.floor(Math.random() * worlds.length);
+  if (DEMO_WIN) {
+    // Demo de victoria real (monedas + modal) sobre una pantalla de
+    // práctica: se viste como modo real pero no hay level-complete.
+    try {
+      const r = await fetch(BASE + '/api/savegame');
+      if (r.ok) { const d = await r.json(); playerData = d.player || null; }
+    } catch {}
+    if (playerData && typeof playerData.avatarIndex === 'number') {
+      avatarIdx = playerData.avatarIndex;
+      avatarImg.src = BASE + AVATARS[avatarIdx];
+    }
+    gameLevel = playerData?.gameLevel ?? 1;
+    try {
+      const r = await fetch(`${BASE}/api/load-board-text-areas?world=${encodeURIComponent(worlds[wi].world)}`);
+      if (r.ok) { const d = await r.json(); textAreas = d.areas || null; }
+    } catch {}
+    try {
+      const r = await fetch(`${BASE}/api/load-modal-areas`);
+      if (r.ok) { const d = await r.json(); modalAreas = d.areas || null; }
+    } catch {}
+    decodeImg(BASE + '/assets/comunes/modal.webp');
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('practice-tag').style.display = 'none';
+    document.getElementById('help').style.display = 'none';
+    await loadWorld(wi);
+    setTimeout(winGame, 1200);
+    return;
+  }
+  await loadWorld(wi);
 }
 
 init();

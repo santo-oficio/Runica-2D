@@ -128,5 +128,8 @@
   "map.worldDone": "{0} conquis !",
   "demo.worldLabel": "Monde :",
   "demo.launch": "Lancer la célébration",
-  "demo.hint": "marque le monde comme conquis et recharge la carte"
+  "demo.hint": "simule la victoire sans jouer — ne touche pas la sauvegarde",
+  "demo.mode": "Voir :",
+  "demo.modeMap": "Célébration carte",
+  "demo.modeBoard": "Victoire plateau"
 }

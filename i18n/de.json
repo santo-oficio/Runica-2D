@@ -128,5 +128,8 @@
   "map.worldDone": "{0} erobert!",
   "demo.worldLabel": "Welt:",
   "demo.launch": "Feier starten",
-  "demo.hint": "markiert die Welt als erobert und lädt die Weltkarte neu"
+  "demo.hint": "simuliert den Sieg ohne zu spielen — Speicherstand bleibt unberührt",
+  "demo.mode": "Anzeigen:",
+  "demo.modeMap": "Kartenfeier",
+  "demo.modeBoard": "Brettsieg"
 }

@@ -128,5 +128,8 @@
   "map.worldDone": "¡{0} conquistado!",
   "demo.worldLabel": "Mundo:",
   "demo.launch": "Lanzar celebración",
-  "demo.hint": "marca el mundo como recién conquistado y recarga el mapamundi"
+  "demo.hint": "simula la victoria sin jugar — no toca la partida guardada",
+  "demo.mode": "Ver:",
+  "demo.modeMap": "Celebración mapa",
+  "demo.modeBoard": "Victoria tablero"
 }

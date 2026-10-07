@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Demo — celebración de mundo conquistado</title>
+<title>Demo — victoria de mundo</title>
 <style>
   html, body { margin: 0; height: 100%; background: #14100c; color: #f0d890;
     font-family: 'ChelseaMarket', 'Segoe UI', cursive; }
@@ -17,7 +17,13 @@
 </head>
 <body>
 <div class="bar">
-  <label><span data-i18n="demo.worldLabel">Mundo:</span>
+  <label><span data-i18n="demo.mode">Ver:</span>
+    <select id="mode">
+      <option value="map" data-i18n="demo.modeMap">Celebración mapa</option>
+      <option value="board" data-i18n="demo.modeBoard">Victoria tablero</option>
+    </select>
+  </label>
+  <label id="worldRow"><span data-i18n="demo.worldLabel">Mundo:</span>
     <select id="world"></select>
   </label>
   <button id="go" data-i18n="demo.launch">Lanzar celebración</button>
@@ -25,11 +31,17 @@
 </div>
 <iframe id="f"></iframe>
 <script type="module">
-// Demo: lanza la celebración de mundo conquistado del mapamundi
-// (anillos + chispas + rótulo + mundo en B/N) sin tener que jugar.
-// Simula el flag que pone game.html al ganar la isla 12 (boss).
+// Demo: victoria de mundo sin jugar.
+//  - "mapa": mapamundi con el mundo fingido como conquistado (B/N permanente
+//    vía ?demo=<MUNDO>) + celebración (anillos/chispas/rótulo) vía el flag
+//    runika-world-done de sessionStorage, igual que hace game.html.
+//  - "tablero": game.html?demo=win auto-gana una pantalla de práctica y
+//    muestra el vuelo de monedas + modal Reiniciar/Continuar reales.
+// Nada de esto escribe en la bbdd.
 const WORLDS = ['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
-const sel = document.getElementById('world');
+const selMode = document.getElementById('mode');
+const selWorld = document.getElementById('world');
+const worldRow = document.getElementById('worldRow');
 const f = document.getElementById('f');
 let tr = {};
 try {
@@ -42,15 +54,22 @@ for (const w of WORLDS) {
   const o = document.createElement('option');
   o.value = w;
   o.textContent = tt('worlds.' + w);
-  sel.appendChild(o);
+  selWorld.appendChild(o);
 }
-sel.value = 'INFRAMUNDO';
+selWorld.value = 'INFRAMUNDO';
 function go() {
+  if (selMode.value === 'board') {
+    worldRow.style.display = 'none';
+    f.src = '/game.html?demo=win&t=' + Date.now();
+    return;
+  }
+  worldRow.style.display = '';
   // sessionStorage es compartido con el iframe (mismo origen/pestaña)
   sessionStorage.setItem('runika-session', 'active');
-  sessionStorage.setItem('runika-world-done', sel.value);
-  f.src = '/mapamundi.html?demo=' + Date.now();
+  sessionStorage.setItem('runika-world-done', selWorld.value);
+  f.src = '/mapamundi.html?demo=' + selWorld.value + '&t=' + Date.now();
 }
+selMode.addEventListener('change', go);
 document.getElementById('go').addEventListener('click', go);
 go();
 </script>
