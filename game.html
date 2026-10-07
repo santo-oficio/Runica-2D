@@ -1282,7 +1282,9 @@ function winGame() {
     }
     // Título del modal: "¡Mundo conquistado!" si es boss, "¡Victoria!" si no
     const bossWorld = REAL_MODE ? REAL_WORLD : (worlds[worldIdx] && worlds[worldIdx].world);
-    const bossWorldName = tt('worlds.' + bossWorld);
+    // "del Viento"/"of Fire"/"du Feu"…: la preposición va en la propia
+    // clave por mundo (cada idioma contrae distinto según el género)
+    const bossWorldOf = tt('worlds.of.' + bossWorld);
     winTitleText = isBossWin ? tt('game.bossTitle') : '';
     // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos.
     // El boss de mundo siempre da bastante más que una isla normal.
@@ -1295,7 +1297,7 @@ function winGame() {
                   : Math.max(10, currentMinMoves * 5 - turn);
     winGoldBefore = playerData?.gold ?? 0;
     winBodyText = isBossWin
-        ? tt('game.bossBody', bossWorldName, turn)
+        ? tt('game.bossBody', bossWorldOf, turn)
         : tt('game.levelDone', REAL_LEVEL + 1, turn);
     renderBoardTexts();
     const gp = cellPos(goal.c, goal.r, true);
