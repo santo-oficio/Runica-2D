@@ -414,18 +414,21 @@
   }
 
   function getImgRect() { return bg.getBoundingClientRect(); }
-  // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain);
-  // los textos calibrados (text-areas.json) viven en ese espacio.
+  // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain).
+  // TODAS las coordenadas calibradas (avatar, mundos, auras, textos) viven
+  // en este espacio — si no, cualquier ventana con ratio != al del mapa
+  // desplaza los elementos respecto a la imagen pintada.
   function imageRect() {
     const er = getImgRect();
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
     const s = Math.min(er.width / iw, er.height / ih);
     const w = iw * s, h = ih * s;
-    return { left: er.left + (er.width - w) / 2, top: er.top + (er.height - h) / 2, width: w, height: h };
+    const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+    return { left, top, width: w, height: h, right: left + w, bottom: top + h };
   }
 
   function render() {
-    const r = getImgRect();
+    const r = imageRect();
     overlay.innerHTML = '';
     const world = WORLD_ORDER[selectedWorld];
     const paths = WORLD_PATHS[world] || {};
@@ -499,7 +502,7 @@
         const world = WORLD_ORDER[selectedWorld];
         saveMapPosition();
         // Esperar a que termine el movimiento antes de entrar
-        const r = getImgRect();
+        const r = imageRect();
         const pos = avatarPos(w);
         const sz = avatarSz(w) * r.width;
         const oldX = parseFloat(avatarEl.style.left) || 0;
@@ -588,7 +591,7 @@
     isMoving = true;
     render();
     // Calcular duracion segun distancia para velocidad constante
-    const r = getImgRect();
+    const r = imageRect();
     const pos = avatarPos(targetWorld);
     const sz = avatarSz(targetWorld) * r.width;
     const oldX = parseFloat(avatarEl.style.left) || 0;
@@ -604,7 +607,7 @@
   function bounceAvatar(dir) {
     const offsets = { up: [0, -0.08], down: [0, 0.08], left: [-0.08, 0], right: [0.08, 0] };
     const [dx, dy] = offsets[dir];
-    const r = getImgRect();
+    const r = imageRect();
     const world = WORLD_ORDER[selectedWorld];
     const sz = avatarSz(world) * r.width;
     const pos = avatarPos(world);

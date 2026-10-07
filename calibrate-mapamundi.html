@@ -124,17 +124,6 @@
   const avatarSelect = document.getElementById('avatar-select');
   const modeLabel = document.getElementById('mode-label');
 
-  const WORLD_AVATARS = {
-    ESPACIO:    '/assets/avatars/avatar_01.webp',
-    AGUA:       '/assets/avatars/avatar_02.webp',
-    TIERRA:     '/assets/avatars/avatar_03.webp',
-    FUEGO:      '/assets/avatars/avatar_04.webp',
-    HIELO:      '/assets/avatars/avatar_05.webp',
-    VIENTO:     '/assets/avatars/avatar_06.webp',
-    INFRAMUNDO: '/assets/avatars/avatar_07.webp',
-    MAZMORRA:   '/assets/avatars/avatar_08.webp',
-  };
-
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
   const AVATAR_SRC = i => '/assets/avatars/thumbs/avatar_' + String(i + 1).padStart(2, '0') + '.webp?v=avatars-11';
 
@@ -175,7 +164,15 @@
     render(); updateCoords();
   });
 
-  function getImgRect() { return img.getBoundingClientRect(); }
+  // Coordenadas en espacio de la imagen dibujada (descuenta el letterbox de
+  // object-fit: contain) — mismo sistema que usa mapamundi.html.
+  function getImgRect() {
+    const er = img.getBoundingClientRect();
+    const iw = img.naturalWidth || 1536, ih = img.naturalHeight || 1024;
+    const s = Math.min(er.width / iw, er.height / ih);
+    const w = iw * s, h = ih * s;
+    return { left: er.left + (er.width - w) / 2, top: er.top + (er.height - h) / 2, width: w, height: h };
+  }
   function ownAvatarIdx(w) { return WORLD_ORDER.indexOf(w); }
 
   function render() {
@@ -199,12 +196,11 @@
       overlay.appendChild(div);
     });
 
-    // Avatares: cada isla muestra su propio avatar calibrado.
-    // En la isla seleccionada se muestra solo el avatar que se esta editando.
+    // Avatares: todas las islas muestran el avatar seleccionado — el juego
+    // siempre pinta el avatar del jugador (player.avatarIndex) en cada mundo.
     avatarPreviews.innerHTML = '';
     WORLD_ORDER.forEach((world, i) => {
-      const own = ownAvatarIdx(world);
-      const indices = [i === selectedWorld ? selectedAvatar : own];
+      const indices = [selectedAvatar];
       indices.forEach(ai => {
         const entry = avatars[world][ai];
         const sz = (entry.size ?? avatarSize) * r.width;
