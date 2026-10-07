@@ -105,6 +105,7 @@
   "game.goldEarned": "+{0} or",
   "game.bossTitle": "Monde conquis !",
   "game.bossBody": "Tu as vaincu le gardien de {0} en {1} tours",
+  "game.bossDown": "Gardien vaincu !",
   "board.level": "Niveau {0}",
   "game.go": "GO !",
   "fin.completed": "Tu as terminé Runika 2D !",

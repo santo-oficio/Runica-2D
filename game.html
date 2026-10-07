@@ -122,6 +122,34 @@
   /* Boss derrotado: el enemigo/boss cae grisáceo al ganar la isla 12 */
   .entity.defeated{filter:grayscale(1) brightness(.5)!important;transform:rotate(72deg) scale(.85)!important;
     opacity:.4;transition:filter .7s ease,transform .7s ease,opacity .7s ease;animation:none!important}
+  /* Muerte dramática del boss: flash blanco, se hincha y cae girando.
+     Se aplica ANTES que .defeated (que queda como estado final). */
+  .entity.dying{animation:bossDie 1.15s ease-in forwards!important;transition:none!important}
+  @keyframes bossDie{
+    0%{filter:brightness(4) saturate(0);transform:scale(1)}
+    18%{filter:brightness(3) saturate(0);transform:scale(1.35)}
+    35%{filter:brightness(1.5);transform:scale(1.15) rotate(-8deg)}
+    60%{filter:grayscale(.7) brightness(.8);transform:scale(.95) rotate(28deg) translateY(6%)}
+    100%{filter:grayscale(1) brightness(.45);transform:rotate(75deg) scale(.8) translateY(12%);opacity:.35}
+  }
+  /* Rótulo "¡Guardián derrotado!" sobre el tablero antes del modal */
+  #boss-down{
+    position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);
+    z-index:67;pointer-events:none;display:none;text-align:center;
+    font-family:'ChelseaMarket',cursive;font-weight:bold;
+    font-size:min(9vh,7vw);color:#ffd34e;line-height:1.1;
+    text-shadow:3px 3px 0 #4a2c00,5px 5px 12px #000,
+      0 0 22px rgba(255,180,0,.9),0 0 55px rgba(255,140,0,.6);
+    -webkit-text-stroke:2px #2a1600;
+  }
+  #boss-down.show{display:block;animation:bossDownPop 2.1s ease-out forwards}
+  @keyframes bossDownPop{
+    0%{transform:translate(-50%,-50%) scale(.3);opacity:0}
+    14%{transform:translate(-50%,-50%) scale(1.15);opacity:1}
+    24%{transform:translate(-50%,-50%) scale(1)}
+    78%{opacity:1}
+    100%{transform:translate(-50%,-56%) scale(.95);opacity:0}
+  }
   /* Derrumbe del mundo tras el boss: escombros cayendo, polvo al
      impactar y la estructura del tablero desmoronándose */
   .win-debris{position:fixed;z-index:66;pointer-events:none;
@@ -208,6 +236,7 @@
   <div id="entities"></div>
   <div id="boardtexts"></div>
   <div id="countdown"></div>
+  <div id="boss-down"></div>
   <div id="hitflash"></div>
   <audio id="step-sound" preload="auto"></audio>
 
@@ -972,21 +1001,37 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
 // cayendo grisáceo. Encima, destello dorado + anillos + chispas.
 // Más épica que una isla normal, más ligera que la cinemática de fin.html.
 function bossWinFx(x, y) {
-  // Terremoto: sacudidas encadenadas durante ~3s (sin el flash rojo de daño)
-  shakeLayers();
-  for (const t of [500, 1000, 1500, 2000, 2500]) setTimeout(shakeLayers, t);
-
-  // El boss/los enemigos caen derrotados
+  // 1) MUERTE DEL BOSS: flash blanco, se hincha y cae girando.
+  //    El rótulo "¡Guardián derrotado!" corona el momento.
   document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
-    .forEach(e => e.classList.add('defeated'));
+    .forEach(e => e.classList.add('dying'));
+  const down = document.getElementById('boss-down');
+  down.textContent = tt('game.bossDown');
+  down.classList.add('show');
+  setTimeout(() => { down.classList.remove('show'); down.textContent = ''; }, 2200);
+  // Al acabar la animación de muerte, queda el estado .defeated
+  setTimeout(() => {
+    document.querySelectorAll('.entity.dying').forEach(e => {
+      e.classList.remove('dying'); e.classList.add('defeated');
+    });
+  }, 1150);
+
+  // 2) DERRUMBE: terremoto + escombros + estructura cayendo, ~0.6s
+  //    después de la muerte para que se lea primero la muerte
+  const rumble = () => {
+    shakeLayers();
+    for (const t of [500, 1000, 1500, 2000, 2500]) setTimeout(shakeLayers, t);
+  };
+  setTimeout(rumble, 600);
 
   // La estructura del tablero se desmorona (muros, obstáculos, trampas)
+  // a partir de ~0.7s, cuando la muerte del boss ya se ha visto
   document.querySelectorAll('.entity[data-type="wall"], .entity[data-type="obstacle"], .entity[data-type="trap"]')
     .forEach(e => {
       e.style.setProperty('--cdx', (Math.random() * 60 - 30) + 'px');
       e.style.setProperty('--cdy', (30 + Math.random() * 60) + 'px');
       e.style.setProperty('--crot', (Math.random() * 120 - 60) + 'deg');
-      e.style.animationDelay = (0.15 + Math.random() * 0.5) + 's';
+      e.style.animationDelay = (0.7 + Math.random() * 0.8) + 's';
       e.classList.add('crumble');
     });
 
@@ -999,7 +1044,7 @@ function bossWinFx(x, y) {
     const sz = 14 + Math.random() * 34;
     const dx = b.left + Math.random() * b.w;
     const dur = 1.2 + Math.random() * 1.0;
-    const delay = 0.1 + Math.random() * 2.2;
+    const delay = 0.6 + Math.random() * 2.2;
     d.style.width = d.style.height = sz + 'px';
     d.style.left = (dx - sz / 2) + 'px';
     d.style.top = (b.top - sz - Math.random() * 60) + 'px';
@@ -1234,8 +1279,14 @@ function winGame() {
       + (winGoldEarned > 0 ? ' · ' + tt('game.goldEarned', winGoldEarned) : '');
     renderBoardTexts();
     const gp = cellPos(goal.c, goal.r, true);
-    if (isBossWin) bossWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
-    flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal);
+    if (isBossWin) {
+      bossWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
+      // Las monedas y el modal esperan a que la muerte del boss y el
+      // rótulo se lean (~1.9s); el derrumbe sigue sonando detrás
+      setTimeout(() => flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal), 1900);
+    } else {
+      flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal);
+    }
     return;
   }
   overlay.classList.add('show', 'win');
