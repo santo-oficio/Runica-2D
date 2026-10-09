@@ -345,7 +345,22 @@
     }
   }
 
-  loadJson();
+  // El juego siempre pinta player.avatarIndex: arranca el selector con ese
+  // avatar para calibrar exactamente lo que se vera en pantalla
+  (async () => {
+    try {
+      const r = await fetch('/api/savegame');
+      if (r.ok) {
+        const d = await r.json();
+        const ai = d.player && d.player.avatarIndex;
+        if (typeof ai === 'number' && ai >= 0 && ai < 8) {
+          selectedAvatar = ai;
+          avatarSelect.value = ai;
+        }
+      }
+    } catch {}
+    loadJson();
+  })();
   img.addEventListener('load', render);
   window.addEventListener('resize', render);
 </script>
