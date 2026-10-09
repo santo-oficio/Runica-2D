@@ -313,7 +313,19 @@
     fetch('/api/save-avatar-positions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json
     }).then(() => {
-      statusEl.innerHTML = '<span class="ok">Guardado: ' + WORLD_ORDER.length + ' mundos x 8 avatares</span>';
+      // Flujo de calibrado: tras guardar avanza al siguiente mundo con el
+      // mismo avatar; en el ultimo mundo pasa al siguiente avatar y vuelve
+      // al primero (recorrido completo avatar a avatar)
+      selectedWorld++;
+      if (selectedWorld >= WORLD_ORDER.length) {
+        selectedWorld = 0;
+        selectedAvatar = (selectedAvatar + 1) % 8;
+        avatarSelect.value = selectedAvatar;
+      }
+      worldSelect.value = selectedWorld;
+      render(); updateCoords();
+      statusEl.innerHTML = '<span class="ok">Guardado. Siguiente: ' +
+        WORLD_ORDER[selectedWorld] + ' / Avatar ' + (selectedAvatar + 1) + '</span>';
     }).catch(() => {
       statusEl.innerHTML = '<span class="err">Error al guardar</span>';
     });
