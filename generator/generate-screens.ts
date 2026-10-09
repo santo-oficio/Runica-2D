@@ -96,9 +96,10 @@ export const TIERS: Tier[] = [
   { level: 12, numEnemies: 3, numObstacles: [3, 4], numTraps: [2, 3], minSolutionLen: [12, 17], minEnemyPlayerDist: 3 },
   { level: 13, numEnemies: 3, numObstacles: [3, 5], numTraps: [2, 3], minSolutionLen: [13, 18], minEnemyPlayerDist: 3 },
   { level: 14, numEnemies: 3, numObstacles: [3, 5], numTraps: [2, 3], minSolutionLen: [14, 20], minEnemyPlayerDist: 3 },
-  // Boss final: tablero mas denso y soluciones mas largas (medido: ~65% de
-  // aceptacion; 4 enemigos no son viables — el pruning los marca decorativos)
-  { level: 15, numEnemies: 3, numObstacles: [4, 6], numTraps: [3, 4], minSolutionLen: [15, 22], minEnemyPlayerDist: 3 },
+  // Boss final: solo 2 enemigos pero tablero mucho mas denso y soluciones
+  // mas largas — la dificultad viene del laberinto y las trampas, no del
+  // numero de perseguidores (medido: ~97% de aceptacion, media ~20 movimientos)
+  { level: 15, numEnemies: 2, numObstacles: [5, 7], numTraps: [4, 5], minSolutionLen: [16, 24], minEnemyPlayerDist: 3 },
 ];
 
 // ---------------------------------------------------------------------------

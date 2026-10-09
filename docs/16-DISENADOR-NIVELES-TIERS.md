@@ -45,7 +45,7 @@ Cada tier define:
 | 12   | 3        | 3–4        | 2–3     | 12–17           | 3              |
 | 13   | 3        | 3–5        | 2–3     | 13–18           | 3              |
 | 14   | 3        | 3–5        | 2–3     | 14–20           | 3              |
-| 15 * | 3        | 4–6        | 3–4     | 15–22           | 3              |
+| 15 * | 2        | 5–7        | 4–5     | 16–24           | 3              |
 
 \* El tier 15 es **exclusivo del boss final** (última isla de MAZMORRA): no
 forma parte de la curva global de progresión — `mapTierFor` en `db/db.ts` lo
