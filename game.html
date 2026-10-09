@@ -170,6 +170,18 @@
   .entity.crumble{animation:crumbleFall 1.25s ease-in forwards!important}
   @keyframes crumbleFall{0%{transform:translate(0,0) rotate(0);opacity:1}
     100%{transform:translate(var(--cdx),var(--cdy)) rotate(var(--crot));opacity:0;filter:grayscale(1) brightness(.5)}}
+  /* La pantalla se desquebraja tras el boss: la imagen entera se trocea en
+     gajos radiales (clip-path sobre copias del fondo) que primero se separan
+     abriendo grietas negras y luego caen girando al vacío */
+  .win-void{position:fixed;z-index:11;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 38%,#241a12 0%,#0a0605 60%,#000 100%)}
+  .win-shard{position:fixed;z-index:12;pointer-events:none;
+    background-repeat:no-repeat;background-size:100% 100%;
+    animation:shardBreak var(--dur,2s) cubic-bezier(.45,.05,.85,.45) both}
+  @keyframes shardBreak{
+    0%{transform:translate(0,0) rotate(0);opacity:1}
+    14%{transform:translate(var(--sx),var(--sy)) rotate(calc(var(--rot)*.05));opacity:1}
+    100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
   /* Modal de victoria (calibrado en calibrate-modal.html): rojo=reiniciar, verde=continuar */
   #modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
   #modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}
@@ -608,6 +620,15 @@ function pickRandomImages(pool, n) {
 
 // === Cargar pantalla (práctica: al azar del tier; real: la asignada a la isla) ===
 async function loadScreen() {
+  // Si venimos de Reiniciar tras una victoria de boss, el mundo quedó
+  // desquebrajado: restaura imagen/textos y retira gajos y escombros
+  img.style.opacity = '';
+  const bt0 = document.getElementById('boardtexts');
+  if (bt0) bt0.style.opacity = '';
+  document.querySelectorAll('.win-shard,.win-void,.win-debris,.win-dust,.win-flash,.win-ring,.win-spark,.flycoin')
+    .forEach(e => e.remove());
+  const bd = document.getElementById('boss-down');
+  if (bd) { bd.classList.remove('show'); bd.textContent = ''; }
   const endpoint = REAL_MODE
     ? `${BASE}/api/level-screen?world=${encodeURIComponent(REAL_WORLD)}&level=${REAL_LEVEL}`
     : `${BASE}/api/practice-screen?tier=${currentTier}&t=${Date.now()}`;
@@ -1002,10 +1023,66 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
   }
 }
 
+// La pantalla se desquebraja: trocea la imagen visible en gajos radiales
+// desde el punto de impacto (fan de triangulos centro→borde). Cada gajo es
+// una copia del fondo recortada con clip-path — juntos reproducen la imagen
+// intacta; al separarse abren grietas negras y al caer revelan el vacío.
+function shatterScreen(cx, cy) {
+  const ir = visibleImageRect();
+  if (!ir.width) return;
+  const src = img.currentSrc || img.src;
+  const voidEl = document.createElement('div');
+  voidEl.className = 'win-void';
+  voidEl.style.left = ir.left + 'px'; voidEl.style.top = ir.top + 'px';
+  voidEl.style.width = ir.width + 'px'; voidEl.style.height = ir.height + 'px';
+  document.body.appendChild(voidEl);
+
+  const cxr = cx - ir.left, cyr = cy - ir.top;
+  const M = 18, ring = [];
+  for (let i = 0; i < M; i++) {
+    const a = (i / M) * Math.PI * 2 + (Math.random() - 0.5) * 0.24;
+    const dx = Math.cos(a), dy = Math.sin(a);
+    const tx = dx > 0 ? (ir.width - cxr) / dx : dx < 0 ? -cxr / dx : 1e9;
+    const ty = dy > 0 ? (ir.height - cyr) / dy : dy < 0 ? -cyr / dy : 1e9;
+    const t = Math.max(0, Math.min(Math.abs(tx), Math.abs(ty)));
+    ring.push([cxr + dx * t, cyr + dy * t]);
+  }
+  for (let i = 0; i < M; i++) {
+    const p1 = ring[i], p2 = ring[(i + 1) % M];
+    const sh = document.createElement('div');
+    sh.className = 'win-shard';
+    sh.style.left = ir.left + 'px'; sh.style.top = ir.top + 'px';
+    sh.style.width = ir.width + 'px'; sh.style.height = ir.height + 'px';
+    sh.style.backgroundImage = `url("${src}")`;
+    sh.style.clipPath = `polygon(${cxr.toFixed(1)}px ${cyr.toFixed(1)}px, ` +
+      `${p1[0].toFixed(1)}px ${p1[1].toFixed(1)}px, ${p2[0].toFixed(1)}px ${p2[1].toFixed(1)}px)`;
+    // Direccion de salida = centroide del gajo respecto al centro
+    const gx = (p1[0] + p2[0]) / 3 - cxr * 2 / 3, gy = (p1[1] + p2[1]) / 3 - cyr * 2 / 3;
+    const gl = Math.hypot(gx, gy) || 1;
+    const ux = gx / gl, uy = gy / gl;
+    sh.style.setProperty('--sx', (ux * 8).toFixed(1) + 'px');
+    sh.style.setProperty('--sy', (uy * 8).toFixed(1) + 'px');
+    sh.style.setProperty('--dx', (ux * (60 + Math.random() * 90)).toFixed(1) + 'px');
+    sh.style.setProperty('--dy', (uy * 40 + 380 + Math.random() * 280).toFixed(1) + 'px');
+    sh.style.setProperty('--rot', ((Math.random() - 0.5) * 240).toFixed(0) + 'deg');
+    sh.style.setProperty('--dur', (1.7 + Math.random() * 0.9).toFixed(2) + 's');
+    // La grieta avanza desde el centro: gajos cercanos rompen antes
+    const delay = gl * 0.0011 + Math.random() * 0.2;
+    sh.style.animationDelay = delay.toFixed(2) + 's';
+    document.body.appendChild(sh);
+    setTimeout(() => sh.remove(), (delay + 2.8) * 1000);
+  }
+  // Los gajos ya reproducen la imagen: apagamos la original sin salto visual
+  img.style.opacity = '0';
+  const bt = document.getElementById('boardtexts');
+  if (bt) bt.style.opacity = '0';
+  setTimeout(() => voidEl.remove(), 10000);
+}
+
 // Celebración de boss de mundo (isla 12): el mundo se derrumba —
 // terremoto prolongado, lluvia de escombros sobre el tablero, nubes de
-// polvo al impactar, muros/obstáculos/trampas desmoronándose y el boss
-// cayendo grisáceo. Encima, destello dorado + anillos + chispas.
+// polvo al impactar, muros/obstáculos/trampas desmoronándose, el boss
+// cayendo grisáceo y la pantalla desquebrajándose en gajos al vacío.
 // Más épica que una isla normal, más ligera que la cinemática de fin.html.
 function bossWinFx(x, y) {
   // 1) MUERTE DEL BOSS: flash blanco, se hincha y cae girando.
@@ -1030,10 +1107,13 @@ function bossWinFx(x, y) {
     for (const t of [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]) setTimeout(shakeLayers, t);
   };
   setTimeout(rumble, 600);
+  // La pantalla se desquebraja ~2.4s después: la muerte del boss y el rótulo
+  // ya se han leído y las entidades están cayendo
+  setTimeout(() => shatterScreen(x, y), 2400);
 
-  // La estructura del tablero se desmorona (muros, obstáculos, trampas)
-  // a partir de ~0.7s, cuando la muerte del boss ya se ha visto
-  document.querySelectorAll('.entity[data-type="wall"], .entity[data-type="obstacle"], .entity[data-type="trap"]')
+  // La estructura del tablero se desmorona (muros, obstáculos, trampas y
+  // el propio cofre/meta) a partir de ~0.7s, tras la muerte del boss
+  document.querySelectorAll('.entity[data-type="wall"], .entity[data-type="obstacle"], .entity[data-type="trap"], .entity[data-type="goal"]')
     .forEach(e => {
       e.style.setProperty('--cdx', (Math.random() * 60 - 30) + 'px');
       e.style.setProperty('--cdy', (30 + Math.random() * 60) + 'px');
