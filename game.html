@@ -194,6 +194,9 @@
     animation:heroGlow 2.4s ease-in-out infinite alternate}
   @keyframes heroGlow{from{opacity:.7;transform:scale(.96)}to{opacity:1;transform:scale(1.07)}}
   #selector.hero #avatar{filter:drop-shadow(0 0 12px rgba(255,225,140,.95)) drop-shadow(0 0 38px rgba(255,170,60,.6))}
+  /* El boss caído bajo el foco del héroe se ve algo mejor que el .defeated
+     genérico (sigue gris y tumbado, pero visible en la penumbra) */
+  .entity.defeated.spotlight{opacity:.8!important;filter:grayscale(1) brightness(.75)!important}
   /* Modal de victoria (calibrado en calibrate-modal.html): rojo=reiniciar, verde=continuar */
   #modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
   #modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}
@@ -640,6 +643,7 @@ async function loadScreen() {
   document.querySelectorAll('.win-shard,.win-void,.win-debris,.win-dust,.win-flash,.win-ring,.win-spark,.win-hero,.win-beam,.flycoin')
     .forEach(e => e.remove());
   selector.classList.remove('hero');
+  selector.style.transition = '';
   const bd = document.getElementById('boss-down');
   if (bd) { bd.classList.remove('show'); bd.textContent = ''; }
   const endpoint = REAL_MODE
@@ -1091,20 +1095,34 @@ function shatterScreen(cx, cy) {
   if (bt) bt.style.opacity = '0';
   setTimeout(() => voidEl.remove(), 10000);
 
-  // El héroe iluminado sobre el vacío: haz cenital + halo + brillo
+  // El héroe salta a un lado del encuadre (fuera del modal) mientras el
+  // mundo se rompe, y el boss caído se arrastra a sus pies
   const ar = selector.getBoundingClientRect();
-  const acx = ar.left + ar.width / 2, acy = ar.top + ar.height / 2;
+  const hx = ir.left + ir.width * 0.17;
+  const hy = ir.top + ir.height * 0.60;
+  selector.style.transition = 'left 1.15s ease-in-out, top 1.15s ease-in-out';
+  selector.style.left = (hx - ar.width / 2) + 'px';
+  selector.style.top = (hy - ar.height / 2) + 'px';
+  const boss = document.querySelector('.entity[data-type="boss"], .entity.defeated');
+  if (boss) {
+    boss.style.transition = 'left 1.15s ease-in-out, top 1.15s ease-in-out';
+    boss.style.left = (hx + ar.width * 0.35) + 'px';
+    boss.style.top = (hy + ar.height * 0.5) + 'px';
+    boss.classList.add('spotlight'); // bajo el foco del heroe
+  }
+  // Haz cenital + halo + brillo coronan al héroe (y al boss a sus pies)
   const beam = document.createElement('div');
   beam.className = 'win-beam';
-  beam.style.left = (acx - ar.width * 1.7) + 'px';
+  beam.style.left = (hx - ar.width * 1.7) + 'px';
   beam.style.top = ir.top + 'px';
-  beam.style.width = (ar.width * 3.4) + 'px';
-  beam.style.height = Math.max(40, acy - ir.top + ar.height * 0.2) + 'px';
+  beam.style.width = (ar.width * 4.6) + 'px';
+  beam.style.height = Math.max(40, hy - ir.top + ar.height * 0.7) + 'px';
   document.body.appendChild(beam);
   const halo = document.createElement('div');
   halo.className = 'win-hero';
-  const hs = ar.width * 4.2;
-  halo.style.left = (acx - hs / 2) + 'px'; halo.style.top = (acy - hs / 2) + 'px';
+  const hs = ar.width * 4.6;
+  halo.style.left = (hx + ar.width * 0.2 - hs / 2) + 'px';
+  halo.style.top = (hy + ar.height * 0.2 - hs / 2) + 'px';
   halo.style.width = halo.style.height = hs + 'px';
   document.body.appendChild(halo);
   selector.classList.add('hero');
