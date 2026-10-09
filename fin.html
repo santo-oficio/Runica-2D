@@ -594,7 +594,8 @@ let started = false;
 function advance() {
   if (!started || busy) return;
   if (scene === 1) { sceneMap(); return; }
-  if (scene === 3) { AssetsCache.transitionTo('/menu.html'); return; }
+  // El gran final encadena con los creditos (su boton Volver lleva al menu)
+  if (scene === 3) { AssetsCache.transitionTo('/creditos.html'); return; }
 }
 document.addEventListener('keydown', e => {
   if (!started) { begin(); return; }
