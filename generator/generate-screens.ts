@@ -41,7 +41,8 @@ const W = 8;
 const H = 6;
 const CELLS = W * H;
 
-// Pantallas por tier: 50k para tiers 1-9, 5k para tiers 10-14.
+// Pantallas por tier: 50k para tiers 1-9, 5k para tiers 10-15
+// (el 15 incluido: solo sirve al boss final de MAZMORRA).
 function screensForTier(tierLevel: number): number {
   return tierLevel <= 9 ? 50000 : 5000;
 }
@@ -75,7 +76,9 @@ export interface Tier {
 }
 
 // ---------------------------------------------------------------------------
-// 14 tiers de dificultad (portados del generator.py original, TIERS)
+// 15 tiers de dificultad (los 14 primeros portados del generator.py original).
+// El tier 15 es exclusivo del boss final (ultima isla de MAZMORRA): no sale en
+// la curva de progresion, solo lo pide el servidor para esa pantalla.
 // ---------------------------------------------------------------------------
 
 export const TIERS: Tier[] = [
@@ -93,6 +96,9 @@ export const TIERS: Tier[] = [
   { level: 12, numEnemies: 3, numObstacles: [3, 4], numTraps: [2, 3], minSolutionLen: [12, 17], minEnemyPlayerDist: 3 },
   { level: 13, numEnemies: 3, numObstacles: [3, 5], numTraps: [2, 3], minSolutionLen: [13, 18], minEnemyPlayerDist: 3 },
   { level: 14, numEnemies: 3, numObstacles: [3, 5], numTraps: [2, 3], minSolutionLen: [14, 20], minEnemyPlayerDist: 3 },
+  // Boss final: tablero mas denso y soluciones mas largas (medido: ~65% de
+  // aceptacion; 4 enemigos no son viables — el pruning los marca decorativos)
+  { level: 15, numEnemies: 3, numObstacles: [4, 6], numTraps: [3, 4], minSolutionLen: [15, 22], minEnemyPlayerDist: 3 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -350,6 +356,7 @@ function solve(lv: LevelData): SolveResult {
       }
       for (let step = 0; step < 2; step++) {
         // Recalcular dx/dy con posición actual del jugador
+        const before = ne[i]!;
         const newPos = enemySubstep(ne[i]!, np);
         ne[i] = newPos;
         // Colisión tras cada sub-paso
@@ -357,8 +364,10 @@ function solve(lv: LevelData): SolveResult {
           captured = true;
           break;
         }
-        // Pisó trampa: aturdir 3 turnos, parar
-        if (trap[newPos]) {
+        // Pisó trampa: aturdir 3 turnos, parar. Solo aturde al ENTRAR en la
+        // trampa (si realmente se movió): un enemigo bloqueado sobre una
+        // trampa no se re-aturde — igual que el motor (rules.ts).
+        if (trap[newPos] && newPos !== before) {
           ns[i] = 3;
           break;
         }
@@ -480,13 +489,14 @@ function countSolutionsOfMinLength(lv: LevelData, len: number, cap = 50): number
         continue;
       }
       for (let step = 0; step < 2; step++) {
+        const before = ne[i]!;
         const newPos = enemySubstep(ne[i]!, np);
         ne[i] = newPos;
         if (newPos === np) {
           captured = true;
           break;
         }
-        if (trap[newPos]) {
+        if (trap[newPos] && newPos !== before) {
           ns[i] = 3;
           break;
         }

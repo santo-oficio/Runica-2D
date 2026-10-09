@@ -1,4 +1,4 @@
-# Diseñador de Niveles — 14 Tiers de Dificultad
+# Diseñador de Niveles — 15 Tiers de Dificultad
 
 > Documento de referencia para el sistema de generación de pantallas.
 > Sustituye a los scripts Python originales (`generator.py`,
@@ -20,7 +20,7 @@ El generador produce pantallas para un banco local de 21.000 niveles
    del tier, que queda al menos un enemigo, y que todos los elementos
    restantes son funcionales.
 
-## 2. Los 14 tiers
+## 2. Los 15 tiers
 
 Cada tier define:
 - `numEnemies`: nº de enemigos (1–3).
@@ -45,6 +45,11 @@ Cada tier define:
 | 12   | 3        | 3–4        | 2–3     | 12–17           | 3              |
 | 13   | 3        | 3–5        | 2–3     | 13–18           | 3              |
 | 14   | 3        | 3–5        | 2–3     | 14–20           | 3              |
+| 15 * | 3        | 4–6        | 3–4     | 15–22           | 3              |
+
+\* El tier 15 es **exclusivo del boss final** (última isla de MAZMORRA): no
+forma parte de la curva global de progresión — `mapTierFor` en `db/db.ts` lo
+asigna solo a `world=MAZMORRA&level=11`. La curva normal sigue capada en 14.
 
 ## 3. Reglas del motor (idénticas a `engine/rules.ts`)
 

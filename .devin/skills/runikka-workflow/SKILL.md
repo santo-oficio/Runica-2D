@@ -25,7 +25,7 @@ npx tsx server.ts  # juego y calibradores en http://localhost:3000
 ## Arquitectura
 
 - `engine/` — motor de reglas determinista (`playTurn`, `isLevelSolved`, etc.).
-- `generator/` — generación procedural por seed (14 tiers de dificultad).
+- `generator/` — generación procedural por seed (15 tiers de dificultad; el 15 es exclusivo del boss final).
 - `solver/` — validador (32 tests) + BFS solver que reutiliza el motor.
 - `worlds/` — WorldConfigs, banco de niveles, renderizado ASCII.
 - `background/` — detección de tableros con MobileSAM (`sam-detect.py`).
@@ -42,7 +42,7 @@ ESPACIO, AGUA, TIERRA, FUEGO, HIELO, VIENTO, INFRAMUNDO, MAZMORRA.
 - El solver reutiliza LITERALMENTE el motor de reglas (no hay lógica duplicada).
 - Añadir un mundo = solo datos (WorldConfig + BackgroundTemplates).
 - Tablero fijo **8×6** (8 columnas × 6 filas); `allowedBoardSizes` = `[[8,6]]`.
-- **14 niveles de dificultad**; **32 tests** de validación; máximo **3 enemigos** por pantalla.
+- **15 niveles de dificultad** (el 15 exclusivo del boss final); **32 tests** de validación; máximo **3 enemigos** por pantalla.
 - ESM imports usan `.js` en TypeScript source.
 
 ## Reglas "a fuego"
@@ -62,5 +62,6 @@ ESPACIO, AGUA, TIERRA, FUEGO, HIELO, VIENTO, INFRAMUNDO, MAZMORRA.
 - **Obstáculos visuales por mundo**: la imagen de cada obstáculo se elige al azar
   de `assets/obstaculos/<MUNDO>/` sin repetir mientras sea posible. Mapeo especial:
   `VIENTO`→`AIRE/`, `MAZMORRA`→`MAZMORRA/`.
-- **Curva de dificultad**: 8 mundos × 15 subniveles = 120 juegos, 14 tiers,
-  curva no lineal p=0.6. Ver `docs/15-TABLA-CURVA-DIFICULTAD-120-JUEGOS.md`.
+- **Curva de dificultad**: 8 mundos × 12 islas = 96 pantallas, tiers 4–14 según
+  pantallas superadas; el **tier 15 es exclusivo del boss final** (última isla
+  de MAZMORRA) y no forma parte de la curva (`mapTierFor` en `db/db.ts`).

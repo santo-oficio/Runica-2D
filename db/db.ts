@@ -2,8 +2,9 @@
  * Base de datos local con lazy-loading por tier + persistencia JSON.
  *
  * Estructura de archivos:
- *  - db/screens-tier-1.json .. db/screens-tier-14.json: banco de pantallas
- *    generadas y validadas (50.000 por tier = 700.000 total).
+ *  - db/screens-tier-1.json .. db/screens-tier-15.json: banco de pantallas
+ *    generadas y validadas (50.000 por tier 1-9, 5.000 por tier 10-15).
+ *    El tier 15 es exclusivo del boss final (ultima isla de MAZMORRA).
  *  - db/player.json: estado del jugador + asignaciones sticky por (mundo, tier).
  *
  * Lazy-loading: solo se carga en memoria el archivo del tier actual.
@@ -32,7 +33,7 @@ export type Pattern = "CHASE";
 
 export interface Screen {
   id: string;
-  level: number; // tier 1..14
+  level: number; // tier 1..15
   world: string;
   grid: string[];
   player: [number, number];
@@ -47,7 +48,7 @@ export type ProgressStatus = "in_use" | "completed";
 
 export interface ScreenProgress {
   screenId: string;
-  tier: number; // 1..14
+  tier: number; // 1..15
   world: string;
   status: ProgressStatus;
   turns: number; // turnos en los que se completó (0 si no completada)
@@ -72,7 +73,7 @@ export interface PlayerState {
   lastWorld?: string;
   /** Progreso por mundo: última isla jugada + islas completadas (0..MAP_LEVELS_PER_WORLD-1). */
   worldProgress?: Record<string, { last?: number; completed?: number[] }>;
-  /** Nivel de juego actual (tier 1..14 según la curva global de dificultad). */
+  /** Nivel de juego actual (tier 1..14 según la curva global; el 15 es solo del boss final). */
   gameLevel?: number;
 }
 
@@ -96,12 +97,16 @@ export const WORLDS = [
 export const SUBLEVELS_PER_WORLD = 12;
 export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
 export const TOTAL_TIERS = 14;
+/** Tier exclusivo del boss final (ultima isla de MAZMORRA): fuera de la curva. */
+export const FINAL_TIER = 15;
 /** Tier de dificultad inicial: la partida siempre empieza en el nivel 4. */
 export const FIRST_TIER = 4;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
 export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
 export const FINAL_WORLD = "MAZMORRA";
+/** Índice (0-based) de la isla del boss en cada submundo. */
+export const BOSS_LEVEL_IDX = MAP_LEVELS_PER_WORLD - 1;
 
 /** Etapa global (1..96) a partir de mundo y subnivel. */
 export function stageFor(world: number, subLevel: number): number {
@@ -203,9 +208,9 @@ function findScreenById(id: string): Screen | null {
   const tiers = (() => {
     const m = /^l(\d+)-/.exec(id);
     const t = m ? Number(m[1]) : 0;
-    return t >= 1 && t <= TOTAL_TIERS
+    return t >= 1 && t <= FINAL_TIER
       ? [t]
-      : Array.from({ length: TOTAL_TIERS }, (_, i) => i + 1);
+      : Array.from({ length: FINAL_TIER }, (_, i) => i + 1);
   })();
   for (const t of tiers) {
     try {
@@ -352,8 +357,11 @@ export function failScreen(_screenId: string): void {
 /**
  * Tier de dificultad de la pantalla que toca jugar: por pantallas superadas
  * (los mundos se juegan en orden libre, el nivel no depende de la isla).
+ * Excepcion: la ultima isla de MAZMORRA (boss final) usa el tier 15,
+ * exclusivo — no forma parte de la curva de progresion.
  */
-export function mapTierFor(_world: string, _level: number): number {
+export function mapTierFor(world: string, level: number): number {
+  if (world === FINAL_WORLD && level === BOSS_LEVEL_IDX) return FINAL_TIER;
   return currentTier();
 }
 

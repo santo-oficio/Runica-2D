@@ -269,7 +269,7 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
 ## Arquitectura
 
 - `engine/` — motor de reglas determinista (playTurn, isLevelSolved, etc.).
-- `generator/` — generación procedural de niveles por seed (14 tiers de dificultad).
+- `generator/` — generación procedural de niveles por seed (15 tiers de dificultad; el 15 es exclusivo del boss final).
 - `solver/` — validador (32 tests) + BFS solver que reutiliza el motor.
 - `worlds/` — WorldConfigs, banco de niveles, renderizado ASCII.
 - `background/` — detección de tableros con SAM (Python).
@@ -311,6 +311,10 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   siempre empieza en el nivel 4) según el **nº de pantallas superadas** —
   `min(14, 4 + floor(c × 11 / 96))`, ~8-9 islas por tier. NO depende de la
   isla/mundo (los mundos se juegan en orden libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
+  **Excepción — boss final**: la última isla de MAZMORRA (`level=11`) usa el
+  **tier 15**, exclusivo y fuera de la curva (`mapTierFor` en `db/db.ts`).
+  Su banco es `db/screens-tier-15.json` (5.000 pantallas, 3 enemigos,
+  4-6 obstáculos, 3-4 trampas, solución óptima 15-22 pasos).
 - **A fuego — sin textos hardcodeados**: ningún texto visible al usuario puede estar
   escrito directamente en el código (HTML, TS, etc.). Todo texto debe venir de
   archivos de idioma en `i18n/` (`es.json`, `en.json`, `fr.json`, `de.json`,
