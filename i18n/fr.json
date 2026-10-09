@@ -118,7 +118,7 @@
   "fin.completed": "Tu as terminé Runika 2D !",
   "fin.worldsFell": "Tous les mondes sont tombés",
   "fin.finalBoss": "Le dernier gardien...",
-  "fin.replay": "Runika 2D est infini : recommence et aucun niveau ne se répétera. Tu peux toujours battre tes records et gagner plus d’or. L’aventure continue !",
+  "fin.replay": "Runika 2D est infini : chaque partie est unique et aucun puzzle ne se répète. Des milliers de nouveaux défis t'attendent à chaque niveau de difficulté. L'aventure ne s'arrête pas ici !",
   "game.practice": "Entraînement",
   "game.practiceTag": "Entraînement · rien n'est sauvegardé",
   "game.practiceTier": "Tier {0}",
@@ -143,5 +143,8 @@
   "demo.modeMap": "Célébration carte",
   "demo.modeBoard": "Victoire plateau",
   "demo.modeBoss": "Victoire boss",
-  "demo.modeFinal": "Victoire boss final"
+  "demo.modeFinal": "Victoire boss final",
+  "loading.tip1": "Chaque partie est unique : des milliers de nouveaux puzzles à chaque niveau de difficulté.",
+  "loading.tip2": "Aucun puzzle ne se répète jamais : chaque défi est créé rien que pour toi.",
+  "loading.tip3": "Quatorze niveaux de difficulté et des milliers de puzzles différents dans chacun."
 }

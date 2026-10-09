@@ -118,7 +118,7 @@
   "fin.completed": "You have completed Runika 2D!",
   "fin.worldsFell": "All worlds have fallen",
   "fin.finalBoss": "The last guardian...",
-  "fin.replay": "Runika 2D is endless: start again and no level will ever repeat. You can always beat your records and earn more gold. The adventure is not over!",
+  "fin.replay": "Runika 2D is infinite: every playthrough is unique and no puzzle ever repeats. Thousands of new challenges await at every difficulty level. The adventure is not over!",
   "game.practice": "Practice",
   "game.practiceTag": "Practice · nothing is saved",
   "game.practiceTier": "Tier {0}",
@@ -143,5 +143,8 @@
   "demo.modeMap": "Map celebration",
   "demo.modeBoard": "Board victory",
   "demo.modeBoss": "Boss victory",
-  "demo.modeFinal": "Final boss victory"
+  "demo.modeFinal": "Final boss victory",
+  "loading.tip1": "Every playthrough is unique: thousands of new puzzles at every difficulty level.",
+  "loading.tip2": "No puzzle ever repeats: each challenge is created just for you.",
+  "loading.tip3": "Fourteen difficulty levels and thousands of different puzzles in each."
 }

@@ -118,7 +118,7 @@
   "fin.completed": "Du hast Runika 2D abgeschlossen!",
   "fin.worldsFell": "Alle Welten sind gefallen",
   "fin.finalBoss": "Der letzte Wächter...",
-  "fin.replay": "Runika 2D ist endlos: Fang von vorn an – kein Level wiederholt sich. Du kannst deine Rekorde und dein Gold immer weiter verbessern. Das Abenteuer ist noch nicht vorbei!",
+  "fin.replay": "Runika 2D ist unendlich: Jede Partie ist einzigartig und kein Rätsel wiederholt sich. Auf jedem Schwierigkeitsgrad warten tausende neue Herausforderungen. Das Abenteuer ist noch nicht vorbei!",
   "game.practice": "Übung",
   "game.practiceTag": "Übung · nichts wird gespeichert",
   "game.practiceTier": "Tier {0}",
@@ -143,5 +143,8 @@
   "demo.modeMap": "Kartenfeier",
   "demo.modeBoard": "Brettsieg",
   "demo.modeBoss": "Bosssieg",
-  "demo.modeFinal": "Finaler Boss-Sieg"
+  "demo.modeFinal": "Finaler Boss-Sieg",
+  "loading.tip1": "Jede Partie ist einzigartig: Tausende neue Rätsel auf jedem Schwierigkeitsgrad.",
+  "loading.tip2": "Kein Rätsel wiederholt sich jemals: Jede Herausforderung wird nur für dich erschaffen.",
+  "loading.tip3": "Vierzehn Schwierigkeitsgrade und tausende verschiedene Rätsel in jedem."
 }

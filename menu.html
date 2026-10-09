@@ -79,6 +79,16 @@
     font-family: 'ChelseaMarket', cursive; letter-spacing: 2px;
     text-shadow: 1px 1px 0 #20140a;
   }
+  /* Taglines rotativos de venta: "cada partida es unica..." */
+  #loading-tips {
+    margin-top: 22px; max-width: min(560px, 78vw); min-height: 2.6em;
+    font-size: clamp(0.85em, 1.7vw, 1.05em); color: #b09a68;
+    font-family: 'ChelseaMarket', cursive; letter-spacing: 1px;
+    line-height: 1.35; text-align: center;
+    text-shadow: 1px 1px 0 #20140a;
+    opacity: 0; transition: opacity 0.7s ease;
+  }
+  #loading-tips.show { opacity: 1; }
   #start-hint {
     margin-top: 34px; font-size: clamp(1em, 2.4vw, 1.5em); color: #f0d890;
     font-family: 'ChelseaMarket', cursive; letter-spacing: 3px;
@@ -214,6 +224,7 @@
   <div id="loading-subtitle"></div>
   <div id="loading-bar-bg"><div id="loading-bar"></div></div>
   <div id="loading-text"></div>
+  <div id="loading-tips"></div>
   <div id="start-hint"></div>
 </div>
 
@@ -523,6 +534,7 @@
 
   // --- Ajustes de glow ---
   let glowX = 14, glowY = 0, glowOp = 0.6, glowBlur = 8;
+  let loadingScreenCleanup = null;
   const glowInfo = document.getElementById('glow-info');
 
   function applyGlow() {
@@ -600,6 +612,25 @@
     translations = await loadLang();
     document.getElementById('loading-subtitle').textContent = t('menu.subtitle');
 
+    // Taglines rotativos mientras carga (y tras "pulsa para empezar"):
+    // venden el valor del juego — partida unica, puzles infinitos
+    const tipsEl = document.getElementById('loading-tips');
+    const TIP_KEYS = ['loading.tip1', 'loading.tip2', 'loading.tip3'];
+    let tipIdx = Math.floor(Math.random() * TIP_KEYS.length);
+    let tipsTimer = null;
+    const showTip = () => {
+      tipsEl.classList.remove('show');
+      setTimeout(() => {
+        tipsEl.textContent = t(TIP_KEYS[tipIdx % TIP_KEYS.length]);
+        tipIdx++;
+        tipsEl.classList.add('show');
+      }, 700);
+    };
+    tipsEl.textContent = t(TIP_KEYS[tipIdx++ % TIP_KEYS.length]);
+    tipsEl.classList.add('show');
+    tipsTimer = setInterval(showTip, 4500);
+    loadingScreenCleanup = () => { clearInterval(tipsTimer); };
+
     // Precargar TODO (manifiesto completo de assets del servidor)
     await AssetsCache.preloadAll((loaded, total) => {
       const pct = Math.round((loaded / total) * 100);
@@ -635,6 +666,7 @@
     startHint.style.display = 'block';
     const loadingScreen = document.getElementById('loading-screen');
     const enterGame = () => {
+      if (loadingScreenCleanup) loadingScreenCleanup();
       unlockAudio();
       AssetsCache.startMusic(AssetsCache.MUSIC.main);
       sessionStorage.setItem('runika-session', 'active');
