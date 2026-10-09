@@ -172,7 +172,23 @@ const MUSIC = {
   world: '/assets/music/mistery.mp3',
   worldWin: '/assets/music/victory_mundo.mp3', // derrotar un mundo (no el final)
   fin: '/assets/music/victory.mp3',
+  // Pista por submundo: cada mundo tiene su propia música. Si el archivo de
+  // un mundo aún no existe, se usa `world` (mistery.mp3) como fallback.
+  worlds: {
+    ESPACIO: '/assets/music/ESPACIO/submundo.mp3',
+    AGUA: '/assets/music/AGUA/submundo.mp3',
+    TIERRA: '/assets/music/TIERRA/submundo.mp3',
+    FUEGO: '/assets/music/FUEGO/submundo.mp3',
+    HIELO: '/assets/music/HIELO/submundo.mp3',
+    VIENTO: '/assets/music/VIENTO/submundo.mp3',
+    INFRAMUNDO: '/assets/music/INFRAMUNDO/submundo.mp3',
+    MAZMORRA: '/assets/music/MAZMORRA/submundo.mp3',
+  },
 };
+// Pista de música de un submundo (fallback a la genérica si falta).
+function musicForWorld(world) {
+  return MUSIC.worlds[world] || MUSIC.world;
+}
 let musicEl = null;
 // La pista activa se persiste para que cualquier pantalla retome la
 // musica correcta aunque no haya pasado por preloadAll (ej. instrucciones).
@@ -333,5 +349,5 @@ window.AssetsCache = {
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
-  startMusic, stopMusic, setMusicTrack, MUSIC,
+  startMusic, stopMusic, setMusicTrack, MUSIC, musicForWorld,
 };

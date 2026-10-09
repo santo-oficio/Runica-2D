@@ -611,7 +611,7 @@
     if (sessionStorage.getItem('runika-session') === 'active') {
       AssetsCache.unlockAudio();
       await AssetsCache.loadSettings();
-      AssetsCache.setMusicTrack(AssetsCache.MUSIC.world);
+      AssetsCache.setMusicTrack(AssetsCache.musicForWorld(currentWorld));
       fallback = await loadLang('es');
       translations = await loadLang();
       applyI18n();
@@ -633,7 +633,7 @@
     });
 
     await AssetsCache.loadSettings();
-    AssetsCache.setMusicTrack(AssetsCache.MUSIC.world);
+    AssetsCache.setMusicTrack(AssetsCache.musicForWorld(currentWorld));
     fallback = await loadLang('es');
     translations = await loadLang();
     applyI18n();

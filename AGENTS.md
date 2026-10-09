@@ -177,6 +177,10 @@ renderizarla igual.
 - **Música global**: `AssetsCache.startMusic()` reproduce la pista del
   manifiesto en loop y guarda la posición en `localStorage` (`runika-music-pos`)
   para retomarla entre pantallas — la música no se corta al navegar.
+  Pistas por contexto en `MUSIC` (`assets-cache.js`): `main` (menús/mapamundi),
+  `worldWin`, `fin`, y **una por submundo** en `MUSIC.worlds`
+  (`assets/music/<MUNDO>/submundo.mp3` — `submundo.html` la activa con
+  `musicForWorld(world)`, que cae a `mistery.mp3` si el mundo no tiene la suya).
 - **Progreso por mapa** (PlayerState): `gold`, `lastWorld` (último mundo del
   mapamundi) y `worldProgress` = `{MUNDO: {last, completed[]}}` con 12 islas por
   mundo (`MAP_LEVELS_PER_WORLD`). Endpoints: `POST /api/map-position`,
