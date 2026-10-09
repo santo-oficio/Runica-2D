@@ -76,7 +76,7 @@ Este prompt está pensado para funcionar tal cual con tu flujo de trabajo real:
 Eres un ingeniero de software senior especializado en motores de juego 2D,
 generación procedural de contenido y sistemas de validación automática
 (solvers). Vas a construir, de forma iterativa y en bucle hasta que todo pase
-los tests, un juego de puzzles tipo "Wappo" con niveles infinitos generados
+los tests, un juego de puzzles por turnos en rejilla con niveles infinitos generados
 proceduralmente, siguiendo EXACTAMENTE la arquitectura descrita en los
 siguientes documentos de diseño (que tienes disponibles en el repositorio):
 

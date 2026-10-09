@@ -1,4 +1,4 @@
-# Progreso de implementación — Wappo Infinito
+# Progreso de implementación — Runika 2D
 
 Seguimiento fase a fase del plan de `docs/09-SUPER-PROMPT-IMPLEMENTACION.md`.
 Cada fase deja aquí un resumen breve: qué se implementó, qué tests existen y

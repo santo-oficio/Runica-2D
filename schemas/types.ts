@@ -1,5 +1,5 @@
 /**
- * Esquemas de datos del proyecto Wappo Infinito.
+ * Esquemas de datos del proyecto Runika 2D.
  *
  * Tipos fieles a docs/06-ESQUEMAS-JSON.md y docs/10-ANALIZADOR-IA-FONDOS.md.
  * Todas las coordenadas de zonas de fondo son relativas (0.0–1.0) para

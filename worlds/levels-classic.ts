@@ -1,5 +1,5 @@
 /**
- * 10 niveles de dificultad del Wappo (docs/11-REGLAS-WAPPO-ORIGINAL.md).
+ * 10 niveles de dificultad clásicos (docs/11-REGLAS-JUEGO-ORIGINAL.md).
  *
  * Tablero fijo 8x6 (docs/11-ACTUALIZACION-NIVELES-DIFICULTAD-PROGRESO.md).
  * Progresión de dificultad 1-10:
@@ -9,7 +9,7 @@
  *  - Nivel 7-8: 2 enemigos + trampas, puzle de ruta
  *  - Nivel 9-10: 2 enemigos + laberinto + trampas, máxima dificultad
  *
- * Reglas Wappo:
+ * Reglas del juego:
  *  - Jugador: 1 casilla/turno, ortogonal
  *  - Enemigo: 2 casillas/turno, preferencia horizontal
  *  - Obstáculos (X): bloquean a ambos
@@ -46,7 +46,7 @@ function mkLevel(
     goal,
     keys: [],
     doors: [],
-    rulesetVersion: "wappo-v1",
+    rulesetVersion: "runika-v1",
   };
 }
 

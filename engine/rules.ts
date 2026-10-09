@@ -203,7 +203,7 @@ function movePatrol(state: GameState, idx: number): void {
   }
 }
 
-/** Persecución simple: un paso hacia el jugador, preferencia horizontal primero (regla Wappo).
+/** Persecución simple: un paso hacia el jugador, preferencia horizontal primero (regla clásica).
  *  Si no puede avanzar directamente hacia el jugador, NO se mueve.
  *  Esto es intencional: el jugador explota la estupidez del enemigo. */
 function moveChase(state: GameState, idx: number): void {
@@ -212,7 +212,7 @@ function moveChase(state: GameState, idx: number): void {
   const [pc, pr] = state.player;
   const dx = Math.sign(pc - ec);
   const dy = Math.sign(pr - er);
-  // Wappo: siempre intenta horizontal primero, luego vertical
+  // Siempre intenta horizontal primero, luego vertical
   const candidates: CellPos[] = [];
   if (dx !== 0) candidates.push([ec + dx, er]);
   if (dy !== 0) candidates.push([ec, er + dy]);
@@ -326,11 +326,11 @@ export function isLevelFailed(state: GameState): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Ejecuta un turno completo del juego (reglas Wappo originales):
+ * Ejecuta un turno completo del juego (reglas originales del juego):
  *  1. Input del jugador → playerMove(direction)
  *     - Si el jugador está aturdido (trampa), el input se ignora pero el turno avanza.
  *  2. ¿Jugador en salida? → VICTORIA (antes de que se mueva el enemigo)
- *  3. El enemigo hace 2 pasos hacia el jugador (Wappo: 2 casillas/turno)
+ *  3. El enemigo hace 2 pasos hacia el jugador (2 casillas/turno)
  *     - Tras cada paso, comprueba colisión → DERROTA
  *     - Si una entidad (jugador o enemigo) cae en trampa (T), queda aturdida 3 turnos.
  *  4. ¿Jugador en salida? → VICTORIA (recheck tras movimiento enemigo)
@@ -366,9 +366,9 @@ export function playTurn(
     return state;
   }
 
-  // 3. Enemy moves — cada enemigo hace 2 sub-pasos (regla Wappo).
+  // 3. Enemy moves — cada enemigo hace 2 sub-pasos (regla clásica).
   //    Procesamos un enemigo a la vez (ambos sub-pasos) para que el orden
-  //    coincida con el simulador de referencia (wappo_simulator.py):
+  //    coincida con el simulador de referencia original en Python:
   //    enemigo 0 hace sub-paso 0 + sub-paso 1, luego enemigo 1, etc.
   for (let i = 0; i < state.enemies.length; i++) {
     // Aturdimiento: decrementar 1 vez por turno y saltar todo el turno

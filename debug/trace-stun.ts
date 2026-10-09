@@ -12,7 +12,7 @@ const lvl: LevelMap = {
   archetype: "RECTANGULO", width: 6, height: 6, grid: s.grid,
   player: s.player, goal: s.goal,
   enemies: s.enemies.map((e) => ({ pos: e.pos, pattern: MAP[e.pattern]! })),
-  keys: [], doors: [], rulesetVersion: "wappo-v1",
+  keys: [], doors: [], rulesetVersion: "runika-v1",
 };
 const st = createInitialState(lvl);
 const path: Direction[] = ["DOWN","DOWN","UP","UP","RIGHT","RIGHT","LEFT","RIGHT"];

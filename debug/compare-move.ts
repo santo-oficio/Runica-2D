@@ -71,7 +71,7 @@ function engineReplay(path: Direction[]) {
     archetype: "RECTANGULO", width: 6, height: 6, grid: s.grid,
     player: s.player, goal: s.goal,
     enemies: s.enemies.map((x) => ({ pos: x.pos, pattern: MAP[x.pattern]! })),
-    keys: [], doors: [], rulesetVersion: "wappo-v1",
+    keys: [], doors: [], rulesetVersion: "runika-v1",
   };
   const st = createInitialState(lvl);
   for (let m = 0; m < path.length; m++) {

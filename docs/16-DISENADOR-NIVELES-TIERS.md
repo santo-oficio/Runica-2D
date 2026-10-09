@@ -1,8 +1,8 @@
 # Diseñador de Niveles — 14 Tiers de Dificultad
 
 > Documento de referencia para el sistema de generación de pantallas.
-> Sustituye a los scripts Python originales (`wappo_generator.py`,
-> `wappo_simulator.py`, `wappo_solver.py`) que fueron portados a TypeScript
+> Sustituye a los scripts Python originales (`generator.py`,
+> `simulator.py`, `solver.py`) que fueron portados a TypeScript
 > en `generator/generate-screens.ts`.
 
 ## 1. Visión general

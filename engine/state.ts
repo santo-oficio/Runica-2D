@@ -17,7 +17,7 @@ import type { CellPos, EnemyPattern, LevelMap } from "../schemas/types.js";
 // Direcciones
 // ---------------------------------------------------------------------------
 
-/** Las 4 direcciones cardinales (sin diagonales, como Wappo clásico). */
+/** Las 4 direcciones cardinales (sin diagonales). */
 export type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT";
 
 export const ALL_DIRECTIONS: readonly Direction[] = ["UP", "DOWN", "LEFT", "RIGHT"];

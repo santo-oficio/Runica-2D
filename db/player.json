@@ -3,107 +3,15 @@
     "playerId": "player-1",
     "currentWorld": 1,
     "currentSubLevel": 1,
-    "totalStagesCompleted": 11,
-    "updatedAt": 1791361421591,
-    "gold": 364,
-    "lastWorld": "INFRAMUNDO",
-    "worldProgress": {
-      "INFRAMUNDO": {
-        "completed": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10
-        ],
-        "last": 11
-      }
-    },
-    "gameLevel": 5,
+    "totalStagesCompleted": 0,
+    "updatedAt": 1791543320541,
+    "gold": 0,
+    "lastWorld": "AGUA",
+    "worldProgress": {},
+    "gameLevel": 4,
     "started": true,
-    "playerName": "SABELA",
-    "avatarIndex": 1
+    "playerName": "Capitán Hueso Rojo",
+    "avatarIndex": 0
   },
-  "assignments": {
-    "map:INFRAMUNDO:0": {
-      "current": null,
-      "completed": [
-        "l5-s1"
-      ]
-    },
-    "map:INFRAMUNDO:1": {
-      "current": null,
-      "completed": [
-        "l5-s2"
-      ]
-    },
-    "map:TIERRA:0": {
-      "current": "l4-s1",
-      "completed": []
-    },
-    "map:INFRAMUNDO:2": {
-      "current": null,
-      "completed": [
-        "l4-s2"
-      ]
-    },
-    "map:INFRAMUNDO:3": {
-      "current": null,
-      "completed": [
-        "l4-s3"
-      ]
-    },
-    "map:INFRAMUNDO:4": {
-      "current": null,
-      "completed": [
-        "l4-s4"
-      ]
-    },
-    "map:INFRAMUNDO:5": {
-      "current": null,
-      "completed": [
-        "l4-s5"
-      ]
-    },
-    "map:INFRAMUNDO:6": {
-      "current": null,
-      "completed": [
-        "l4-s6"
-      ]
-    },
-    "map:INFRAMUNDO:7": {
-      "current": null,
-      "completed": [
-        "l4-s7"
-      ]
-    },
-    "map:INFRAMUNDO:8": {
-      "current": null,
-      "completed": [
-        "l4-s8"
-      ]
-    },
-    "map:INFRAMUNDO:9": {
-      "current": null,
-      "completed": [
-        "l5-s3"
-      ]
-    },
-    "map:INFRAMUNDO:10": {
-      "current": null,
-      "completed": [
-        "l5-s4"
-      ]
-    },
-    "map:INFRAMUNDO:11": {
-      "current": null,
-      "completed": []
-    }
-  }
+  "assignments": {}
 }

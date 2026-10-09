@@ -1,8 +1,8 @@
 ﻿/**
  * Generador de pantallas (screens) para el banco local — Runika 2D.
  *
- * Porta fielmente el pipeline del diseñador de niveles (wappo_generator.py,
- * wappo_simulator.py, wappo_solver.py) a TypeScript:
+ * Porta fielmente el pipeline original del diseñador de niveles
+ * (generator/simulator/solver en Python) a TypeScript:
  *
  *  - 14 tiers de dificultad con rangos parametrizados (enemigos, obstáculos,
  *    trampas, longitud de solución, distancia mínima enemigo-jugador).
@@ -18,7 +18,7 @@
  *
  * Tablero fijo 8×6 (8 columnas × 6 filas).
  *
- * Reglas Wappo (docs/11-REGLAS-WAPPO-ORIGINAL.md):
+ * Reglas del juego (docs/11-REGLAS-JUEGO-ORIGINAL.md):
  *  - Jugador: 1 casilla/turno, ortogonal.
  *  - Enemigo CHASE: 2 sub-pasos/turno, horizontal primero, luego vertical.
  *  - Todo enemigo persigue (no hay enemigos estáticos).
@@ -75,7 +75,7 @@ export interface Tier {
 }
 
 // ---------------------------------------------------------------------------
-// 14 tiers de dificultad (portados de wappo_generator.py TIERS)
+// 14 tiers de dificultad (portados del generator.py original, TIERS)
 // ---------------------------------------------------------------------------
 
 export const TIERS: Tier[] = [

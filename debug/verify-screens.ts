@@ -41,7 +41,7 @@ function toLevelMap(s: Screen): LevelMap {
     enemies: s.enemies.map((e) => ({ pos: e.pos, pattern: MAP[e.pattern]! })),
     keys: [],
     doors: [],
-    rulesetVersion: "wappo-v1",
+    rulesetVersion: "runika-v1",
   };
 }
 

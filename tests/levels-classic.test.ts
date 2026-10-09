@@ -1,5 +1,5 @@
 /**
- * Tests de los 10 niveles del Wappo (worlds/levels-wappo.ts).
+ * Tests de los 10 niveles clásicos (worlds/levels-classic.ts).
  *
  * Verifica:
  *  1. Cada nivel es resoluble (el solver encuentra solución)
@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { ALL_LEVELS } from "../worlds/levels-wappo.js";
+import { ALL_LEVELS } from "../worlds/levels-classic.js";
 import { solveLevel } from "../solver/checklist.js";
 import { createInitialState } from "../engine/state.js";
 import { playTurn } from "../engine/rules.js";
@@ -61,7 +61,7 @@ function verifySolution(level: LevelMap, moves: Direction[]): boolean {
   return state.solved;
 }
 
-describe("Niveles del Wappo (10 niveles)", () => {
+describe("Niveles clásicos (10 niveles)", () => {
   it("hay exactamente 10 niveles", () => {
     expect(ALL_LEVELS).toHaveLength(10);
   });
@@ -108,7 +108,7 @@ describe("Niveles del Wappo (10 niveles)", () => {
     // El nivel 1 debe ser el más fácil (menos movimientos)
     expect(minMoves[0]).toBeLessThanOrEqual(minMoves[9]!);
     // Imprimir para diagnóstico
-    console.log(`[niveles Wappo] minMoves: ${minMoves.join(", ")}`);
+    console.log(`[niveles clásicos] minMoves: ${minMoves.join(", ")}`);
   });
 
   // Tests individuales por nivel para mejor diagnóstico

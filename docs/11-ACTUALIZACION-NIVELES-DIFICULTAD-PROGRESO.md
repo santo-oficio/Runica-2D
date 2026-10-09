@@ -235,7 +235,7 @@ Se añade a la tabla de entidades de `05-REGLAS-MOTOR-JUEGO.md`:
 
 | Símbolo | Significado |
 |---|---|
-| `T` | Trampa — casilla que aplica un efecto negativo al jugador (ej. lo devuelve al inicio, le hace perder, o le penaliza según definas la regla exacta de tu Wappo) |
+| `T` | Trampa — casilla que aplica un efecto negativo al jugador (ej. lo devuelve al inicio, le hace perder, o le penaliza según definas la regla exacta de tu juego) |
 
 La trampa es una casilla del mapa lógico (no una entidad que se mueve, a
 diferencia del enemigo). Debe pasar por las mismas reglas de colocación que

@@ -34,7 +34,7 @@ function toLevelMap(s: Screen): LevelMap {
     })),
     keys: [],
     doors: [],
-    rulesetVersion: "wappo-v1",
+    rulesetVersion: "runika-v1",
   };
 }
 

@@ -1,7 +1,7 @@
-# 🎮 Reglas del Wappo — Referencia Original y Adaptación a Runika 2D
+# 🎮 Reglas del juego — Referencia Original y Adaptación a Runika 2D
 
 Este documento define **a fuego** las reglas del juego. Runika 2D hereda las reglas
-del Wappo original (Siemens M50, 2003) y las adapta a su temática de 8 mundos.
+del puzle clásico de móvil (2003) y las adapta a su temática de 8 mundos.
 
 > **Principio rector**: lo que se valida (solver) es lo que se juega (motor).
 > Nunca dos implementaciones de las mismas reglas.
@@ -10,7 +10,7 @@ del Wappo original (Siemens M50, 2003) y las adapta a su temática de 8 mundos.
 
 ## 1. Objetivo del juego
 
-El jugador (Wappo/avatar) debe llegar a la **salida** (escalera en el perímetro
+El jugador (avatar) debe llegar a la **salida** (escalera en el perímetro
 del tablero) sin ser atrapado por los enemigos. Es un puzle por turnos: no hay
 tiempo real ni reflejos — solo lógica y planificación.
 
@@ -24,7 +24,7 @@ tiempo real ni reflejos — solo lógica y planificación.
 
 ---
 
-## 3. Movimiento del jugador (Wappo)
+## 3. Movimiento del jugador
 
 - El jugador se mueve **1 casilla por turno**.
 - Solo movimiento **ortogonal** (arriba, abajo, izquierda, derecha).
@@ -116,7 +116,7 @@ Esta es la regla más importante y la que define el puzle:
 - El jugador recoge la llave al pasar por su casilla.
 - Al tener una llave y estar adyacente a una puerta, esta se abre
   automáticamente (consume la llave).
-- No es una mecánica del Wappo original — es una extensión de Runika 2D.
+- No es una mecánica del juego original — es una extensión de Runika 2D.
 
 ---
 
@@ -135,10 +135,10 @@ Esta es la regla más importante y la que define el puzle:
 
 ## 7. Diferencias con el motor actual (`engine/rules.ts`)
 
-El motor actual del proyecto tiene diferencias con el Wappo original que deben
+El motor actual del proyecto tiene diferencias con el juego original que deben
 corregirse:
 
-| Aspecto | Motor actual | Wappo original | Acción |
+| Aspecto | Motor actual | Juego original | Acción |
 |---|---|---|---|
 | Pasos del enemigo | 1 paso/turno | **2 pasos/turno** | Cambiar |
 | Preferencia del enemigo | Eje con mayor distancia | **Horizontal primero** | Cambiar |

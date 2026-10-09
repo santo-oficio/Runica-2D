@@ -25,7 +25,7 @@ Antes de aceptar un nivel (manual o generado), se comprueba, en este orden
    de paredes sin ninguna celda adyacente transitable.
 7. **Tiene solución** — existe al menos una secuencia de movimientos válida que
    lleva de estado inicial a estado de victoria, cumpliendo las reglas exactas
-   de Wappo (ver `05-REGLAS-MOTOR-JUEGO.md`).
+   del juego (ver `05-REGLAS-MOTOR-JUEGO.md`).
 8. **Dificultad adecuada** — la solución mínima encontrada por el solver cae
    dentro del rango esperado para la posición de este nivel en la progresión.
 9. **No es trivial** — se descartan soluciones triviales (ej. resoluble en 1

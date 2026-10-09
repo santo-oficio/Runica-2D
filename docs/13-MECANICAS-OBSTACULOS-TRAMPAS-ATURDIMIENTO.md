@@ -3,7 +3,7 @@
 > Este documento **amplía y precisa** `05-REGLAS-MOTOR-JUEGO.md` (motor de
 > reglas), `03-GENERADOR-NIVELES.md` (generador) y
 > `11-ACTUALIZACION-NIVELES-DIFICULTAD-PROGRESO.md` (los 30 tests). Recoge dos
-> variantes propias de vuestro Wappo respecto al original, que hay que tener
+> variantes propias del juego respecto al original, que hay que tener
 > en cuenta tanto al generar niveles como al validarlos.
 
 > Nota: esto es la versión 1 de estas mecánicas. Es probable que más adelante
@@ -13,7 +13,7 @@
 
 ## 0. Resumen de las dos variantes
 
-| Mecánica | Wappo original | Vuestra variante |
+| Mecánica | Juego original | Vuestra variante |
 |---|---|---|
 | Obstáculo (`X`) | No ocupa una casilla completa (es más un elemento parcial/decorativo dentro de la celda) | **Ocupa la casilla completa**: bloquea el movimiento exactamente igual que una pared (`#`) |
 | Trampa (`T`) | (no aplica, es mecánica propia vuestra) | Al pisarla, la entidad (jugador o enemigo) queda **3 turnos sin poder moverse** |
@@ -25,7 +25,7 @@
 
 ### 1.1 Regla
 
-A diferencia del Wappo clásico, en vuestra variante un obstáculo **bloquea el
+A diferencia del juego clásico, en vuestra variante un obstáculo **bloquea el
 100% de la casilla** donde está. A efectos de movimiento y de pathfinding es
 funcionalmente idéntico a una pared (`#`):
 

@@ -37,7 +37,7 @@ import type { VisionImage, VisionProvider, VisionResponse } from "./vision-provi
  */
 export function buildInstructionPrompt(world: string, imageId: string, imageFilename: string): string {
   return [
-    `Analiza esta imagen de fondo de un juego de puzzles tipo Wappo, estilo`,
+    `Analiza esta imagen de fondo de un juego de puzzles por turnos en rejilla, estilo`,
     `pixel-art/retro. Devuelve EXCLUSIVAMENTE un JSON (sin texto adicional) con esta`,
     `forma: { id, world, image, safeArea, boardArea, suggestedGrid, anchorPoints,`,
     `decorativeAreas, confidence, notes }.`,

@@ -5,14 +5,14 @@ Es **determinista y programado explícitamente** — nunca improvisado por una I
 en vivo. La IA/generador solo produce datos (mapas lógicos) que este motor
 consume.
 
-> Nota: define aquí, en detalle, las reglas exactas de tu variante de Wappo
+> Nota: define aquí, en detalle, las reglas exactas de tu juego
 > (movimiento del jugador, cómo se mueven los enemigos, condiciones de victoria
 > y derrota). A continuación se propone un esqueleto estándar que puedes ajustar
-> a tu diseño concreto — sustituye/completa lo que no coincida con "tu" Wappo.
+> a tu diseño concreto — sustituye/completa lo que no coincida con "tu" juego.
 
 > ⚠️ **Ampliado en `13-MECANICAS-OBSTACULOS-TRAMPAS-ATURDIMIENTO.md`**: los
 > obstáculos (`X`) ocupan la casilla completa (bloquean igual que una pared,
-> a diferencia del Wappo original) y las trampas (`T`) aturden 3 turnos a
+> a diferencia del juego original) y las trampas (`T`) aturden 3 turnos a
 > quien las pisa, de forma individual por entidad. Lee ese documento para el
 > detalle del bucle de turno actualizado y el estado de aturdimiento.
 
@@ -52,7 +52,7 @@ gráficos, garantizando que "lo que se valida" es exactamente "lo que se juega"
 
 ## 3. Bucle de turno / tiempo real (a definir según tu variante)
 
-Wappo clásico suele funcionar por turnos discretos (el jugador se mueve, luego
+El juego clásico suele funcionar por turnos discretos (el jugador se mueve, luego
 los enemigos). Esqueleto recomendado:
 
 ```

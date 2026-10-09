@@ -1,6 +1,6 @@
-# Runika 2D — Wappo Infinito
+# Runika 2D
 
-Juego de puzle determinista inspirado en Wappo. TypeScript puro + Vitest, Node ≥ 20, ESM.
+Juego de puzle determinista por turnos en rejilla. TypeScript puro + Vitest, Node ≥ 20, ESM.
 
 ## Comandos
 
@@ -279,7 +279,7 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
 
 ## Reglas clave
 
-- **Reglas del Wappo original**: ver `docs/11-REGLAS-WAPPO-ORIGINAL.md` (reglas a fuego).
+- **Reglas del juego original**: ver `docs/11-REGLAS-JUEGO-ORIGINAL.md` (reglas a fuego).
 - El solver reutiliza LITERALMENTE el motor de reglas (no hay lógica duplicada).
 - Añadir un mundo = solo datos (WorldConfig + BackgroundTemplates).
 - Las imágenes de fondo no se recortan ni modifican.

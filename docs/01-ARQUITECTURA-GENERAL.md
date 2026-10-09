@@ -48,7 +48,7 @@ validación). Esto permite:
                                               └─────────┬──────────┘
                                                          ▼
                                               ┌────────────────────┐
-                                              │   MOTOR DE JUEGO   │  reglas Wappo
+                                              │   MOTOR DE JUEGO   │  reglas del juego
                                               │ (player/enemy/win) │
                                               └────────────────────┘
 ```
@@ -65,7 +65,7 @@ validación). Esto permite:
 5. **Asset Resolver / Auto-tiling** — decide, para cada casilla del mapa lógico
    ya validado, qué sprite gráfico dibujar según sus vecinos y la temática del mundo.
 6. **Motor del juego (reglas)** — mueve al jugador y enemigos, aplica las reglas
-   de Wappo, comprueba condición de victoria/derrota. **No genera contenido**, solo
+   del juego, comprueba condición de victoria/derrota. **No genera contenido**, solo
    ejecuta reglas ya fijas y programadas (nunca las decide la IA en tiempo real).
 
 ## Regla de oro
