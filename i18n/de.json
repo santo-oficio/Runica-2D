@@ -144,6 +144,9 @@
   "demo.modeBoard": "Brettsieg",
   "demo.modeBoss": "Bosssieg",
   "demo.modeFinal": "Finaler Boss-Sieg",
+  "demo.musica.launch": "Subwelt anhören",
+  "demo.musica.toMap": "Zurück zur Weltkarte",
+  "demo.musica.hint": "jede Subwelt spielt ihren eigenen Track; wenn der Browser Audio blockiert, klicke in den Rahmen",
   "loading.tip1": "Jede Partie ist einzigartig: Tausende neue Rätsel auf jedem Schwierigkeitsgrad.",
   "loading.tip2": "Kein Rätsel wiederholt sich jemals: Jede Herausforderung wird nur für dich erschaffen.",
   "loading.tip3": "Fünfzehn Schwierigkeitsgrade und tausende verschiedene Rätsel in jedem."

@@ -144,6 +144,9 @@
   "demo.modeBoard": "Victoria tablero",
   "demo.modeBoss": "Victoria boss",
   "demo.modeFinal": "Victoria boss final",
+  "demo.musica.launch": "Escuchar submundo",
+  "demo.musica.toMap": "Volver al mapamundi",
+  "demo.musica.hint": "cada submundo suena con su pista propia; si el navegador bloquea el audio, haz click dentro del marco",
   "loading.tip1": "Cada partida es única: miles de puzles nuevos en cada nivel de dificultad.",
   "loading.tip2": "Ningún puzle se repite jamás: cada reto se crea solo para ti.",
   "loading.tip3": "Quince niveles de dificultad y miles de puzles distintos en cada uno."
