@@ -112,7 +112,7 @@
   "game.levelDone": "Insel {0} in {1} Zügen geschafft",
   "game.goldEarned": "+{0} Gold",
   "game.bossTitle": "Welt erobert",
-  "game.bossBody": "Du hast den Wächter {0} in {1} Zügen besiegt",
+  "game.bossBody": "Glückwunsch, du hast den Wächter {0} in {1} Zügen besiegt",
   "game.bossDown": "Wächter besiegt",
   "board.level": "Level {0}",
   "game.go": "LOS!",

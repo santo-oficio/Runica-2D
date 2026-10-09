@@ -112,7 +112,7 @@
   "game.levelDone": "Île {0} terminée en {1} tours",
   "game.goldEarned": "+{0} or",
   "game.bossTitle": "Monde conquis",
-  "game.bossBody": "Tu as vaincu le gardien {0} en {1} tours",
+  "game.bossBody": "Félicitations, tu as vaincu le gardien {0} en {1} tours",
   "game.bossDown": "Gardien vaincu",
   "board.level": "Niveau {0}",
   "game.go": "GO !",
