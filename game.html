@@ -182,6 +182,18 @@
     0%{transform:translate(0,0) rotate(0);opacity:1}
     14%{transform:translate(var(--sx),var(--sy)) rotate(calc(var(--rot)*.05));opacity:1}
     100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+  /* El héroe iluminado sobre el vacío: haz de luz cenital + halo dorado
+     pulsante + brillo en el avatar */
+  .win-beam{position:fixed;z-index:14;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(255,232,160,.55),rgba(255,200,90,.14) 78%,transparent);
+    clip-path:polygon(36% 0,64% 0,92% 100%,8% 100%);
+    animation:beamIn .9s ease-out both}
+  @keyframes beamIn{from{opacity:0}to{opacity:1}}
+  .win-hero{position:fixed;z-index:14;pointer-events:none;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,214,120,.5) 0%,rgba(255,180,70,.2) 42%,transparent 70%);
+    animation:heroGlow 2.4s ease-in-out infinite alternate}
+  @keyframes heroGlow{from{opacity:.7;transform:scale(.96)}to{opacity:1;transform:scale(1.07)}}
+  #selector.hero #avatar{filter:drop-shadow(0 0 12px rgba(255,225,140,.95)) drop-shadow(0 0 38px rgba(255,170,60,.6))}
   /* Modal de victoria (calibrado en calibrate-modal.html): rojo=reiniciar, verde=continuar */
   #modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
   #modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}
@@ -625,8 +637,9 @@ async function loadScreen() {
   img.style.opacity = '';
   const bt0 = document.getElementById('boardtexts');
   if (bt0) bt0.style.opacity = '';
-  document.querySelectorAll('.win-shard,.win-void,.win-debris,.win-dust,.win-flash,.win-ring,.win-spark,.flycoin')
+  document.querySelectorAll('.win-shard,.win-void,.win-debris,.win-dust,.win-flash,.win-ring,.win-spark,.win-hero,.win-beam,.flycoin')
     .forEach(e => e.remove());
+  selector.classList.remove('hero');
   const bd = document.getElementById('boss-down');
   if (bd) { bd.classList.remove('show'); bd.textContent = ''; }
   const endpoint = REAL_MODE
@@ -1077,6 +1090,25 @@ function shatterScreen(cx, cy) {
   const bt = document.getElementById('boardtexts');
   if (bt) bt.style.opacity = '0';
   setTimeout(() => voidEl.remove(), 10000);
+
+  // El héroe iluminado sobre el vacío: haz cenital + halo + brillo
+  const ar = selector.getBoundingClientRect();
+  const acx = ar.left + ar.width / 2, acy = ar.top + ar.height / 2;
+  const beam = document.createElement('div');
+  beam.className = 'win-beam';
+  beam.style.left = (acx - ar.width * 1.7) + 'px';
+  beam.style.top = ir.top + 'px';
+  beam.style.width = (ar.width * 3.4) + 'px';
+  beam.style.height = Math.max(40, acy - ir.top + ar.height * 0.2) + 'px';
+  document.body.appendChild(beam);
+  const halo = document.createElement('div');
+  halo.className = 'win-hero';
+  const hs = ar.width * 4.2;
+  halo.style.left = (acx - hs / 2) + 'px'; halo.style.top = (acy - hs / 2) + 'px';
+  halo.style.width = halo.style.height = hs + 'px';
+  document.body.appendChild(halo);
+  selector.classList.add('hero');
+  setTimeout(() => { beam.remove(); halo.remove(); }, 10000);
 }
 
 // Celebración de boss de mundo (isla 12): el mundo se derrumba —
@@ -1107,9 +1139,9 @@ function bossWinFx(x, y) {
     for (const t of [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]) setTimeout(shakeLayers, t);
   };
   setTimeout(rumble, 600);
-  // La pantalla se desquebraja ~2.4s después: la muerte del boss y el rótulo
-  // ya se han leído y las entidades están cayendo
-  setTimeout(() => shatterScreen(x, y), 2400);
+  // La pantalla se desquebraja ~4.6s después: muerte + rótulo + monedas al
+  // contador ya se han leído y las entidades están cayendo
+  setTimeout(() => shatterScreen(x, y), 4600);
 
   // La estructura del tablero se desmorona (muros, obstáculos, trampas y
   // el propio cofre/meta) a partir de ~0.7s, tras la muerte del boss
@@ -1383,9 +1415,11 @@ function winGame() {
     const gp = cellPos(goal.c, goal.r, true);
     if (isBossWin) {
       bossWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
-      // Las monedas y el modal esperan ~7s: muerte del boss + rótulo +
-      // derrumbe largo se leen completos antes de que salga el mensaje
-      setTimeout(() => flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal), 6900);
+      // Las monedas vuelan ~2.2s tras la victoria — se cobra el tesoro del
+      // guardián ANTES de que la pantalla se desquebraje (~4.6s). El modal
+      // llega ~7.4s, con el mundo ya roto detrás
+      setTimeout(() => flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, () => {}), 2200);
+      setTimeout(openWinModal, 7400);
     } else {
       flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal);
     }
