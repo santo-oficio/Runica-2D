@@ -143,5 +143,6 @@
   "demo.mode": "Anzeigen:",
   "demo.modeMap": "Kartenfeier",
   "demo.modeBoard": "Brettsieg",
-  "demo.modeBoss": "Bosssieg"
+  "demo.modeBoss": "Bosssieg",
+  "demo.modeFinal": "Finaler Boss-Sieg"
 }

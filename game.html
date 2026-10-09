@@ -321,8 +321,9 @@ const REAL_MODE = !!REAL_WORLD;
 // ?demo=win|winboss — tablero de práctica que se auto-gana para mostrar el
 // vuelo de monedas + modal (win) o la celebración de boss de mundo
 // (winboss). No toca la bbdd.
-const DEMO_WIN = PARAMS.get('demo') === 'win' || PARAMS.get('demo') === 'winboss';
-const DEMO_BOSS = PARAMS.get('demo') === 'winboss';
+const DEMO_WIN = PARAMS.get('demo') === 'win' || PARAMS.get('demo') === 'winboss' || PARAMS.get('demo') === 'winfinal';
+const DEMO_FINAL = PARAMS.get('demo') === 'winfinal'; // boss de MAZMORRA -> fin.html
+const DEMO_BOSS = PARAMS.get('demo') === 'winboss' || DEMO_FINAL;
 let playerData = null;
 let T = {};
 let currentMinMoves = 0;
@@ -342,6 +343,7 @@ function applyPracticeTexts() {
     `<span class="key">${tt('game.keySpace')}</span>: ${tt('game.helpWorld')}`;
 }
 const FINAL_ISLAND_IDX = 11;
+const FINAL_WORLD = 'MAZMORRA';
 function backToSubmundo() {
   location.href = '/submundo.html?world=' + encodeURIComponent(REAL_WORLD);
 }
@@ -349,6 +351,8 @@ function backToSubmundo() {
 // se desactiva); cualquier otra isla -> submundo donde estabas
 function afterVictory() {
   if (REAL_LEVEL === FINAL_ISLAND_IDX) {
+    // Boss final de MAZMORRA: cinematica de fin de juego (fin.html)
+    if (REAL_WORLD === FINAL_WORLD) { location.href = '/fin.html'; return; }
     // El mapamundi celebra la conquista del mundo (animación + B/N)
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
     location.href = '/mapamundi.html';
@@ -1360,6 +1364,8 @@ function closeWinModal() {
 function confirmWin() {
   if (DEMO_WIN) {
     closeWinModal();
+    // Demo boss final: sigue el flujo real → cinemática de fin.html
+    if (DEMO_FINAL) { setTimeout(() => location.href = '/fin.html', 350); return; }
     // Demo boss: sigue el flujo real → mapamundi con el mundo recién
     // conquistado (celebración + drenaje a B/N), sin tocar la partida
     if (DEMO_BOSS) {
@@ -1401,12 +1407,14 @@ function winGame() {
   overlayTitle.textContent = tt('game.victory');
   if (REAL_MODE || DEMO_WIN) {
     if (DEMO_WIN) turn = currentMinMoves; // demo: cifra verosímil en el modal
-    // Victoria de boss = isla final de un mundo que no es MAZMORRA
+    // Victoria de boss = isla final de cualquier mundo (incl. MAZMORRA:
+    // el boss final tambien recibe la celebracion completa en el tablero)
     const isBossWin = DEMO_BOSS ||
-      (REAL_MODE && REAL_LEVEL === FINAL_ISLAND_IDX && REAL_WORLD !== 'MAZMORRA');
+      (REAL_MODE && REAL_LEVEL === FINAL_ISLAND_IDX);
     // Boss de mundo derrotado: fanfarria de mundo que sigue sonando al
-    // volver al mapamundi (solo partida real — la demo no contamina la sesión)
-    if (isBossWin && REAL_MODE) {
+    // volver al mapamundi (solo partida real — la demo no contamina la
+    // sesión; en MAZMORRA la música del final la pone fin.html)
+    if (isBossWin && REAL_MODE && REAL_WORLD !== FINAL_WORLD) {
       AssetsCache.setMusicTrack(AssetsCache.MUSIC.worldWin);
       sessionStorage.setItem('runika-music-override', AssetsCache.MUSIC.worldWin);
     }
@@ -1651,8 +1659,10 @@ async function init() {
 
   // Avatares decodificados de antemano (Enter los cicla en el hot path)
   AVATARS.forEach(a => decodeImg(BASE + a));
-  // Mundo al azar en cada recarga
-  const wi = Math.floor(Math.random() * worlds.length);
+  // Mundo al azar en cada recarga — la demo del boss final fuerza MAZMORRA
+  const wi = DEMO_FINAL
+    ? Math.max(0, worlds.findIndex(w => w.world === FINAL_WORLD))
+    : Math.floor(Math.random() * worlds.length);
   if (DEMO_WIN) {
     // Demo de victoria real (monedas + modal) sobre una pantalla de
     // práctica: se viste como modo real pero no hay level-complete.

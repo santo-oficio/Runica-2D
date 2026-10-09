@@ -143,5 +143,6 @@
   "demo.mode": "Ver:",
   "demo.modeMap": "Celebración mapa",
   "demo.modeBoard": "Victoria tablero",
-  "demo.modeBoss": "Victoria boss"
+  "demo.modeBoss": "Victoria boss",
+  "demo.modeFinal": "Victoria boss final"
 }

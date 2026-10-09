@@ -143,5 +143,6 @@
   "demo.mode": "Voir :",
   "demo.modeMap": "Célébration carte",
   "demo.modeBoard": "Victoire plateau",
-  "demo.modeBoss": "Victoire boss"
+  "demo.modeBoss": "Victoire boss",
+  "demo.modeFinal": "Victoire boss final"
 }
