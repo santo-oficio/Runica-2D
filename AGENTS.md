@@ -19,6 +19,26 @@ mundo al azar. **No guarda nada en la bbdd** (solo lectura).
 Controles: `Flechas/WASD` mover · `R` otra pantalla · `Espacio` cambiar mundo ·
 `Enter` cambiar avatar.
 
+## Generación de música local (MusicGen)
+
+```bash
+.sam-venv\Scripts\python.exe tools/gen-music.py "prompt en inglés" [segundos] [salida.wav]
+```
+
+- **MusicGen** (Meta `audiocraft` 1.3.0) instalado en `.sam-venv` — modelo
+  `facebook/musicgen-small` (~3.3 GB en `~/.cache/huggingface`), corre en la
+  RTX 3060 por CUDA. Primera ejecución descarga el modelo.
+- Ejemplo submundo:
+  `tools/gen-music.py "caribbean pirate adventure music, steel drums, marimba, acoustic guitar, cheerful, loop-friendly" 20 assets/music/<MUNDO>/submundo.wav`
+- Salida WAV 32 kHz; convertir a mp3/ogg con ffmpeg antes de usarla como
+  `submundo.mp3` (o renombrar/referenciar `.wav` — el navegador lo soporta).
+- Flags: `--seed` (reproducible), `--model`, `--cfg-coef` (fuerza del prompt),
+  `--top-k/--top-p/--temperature`.
+- Nota entorno: audiocraft se instaló `--no-deps` para no romper torch
+  2.1.2+cu121; `av` quedó en v18 (la pin 11.0.0 no tiene wheel win/py311);
+  transformers fijado a 4.49.0 (5.x exige torch≥2.5). NO actualizar esos
+  paquetes sin probar `import torch` + `MusicGen.get_pretrained` después.
+
 ## Detección de tableros
 
 ```bash
