@@ -534,12 +534,16 @@ const server = http.createServer((req, res) => {
   }
 
   // API: guardar areas de texto del modal (POST /api/save-modal-areas)
-  if (url === "/api/save-modal-areas" && req.method === "POST") {
+  // ?which=reintentar -> modal-reintentar-areas.json (modal de derrota)
+  if (url.startsWith("/api/save-modal-areas") && req.method === "POST") {
+    const u = new URL(url, "http://localhost");
+    const modalFile = u.searchParams.get("which") === "reintentar"
+      ? "modal-reintentar-areas.json" : "modal-areas.json";
     let body = "";
     req.on("data", (chunk: Buffer | string) => { body += chunk; });
     req.on("end", () => {
       try {
-        const savePath = join(ROOT, "assets", "comunes", "modal-areas.json");
+        const savePath = join(ROOT, "assets", "comunes", modalFile);
         writeFileSync(savePath, body, "utf-8");
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true }));
@@ -552,8 +556,12 @@ const server = http.createServer((req, res) => {
   }
 
   // API: cargar areas de texto del modal (GET /api/load-modal-areas)
-  if (url === "/api/load-modal-areas") {
-    const loadPath = join(ROOT, "assets", "comunes", "modal-areas.json");
+  // ?which=reintentar -> modal-reintentar-areas.json (modal de derrota)
+  if (url.startsWith("/api/load-modal-areas")) {
+    const u = new URL(url, "http://localhost");
+    const modalFile = u.searchParams.get("which") === "reintentar"
+      ? "modal-reintentar-areas.json" : "modal-areas.json";
+    const loadPath = join(ROOT, "assets", "comunes", modalFile);
     if (!existsSync(loadPath)) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false }));

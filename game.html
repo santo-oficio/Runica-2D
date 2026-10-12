@@ -1279,7 +1279,13 @@ const MODAL_DEFAULTS = { title: { polygon: [[.30,.19],[.42,.115],[.58,.115],[.70
   buttonRight: { x: .53, y: .60, w: .26, h: .13, fontScale: 1 },
   buttonLeftBorder: { x: .18, y: .55, w: .32, h: .20, fontScale: 1 },
   buttonRightBorder: { x: .50, y: .55, w: .32, h: .20, fontScale: 1 } };
-let modalAreas = null, modalOpen = false, modalSel = 1; // 0=izq(rojo:reiniciar) 1=der(verde:continuar)
+// Modal de derrota (modal-reintentar.webp): un solo botón rojo centrado
+const MODAL_LOSE_DEFAULTS = { title: { polygon: [[.25,.28],[.33,.07],[.67,.07],[.75,.28]], fontScale: 1 },
+  content: { x: .16, y: .33, w: .68, h: .22, fontScale: 1 },
+  buttonCenter: { x: .35, y: .595, w: .31, h: .135, fontScale: 1 },
+  buttonCenterBorder: { polygon: [[.335,.575],[.665,.575],[.665,.75],[.335,.75]], fontScale: 1 } };
+let modalAreas = null, modalLoseAreas = null;
+let modalOpen = false, modalSel = 1, modalMode = 'win'; // 'win' | 'lose'
 let winGoldEarned = 0, winGoldBefore = 0, winBodyText = '', winTitleText = '';
 
 function modalCurvePath(poly, W, H) {
@@ -1301,11 +1307,13 @@ function modalCurvePath(poly, W, H) {
 
 function renderModal() {
   const W = modalBox.clientWidth, H = modalBox.clientHeight;
-  const A = k => Object.assign({}, MODAL_DEFAULTS[k], modalAreas?.[k]);
+  const isLose = modalMode === 'lose';
+  const A = k => Object.assign({}, (isLose ? MODAL_LOSE_DEFAULTS : MODAL_DEFAULTS)[k],
+    (isLose ? modalLoseAreas : modalAreas)?.[k]);
   modalSvg.setAttribute('viewBox', `0 0 ${W} ${H}`); modalSvg.innerHTML = '';
   const title = A('title');
   const curve = modalCurvePath(title.polygon, W, H);
-  const titleStr = winTitleText || tt('game.victory');
+  const titleStr = winTitleText || tt(isLose ? 'game.defeat' : 'game.victory');
   if (curve) {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('id', 'modal-arc'); path.setAttribute('fill', 'none');
@@ -1345,10 +1353,11 @@ function renderModal() {
   };
   // El texto ocupa la mitad superior del área cuando hay fila de oro
   const ca = A('content');
-  put(modalContent, { ...ca, h: winGoldEarned > 0 ? ca.h * 0.58 : ca.h }, winBodyText);
+  const showGold = !isLose && winGoldEarned > 0;
+  put(modalContent, { ...ca, h: showGold ? ca.h * 0.58 : ca.h }, winBodyText);
   // Fila de oro: icono monedas.webp + cantidad (en vez de "+N de oro")
   const goldRow = document.getElementById('modal-gold');
-  if (winGoldEarned > 0) {
+  if (showGold) {
     const gh = ca.h * 0.42;
     goldRow.style.display = 'flex';
     goldRow.style.left = ca.x * W + 'px';
@@ -1358,9 +1367,19 @@ function renderModal() {
     goldRow.style.fontSize = Math.max(10, gh * H * .62 * (ca.fontScale || 1)) + 'px';
     document.getElementById('modal-gold-n').textContent = '+' + winGoldEarned;
   } else goldRow.style.display = 'none';
+  const polyOf = a => a.polygon?.length >= 3 ? a.polygon : [[a.x, a.y], [a.x + a.w, a.y], [a.x + a.w, a.y + a.h], [a.x, a.y + a.h]];
+  if (isLose) {
+    // Un solo botón rojo centrado = Reintentar
+    modalBtnL.style.display = 'none';
+    put(modalBtnR, A('buttonCenter'), tt(REAL_MODE ? 'game.retry' : 'game.practiceNext'));
+    const pg = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    pg.setAttribute('points', polyOf(A('buttonCenterBorder')).map(p => `${(p[0] * W).toFixed(1)},${(p[1] * H).toFixed(1)}`).join(' '));
+    pg.setAttribute('class', 'modal-sel focused'); modalSvg.appendChild(pg);
+    return;
+  }
+  modalBtnL.style.display = '';
   put(modalBtnL, A('buttonLeft'), tt('game.restart'));
   put(modalBtnR, A('buttonRight'), tt('menu.continue'));
-  const polyOf = a => a.polygon?.length >= 3 ? a.polygon : [[a.x, a.y], [a.x + a.w, a.y], [a.x + a.w, a.y + a.h], [a.x, a.y + a.h]];
   for (const [k, on] of [['buttonLeftBorder', modalSel === 0], ['buttonRightBorder', modalSel === 1]]) {
     const pg = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
     pg.setAttribute('points', polyOf(A(k)).map(p => `${(p[0] * W).toFixed(1)},${(p[1] * H).toFixed(1)}`).join(' '));
@@ -1369,10 +1388,26 @@ function renderModal() {
 }
 
 function openWinModal() {
+  modalMode = 'win';
+  document.getElementById('modal-img').src = BASE + '/assets/comunes/modal.webp';
   modalOpen = true; modalSel = 1;
   modalOverlay.classList.add('show');
   requestAnimationFrame(() => requestAnimationFrame(() => modalOverlay.classList.add('visible')));
   renderModal();
+}
+// Modal de derrota: mismo cartel pero imagen propia y un solo botón
+// rojo centrado (Reintentar). Esc = volver al submundo.
+function openLoseModal() {
+  modalMode = 'lose';
+  document.getElementById('modal-img').src = BASE + '/assets/comunes/modal-reintentar.webp';
+  modalOpen = true; modalSel = 1;
+  modalOverlay.classList.add('show');
+  requestAnimationFrame(() => requestAnimationFrame(() => modalOverlay.classList.add('visible')));
+  renderModal();
+}
+function retryLose() {
+  closeWinModal();
+  loadScreen();
 }
 function closeWinModal() {
   modalOpen = false;
@@ -1419,10 +1454,10 @@ function restartWin() {
   renderBoardTexts();
   loadScreen();
 }
-modalBtnL.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); modalSel = 0; play(pressAudio); restartWin(); });
-modalBtnR.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); modalSel = 1; play(pressAudio); confirmWin(); });
-modalBtnL.addEventListener('pointerenter', () => { modalSel = 0; play(hoverAudio); renderModal(); });
-modalBtnR.addEventListener('pointerenter', () => { modalSel = 1; play(hoverAudio); renderModal(); });
+modalBtnL.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (modalMode === 'lose') return; modalSel = 0; play(pressAudio); restartWin(); });
+modalBtnR.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); modalSel = 1; play(pressAudio); modalMode === 'lose' ? retryLose() : confirmWin(); });
+modalBtnL.addEventListener('pointerenter', () => { if (modalMode === 'lose') return; modalSel = 0; play(hoverAudio); renderModal(); });
+modalBtnR.addEventListener('pointerenter', () => { if (modalMode !== 'lose') { modalSel = 1; play(hoverAudio); renderModal(); } });
 window.addEventListener('resize', () => { if (modalOpen) renderModal(); });
 
 function winGame() {
@@ -1508,10 +1543,10 @@ function loseGame() {
   gameOver = true; won = false;
   AssetsCache.playMusicSting(AssetsCache.MUSIC.derrota);
   screenShake();
-  overlay.classList.add('show', 'lose');
-  overlayTitle.textContent = tt('game.defeat');
-  overlaySubtitle.textContent = REAL_MODE ? tt('game.caught') : tt('game.practiceCaught');
-  document.getElementById('overlay-restart').textContent = REAL_MODE ? tt('game.retry') : tt('game.practiceNext');
+  winTitleText = '';
+  winBodyText = REAL_MODE ? tt('game.caught') : tt('game.practiceCaught');
+  // El cartel de reintento aparece tras el golpe de cámara
+  setTimeout(openLoseModal, 800);
 }
 
 // === Mundo ===
@@ -1573,18 +1608,28 @@ document.addEventListener('keydown', (e) => {
     if (on) updateDebugTier();
     return;
   }
-  if (REAL_MODE) {
-    // Modal de victoria abierto: flechas eligen, Enter confirma, Esc = continuar
-    if (modalOpen) {
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        e.preventDefault(); modalSel = modalSel === 0 ? 1 : 0; play(hoverAudio); renderModal();
-      } else if (e.key === 'Enter' || e.code === 'Space') {
-        e.preventDefault(); play(pressAudio); modalSel === 1 ? confirmWin() : restartWin();
+  // Modal abierto (victoria o derrota): lo gestiona antes que el resto
+  if (modalOpen) {
+    if (modalMode === 'lose') {
+      if (e.key === 'Enter' || e.code === 'Space' || e.key === 'r' || e.key === 'R') {
+        e.preventDefault(); play(pressAudio); retryLose();
       } else if (e.key === 'Escape') {
-        e.preventDefault(); play(backAudio); confirmWin();
+        e.preventDefault(); play(backAudio);
+        if (REAL_MODE) backToSubmundo(); else retryLose();
       }
       return;
     }
+    // Modal de victoria abierto: flechas eligen, Enter confirma, Esc = continuar
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault(); modalSel = modalSel === 0 ? 1 : 0; play(hoverAudio); renderModal();
+    } else if (e.key === 'Enter' || e.code === 'Space') {
+      e.preventDefault(); play(pressAudio); modalSel === 1 ? confirmWin() : restartWin();
+    } else if (e.key === 'Escape') {
+      e.preventDefault(); play(backAudio); confirmWin();
+    }
+    return;
+  }
+  if (REAL_MODE) {
     if (e.key === 'Escape') { e.preventDefault(); play(backAudio); if (won) confirmWin(); else backToSubmundo(); return; }
     if (countingDown) return;
     if (e.key === 'r' || e.key === 'R' || e.code === 'Space' || e.key === 'Enter') {
@@ -1675,7 +1720,13 @@ async function init() {
       const r = await fetch(`${BASE}/api/load-modal-areas`);
       if (r.ok) { const d = await r.json(); modalAreas = d.areas || null; }
     } catch {}
+    // Áreas del modal de derrota (un solo botón centrado)
+    try {
+      const r = await fetch(`${BASE}/api/load-modal-areas?which=reintentar`);
+      if (r.ok) { const d = await r.json(); modalLoseAreas = d.areas || null; }
+    } catch {}
     decodeImg(BASE + '/assets/comunes/modal.webp');
+    decodeImg(BASE + '/assets/comunes/modal-reintentar.webp');
     document.getElementById('hud').style.display = 'none';
     document.getElementById('practice-tag').style.display = 'none';
     document.getElementById('help').style.display = 'none';
@@ -1710,7 +1761,12 @@ async function init() {
       const r = await fetch(`${BASE}/api/load-modal-areas`);
       if (r.ok) { const d = await r.json(); modalAreas = d.areas || null; }
     } catch {}
+    try {
+      const r = await fetch(`${BASE}/api/load-modal-areas?which=reintentar`);
+      if (r.ok) { const d = await r.json(); modalLoseAreas = d.areas || null; }
+    } catch {}
     decodeImg(BASE + '/assets/comunes/modal.webp');
+    decodeImg(BASE + '/assets/comunes/modal-reintentar.webp');
     document.getElementById('hud').style.display = 'none';
     document.getElementById('practice-tag').style.display = 'none';
     document.getElementById('help').style.display = 'none';
@@ -1718,6 +1774,12 @@ async function init() {
     setTimeout(winGame, 1200);
     return;
   }
+  // Modo práctica también usa el modal de derrota
+  try {
+    const r = await fetch(`${BASE}/api/load-modal-areas?which=reintentar`);
+    if (r.ok) { const d = await r.json(); modalLoseAreas = d.areas || null; }
+  } catch {}
+  decodeImg(BASE + '/assets/comunes/modal-reintentar.webp');
   await loadWorld(wi);
 }
 

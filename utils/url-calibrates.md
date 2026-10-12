@@ -34,6 +34,7 @@ Servidor: `npx tsx server.ts` → base `http://localhost:3000`
 | URL | Qué calibra | Datos |
 |---|---|---|
 | http://localhost:3000/calibrate-modal.html | Textos del modal: `title` (**polígono** siguiendo el arco del cartel — el texto se previsualiza curvado sobre la circunferencia ajustada), `content`, `buttonLeft`, `buttonRight` (rectángulos). Mismas teclas que el resto de calibradores | `assets/comunes/modal-areas.json` |
+| http://localhost:3000/calibrate-modal.html?which=reintentar | Modal de derrota (`modal-reintentar.webp`): `title` (polígono), `content`, `buttonCenter`, `buttonCenterBorder` (un solo botón) | `assets/comunes/modal-reintentar-areas.json` |
 | http://localhost:3000/calibrate-config.html | Pantalla de configuración: `soundText`/`soundCheck`, `musicText`/`musicCheck`, `langText` (rectángulos) + `langLeft`/`langRight`/`back` (**polígonos**) | `assets/configuracion/config-areas.json` |
 
 ## Menú principal

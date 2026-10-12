@@ -25,11 +25,15 @@ Campo: <select id="kind"></select><br>
 <div id="status">El título se dibuja como polígono siguiendo el arco del cartel; el resto son áreas</div>
 <script>
 const NS='http://www.w3.org/2000/svg';
-const KINDS=['title','content','buttonLeft','buttonRight','buttonLeftBorder','buttonRightBorder'];
-const LABELS={title:'TÍTULO (arco)',content:'CONTENIDO',buttonLeft:'BOTÓN IZQ',buttonRight:'BOTÓN DER',buttonLeftBorder:'BORDE SEL IZQ',buttonRightBorder:'BORDE SEL DER'};
-const SELECT_LABELS={title:'Título arqueado',content:'Texto contenido',buttonLeft:'Texto botón izq',buttonRight:'Texto botón der',buttonLeftBorder:'Borde selección izq',buttonRightBorder:'Borde selección der'};
+// ?which=reintentar -> calibra el modal de derrota (imagen y campos propios)
+const WHICH=new URLSearchParams(location.search).get('which')||'';
+const LOSE=WHICH==='reintentar';
+const KINDS=LOSE?['title','content','buttonCenter','buttonCenterBorder']:['title','content','buttonLeft','buttonRight','buttonLeftBorder','buttonRightBorder'];
+const LABELS=LOSE?{title:'TÍTULO (arco)',content:'CONTENIDO',buttonCenter:'BOTÓN',buttonCenterBorder:'BORDE SEL'}:{title:'TÍTULO (arco)',content:'CONTENIDO',buttonLeft:'BOTÓN IZQ',buttonRight:'BOTÓN DER',buttonLeftBorder:'BORDE SEL IZQ',buttonRightBorder:'BORDE SEL DER'};
+const SELECT_LABELS=LOSE?{title:'Título arqueado',content:'Texto contenido',buttonCenter:'Texto botón',buttonCenterBorder:'Borde selección'}:{title:'Título arqueado',content:'Texto contenido',buttonLeft:'Texto botón izq',buttonRight:'Texto botón der',buttonLeftBorder:'Borde selección izq',buttonRightBorder:'Borde selección der'};
 const img=document.getElementById('image'),overlay=document.getElementById('overlay'),svg=document.getElementById('draw'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status'),saveBtn=document.getElementById('save-btn'),loadBtn=document.getElementById('load-btn');
-const POLY_KINDS=['title','buttonLeftBorder','buttonRightBorder'];
+if(LOSE)img.src='/assets/comunes/modal-reintentar.webp';
+const POLY_KINDS=LOSE?['title','buttonCenterBorder']:['title','buttonLeftBorder','buttonRightBorder'];
 const isPoly=k=>POLY_KINDS.includes(k);
 let kind='title';
 let areas={};KINDS.forEach(k=>areas[k]=isPoly(k)?{polygon:[],fontScale:1}:{x:.3,y:.3,w:.4,h:.15,fontScale:1});
@@ -41,7 +45,7 @@ function imageRect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,heig
 function norm(x,y){const r=imageRect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}
 function px(a){const r=imageRect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
 function pxPt(p){const r=imageRect();return[(r.left+p[0]*r.width).toFixed(2),(r.top+p[1]*r.height).toFixed(2)]}
-function textFor(k){return k==='title'?tt('modal.confirmTitle'):k==='content'?tt('modal.confirmBody'):k==='buttonLeft'?tt('modal.confirmNo'):k==='buttonRight'?tt('modal.confirmYes'):''}
+function textFor(k){if(LOSE)return k==='title'?tt('game.defeat'):k==='content'?tt('game.caught'):k==='buttonCenter'?tt('game.retry'):'';return k==='title'?tt('modal.confirmTitle'):k==='content'?tt('modal.confirmBody'):k==='buttonLeft'?tt('modal.confirmNo'):k==='buttonRight'?tt('modal.confirmYes'):''}
 
 
 // Curva del titulo: linea media del poligono (funciona con contorno cerrado del
@@ -123,8 +127,8 @@ document.addEventListener('keydown',e=>{
     case 'c':case 'C':load();e.preventDefault();break;
   }
 });
-async function save(){try{const r=await fetch('/api/save-modal-areas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coordinateSpace:'image-content',areas},null,2)});if(!r.ok)throw new Error('HTTP '+r.status);const i=KINDS.indexOf(kind);status.innerHTML='<span class="ok">Guardado</span>'}catch(err){status.textContent='Error al guardar: '+err.message}}
-async function load(){try{const r=await fetch('/api/load-modal-areas');if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(d.areas){KINDS.forEach(k=>{const s=d.areas[k];if(!s)return;if(isPoly(k)&&!s.polygon&&s.w>0){areas[k].polygon=[[s.x,s.y],[s.x+s.w,s.y],[s.x+s.w,s.y+s.h],[s.x,s.y+s.h]];areas[k].fontScale=s.fontScale||1}else areas[k]={...areas[k],...s}})}drawing=[];render();status.innerHTML='<span class="ok">Cargado</span>'}catch(err){status.textContent='No hay calibración guardada'}}
+async function save(){try{const r=await fetch('/api/save-modal-areas'+(WHICH?'?which='+WHICH:''),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coordinateSpace:'image-content',areas},null,2)});if(!r.ok)throw new Error('HTTP '+r.status);const i=KINDS.indexOf(kind);status.innerHTML='<span class="ok">Guardado</span>'}catch(err){status.textContent='Error al guardar: '+err.message}}
+async function load(){try{const r=await fetch('/api/load-modal-areas'+(WHICH?'?which='+WHICH:''));if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(d.areas){KINDS.forEach(k=>{const s=d.areas[k];if(!s)return;if(isPoly(k)&&!s.polygon&&s.w>0){areas[k].polygon=[[s.x,s.y],[s.x+s.w,s.y],[s.x+s.w,s.y+s.h],[s.x,s.y+s.h]];areas[k].fontScale=s.fontScale||1}else areas[k]={...areas[k],...s}})}drawing=[];render();status.innerHTML='<span class="ok">Cargado</span>'}catch(err){status.textContent='No hay calibración guardada'}}
 saveBtn.onclick=save;loadBtn.onclick=load;
 window.addEventListener('resize',render);
 loadI18n().then(()=>{load().catch(()=>{});render()});
