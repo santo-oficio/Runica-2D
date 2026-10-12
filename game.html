@@ -1610,10 +1610,12 @@ debugTierEl.style.cssText = 'position:fixed;left:8px;top:8px;z-index:300;display
   'border-radius:4px;pointer-events:none;';
 document.body.appendChild(debugTierEl);
 function updateDebugTier() {
+  // gameLevel ya es el tier real de la pantalla cargada (incl. tier 15
+  // del boss final y el 14 fijo de la demo bossrun)
   debugTierEl.textContent = tt('game.tier') + ' ' + (REAL_MODE ? gameLevel : currentTier);
 }
 document.addEventListener('keydown', (e) => {
-  if (e.key === 't' || e.key === 'T') {
+  if (e.key === 't' || e.key === 'T' || e.key === 'p' || e.key === 'P') {
     e.preventDefault();
     const on = debugTierEl.style.display === 'none';
     debugTierEl.style.display = on ? 'block' : 'none';
