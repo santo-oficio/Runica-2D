@@ -248,12 +248,22 @@ function playMusicSting(url) {
   stingEl.addEventListener('ended', done);
   stingEl.play().catch(done);
 }
+// Corta el jingle a mano y reanuda el loop (ej. reintentar/reiniciar
+// antes de que el jingle termine — nada de audio suelto sobre el
+// puzle nuevo).
+function endMusicSting() {
+  if (!stingEl) return;
+  stopSting();
+  startMusic();
+}
 
 // Cambia la pista en curso (ej. entrar en un mundo = MUSIC.world).
 // Cada pista retoma su propia posición al volver a ella.
 function setMusicTrack(url) {
   stopSting();
-  if (!url || url === musicTrack) return;
+  if (!url) return;
+  // Misma pista: si el loop quedo pausado por un jingle cortado, reanudar
+  if (url === musicTrack) { if (musicEl && musicEl.paused) startMusic(); return; }
   if (musicEl) { saveMusicPos(); musicEl.pause(); musicEl = null; }
   musicTrack = url;
   try { localStorage.setItem(MUSIC_TRACK_KEY, url); } catch {}
@@ -375,5 +385,5 @@ window.AssetsCache = {
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
-  startMusic, stopMusic, setMusicTrack, playMusicSting, MUSIC, musicForWorld,
+  startMusic, stopMusic, setMusicTrack, playMusicSting, endMusicSting, MUSIC, musicForWorld,
 };

@@ -504,6 +504,23 @@ const hoverAudio = new Audio(`${BASE}/assets/sounds/comun/hover.wav`);
 let sfxOn = true;
 fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d) sfxOn = d.sound !== false; }).catch(() => {});
 function play(a) { if (!sfxOn) return; a.pause(); a.currentTime = 0; a.play().catch(()=>{}); }
+// Suena y se desvanece en los últimos `fadeSec` segundos — el clip
+// sobrevive al modal y un corte seco quedaría a "cosa suelta".
+function playFading(a, fadeSec = 2) {
+  if (!sfxOn) return;
+  a.pause(); a.currentTime = 0; a.volume = 1;
+  a.play().catch(() => {});
+  const arm = () => {
+    if (!isFinite(a.duration) || a.duration <= fadeSec) return;
+    setTimeout(() => {
+      const iv = setInterval(() => {
+        a.volume = Math.max(0, a.volume - 1 / 24);
+        if (a.volume <= 0 || a.paused) { clearInterval(iv); a.pause(); a.volume = 1; }
+      }, fadeSec * 1000 / 24);
+    }, (a.duration - fadeSec) * 1000);
+  };
+  if (a.readyState >= 1) arm(); else a.addEventListener('loadedmetadata', arm, { once: true });
+}
 function playStep() { play(stepAudio); }
 
 // === Cuenta atrás 5 · 4 · 3 · 2 · 1 · YA antes de cada pantallita ===
@@ -638,6 +655,10 @@ function pickRandomImages(pool, n) {
 
 // === Cargar pantalla (práctica: al azar del tier; real: la asignada a la isla) ===
 async function loadScreen() {
+  // Todo puzle nuevo arranca con el audio en su sitio: corta jingles a
+  // medio sonar (victoria/derrota) y el derrumbe, y retoma el loop.
+  AssetsCache.endMusicSting();
+  crumbleAudio.pause(); crumbleAudio.currentTime = 0; crumbleAudio.volume = 1;
   // Si venimos de Reiniciar tras una victoria de boss, el mundo quedó
   // desquebrajado: restaura imagen/textos y retira gajos y escombros
   img.style.opacity = '';
@@ -1159,7 +1180,7 @@ function bossWinFx(x, y) {
     shakeLayers();
     for (const t of [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500]) setTimeout(shakeLayers, t);
   };
-  setTimeout(() => { play(crumbleAudio); rumble(); }, 600);
+  setTimeout(() => { playFading(crumbleAudio); rumble(); }, 600);
   // La pantalla se desquebraja ~4.6s después: muerte + rótulo + monedas al
   // contador ya se han leído y las entidades están cayendo
   setTimeout(() => shatterScreen(x, y), 4600);
@@ -1391,6 +1412,10 @@ function restartWin() {
   if (DEMO_WIN) { closeWinModal(); setTimeout(() => location.reload(), 350); return; }
   closeWinModal();
   if (playerData) playerData.gold = winGoldBefore;
+  // La victoria se revirtió: si sonaba la fanfarria de boss (worldWin +
+  // override), vuelve la pista del submundo y se limpia el override
+  sessionStorage.removeItem('runika-music-override');
+  AssetsCache.setMusicTrack(AssetsCache.musicForWorld(REAL_WORLD));
   renderBoardTexts();
   loadScreen();
 }
