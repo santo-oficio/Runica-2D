@@ -170,7 +170,7 @@ const DEFAULT_MUSIC = '/assets/music/The_Captain_s_Last_Map.mp3';
 const MUSIC = {
   main: DEFAULT_MUSIC,
   world: '/assets/music/mistery.mp3',
-  worldWin: '/assets/music/victory_mundo.mp3', // derrotar un mundo (no el final)
+  worldWin: '/assets/music/victoria_mundo.mp3', // derrotar al boss de un mundo
   fin: '/assets/music/victory.mp3',
   victoria: '/assets/music/victoria.mp3',  // jingle al ganar una pantalla
   derrota: '/assets/music/derrota.mp3',    // jingle al ser atrapado
