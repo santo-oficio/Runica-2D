@@ -59,6 +59,14 @@
     pointer-events: none;
     z-index: 12;
   }
+  /* El foco en las opciones (sonido/música/idioma) es subrayar las
+     palabras con el marrón oscuro de los iconos — nunca una caja */
+  .cfg-text.focused {
+    text-decoration: underline;
+    text-decoration-color: #3a2410;
+    text-decoration-thickness: max(2px, 0.055em);
+    text-underline-offset: 0.14em;
+  }
   #transition-overlay {
     position: fixed; inset: 0;
     z-index: 90; background: #000;
@@ -158,9 +166,10 @@
     return Math.max(8, px);
   }
 
-  function makeText(area, text) {
+  function makeText(area, text, field) {
     const el = document.createElement('div');
     el.className = 'cfg-text';
+    if (field) el.dataset.field = field;
     el.style.left = rx(area.x) + 'px';
     el.style.top = ry(area.y) + 'px';
     el.style.width = rw(area.w) + 'px';
@@ -198,10 +207,10 @@
     if (!areas.soundText) return;
 
     // Textos
-    ov.appendChild(makeText(areas.soundText, t('config.sound')));
-    ov.appendChild(makeText(areas.musicText, t('config.music')));
-    if (areas.langLabel) ov.appendChild(makeText(areas.langLabel, t('menu.language')));
-    ov.appendChild(makeText(areas.langText, LANG_NAMES[cfg.lang] || cfg.lang));
+    ov.appendChild(makeText(areas.soundText, t('config.sound'), 'sound'));
+    ov.appendChild(makeText(areas.musicText, t('config.music'), 'music'));
+    if (areas.langLabel) ov.appendChild(makeText(areas.langLabel, t('menu.language'), 'lang'));
+    ov.appendChild(makeText(areas.langText, LANG_NAMES[cfg.lang] || cfg.lang, 'lang'));
 
     // Checkboxes
     ov.appendChild(makeCheck(areas.soundCheck, cfg.sound !== false));
@@ -258,8 +267,13 @@
 
   function drawRing() {
     const ring = document.getElementById('ring');
-    if (!selVisible) { ring.style.display = 'none'; return; }
-    const b = fieldBounds(FIELDS[focusIdx]);
+    const field = FIELDS[focusIdx];
+    // Las opciones señalan el foco subrayando sus palabras; solo el
+    // botón atrás conserva la caja de selección
+    document.querySelectorAll('.cfg-text[data-field]').forEach(el =>
+      el.classList.toggle('focused', selVisible && el.dataset.field === field));
+    if (!selVisible || field !== 'back') { ring.style.display = 'none'; return; }
+    const b = fieldBounds(field);
     if (!b) { ring.style.display = 'none'; return; }
     ring.style.display = 'block';
     ring.style.left = (rx(b.x) - 6) + 'px';
