@@ -30,6 +30,7 @@ const ASSETS = {
     '/assets/sounds/comun/back.wav',
     '/assets/sounds/comun/choque.wav',
     '/assets/sounds/comun/trampa.wav',
+    '/assets/sounds/comun/derrumbe.mp3',
     '/assets/sounds/comun/pergamino.mp3',
     '/assets/sounds/comun/pulsacion maquina escribir.mp3',
     '/assets/sounds/comun/victoria.wav',
