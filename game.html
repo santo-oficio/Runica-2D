@@ -1484,13 +1484,10 @@ function winGame() {
   overlayTitle.textContent = tt('game.victory');
   if (REAL_MODE || DEMO_WIN) {
     if (DEMO_WIN) turn = currentMinMoves; // demo: cifra verosímil en el modal
-    // Boss de mundo derrotado: fanfarria de mundo que sigue sonando al
-    // volver al mapamundi (solo partida real — la demo no contamina la
-    // sesión; en MAZMORRA la música del final la pone fin.html)
-    if (worldFanfare) {
-      AssetsCache.setMusicTrack(AssetsCache.MUSIC.worldWin);
-      sessionStorage.setItem('runika-music-override', AssetsCache.MUSIC.worldWin);
-    }
+    // Boss de mundo derrotado: fanfarria que suena una sola vez en el
+    // tablero (al volver al mapamundi retoma el tema principal; en
+    // MAZMORRA la música del final la pone fin.html)
+    if (worldFanfare) AssetsCache.setMusicTrack(AssetsCache.MUSIC.worldWin);
     // Título del modal: "¡Mundo conquistado!" si es boss, "¡Victoria!" si no
     const bossWorld = REAL_MODE ? REAL_WORLD : (worlds[worldIdx] && worlds[worldIdx].world);
     // "del Viento"/"of Fire"/"du Feu"…: la preposición va en la propia

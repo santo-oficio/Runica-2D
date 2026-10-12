@@ -706,12 +706,12 @@
     } catch {}
   }
 
-  // Pista forzada por la pantalla anterior (p.ej. victoria de mundo):
-  // se consume una sola vez y retoma su posicion guardada.
+  // La fanfarria del boss solo suena en el tablero; al volver al mapa
+  // retoma el tema principal donde lo dejó (se limpia el override por
+  // si quedara uno guardado de una sesión antigua).
   function consumeMusicOverride() {
-    const ov = sessionStorage.getItem('runika-music-override');
-    if (ov) { sessionStorage.removeItem('runika-music-override'); AssetsCache.setMusicTrack(ov); }
-    else AssetsCache.setMusicTrack(AssetsCache.MUSIC.main);
+    sessionStorage.removeItem('runika-music-override');
+    AssetsCache.setMusicTrack(AssetsCache.MUSIC.main);
   }
 
   (async () => {
