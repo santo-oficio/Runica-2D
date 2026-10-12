@@ -1425,6 +1425,8 @@ function confirmWin() {
   // en el flujo real (runika-world-done + fanfarria worldWin + ?demo=B/N)
   if (DEMO_RUN) {
     closeWinModal();
+    // Boss final de MAZMORRA: sigue el flujo real → cinemática de fin.html
+    if (REAL_WORLD === FINAL_WORLD) { setTimeout(() => location.href = '/fin.html', 350); return; }
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
     setTimeout(() => location.href = '/mapamundi.html?demo=' + REAL_WORLD, 350);
     return;
