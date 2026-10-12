@@ -194,7 +194,7 @@ function musicForWorld(world) {
 }
 // Pistas que suenan UNA sola vez (fanfarrias): no repiten ni retoman
 // posición — al terminar vuelven a la pista principal.
-const ONESHOT_MUSIC = new Set([MUSIC.worldWin]);
+const ONESHOT_MUSIC = new Set([MUSIC.worldWin, MUSIC.fin]);
 let musicEl = null;
 // La pista activa se persiste para que cualquier pantalla retome la
 // musica correcta aunque no haya pasado por preloadAll (ej. instrucciones).
