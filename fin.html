@@ -221,7 +221,28 @@ function getImgRect(img) {
   const w = nw * s, h = nh * s;
   return { left: (innerWidth - w) / 2, top: (innerHeight - h) / 2, width: w, height: h };
 }
-function snd(url, vol) { AssetsCache.playSound(url, vol ?? 0.6); }
+function snd(url, vol) { return AssetsCache.playSound(url, vol ?? 0.6); }
+// Fundido de salida para rumbles largos: evita cortes en seco cuando el
+// clip sobrevive a la animación que lo acompaña
+function fadeOutSnd(a, sec) {
+  if (!a) return;
+  const v0 = a.volume;
+  const iv = setInterval(() => {
+    a.volume = Math.max(0, a.volume - v0 / 24);
+    if (a.volume <= 0 || a.paused) { clearInterval(iv); a.pause(); }
+  }, sec * 1000 / 24);
+}
+function sndFading(url, vol, fadeSec = 2.5) {
+  const a = snd(url, vol);
+  if (!a) return null;
+  const arm = () => {
+    if (!isFinite(a.duration) || a.duration <= fadeSec) return;
+    setTimeout(() => fadeOutSnd(a, fadeSec), (a.duration - fadeSec) * 1000);
+  };
+  if (a.readyState >= 1) arm(); else a.addEventListener('loadedmetadata', arm, { once: true });
+  return a;
+}
+let boardRumble = null; // rumble del tablero para silenciarlo al caer MAZMORRA
 
 // ---------- Canvas de particulas ----------
 const canvas = document.getElementById('fx-canvas');
@@ -422,8 +443,10 @@ async function crumbleBoard() {
     if (i === 1) { hero.style.animation = 'heroCelebrate .5s ease'; }
     await wait(420);
   }
-  // La escena entera se hunde
+  // La escena entera se hunde con el rumble del derrumbe (13.5s, cubre
+  // el hundimiento y el arranque de la caida de los mundos)
   sc.classList.add('crumble');
+  boardRumble = sndFading('/assets/sounds/comun/derrumbe.mp3', 0.55);
   snd('/assets/sounds/comun/choque.wav', 0.85);
   shakeStage(false);
   const bx = innerWidth * 0.5, by = innerHeight * 0.7;
@@ -505,7 +528,13 @@ async function sceneMap() {
     dust(o.cx + o.sz * 0.25, o.cy + o.sz * 0.2, o.sz * 0.6);
     burst(o.cx, o.cy + o.sz * 0.2, isFinal ? 70 : 30,
       ['#8a7a60', '#b09a75', '#6a5a45', '#d0b890'], isFinal ? 8 : 5, { size: 4, g: 0.15 });
-    if (isFinal) { flash(0.8, 600); redPulse(); }
+    if (isFinal) {
+      flash(0.8, 600); redPulse();
+      // MAZMORRA cae con su propio derrumbe oscuro (~21s, fundido final):
+      // silencia el rumble del tablero para no montar dos a la vez
+      fadeOutSnd(boardRumble, 0.8); boardRumble = null;
+      sndFading('/assets/sounds/comun/derrumbe_final.mp3', 0.95, 3);
+    }
     await wait(isFinal ? 1100 : 750);
   }
   sub.classList.remove('on');
@@ -630,6 +659,8 @@ function begin() {
     '/assets/sounds/comun/victoria.wav',
     '/assets/sounds/comun/derrota.wav',
     '/assets/sounds/comun/move.wav',
+    '/assets/sounds/comun/derrumbe.mp3',
+    '/assets/sounds/comun/derrumbe_final.mp3',
   ]);
   try {
     const r = await fetch('/api/savegame');

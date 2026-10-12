@@ -291,7 +291,7 @@ async function preloadSounds(urls) {
 }
 
 function playSound(url, volume) {
-  if (!isSoundEnabled()) return;
+  if (!isSoundEnabled()) return null;
   let src = cache.sounds.get(url);
   if (!src) {
     // Fuera de precarga: sonar igual y cachear para la proxima vez
@@ -302,6 +302,7 @@ function playSound(url, volume) {
   const audio = new Audio(src);
   audio.volume = volume ?? 1;
   audio.play().catch(() => {});
+  return audio;
 }
 
 function unlockAudio() {

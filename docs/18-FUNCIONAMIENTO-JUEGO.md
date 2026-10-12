@@ -106,11 +106,15 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
 | Pisar trampa | `trampa.wav` |
 | Victoria | `victoria.wav` |
 | Derrota | `derrota.wav` |
+| Derrumbe (boss de mundo) | `derrumbe.mp3` |
+| Derrumbe último mundo (fin) | `derrumbe_final.mp3` |
 | Teclear nombre (selección) | `pulsacion maquina escribir.mp3` |
 
 Todos se sirven por `AssetsCache.playSound` y respetan el toggle de sonido de
 los ajustes. `game.html`/`game.html` los usan como elementos `Audio`
-directos (modo offline de la cache).
+directos (modo offline de la cache). Los rumbles largos (derrumbes) se
+reproducen con fundido de salida (`playFading`/`sndFading`) para no cortar
+en seco bajo el modal o la escena siguiente.
 
 ## 7. Reglas "a fuego" activas
 
