@@ -426,6 +426,8 @@
     // Idioma primero (JSON local, instantaneo): asi la pantalla de carga
     // ya muestra los textos traducidos.
     await AssetsCache.loadSettings();
+    // Los créditos son del menú: siempre suena el tema principal
+    AssetsCache.setMusicTrack(AssetsCache.MUSIC.main);
     fallback = await loadLang('es');
     translations = await loadLang();
     applyI18n();
