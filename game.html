@@ -324,6 +324,10 @@ const REAL_MODE = !!REAL_WORLD;
 const DEMO_WIN = PARAMS.get('demo') === 'win' || PARAMS.get('demo') === 'winboss' || PARAMS.get('demo') === 'winfinal';
 const DEMO_FINAL = PARAMS.get('demo') === 'winfinal'; // boss de MAZMORRA -> fin.html
 const DEMO_BOSS = PARAMS.get('demo') === 'winboss' || DEMO_FINAL;
+// ?demo=bossrun&world=X&level=11 — partida real SIMULADA a un boss de
+// mundo: se juega de verdad (derrota/victoria/celebración/modal) pero sin
+// escribir en la bbdd (pantalla de práctica tier 14, sin level-complete).
+const DEMO_RUN = PARAMS.get('demo') === 'bossrun';
 let playerData = null;
 let T = {};
 let currentMinMoves = 0;
@@ -670,9 +674,9 @@ async function loadScreen() {
   selector.style.transition = '';
   const bd = document.getElementById('boss-down');
   if (bd) { bd.classList.remove('show'); bd.textContent = ''; }
-  const endpoint = REAL_MODE
+  const endpoint = (REAL_MODE && !DEMO_RUN)
     ? `${BASE}/api/level-screen?world=${encodeURIComponent(REAL_WORLD)}&level=${REAL_LEVEL}`
-    : `${BASE}/api/practice-screen?tier=${currentTier}&t=${Date.now()}`;
+    : `${BASE}/api/practice-screen?tier=${DEMO_RUN ? 14 : currentTier}&t=${Date.now()}`;
   const res = await fetch(endpoint);
   const data = await res.json();
   if (!data.ok) {
@@ -1417,6 +1421,14 @@ function closeWinModal() {
 
 // Continuar (verde): confirma la victoria — se guarda nivel+oro y se avanza
 function confirmWin() {
+  // Demo de partida real a boss: el mapamundi celebra la conquista como
+  // en el flujo real (runika-world-done + fanfarria worldWin + ?demo=B/N)
+  if (DEMO_RUN) {
+    closeWinModal();
+    sessionStorage.setItem('runika-world-done', REAL_WORLD);
+    setTimeout(() => location.href = '/mapamundi.html?demo=' + REAL_WORLD, 350);
+    return;
+  }
   if (DEMO_WIN) {
     closeWinModal();
     // Demo boss final: sigue el flujo real → cinemática de fin.html
@@ -1727,6 +1739,9 @@ async function init() {
     } catch {}
     decodeImg(BASE + '/assets/comunes/modal.webp');
     decodeImg(BASE + '/assets/comunes/modal-reintentar.webp');
+    // Demo de partida real a boss: la música del submundo suena desde el
+    // inicio (en el flujo real la fija submundo.html al entrar)
+    if (DEMO_RUN) AssetsCache.setMusicTrack(AssetsCache.musicForWorld(REAL_WORLD));
     document.getElementById('hud').style.display = 'none';
     document.getElementById('practice-tag').style.display = 'none';
     document.getElementById('help').style.display = 'none';

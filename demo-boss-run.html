@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Demo — boss de mundo</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #14100c; color: #f0d890;
+    font-family: 'ChelseaMarket', 'Segoe UI', cursive; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: #1d1712; border-bottom: 2px solid #5c3a00; flex-wrap: wrap; }
+  select, button { font: inherit; padding: 6px 12px; border-radius: 6px;
+    border: 1px solid #8a6a30; background: #2a2016; color: #f0d890; cursor: pointer; }
+  button:hover { background: #3a2c1a; }
+  .hint { font-size: 12px; opacity: .6; }
+  iframe { width: 100%; height: calc(100% - 58px); border: 0; display: block; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <label><span data-i18n="demo.worldLabel">Mundo:</span>
+    <select id="world"></select>
+  </label>
+  <button id="go" data-i18n="demo.bossrun.launch">Jugar boss</button>
+  <span class="hint" data-i18n="demo.bossrun.hint">pantalla real del boss (isla 12): juega con las flechas — pierde para ver la derrota, gana para ver la celebración y la vuelta al mapamundi. No se guarda nada.</span>
+</div>
+<iframe id="f"></iframe>
+<script type="module">
+// Demo de partida real a un boss de mundo (isla 12):
+//  - game.html?world=<M>&level=11&demo=bossrun usa el modo real completo
+//    (boss sprites, HUD real, modal de derrota/victoria, celebración de
+//    boss, fanfarria worldWin) pero la pantalla sale de practice-screen
+//    y confirmWin navega al mapamundi demo — NADA escribe en la bbdd.
+//  - Derrota: jingle derrota.mp3 + cartel modal-reintentar + Reintentar.
+//  - Victoria: fanfarria victoria_mundo.mp3 + derrumbe + modal →
+//    Continuar lleva al mapamundi con la celebración de conquista.
+// sessionStorage es compartido con el iframe (mismo origen/pestaña).
+const WORLDS = ['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+const selWorld = document.getElementById('world');
+const f = document.getElementById('f');
+let tr = {};
+try {
+  const r = await fetch('/api/i18n');
+  if (r.ok) tr = await r.json();
+} catch {}
+const tt = k => tr[k] ?? k;
+document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tt(el.dataset.i18n); });
+for (const w of WORLDS) {
+  const o = document.createElement('option');
+  o.value = w;
+  o.textContent = tt('worlds.' + w);
+  selWorld.appendChild(o);
+}
+selWorld.value = 'FUEGO';
+function go() {
+  sessionStorage.setItem('runika-session', 'active');
+  // Limpia restos de una demo anterior para que no se cuele en la partida real
+  sessionStorage.removeItem('runika-world-done');
+  sessionStorage.removeItem('runika-music-override');
+  f.src = '/game.html?world=' + selWorld.value + '&level=11&demo=bossrun&t=' + Date.now();
+}
+selWorld.addEventListener('change', go);
+document.getElementById('go').addEventListener('click', go);
+go();
+</script>
+</body>
+</html>

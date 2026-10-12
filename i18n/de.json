@@ -149,5 +149,7 @@
   "demo.musica.hint": "jede Subwelt spielt ihren eigenen Track; wenn der Browser Audio blockiert, klicke in den Rahmen",
   "loading.tip1": "Jede Partie ist einzigartig: Tausende neue Rätsel auf jedem Schwierigkeitsgrad.",
   "loading.tip2": "Kein Rätsel wiederholt sich jemals: Jede Herausforderung wird nur für dich erschaffen.",
-  "loading.tip3": "Fünfzehn Schwierigkeitsgrade und tausende verschiedene Rätsel in jedem."
+  "loading.tip3": "Fünfzehn Schwierigkeitsgrade und tausende verschiedene Rätsel in jedem.",
+  "demo.bossrun.launch": "Boss spielen",
+  "demo.bossrun.hint": "echte Boss-Szene (Insel 12): mit den Pfeilen spielen — verlieren zeigt die Niederlage, gewinnen die Feier und die Rückkehr zur Weltkarte. Nichts wird gespeichert."
 }
