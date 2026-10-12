@@ -676,7 +676,7 @@ async function loadScreen() {
   if (bd) { bd.classList.remove('show'); bd.textContent = ''; }
   const endpoint = (REAL_MODE && !DEMO_RUN)
     ? `${BASE}/api/level-screen?world=${encodeURIComponent(REAL_WORLD)}&level=${REAL_LEVEL}`
-    : `${BASE}/api/practice-screen?tier=${DEMO_RUN ? 14 : currentTier}&t=${Date.now()}`;
+    : `${BASE}/api/practice-screen?tier=${DEMO_RUN ? (parseInt(PARAMS.get('tier') || '6', 10) || 6) : currentTier}&t=${Date.now()}`;
   const res = await fetch(endpoint);
   const data = await res.json();
   if (!data.ok) {
@@ -1611,7 +1611,7 @@ debugTierEl.style.cssText = 'position:fixed;left:8px;top:8px;z-index:300;display
 document.body.appendChild(debugTierEl);
 function updateDebugTier() {
   // gameLevel ya es el tier real de la pantalla cargada (incl. tier 15
-  // del boss final y el 14 fijo de la demo bossrun)
+  // del boss final y el tier elegido en la demo bossrun)
   debugTierEl.textContent = tt('game.tier') + ' ' + (REAL_MODE ? gameLevel : currentTier);
 }
 document.addEventListener('keydown', (e) => {
