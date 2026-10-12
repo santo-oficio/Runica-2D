@@ -797,6 +797,9 @@ function coinRain() {
 
 // ---------- Avance ----------
 let started = false;
+// ?auto=1: venimos directos del boss final — la cinemática arranca sola,
+// sin gate de "pulsa para empezar" (el audio ya iba desbloqueado)
+const AUTO_START = new URLSearchParams(location.search).get('auto') === '1';
 function advance() {
   if (!started || busy) return;
   if (scene === 1) { sceneMap(); return; }
@@ -819,16 +822,22 @@ function begin() {
   started = true;
   AssetsCache.unlockAudio();
   const ps = document.getElementById('press-start');
-  ps.style.animation = 'none';
-  ps.style.opacity = '0';
-  ps.style.transition = 'opacity .4s ease';
-  setTimeout(() => ps.remove(), 450);
+  if (AUTO_START) { ps.remove(); }
+  else {
+    ps.style.animation = 'none';
+    ps.style.opacity = '0';
+    ps.style.transition = 'opacity .4s ease';
+    setTimeout(() => ps.remove(), 450);
+  }
   sceneBoard();
 }
 
 // ---------- Arranque ----------
 (async () => {
   await AssetsCache.loadSettings();
+  // Ambiente de mazmorra bajo la pelea final — victory.mp3 (una vez)
+  // toma el relevo en la derrota del boss
+  AssetsCache.setMusicTrack(AssetsCache.musicForWorld('MAZMORRA'));
   fallback = await loadLang('es');
   translations = await loadLang();
   await AssetsCache.preloadSounds([
@@ -853,7 +862,8 @@ function begin() {
     if (r.ok) FIN_AREAS = await r.json();
   } catch {}
   WORLD_ORDER.forEach(w => { if (!WORLD_POSITIONS[w]) WORLD_POSITIONS[w] = { x: 0.5, y: 0.5 }; });
-  document.getElementById('press-start').textContent = tt('loading.pressStart');
+  if (AUTO_START) begin();
+  else document.getElementById('press-start').textContent = tt('loading.pressStart');
 })();
 </script>
 </body>

@@ -355,7 +355,7 @@ function backToSubmundo() {
 function afterVictory() {
   if (REAL_LEVEL === FINAL_ISLAND_IDX) {
     // Boss final de MAZMORRA: cinematica de fin de juego (fin.html)
-    if (REAL_WORLD === FINAL_WORLD) { location.href = '/fin.html'; return; }
+    if (REAL_WORLD === FINAL_WORLD) { location.href = '/fin.html?auto=1'; return; }
     // El mapamundi celebra la conquista del mundo (animación + B/N)
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
     location.href = '/mapamundi.html';
@@ -1426,7 +1426,7 @@ function confirmWin() {
   if (DEMO_RUN) {
     closeWinModal();
     // Boss final de MAZMORRA: sigue el flujo real → cinemática de fin.html
-    if (REAL_WORLD === FINAL_WORLD) { setTimeout(() => location.href = '/fin.html', 350); return; }
+    if (REAL_WORLD === FINAL_WORLD) { setTimeout(() => location.href = '/fin.html?auto=1', 350); return; }
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
     setTimeout(() => location.href = '/mapamundi.html?demo=' + REAL_WORLD, 350);
     return;
@@ -1434,7 +1434,7 @@ function confirmWin() {
   if (DEMO_WIN) {
     closeWinModal();
     // Demo boss final: sigue el flujo real → cinemática de fin.html
-    if (DEMO_FINAL) { setTimeout(() => location.href = '/fin.html', 350); return; }
+    if (DEMO_FINAL) { setTimeout(() => location.href = '/fin.html?auto=1', 350); return; }
     // Demo boss: sigue el flujo real → mapamundi con el mundo recién
     // conquistado (celebración + drenaje a B/N), sin tocar la partida
     if (DEMO_BOSS) {
@@ -1518,7 +1518,11 @@ function winGame() {
       // guardián ANTES de que la pantalla se desquebraje (~4.6s). El modal
       // llega ~7.4s, con el mundo ya roto detrás
       setTimeout(() => flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, () => {}), 2200);
-      setTimeout(openWinModal, 7400);
+      // El boss FINAL no es un boss normal: no hay modal de continuar —
+      // la celebración encadena directo con la cinemática de fin.html
+      // (confirmWin persiste el nivel en partida real; en demo navega)
+      const isFinalWin = REAL_MODE && REAL_WORLD === FINAL_WORLD;
+      setTimeout(isFinalWin ? confirmWin : openWinModal, 7400);
     } else {
       flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal);
     }
