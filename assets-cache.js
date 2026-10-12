@@ -172,6 +172,8 @@ const MUSIC = {
   world: '/assets/music/mistery.mp3',
   worldWin: '/assets/music/victory_mundo.mp3', // derrotar un mundo (no el final)
   fin: '/assets/music/victory.mp3',
+  victoria: '/assets/music/victoria.mp3',  // jingle al ganar una pantalla
+  derrota: '/assets/music/derrota.mp3',    // jingle al ser atrapado
   // Pista por submundo: cada mundo tiene su propia música. Si el archivo de
   // un mundo aún no existe, se usa `world` (mistery.mp3) como fallback.
   worlds: {
@@ -225,9 +227,31 @@ async function startMusic(url) {
   musicEl.play().catch(() => {});
 }
 
+// Jingle puntual (victoria/derrota): pausa el loop en curso, suena una
+// vez y al terminar retoma la pista donde se quedó. Respeta el ajuste
+// de música (es música, no un sfx). Al navegar muere con la página como
+// el resto del audio.
+let stingEl = null;
+function stopSting() {
+  if (!stingEl) return;
+  stingEl.pause();
+  stingEl = null;
+}
+function playMusicSting(url) {
+  stopSting();
+  if (!isMusicEnabled() || !url) return;
+  if (musicEl) { saveMusicPos(); musicEl.pause(); }
+  stingEl = new Audio(getCachedSound(url) || url);
+  stingEl.volume = 0.8;
+  const done = () => { stingEl = null; startMusic(); };
+  stingEl.addEventListener('ended', done);
+  stingEl.play().catch(done);
+}
+
 // Cambia la pista en curso (ej. entrar en un mundo = MUSIC.world).
 // Cada pista retoma su propia posición al volver a ella.
 function setMusicTrack(url) {
+  stopSting();
   if (!url || url === musicTrack) return;
   if (musicEl) { saveMusicPos(); musicEl.pause(); musicEl = null; }
   musicTrack = url;
@@ -236,6 +260,7 @@ function setMusicTrack(url) {
 }
 
 function stopMusic() {
+  stopSting();
   if (!musicEl) return;
   saveMusicPos();
   musicEl.pause();
@@ -349,5 +374,5 @@ window.AssetsCache = {
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
-  startMusic, stopMusic, setMusicTrack, MUSIC, musicForWorld,
+  startMusic, stopMusic, setMusicTrack, playMusicSting, MUSIC, musicForWorld,
 };

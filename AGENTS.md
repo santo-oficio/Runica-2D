@@ -201,6 +201,10 @@ renderizarla igual.
   `worldWin`, `fin`, y **una por submundo** en `MUSIC.worlds`
   (`assets/music/<MUNDO>/submundo.mp3` — `submundo.html` la activa con
   `musicForWorld(world)`, que cae a `mistery.mp3` si el mundo no tiene la suya).
+  **Jingles**: `MUSIC.victoria` / `MUSIC.derrota` (`assets/music/*.mp3`) suenan
+  con `playMusicSting(url)` — pausan el loop, suenan una vez y lo retoman al
+  terminar; los usa `game.html` al ganar/perder (la victoria de boss de mundo
+  usa `worldWin` en su lugar). Respetan el ajuste `music`, no `sound`.
 - **Progreso por mapa** (PlayerState): `gold`, `lastWorld` (último mundo del
   mapamundi) y `worldProgress` = `{MUNDO: {last, completed[]}}` con 12 islas por
   mundo (`MAP_LEVELS_PER_WORLD`). Endpoints: `POST /api/map-position`,

@@ -495,12 +495,10 @@ let currentScreenId = null;
 const stepAudio = document.getElementById('step-sound');
 const bounceAudio = new Audio(`${BASE}/assets/sounds/comun/choque.wav`);
 const trapAudio = new Audio(`${BASE}/assets/sounds/comun/trampa.wav`);
-const victoryAudio = new Audio(`${BASE}/assets/sounds/comun/victoria.wav`);
-const defeatAudio = new Audio(`${BASE}/assets/sounds/comun/derrota.wav`);
 const backAudio = new Audio(`${BASE}/assets/sounds/comun/back.wav`);
 const pressAudio = new Audio(`${BASE}/assets/sounds/comun/press.wav`);
 const hoverAudio = new Audio(`${BASE}/assets/sounds/comun/hover.wav`);
-[bounceAudio, trapAudio, victoryAudio, defeatAudio, backAudio, pressAudio].forEach(a => a.preload = true);
+[bounceAudio, trapAudio, backAudio, pressAudio].forEach(a => a.preload = true);
 
 let sfxOn = true;
 fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d) sfxOn = d.sound !== false; }).catch(() => {});
@@ -1403,18 +1401,21 @@ window.addEventListener('resize', () => { if (modalOpen) renderModal(); });
 
 function winGame() {
   gameOver = true; won = true;
-  play(victoryAudio);
+  // Victoria de boss = isla final de cualquier mundo (incl. MAZMORRA:
+  // el boss final tambien recibe la celebracion completa en el tablero)
+  const isBossWin = DEMO_BOSS ||
+    (REAL_MODE && REAL_LEVEL === FINAL_ISLAND_IDX);
+  // Jingle de victoria — salvo en boss de mundo, que tiene su propia
+  // fanfarria (worldWin) que lo sustituiría al instante
+  const worldFanfare = isBossWin && REAL_MODE && REAL_WORLD !== FINAL_WORLD;
+  if (!worldFanfare) AssetsCache.playMusicSting(AssetsCache.MUSIC.victoria);
   overlayTitle.textContent = tt('game.victory');
   if (REAL_MODE || DEMO_WIN) {
     if (DEMO_WIN) turn = currentMinMoves; // demo: cifra verosímil en el modal
-    // Victoria de boss = isla final de cualquier mundo (incl. MAZMORRA:
-    // el boss final tambien recibe la celebracion completa en el tablero)
-    const isBossWin = DEMO_BOSS ||
-      (REAL_MODE && REAL_LEVEL === FINAL_ISLAND_IDX);
     // Boss de mundo derrotado: fanfarria de mundo que sigue sonando al
     // volver al mapamundi (solo partida real — la demo no contamina la
     // sesión; en MAZMORRA la música del final la pone fin.html)
-    if (isBossWin && REAL_MODE && REAL_WORLD !== FINAL_WORLD) {
+    if (worldFanfare) {
       AssetsCache.setMusicTrack(AssetsCache.MUSIC.worldWin);
       sessionStorage.setItem('runika-music-override', AssetsCache.MUSIC.worldWin);
     }
@@ -1479,7 +1480,7 @@ function screenShake() {
 
 function loseGame() {
   gameOver = true; won = false;
-  play(defeatAudio);
+  AssetsCache.playMusicSting(AssetsCache.MUSIC.derrota);
   screenShake();
   overlay.classList.add('show', 'lose');
   overlayTitle.textContent = tt('game.defeat');
