@@ -185,6 +185,35 @@
     background:radial-gradient(circle,rgba(160,140,105,.6),transparent 70%);
     animation:winDustPuff 1s ease-out forwards}
   @keyframes winDustPuff{0%{transform:scale(.3);opacity:0}18%{opacity:1}100%{transform:scale(2.4);opacity:0}}
+  /* El boss FINAL no cae gris como un guardián más: se sobrecarga de
+     luz y estalla — desintegración dorada con anillos gigantes */
+  @keyframes bossCharge {
+    0%   { filter: brightness(1) drop-shadow(3px 6px 10px rgba(0,0,0,.7)); transform: scale(1); }
+    30%  { filter: brightness(2.2) drop-shadow(0 0 18px rgba(255,200,80,.8)); transform: scale(1.08); }
+    55%  { filter: brightness(4) drop-shadow(0 0 34px rgba(255,220,120,.95)); transform: scale(1.16) rotate(-2deg); }
+    78%  { filter: brightness(6) drop-shadow(0 0 60px #fff); transform: scale(1.22) rotate(2deg); }
+    100% { filter: brightness(9) drop-shadow(0 0 90px #fff); transform: scale(1.26); }
+  }
+  @keyframes bossExplode {
+    0%   { opacity: 1; transform: scale(1.26); filter: brightness(9) drop-shadow(0 0 90px #fff); }
+    40%  { opacity: .9; transform: scale(1.6); }
+    100% { opacity: 0; transform: scale(2.2); }
+  }
+  .win-ring.big { width: 200px; height: 200px; border-width: 6px;
+    animation: winRingBig 1.9s ease-out forwards; }
+  @keyframes winRingBig { 0%{transform:scale(.1);opacity:1} 100%{transform:scale(5.2);opacity:0} }
+  /* Foco cenital sobre el héroe vencedor: haz de luz + halo pulsante */
+  .win-beam{position:fixed;z-index:14;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(255,232,160,.55),rgba(255,200,90,.14) 78%,transparent);
+    clip-path:polygon(36% 0,64% 0,92% 100%,8% 100%);
+    animation:beamIn .9s ease-out both}
+  @keyframes beamIn{from{opacity:0}to{opacity:1}}
+  .win-halo{position:fixed;z-index:14;pointer-events:none;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,214,120,.5) 0%,rgba(255,180,70,.2) 42%,transparent 70%);
+    animation:heroGlow 2.4s ease-in-out infinite alternate}
+  @keyframes heroGlow{from{opacity:.7;transform:scale(.96)}to{opacity:1;transform:scale(1.07)}}
+  .hero-glow{filter:drop-shadow(0 0 12px rgba(255,225,140,.95)) drop-shadow(0 0 38px rgba(255,170,60,.6))!important}
+
   /* Rótulo "¡Guardián derrotado!" sobre el tablero */
   .down-title{
     position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);
@@ -446,15 +475,34 @@ async function sceneBoard() {
     await wait(240);
   }
 
-  // Golpe final: flash grande, boss cae en gris
-  flash(0.95, 500); redPulse(); shakeStage(false);
-  snd('/assets/sounds/comun/derrota.wav', 0.5); // el boss cae
-  boss.style.animation = 'bossFall 1.4s ease-in forwards';
-  burst(bossRC.cx, bossRC.cy, 60, ['#9a8a70', '#c0aa80', '#6a5a45'], 6, { size: 5, g: 0.18 });
-  await wait(850);
+  // Golpe final: el boss FINAL no cae gris como un guardián más — se
+  // sobrecarga de luz incandescente y estalla
+  flash(0.9, 400); redPulse(); shakeStage(false);
+  snd('/assets/sounds/comun/derrota.wav', 0.6);
+  boss.style.animation = 'bossCharge 1s ease-in forwards';
+  await wait(1050);
 
-  // === Celebración épica — a la altura de los bosses de mundo ===
-  // Rótulo "¡Guardián derrotado!" sobre el boss caído
+  // La explosión: pantalla en blanco, el boss se desintegra en una
+  // nube dorada mientras 5 anillos gigantes barren la escena
+  flash(1, 800); shakeStage(false); redPulse();
+  snd('/assets/sounds/comun/choque.wav', 0.9);
+  boss.style.animation = 'bossExplode .8s ease-in forwards';
+  burst(bossRC.cx, bossRC.cy, 150,
+    ['#ffd54f', '#ff9a3c', '#fff3c4', '#e86a4a', '#9a8a70'], 11,
+    { size: 5, g: 0.1, life: 75, spark: true });
+  for (let i = 0; i < 5; i++) {
+    const ring = document.createElement('div');
+    ring.className = 'win-ring big';
+    ring.style.left = (bossRC.cx - 100) + 'px';
+    ring.style.top = (bossRC.cy - 100) + 'px';
+    ring.style.animationDelay = (i * 0.18) + 's';
+    document.body.appendChild(ring);
+    setTimeout(() => ring.remove(), 2300 + i * 180);
+  }
+  await wait(700);
+
+  // === Celebración épica — corona la explosión, no una simple caída ===
+  // Rótulo "¡Guardián derrotado!" sobre los restos del boss
   const down = document.createElement('div');
   down.className = 'down-title';
   down.textContent = tt('game.bossDown');
@@ -524,6 +572,25 @@ async function sceneBoard() {
     }, (delay + dur * 0.82) * 1000);
   }
 
+  // Foco cenital sobre el héroe: haz de luz desde arriba + halo dorado
+  // pulsante + brillo en el sprite (el héroe como centro del triunfo)
+  hero.classList.add('hero-glow');
+  const beam = document.createElement('div');
+  beam.className = 'win-beam';
+  beam.style.left = (heroRC.cx - cw * 1.6) + 'px';
+  beam.style.top = r.top + 'px';
+  beam.style.width = (cw * 4.4) + 'px';
+  beam.style.height = (heroRC.cy - r.top + ch * 0.6) + 'px';
+  document.body.appendChild(beam);
+  const halo = document.createElement('div');
+  halo.className = 'win-halo';
+  const hs = cw * 5;
+  halo.style.left = (heroRC.cx - hs / 2) + 'px';
+  halo.style.top = (heroRC.cy - hs / 2) + 'px';
+  halo.style.width = halo.style.height = hs + 'px';
+  document.body.appendChild(halo);
+  setTimeout(() => { beam.remove(); halo.remove(); }, 15000);
+
   await wait(900);
   snd('/assets/sounds/comun/victoria.wav', 0.8);
   // Canción del final del juego — suena una sola vez (ONESHOT_MUSIC)
@@ -556,6 +623,7 @@ async function crumbleBoard() {
   }
   // La escena entera se hunde con el rumble del derrumbe (13.5s, cubre
   // el hundimiento y el arranque de la caida de los mundos)
+  flash(0.6, 500); // destello al ceder el suelo — transición más dramática
   sc.classList.add('crumble');
   boardRumble = sndFading('/assets/sounds/comun/derrumbe.mp3', 0.55);
   snd('/assets/sounds/comun/choque.wav', 0.85);
