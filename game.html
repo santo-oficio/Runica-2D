@@ -953,14 +953,15 @@ function moveEnemiesAnimated() {
         for (const [c, r] of cands) {
           if (canEnemyEnter(c, r)) { e.c = c; e.r = r; anyMoved = true; break; }
         }
-        // Trampa (regla del generador): estar EN una trampa aturde 3 turnos
-        // y cancela el sub-paso restante — también si no pudo moverse y
-        // sigue encima, así un enemigo atrapado no se despierta jamás.
-        // El sonido/efecto solo suena al entrar de verdad (se movió).
-        if (trapCells.has(`${e.c},${e.r}`)) {
-          const entered = bc !== e.c || br !== e.r;
+        // Trampa (regla del motor): solo aturde al ENTRAR — si este
+        // sub-paso lo movió a una casilla de trampa. Un enemigo quieto
+        // sobre una trampa NO se re-aturde: antes se reiniciaba el
+        // contador cada sub-paso y quedaba congelado para siempre
+        // (turnos libres de más para el jugador).
+        const entered = bc !== e.c || br !== e.r;
+        if (entered && trapCells.has(`${e.c},${e.r}`)) {
           e.stunnedTurns = 3; frozen.add(i);
-          if (entered) { play(trapAudio); enemyTrapFx(i); }
+          play(trapAudio); enemyTrapFx(i);
         }
       }
       updateEnemyPositions();
