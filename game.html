@@ -38,7 +38,7 @@
     transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
   }
-  .entity.trap { animation: spin 3s linear infinite; }
+  /* Las trampas son estáticas: nunca rotan */
   .entity.stunned {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)) brightness(0.55) saturate(0.4);
     opacity: 0.75;
@@ -55,7 +55,6 @@
     filter: drop-shadow(0 0 8px #ff0) drop-shadow(0 0 4px #ff0);
     animation: goalPulse 1s ease-in-out infinite;
   }
-  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @keyframes goalPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
   @keyframes trapShake {
     0% { transform: rotate(0deg) scale(1); }

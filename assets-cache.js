@@ -192,6 +192,9 @@ const MUSIC = {
 function musicForWorld(world) {
   return MUSIC.worlds[world] || MUSIC.world;
 }
+// Pistas que suenan UNA sola vez (fanfarrias): no repiten ni retoman
+// posición — al terminar vuelven a la pista principal.
+const ONESHOT_MUSIC = new Set([MUSIC.worldWin]);
 let musicEl = null;
 // La pista activa se persiste para que cualquier pantalla retome la
 // musica correcta aunque no haya pasado por preloadAll (ej. instrucciones).
@@ -218,13 +221,25 @@ async function startMusic(url) {
   musicTrack = url;
   try { localStorage.setItem(MUSIC_TRACK_KEY, url); } catch {}
   musicEl = new Audio(getCachedSound(url) || url);
-  musicEl.loop = true;
+  const oneShot = ONESHOT_MUSIC.has(url);
+  musicEl.loop = !oneShot;
   musicEl.volume = 0.45;
   try {
     const map = JSON.parse(localStorage.getItem(MUSIC_POS_KEY) || '{}');
     if (map[url] > 0) musicEl.currentTime = map[url];
   } catch {}
   musicEl.addEventListener('timeupdate', saveMusicPos);
+  if (oneShot) {
+    // Al acabar la fanfarria: olvida su posición y vuelve al tema principal
+    musicEl.addEventListener('ended', () => {
+      try {
+        const map = JSON.parse(localStorage.getItem(MUSIC_POS_KEY) || '{}');
+        delete map[url];
+        localStorage.setItem(MUSIC_POS_KEY, JSON.stringify(map));
+      } catch {}
+      setMusicTrack(MUSIC.main);
+    });
+  }
   musicEl.play().catch(() => {});
 }
 
