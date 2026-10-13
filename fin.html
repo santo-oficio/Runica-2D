@@ -162,6 +162,36 @@
   .letter.pop { animation: letterPop .5s cubic-bezier(.2,1.8,.4,1) forwards; }
   @keyframes letterPop { to { opacity: 1; transform: translateY(0) scale(1); } }
 
+  /* --- Escena 3 rediseñada: el héroe y los mundos restaurados --- */
+  /* Cielo estrellado de fondo */
+  .star { position: absolute; width: 2px; height: 2px; border-radius: 50%;
+    background: #ffe9a3; animation: twinkle 3s ease-in-out infinite;
+    pointer-events: none; z-index: 15; }
+  @keyframes twinkle { 0%,100% { opacity: .12; } 50% { opacity: .85; } }
+  /* El héroe emerge en el centro bajo el foco */
+  #end-hero { position: absolute; left: 50%; top: 58%; height: 36vh;
+    transform: translate(-50%,-50%); object-fit: contain; z-index: 25;
+    pointer-events: none; opacity: 0;
+    filter: drop-shadow(0 0 16px rgba(255,225,140,.9)) drop-shadow(0 0 46px rgba(255,170,60,.55)); }
+  #end-hero.on { animation: heroRise .9s cubic-bezier(.2,1.5,.35,1) both; }
+  @keyframes heroRise {
+    0% { opacity: 0; transform: translate(-50%,-40%) scale(.35); }
+    100% { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+  /* Pedestal de luz bajo el héroe */
+  #end-floor { position: absolute; left: 50%; top: 73%; width: 62vh; height: 12vh;
+    transform: translate(-50%,-50%); z-index: 24; pointer-events: none;
+    opacity: 0; transition: opacity 1.1s ease;
+    background: radial-gradient(ellipse, rgba(255,210,110,.5), rgba(255,180,70,.14) 55%, transparent 75%); }
+  #end-floor.on { opacity: 1; }
+  /* Orbes de los mundos restaurados: vuelan y coronan al héroe en arco.
+     El color del mundo va en `color` → el halo brilla con ese matiz */
+  .orb { position: absolute; z-index: 26; pointer-events: none; border-radius: 50%;
+    transition: left .72s cubic-bezier(.3,.7,.35,1), top .72s cubic-bezier(.3,.7,.35,1);
+    box-shadow: 0 0 20px 5px currentColor; }
+  .orbcore { width: 100%; height: 100%; border-radius: 50%; }
+  .orb.set { animation: orbFloat 2.6s ease-in-out infinite alternate; }
+  @keyframes orbFloat { from { margin-top: -7px; } to { margin-top: 7px; } }
+
   /* Celebración del boss final (portada de bossWinFx de game.html):
      destello dorado, anillos expansivos, chispas, escombros y polvo */
   .win-flash{position:fixed;inset:0;z-index:64;pointer-events:none;animation:winFlash 1.1s ease-out forwards}
@@ -251,6 +281,8 @@
   <!-- Escena 3: final -->
   <div class="scene" id="scene-end">
     <div id="rays"></div>
+    <div id="end-floor"></div>
+    <img class="sprite" id="end-hero">
   </div>
 </div>
 
@@ -722,20 +754,101 @@ async function sceneMap() {
 }
 
 // ---------- ESCENA 3: gran final ----------
+// El héroe emerge bajo el foco sobre un pedestal de luz; los 7 mundos
+// vuelven a la vida como orbes de color que lo coronan en arco; y el
+// título estalla entre rayos, fuegos y lluvia de monedas.
 async function sceneEnd() {
   scene = 3; busy = true;
   showScene('scene-end');
-  document.getElementById('scene-end').style.background =
-    'radial-gradient(ellipse at center, #2a1c08 0%, #120a04 60%, #000 100%)';
-  await wait(400);
+  const se = document.getElementById('scene-end');
+  se.style.background =
+    'radial-gradient(ellipse at center, #241a2e 0%, #120a04 60%, #000 100%)';
 
+  // Cielo estrellado de fondo
+  for (let i = 0; i < 90; i++) {
+    const st = document.createElement('div');
+    st.className = 'star';
+    st.style.left = (Math.random() * 100) + 'vw';
+    st.style.top = (Math.random() * 100) + 'vh';
+    st.style.animationDelay = (Math.random() * 4) + 's';
+    st.style.animationDuration = (2 + Math.random() * 3) + 's';
+    se.appendChild(st);
+  }
+  await wait(500);
+
+  // El héroe emerge bajo el foco: pedestal de luz + haz cenital + halo
+  const hero = document.getElementById('end-hero');
+  hero.src = `/assets/avatars/display/avatar_${String(avatarIdx + 1).padStart(2, '0')}.webp`;
+  hero.classList.add('on');
+  document.getElementById('end-floor').classList.add('on');
+  snd('/assets/sounds/comun/victoria.wav', 0.5);
+  const cx = innerWidth / 2, hcy = innerHeight * 0.58;
+  const beam = document.createElement('div');
+  beam.className = 'win-beam';
+  const bw = innerHeight * 0.42;
+  beam.style.left = (cx - bw / 2) + 'px';
+  beam.style.top = '0px';
+  beam.style.width = bw + 'px';
+  beam.style.height = (hcy + innerHeight * 0.14) + 'px';
+  se.appendChild(beam);
+  const halo = document.createElement('div');
+  halo.className = 'win-halo';
+  const hs = innerHeight * 0.55;
+  halo.style.left = (cx - hs / 2) + 'px';
+  halo.style.top = (hcy - hs / 2) + 'px';
+  halo.style.width = halo.style.height = hs + 'px';
+  se.appendChild(halo);
+  await wait(1400);
+
+  // Los mundos vuelven a la vida: 7 orbes de color vuelan desde abajo y
+  // coronan al héroe en arco, cada uno con su ráfaga del mismo matiz
+  const ORBS = [
+    ['ESPACIO', '#9d8cff'], ['AGUA', '#4ea8ff'], ['TIERRA', '#7ac74f'],
+    ['FUEGO', '#ff7a33'], ['HIELO', '#aef0ff'], ['VIENTO', '#8fffd8'],
+    ['INFRAMUNDO', '#e05a6e'],
+  ];
+  const N = ORBS.length;
+  const arcY = hcy - innerHeight * 0.30;
+  const arcRx = innerHeight * 0.34;
+  for (let i = 0; i < N; i++) {
+    const [, col] = ORBS[i];
+    // Abanico simétrico sobre la cabeza del héroe (de -65° a +65°)
+    const a = (-65 + (130 * i / (N - 1))) * Math.PI / 180;
+    const tx = cx + Math.sin(a) * arcRx;
+    const ty = arcY + (1 - Math.cos(a)) * innerHeight * 0.10;
+    const o = document.createElement('div');
+    o.className = 'orb';
+    const sz = innerHeight * 0.055;
+    o.style.width = o.style.height = sz + 'px';
+    o.style.left = (cx + (i % 2 ? 1 : -1) * (innerWidth * 0.35 + Math.random() * 60)) + 'px';
+    o.style.top = (innerHeight + 40) + 'px';
+    o.style.color = col;
+    const core = document.createElement('div');
+    core.className = 'orbcore';
+    core.style.background = `radial-gradient(circle at 35% 30%, #fff, ${col} 55%)`;
+    o.appendChild(core);
+    se.appendChild(o);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      o.style.left = (tx - sz / 2) + 'px';
+      o.style.top = (ty - sz / 2) + 'px';
+    }));
+    setTimeout(() => {
+      burst(tx, ty, 22, ['#fff3c4', col], 4, { size: 3, g: 0.05, spark: true });
+      snd('/assets/sounds/comun/hover.wav', 0.3);
+      o.classList.add('set');
+    }, 720);
+    await wait(430);
+  }
+  await wait(900);
+
+  // Gran final: estallido + rayos + título letra a letra
   flash(0.9, 900);
   snd('/assets/sounds/comun/victoria.wav', 0.9);
   document.getElementById('rays').classList.add('on');
 
   // Titulo letra a letra
   const big = document.getElementById('big-text');
-  big.style.opacity = 1; big.style.top = '40%';
+  big.style.opacity = 1; big.style.top = '13%';
   big.innerHTML = '';
   const text = tt('fin.completed');
   const letters = [];
@@ -754,7 +867,7 @@ async function sceneEnd() {
   // Mensaje de rejugabilidad bajo el titulo (juego infinito, nada se repite)
   const sub = document.getElementById('sub-text');
   sub.classList.remove('on');
-  sub.style.top = '56%';
+  sub.style.top = '82%';
   sub.style.width = '72%';
   sub.style.whiteSpace = 'normal';
   sub.style.lineHeight = '1.3';
