@@ -849,7 +849,7 @@ async function sceneEnd() {
   // Mensaje de rejugabilidad bajo el titulo (juego infinito, nada se repite)
   const sub = document.getElementById('sub-text');
   sub.classList.remove('on');
-  sub.style.top = '82%';
+  sub.style.top = '78%';
   sub.style.width = '72%';
   sub.style.whiteSpace = 'normal';
   sub.style.lineHeight = '1.3';
@@ -857,7 +857,9 @@ async function sceneEnd() {
   await wait(500);
   sub.classList.add('on');
 
-  // Total de oro conseguido (el del tablero al vencer, o el de la partida)
+  // Total de oro conseguido (el del tablero al vencer, o el de la partida).
+  // Se coloca justo debajo del texto medido de verdad — así no se pisa con
+  // el mensaje ni con el hint en ningún idioma.
   const goldTotal = finalState?.gold ?? player?.gold;
   if (typeof goldTotal === 'number') {
     const g = document.createElement('div');
@@ -868,6 +870,8 @@ async function sceneEnd() {
     span.textContent = tt('fin.goldTotal', goldTotal);
     g.appendChild(img); g.appendChild(span);
     se.appendChild(g);
+    const subBottom = sub.getBoundingClientRect().bottom;
+    g.style.top = Math.min(innerHeight * 0.915, subBottom + innerHeight * 0.02) + 'px';
     requestAnimationFrame(() => g.classList.add('on'));
   }
 
@@ -885,7 +889,7 @@ async function sceneEnd() {
   // Todo ha acabado: espera a que el jugador pulse para continuar —
   // de aquí se va a los créditos (Esc sigue llevando al menú)
   const hint = document.getElementById('continue-hint');
-  hint.style.top = '93%';
+  hint.style.top = '95.5%';
   hint.textContent = tt('instructions.continue');
   hint.classList.add('on');
   busy = false;
