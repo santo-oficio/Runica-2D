@@ -287,8 +287,11 @@
   const DIRS = ['up', 'down', 'left', 'right'];
   // ?demo=<MUNDO>: finge ese mundo como recién conquistado (B/N + avatar
   // encima). Solo visual para demo-mapa-victoria.html — no escribe nada.
+  // ?demo=all7: finge los 7 mundos normales conquistados → MAZMORRA se
+  // desbloquea a color (demo de "último boss normal vencido").
   const DEMO_WORLD = new URLSearchParams(location.search).get('demo') || '';
-  const DEMO_MODE = WORLD_ORDER.includes(DEMO_WORLD);
+  const DEMO_ALL7 = DEMO_WORLD === 'all7';
+  const DEMO_MODE = WORLD_ORDER.includes(DEMO_WORLD) || DEMO_ALL7;
   // Mundo recién conquistado (lo marca game.html al ganar la isla 12):
   // se pinta A COLOR y se desatura a B/N durante la celebración.
   const JUST_DONE_WORLD = sessionStorage.getItem('runika-world-done');
@@ -314,6 +317,7 @@
     return `/assets/avatars/display/avatar_${String(idx + 1).padStart(2, '0')}.webp`;
   }
   function worldCompleted(w) {
+    if (DEMO_ALL7) return w !== FINAL_WORLD; // demo: los 7 mundos ya vencidos
     if (DEMO_MODE && w === DEMO_WORLD) return true; // demo: fingir conquistado
     return ((player?.worldProgress?.[w]?.completed?.length) ?? 0) >= LEVELS_PER_WORLD;
   }
@@ -340,7 +344,12 @@
     const lw = player?.lastWorld;
     const idx = lw ? WORLD_ORDER.indexOf(lw) : -1;
     if (idx >= 0) selectedWorld = idx;
-    if (DEMO_MODE) selectedWorld = WORLD_ORDER.indexOf(DEMO_WORLD);
+    if (DEMO_MODE) {
+      // En all7 el avatar queda sobre el mundo recién conquistado
+      const justDone = WORLD_ORDER.includes(JUST_DONE_WORLD) && JUST_DONE_WORLD !== FINAL_WORLD
+        ? JUST_DONE_WORLD : 'INFRAMUNDO';
+      selectedWorld = WORLD_ORDER.indexOf(DEMO_ALL7 ? justDone : DEMO_WORLD);
+    }
   }
 
   let selectedWorld = 0; // ESPACIO por defecto; luego manda player.lastWorld
@@ -637,7 +646,9 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (DEMO_MODE) return; // demo: el avatar se queda en el mundo conquistado
+    // demo simple: avatar quieto. demo all7: flechas sí (para ver
+    // MAZMORRA alcanzable a color), Enter rebota — sin navegación real
+    if (DEMO_MODE && !DEMO_ALL7) return;
     if (e.key === 'Escape') { AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6); AssetsCache.transitionTo('/menu.html'); return; }
 
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); moveByPath('left'); }
@@ -645,6 +656,7 @@
     else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); moveByPath('up'); }
     else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); moveByPath('down'); }
     else if (e.key === 'Enter') {
+      if (DEMO_ALL7) { e.preventDefault(); bounceAvatar('down'); return; }
       e.preventDefault();
       const world = WORLD_ORDER[selectedWorld];
       // Mundo completado o bloqueado: rebote, no se entra

@@ -1437,7 +1437,10 @@ function confirmWin() {
     // Boss final de MAZMORRA: sigue el flujo real → cinemática de fin.html
     if (REAL_WORLD === FINAL_WORLD) { setTimeout(() => AssetsCache.transitionTo('/fin.html?auto=1'), 350); return; }
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
-    setTimeout(() => location.href = '/mapamundi.html?demo=' + REAL_WORLD, 350);
+    // &mapdemo=all7: demo del último boss normal → mapa con los 7 mundos
+    // conquistados y MAZMORRA desbloqueada a color
+    const mapDemo = PARAMS.get('mapdemo') === 'all7' ? 'all7' : REAL_WORLD;
+    setTimeout(() => location.href = '/mapamundi.html?demo=' + mapDemo, 350);
     return;
   }
   if (DEMO_WIN) {
