@@ -1,0 +1,19 @@
+<!doctype html><body style="margin:0">
+<script>sessionStorage.setItem('runika-session','active');</script>
+<iframe id="f" src="/game.html?world=AGUA&level=4" style="width:1280px;height:800px;border:0;display:block"></iframe>
+<script>
+const f=document.getElementById('f');
+setTimeout(()=>{
+  try{ f.contentWindow.eval('winGame()'); f.dataset.ok='1'; }
+  catch(e){ f.dataset.err=e.message; }
+},12000);
+setTimeout(()=>{
+  const d=f.contentDocument,out={err:f.dataset.err||null,called:f.dataset.ok};
+  out.coins=[...d.querySelectorAll('img')].filter(i=>i.src.includes('monedas')&&i.style.position==='fixed').length;
+  out.overlay=d.getElementById('overlay').className;
+  const g=[...d.querySelectorAll('.btext.gold span')].map(s=>s.textContent);
+  out.goldSpans=g;
+  document.title=JSON.stringify(out);
+},13100);
+</script>
+</body>

@@ -256,9 +256,10 @@ renderizarla igual.
   de `assets/enemys/<M>/`.
 - **Nivel de juego (tier)** en el tablero: en modo real el HUD dev se oculta y
   se pintan las áreas calibradas de `assets/backgrounds/<M>/text-areas.json`:
-  `turn`/`nTurn`, `optimal`/`nOptimal`, `info` = `board.level` ("Nivel {0}" →
-  **número de isla** `level+1`, 1..12; en modo práctica muestra el tier),
-  y `gold`. El tier se persiste en `player.gameLevel` (`db/db.ts`,
+  `turn`/`nTurn`, `optimal`/`nOptimal`, `info` = dos líneas en modo real:
+  `player.playerName` (grande, dorado) sobre `board.level` ("Nivel {0}" →
+  **número de isla** `level+1`, 1..12, más pequeño); en modo práctica solo el
+  tier en una línea), y `gold`. El tier se persiste en `player.gameLevel` (`db/db.ts`,
   `tierForCompleted(totalStagesCompleted)`). Funcionamiento completo:
   `docs/18-FUNCIONAMIENTO-JUEGO.md`.
 

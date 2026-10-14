@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><body><script>
+const f = document.createElement('iframe');
+f.src = '/game.html?demo=winboss'; f.width = 1280; f.height = 720;
+document.body.appendChild(f);
+f.onload = () => setTimeout(() => {
+  const d = f.contentDocument;
+  const btn = d.getElementById('modal-btn-r');
+  if (btn) btn.dispatchEvent(new d.defaultView.PointerEvent('pointerdown', {bubbles:true}));
+}, 3500);
+// tras pulsar Continuar el iframe navega a mapamundi?demo=X
+setTimeout(() => {
+  try { document.title = 'NAV:' + f.contentWindow.location.pathname + f.contentWindow.location.search; }
+  catch(e) { document.title = 'ERR ' + e.message; }
+}, 9000);
+</script></body></html>

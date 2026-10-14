@@ -1,0 +1,19 @@
+<!DOCTYPE html><html><body><script>
+sessionStorage.setItem('runika-world-done', 'FUEGO');
+const f = document.createElement('iframe');
+f.src = '/mapamundi.html?demo=FUEGO'; f.width = 1280; f.height = 720;
+document.body.appendChild(f);
+const log = [];
+const check = (tag) => {
+  try {
+    const d = f.contentDocument;
+    const all = d ? [...d.querySelectorAll('.world-fx')].map(e => e.className) : [];
+    log.push(tag + '=' + JSON.stringify(all));
+  } catch(e) { log.push(tag + '=ERR:' + e.message); }
+};
+f.onload = () => {
+  setTimeout(() => check('t800'), 800);
+  setTimeout(() => check('t1800'), 1800);
+  setTimeout(() => { check('t4200'); document.title = log.join(' | '); }, 4200);
+};
+</script></body></html>

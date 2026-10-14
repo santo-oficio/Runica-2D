@@ -1,0 +1,26 @@
+<!doctype html><body style="margin:0">
+<script>sessionStorage.setItem('runika-session','active');</script>
+<iframe id="f" src="/game.html?world=AGUA&level=4" style="width:1280px;height:800px;border:0;display:block"></iframe>
+<script>
+const f = document.getElementById('f');
+f.contentWindow.addEventListener('error', e => { f.dataset.err = e.message + ' @' + (e.lineno||'?'); });
+setTimeout(() => {
+  const d = f.contentDocument;
+  const out = {};
+  out.err = f.dataset.err || null;
+  const box = d.getElementById('boardtexts');
+  out.boxDisplay = box && box.style.display;
+  out.texts = [...d.querySelectorAll('.btext')].map(e => ({
+    cls: e.className, txt: e.textContent.slice(0,30),
+    style: e.getAttribute('style')
+  }));
+  out.entities = [...d.querySelectorAll('.entity')].map(e => ({
+    t: e.dataset.type, i: e.dataset.inst, style: e.getAttribute('style')
+  }));
+  out.selector = d.getElementById('selector').getAttribute('style');
+  out.avatar = d.getElementById('avatar').getAttribute('style');
+  out.countdown = d.getElementById('countdown').textContent;
+  document.title = JSON.stringify(out).slice(0, 4000);
+}, 15000);
+</script>
+</body>

@@ -1,0 +1,14 @@
+<!doctype html>
+<iframe id="f" src="/submundo.html?world=FUEGO" width="800" height="600"></iframe>
+<pre id="out"></pre>
+<script>
+sessionStorage.setItem('runika-session', 'active');
+const f = document.getElementById('f');
+f.addEventListener('load', () => {
+  setTimeout(() => {
+    const track = localStorage.getItem('runika-music-track');
+    document.getElementById('out').textContent = 'track=' + track;
+    document.title = 'DONE';
+  }, 2500);
+});
+</script>

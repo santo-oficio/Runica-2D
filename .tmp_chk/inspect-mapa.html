@@ -1,0 +1,21 @@
+<!doctype html><body>
+<iframe id="f" src="/mapamundi.html" style="width:1280px;height:800px;border:0"></iframe>
+<script>
+sessionStorage.setItem('runika-session','active');
+const f = document.getElementById('f');
+f.onload = () => setTimeout(() => {
+  const d = f.contentDocument;
+  const fx = d.querySelector('.world-fx');
+  const bg = d.getElementById('bg');
+  const r = bg.getBoundingClientRect();
+  document.title = JSON.stringify({
+    fxExists: !!fx,
+    fxTag: fx && fx.tagName,
+    fxComplete: fx && fx.complete,
+    fxNatural: fx && fx.naturalWidth,
+    fxStyle: fx && fx.getAttribute('style'),
+    bgRect: { l: r.left, t: r.top, w: r.width, h: r.height },
+    bgNatural: bg.naturalWidth, bgNaturalH: bg.naturalHeight,
+  });
+}, 4000);
+</script></body>

@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><body style="margin:0">
+<iframe src="/game.html?demo=winboss" style="width:1280px;height:720px;border:0"></iframe>
+<script>
+let n = 0;
+const iv = setInterval(() => {
+  n++;
+  try {
+    const d = document.querySelector('iframe').contentDocument;
+    const shards = d.querySelectorAll('.win-shard').length;
+    const imgOp = d.getElementById('image').style.opacity;
+    if (shards) console.log(`t=${n*200}ms shards=${shards} imgOpacity=${imgOp} void=${d.querySelectorAll('.win-void').length}`);
+  } catch(e){}
+}, 200);
+setTimeout(() => clearInterval(iv), 14000);
+</script></body></html>

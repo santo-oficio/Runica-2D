@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><body><script>
+const f = document.createElement('iframe');
+f.src = '/game.html?demo=winboss'; f.width = 1280; f.height = 720;
+document.body.appendChild(f);
+f.onload = () => setTimeout(() => {
+  const d = f.contentDocument;
+  document.title = 'modal=' + d.getElementById('modal-overlay').className +
+    ' gold=' + (d.querySelector('.btext.gold span')?.textContent || '?');
+}, 6500);
+</script></body></html>

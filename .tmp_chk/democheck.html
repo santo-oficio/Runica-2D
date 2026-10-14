@@ -1,0 +1,17 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="margin:0">
+<iframe id="f" src="/game.html?demo=win" style="width:1280px;height:700px;border:0"></iframe>
+<script>
+const f=document.getElementById('f');
+f.onload=()=>setTimeout(()=>{
+  const d=f.contentDocument;
+  const mo=d.getElementById('modal-overlay');
+  document.title=JSON.stringify({
+    modal: mo?mo.className:'none',
+    open: f.contentWindow.modalOpen,
+    gold: d.querySelector('.btext.gold span')?.textContent,
+    bt: [...d.querySelectorAll('.btext')].map(e=>e.textContent.trim()),
+    err: f.contentWindow.__err||null
+  });
+},9000);
+f.contentWindow && 0;
+</script>

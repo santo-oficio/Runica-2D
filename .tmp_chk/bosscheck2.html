@@ -1,0 +1,18 @@
+<!DOCTYPE html><meta charset="utf-8"><body style="margin:0">
+<iframe id="f" src="/game.html?demo=winboss" style="width:1280px;height:700px;border:0"></iframe>
+<script>
+const f=document.getElementById('f'),out=[];
+f.onload=()=>{
+  const t0=Date.now();
+  const iv=setInterval(()=>{
+    const d=f.contentDocument;
+    const tp=d.querySelector('#modal-svg textPath');
+    out.push({t:Date.now()-t0,
+      modal:d.getElementById('modal-overlay').className,
+      title:tp?tp.textContent:null,
+      content:d.getElementById('modal-content').textContent||null,
+      gold:d.querySelector('.btext.gold span')?.textContent});
+    if(Date.now()-t0>20000){clearInterval(iv);document.title=JSON.stringify(out.slice(-6));}
+  },800);
+};
+</script>

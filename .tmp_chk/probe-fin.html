@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><body style="margin:0">
+<iframe id="f" src="/fin.html" style="width:1280px;height:720px;border:0"></iframe>
+<script>
+const f = document.getElementById('f');
+// click para empezar + avanzar a escena 2 cuando se pueda
+setTimeout(() => { try { f.contentWindow.document.dispatchEvent(new Event('keydown')); } catch(e){} }, 3000);
+setTimeout(() => { try { f.contentWindow.document.dispatchEvent(new Event('keydown')); } catch(e){} }, 14000);
+setTimeout(() => {
+  try {
+    const d = f.contentDocument || f.contentWindow.document;
+    const scenes = [...d.querySelectorAll('.scene')].map(s => s.id + ':' + getComputedStyle(s).display);
+    console.log('SCENES', JSON.stringify(scenes));
+  } catch(e) { console.log('ERR', e.message); }
+}, 25000);
+</script></body></html>

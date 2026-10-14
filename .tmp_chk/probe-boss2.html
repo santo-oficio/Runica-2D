@@ -1,0 +1,16 @@
+<!DOCTYPE html><html><body><script>
+const f = document.createElement('iframe');
+f.src = '/game.html?demo=winboss'; f.width = 1280; f.height = 720;
+document.body.appendChild(f);
+f.onload = () => setTimeout(() => {
+  const d = f.contentDocument;
+  document.title = JSON.stringify({
+    debris: d.querySelectorAll('.win-debris').length,
+    crumble: d.querySelectorAll('.entity.crumble').length,
+    defeated: d.querySelectorAll('.entity.defeated').length,
+    rings: d.querySelectorAll('.win-ring').length,
+    sparks: d.querySelectorAll('.win-spark').length,
+    shaking: d.querySelectorAll('.shake').length,
+  });
+}, 1200);
+</script></body></html>

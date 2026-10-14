@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><body style="margin:0">
+<iframe id="f" src="/seleccion-personaje.html" style="width:1280px;height:720px;border:0"></iframe>
+<script>
+sessionStorage.setItem('runika-session','active');
+const f = document.getElementById('f');
+const poll = setInterval(() => {
+  try {
+    const w = f.contentWindow;
+    if (w && typeof w.doConfirm === 'function' && w.document.readyState !== 'loading') {
+      clearInterval(poll);
+      w.doConfirm();
+      setTimeout(() => {
+        const c = w.document.getElementById('confirm');
+        const cs = w.getComputedStyle(c);
+        console.log('FLASH show=' + c.classList.contains('show'),
+          'fx=' + c.style.getPropertyValue('--fx'),
+          'fy=' + c.style.getPropertyValue('--fy'),
+          'text=' + JSON.stringify(c.textContent),
+          'op=' + cs.opacity);
+      }, 300);
+    }
+  } catch(e){}
+}, 100);
+setTimeout(() => clearInterval(poll), 55000);
+</script></body></html>

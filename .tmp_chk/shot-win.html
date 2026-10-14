@@ -1,0 +1,9 @@
+<!doctype html><body style="margin:0">
+<script>sessionStorage.setItem('runika-session','active');</script>
+<iframe id="f" src="/game.html?world=AGUA&level=4" style="width:1280px;height:800px;border:0;display:block"></iframe>
+<script>
+const f=document.getElementById('f');
+setTimeout(()=>{ try{ f.contentWindow.eval('winGame()'); }catch(e){} }, 12000);
+setTimeout(()=>{ document.title='shot'; }, 16000);
+</script>
+</body>
