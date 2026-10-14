@@ -1529,11 +1529,12 @@ function winGame() {
     const isFinalWin = REAL_MODE && REAL_WORLD === FINAL_WORLD;
     if (isFinalWin) {
       // El boss FINAL no usa la pantalla normal de victoria: el boss
-      // cae, temblores y corte a blanco directo a la cinemática —
-      // nada de modal, rótulos ni monedas al HUD (el oro se cuenta
-      // igual al confirmar; la escenografía es de fin.html)
+      // cae, el oro vuela al HUD, temblores y corte a blanco directo a
+      // la cinemática — que retoma el tablero tal cual (ver
+      // runika-final-state) como continuación, no como escena nueva
       finalWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
-      setTimeout(confirmWin, 1500);
+      flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, () => {});
+      setTimeout(confirmWin, 1700);
     } else if (isBossWin) {
       bossWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
       // Las monedas vuelan ~2.2s tras la victoria — se cobra el tesoro del
@@ -1555,6 +1556,15 @@ function winGame() {
 // el boss cae, temblores y un flash blanco corta hacia la cinemática
 // de fin.html, donde vive todo el espectáculo.
 function finalWinFx() {
+  // La cinemática retoma el tablero TAL CUAL: le pasamos las casillas
+  // del héroe (en el tesoro) y del boss, y el oro total para el final
+  try {
+    sessionStorage.setItem('runika-final-state', JSON.stringify({
+      hero: [player.c, player.r],
+      boss: enemies.length ? [enemies[0].c, enemies[0].r] : null,
+      gold: winGoldBefore + winGoldEarned,
+    }));
+  } catch {}
   document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
     .forEach(e => e.classList.add('dying'));
   shakeLayers();
@@ -1568,7 +1578,7 @@ function finalWinFx() {
       'pointer-events:none;z-index:80;transition:opacity .5s ease-in';
     document.body.appendChild(f);
     requestAnimationFrame(() => { f.style.opacity = '1'; });
-  }, 850);
+  }, 1150);
 }
 
 // Sacudida de las capas del tablero (sin flash — reusable para el

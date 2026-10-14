@@ -118,6 +118,7 @@
   "game.go": "GO!",
   "fin.completed": "You have completed Runika 2D!",
   "fin.completedNamed": "{0} has completed Runika 2D!",
+  "fin.goldTotal": "Gold earned: {0}",
   "fin.worldsFell": "All worlds have fallen",
   "fin.finalBoss": "The last guardian...",
   "fin.replay": "Runika 2D is infinite: every playthrough is unique and no puzzle ever repeats. Thousands of new challenges await at every difficulty level. The adventure is not over!",

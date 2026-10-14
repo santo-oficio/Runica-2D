@@ -118,6 +118,7 @@
   "game.go": "LOS!",
   "fin.completed": "Du hast Runika 2D abgeschlossen!",
   "fin.completedNamed": "{0} hat Runika 2D abgeschlossen!",
+  "fin.goldTotal": "Ersammeltes Gold: {0}",
   "fin.worldsFell": "Alle Welten sind gefallen",
   "fin.finalBoss": "Der letzte Wächter...",
   "fin.replay": "Runika 2D ist unendlich: Jede Partie ist einzigartig und kein Rätsel wiederholt sich. Auf jedem Schwierigkeitsgrad warten tausende neue Herausforderungen. Das Abenteuer ist noch nicht vorbei!",

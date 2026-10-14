@@ -173,10 +173,22 @@
     transform: translate(-50%,-50%); object-fit: contain; z-index: 25;
     pointer-events: none; opacity: 0;
     filter: drop-shadow(0 0 16px rgba(255,225,140,.9)) drop-shadow(0 0 46px rgba(255,170,60,.55)); }
-  #end-hero.on { animation: heroRise .9s cubic-bezier(.2,1.5,.35,1) both; }
+  #end-hero.on { animation: heroRise .9s cubic-bezier(.2,1.5,.35,1) both,
+    heroSway 3.4s ease-in-out 1s infinite alternate; }
   @keyframes heroRise {
     0% { opacity: 0; transform: translate(-50%,-40%) scale(.35); }
     100% { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+  @keyframes heroSway { from { margin-top: -9px; } to { margin-top: 9px; } }
+  /* Total de oro conseguido, bajo el texto de rejugabilidad */
+  .end-gold { position: absolute; left: 50%; top: 89.5%; z-index: 30;
+    transform: translate(-50%,-50%); display: flex; align-items: center; gap: .45em;
+    font-family: 'ChelseaMarket', cursive; color: #ffd76a;
+    font-size: clamp(18px, 2.7vh, 32px); white-space: nowrap;
+    text-shadow: 0 0 14px rgba(255,190,60,.7), -2px -2px 0 #20140a,
+      2px -2px 0 #20140a, -2px 2px 0 #20140a, 2px 2px 0 #20140a;
+    opacity: 0; transition: opacity .9s ease; pointer-events: none; }
+  .end-gold.on { opacity: 1; }
+  .end-gold img { height: 1.5em; }
   /* Pedestal de luz bajo el héroe */
   #end-floor { position: absolute; left: 50%; top: 73%; width: 62vh; height: 12vh;
     transform: translate(-50%,-50%); z-index: 24; pointer-events: none;
@@ -319,6 +331,14 @@ let translations = {}, fallback = {}, player = null;
 let WORLD_POSITIONS = {}, WORLD_AVATAR_POS = {}, avatarSize = 0.06;
 let FIN_AREAS = null; // assets/comunes/fin-areas.json (calibrate-fin.html)
 let avatarIdx = 0;
+// Estado del tablero al vencer (lo guarda game.html): casillas del
+// héroe (en el tesoro) y del boss + oro total — la cinemática retoma
+// la partida tal cual, como continuación, no como escena nueva
+let finalState = null;
+try {
+  finalState = JSON.parse(sessionStorage.getItem('runika-final-state'));
+  sessionStorage.removeItem('runika-final-state');
+} catch { finalState = null; }
 function avatarPos(w) { return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][avatarIdx]) || WORLD_POSITIONS[w]; }
 function worldSize(w) { return (WORLD_AVATAR_POS[w] && WORLD_AVATAR_POS[w][avatarIdx] && WORLD_AVATAR_POS[w][avatarIdx].size) || (WORLD_POSITIONS[w] && WORLD_POSITIONS[w].size) || avatarSize; }
 let scene = 0, busy = false;
@@ -471,11 +491,17 @@ async function sceneBoard() {
     img.style.width = rc.w + 'px'; img.style.height = rc.h + 'px';
     return rc;
   };
-  // El héroe ya está junto al boss — la pelea se ganó en el tablero;
-  // la cinemática muestra el remate espectacular, no una re-pelea
+  // El héroe y el boss en SUS casillas del tablero (runika-final-state):
+  // la escena arranca donde acabó la partida — continuidad real
   const ri = n => Math.floor(Math.random() * n);
-  const bc = 4 + ri(4), br = ri(6);
-  const hc = bc - 1, hr = br; // adyacente al boss, a su izquierda
+  let bc = 4 + ri(4), br = ri(6);
+  let hc = bc - 1, hr = br; // adyacente al boss, a su izquierda
+  if (finalState?.hero && finalState?.boss) {
+    [hc, hr] = finalState.hero; [bc, br] = finalState.boss;
+    hc = Math.max(0, Math.min(7, hc)); hr = Math.max(0, Math.min(5, hr));
+    bc = Math.max(0, Math.min(7, bc)); br = Math.max(0, Math.min(5, br));
+    if (hc === bc && hr === br) bc = hc > 0 ? hc - 1 : hc + 1;
+  }
   const heroRC = setCell(hero, hc, hr, heroCal);
   const bossRC = setCell(boss, bc, br, bossCal);
 
@@ -572,7 +598,7 @@ async function sceneBoard() {
   hero.style.animation = 'heroCelebrate .7s ease .1s';
   busy = false; // desde aquí, tecla/clic adelanta a la siguiente escena
   // La escena fluye sola: la victoria se sostiene un momento y continúa
-  await wait(2600);
+  await wait(3200);
   if (scene === 1) advance();
 }
 
@@ -689,7 +715,7 @@ async function sceneMap() {
       fadeOutSnd(boardRumble, 0.8); boardRumble = null;
       finalRumble = sndFading('/assets/sounds/comun/derrumbe_final.mp3', 0.95, 3);
     }
-    await wait(isFinal ? 1100 : 750);
+    await wait(isFinal ? 1600 : 950);
   }
   sub.classList.remove('on');
   await wait(900);
@@ -715,7 +741,7 @@ async function sceneEnd() {
     'radial-gradient(ellipse at center, #241a2e 0%, #120a04 60%, #000 100%)';
 
   // Cielo estrellado de fondo
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 130; i++) {
     const st = document.createElement('div');
     st.className = 'star';
     st.style.left = (Math.random() * 100) + 'vw';
@@ -750,7 +776,7 @@ async function sceneEnd() {
   halo.style.top = (hcy - hs / 2) + 'px';
   halo.style.width = halo.style.height = hs + 'px';
   se.appendChild(halo);
-  await wait(1400);
+  await wait(1900);
 
   // Los mundos vuelven a la vida: 7 orbes de color vuelan desde abajo y
   // coronan al héroe en arco, cada uno con su ráfaga del mismo matiz
@@ -791,9 +817,9 @@ async function sceneEnd() {
       if (bell) bell.playbackRate = 1 + i * 0.17;
       o.classList.add('set');
     }, 720);
-    await wait(430);
+    await wait(620);
   }
-  await wait(900);
+  await wait(1100);
 
   // Gran final: estallido + rayos + título letra a letra
   flash(0.9, 900);
@@ -817,7 +843,7 @@ async function sceneEnd() {
   }
   for (let i = 0; i < letters.length; i++) {
     letters[i].classList.add('pop');
-    await wait(70);
+    await wait(85);
   }
 
   // Mensaje de rejugabilidad bajo el titulo (juego infinito, nada se repite)
@@ -831,6 +857,20 @@ async function sceneEnd() {
   await wait(500);
   sub.classList.add('on');
 
+  // Total de oro conseguido (el del tablero al vencer, o el de la partida)
+  const goldTotal = finalState?.gold ?? player?.gold;
+  if (typeof goldTotal === 'number') {
+    const g = document.createElement('div');
+    g.className = 'end-gold';
+    const img = document.createElement('img');
+    img.src = '/assets/comunes/monedas.webp';
+    const span = document.createElement('span');
+    span.textContent = tt('fin.goldTotal', goldTotal);
+    g.appendChild(img); g.appendChild(span);
+    se.appendChild(g);
+    requestAnimationFrame(() => g.classList.add('on'));
+  }
+
   // Lluvia de monedas + fuegos artificiales
   coinRain();
   const fw = setInterval(() => {
@@ -838,10 +878,10 @@ async function sceneEnd() {
     const y = innerHeight * (0.12 + Math.random() * 0.45);
     burst(x, y, 46, ['#ffd54f', '#ff9a3c', '#fff3c4', '#e86a4a', '#7ec8e3'], 7, { spark: true, g: 0.05, size: 3, life: 70 });
     snd('/assets/sounds/comun/choque.wav', 0.1);
-  }, 850);
-  setTimeout(() => clearInterval(fw), 6500);
+  }, 800);
+  setTimeout(() => clearInterval(fw), 8200);
 
-  await wait(1800);
+  await wait(2400);
   // Todo ha acabado: espera a que el jugador pulse para continuar —
   // de aquí se va a los créditos (Esc sigue llevando al menú)
   const hint = document.getElementById('continue-hint');
@@ -851,7 +891,7 @@ async function sceneEnd() {
   busy = false;
 }
 function coinRain() {
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < 36; i++) {
     setTimeout(() => {
       const c = document.createElement('img');
       c.src = '/assets/comunes/monedas.webp';
