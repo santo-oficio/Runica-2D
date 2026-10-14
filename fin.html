@@ -346,6 +346,7 @@ function sndFading(url, vol, fadeSec = 2.5) {
   return a;
 }
 let boardRumble = null; // rumble del tablero para silenciarlo al caer MAZMORRA
+let finalRumble = null; // derrumbe_final: se funde al entrar la escena final
 
 // ---------- Canvas de particulas ----------
 const canvas = document.getElementById('fx-canvas');
@@ -626,6 +627,11 @@ async function sceneBoard() {
 
 // ---------- ESCENA 1.5: el tablero se desmorona ----------
 async function crumbleBoard() {
+  // Restos de la celebración del boss viven en <body> fuera de la escena:
+  // si no se limpian aquí, el foco/halo del héroe se cuelan a las
+  // siguientes escenas (su timeout de seguridad es de 15s)
+  document.querySelectorAll('.win-beam,.win-halo,.down-title,.win-flash,.win-ring,.win-spark,.win-debris,.win-dust')
+    .forEach(e => e.remove());
   const sc = document.getElementById('scene-board');
   const hero = document.getElementById('hero-img');
   const boss = document.getElementById('boss-img');
@@ -730,7 +736,7 @@ async function sceneMap() {
       // MAZMORRA cae con su propio derrumbe oscuro (~21s, fundido final):
       // silencia el rumble del tablero para no montar dos a la vez
       fadeOutSnd(boardRumble, 0.8); boardRumble = null;
-      sndFading('/assets/sounds/comun/derrumbe_final.mp3', 0.95, 3);
+      finalRumble = sndFading('/assets/sounds/comun/derrumbe_final.mp3', 0.95, 3);
     }
     await wait(isFinal ? 1100 : 750);
   }
@@ -746,6 +752,9 @@ async function sceneMap() {
 // título estalla entre rayos, fuegos y lluvia de monedas.
 async function sceneEnd() {
   scene = 3; busy = true;
+  // El derrumbe de MAZMORRA (21s) aún rugiría bajo la celebración:
+  // la destrucción se apaga al entrar la escena final
+  fadeOutSnd(finalRumble, 2.2); finalRumble = null;
   showScene('scene-end');
   const se = document.getElementById('scene-end');
   se.style.background =
@@ -821,7 +830,9 @@ async function sceneEnd() {
     }));
     setTimeout(() => {
       burst(tx, ty, 22, ['#fff3c4', col], 4, { size: 3, g: 0.05, spark: true });
-      snd('/assets/sounds/comun/hover.wav', 0.3);
+      // Campanita ascendente por mundo — arpegio mágico, no un blip de UI
+      const bell = snd('/assets/sounds/comun/orbe.wav', 0.5);
+      if (bell) bell.playbackRate = 1 + i * 0.17;
       o.classList.add('set');
     }, 720);
     await wait(430);
@@ -847,7 +858,6 @@ async function sceneEnd() {
   }
   for (let i = 0; i < letters.length; i++) {
     letters[i].classList.add('pop');
-    snd('/assets/sounds/comun/move.wav', 0.25);
     await wait(70);
   }
 
@@ -868,7 +878,7 @@ async function sceneEnd() {
     const x = innerWidth * (0.15 + Math.random() * 0.7);
     const y = innerHeight * (0.12 + Math.random() * 0.45);
     burst(x, y, 46, ['#ffd54f', '#ff9a3c', '#fff3c4', '#e86a4a', '#7ec8e3'], 7, { spark: true, g: 0.05, size: 3, life: 70 });
-    snd('/assets/sounds/comun/choque.wav', 0.15);
+    snd('/assets/sounds/comun/choque.wav', 0.1);
   }, 850);
   setTimeout(() => clearInterval(fw), 6500);
 
@@ -893,6 +903,12 @@ function coinRain() {
       c.style.top = '-10vh';
       c.style.animationDuration = (2.4 + Math.random() * 2.4) + 's';
       stage.appendChild(c);
+      // El oro suena a oro: clink suave al caer (no a cada moneda,
+      // que quedaría como ametralladora), tono algo aleatorio
+      if (i % 2 === 0) {
+        const clink = snd('/assets/sounds/comun/moneda.wav', 0.22);
+        if (clink) clink.playbackRate = 0.9 + Math.random() * 0.25;
+      }
       setTimeout(() => c.remove(), 5500);
     }, i * 160);
   }
@@ -950,6 +966,8 @@ function begin() {
     '/assets/sounds/comun/move.wav',
     '/assets/sounds/comun/derrumbe.mp3',
     '/assets/sounds/comun/derrumbe_final.mp3',
+    '/assets/sounds/comun/orbe.wav',
+    '/assets/sounds/comun/moneda.wav',
   ]);
   try {
     const r = await fetch('/api/savegame');

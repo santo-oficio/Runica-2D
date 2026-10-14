@@ -502,11 +502,19 @@ const crumbleAudio = new Audio(`${BASE}/assets/sounds/comun/derrumbe.mp3`);
 const backAudio = new Audio(`${BASE}/assets/sounds/comun/back.wav`);
 const pressAudio = new Audio(`${BASE}/assets/sounds/comun/press.wav`);
 const hoverAudio = new Audio(`${BASE}/assets/sounds/comun/hover.wav`);
-[bounceAudio, trapAudio, crumbleAudio, backAudio, pressAudio].forEach(a => a.preload = true);
+const coinAudio = new Audio(`${BASE}/assets/sounds/comun/moneda.wav`);
+[bounceAudio, trapAudio, crumbleAudio, backAudio, pressAudio, coinAudio].forEach(a => a.preload = true);
 
 let sfxOn = true;
 fetch('/api/settings').then(r => r.ok ? r.json() : null).then(d => { if (d) sfxOn = d.sound !== false; }).catch(() => {});
 function play(a) { if (!sfxOn) return; a.pause(); a.currentTime = 0; a.play().catch(()=>{}); }
+// One-shot que no se corta a sí mismo (monedas llegando seguidas)
+function playOnce(a, vol = 1, rate = 1) {
+  if (!sfxOn) return;
+  const c = a.cloneNode();
+  c.volume = vol; c.playbackRate = rate;
+  c.play().catch(() => {});
+}
 // Suena y se desvanece en los últimos `fadeSec` segundos — el clip
 // sobrevive al modal y un corte seco quedaría a "cosa suelta".
 function playFading(a, fadeSec = 2) {
@@ -1058,6 +1066,7 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
       c.style.top = (u * u * fromY + 2 * u * e * my + e * e * ty - size / 2) + 'px';
       if (k < 1) { requestAnimationFrame(step); return; }
       c.remove();
+      playOnce(coinAudio, 0.3, 0.9 + Math.random() * 0.25);
       shown += gain;
       if (playerData) playerData.gold = shown;
       const s = goldEl.querySelector('span');

@@ -109,6 +109,8 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
 | Derrumbe (boss de mundo) | `derrumbe.mp3` |
 | Derrumbe último mundo (fin) | `derrumbe_final.mp3` |
 | Teclear nombre (selección) | `pulsacion maquina escribir.mp3` |
+| Orbe de mundo restaurado (fin, tono ascendente por `playbackRate`) | `orbe.wav` |
+| Moneda cayendo/llegando al contador | `moneda.wav` |
 
 Todos se sirven por `AssetsCache.playSound` y respetan el toggle de sonido de
 los ajustes. `game.html`/`game.html` los usan como elementos `Audio`
