@@ -22,17 +22,17 @@
     <select id="tier"></select>
   </label>
   <button id="go" data-i18n="demo.bossfinal.launch">Jugar boss final</button>
-  <button id="cine" data-i18n="demo.bossfinal.cine">Solo cinemática</button>
-  <span class="hint" data-i18n="demo.bossfinal.hint">partida real al boss de MAZMORRA (isla 12): gana para encadenar directo con la cinemática final completa — sin modal. No se guarda nada.</span>
+  <button id="cine" data-i18n="demo.bossfinal.cine"></button>
+  <span class="hint" data-i18n="demo.bossfinal.hint"></span>
 </div>
 <iframe id="f"></iframe>
 <script type="module">
 // Demo de la victoria del boss final:
 //  - "Jugar boss final": game.html?world=MAZMORRA&level=11&demo=bossrun&tier=N
-//    — partida real simulada; al ganar no hay modal, encadena sola con
-//    /fin.html?auto=1 (pelea cinematográfica + explosión + mundos cayendo
-//    + gran final + créditos).
-//  - "Solo cinemática": fin.html?auto=1 directo, sin pelear el tablero.
+//    — partida real simulada; al llegar al tesoro empieza la batalla final
+//    en el mismo tablero (final-battle.js) y termina en los créditos.
+//  - "Ver solo el final": lo mismo con &autowin=1 — el héroe aparece en el
+//    tesoro tras la cuenta atrás y la batalla arranca sin jugar el puzle.
 // NADA escribe en la bbdd. sessionStorage es compartido con el iframe.
 const selTier = document.getElementById('tier');
 const f = document.getElementById('f');
@@ -58,7 +58,8 @@ function go() {
 }
 function cine() {
   sessionStorage.setItem('runika-session', 'active');
-  f.src = '/fin.html?auto=1&t=' + Date.now();
+  sessionStorage.removeItem('runika-music-override');
+  f.src = '/game.html?world=MAZMORRA&level=11&demo=bossrun&autowin=1&tier=' + selTier.value + '&t=' + Date.now();
 }
 selTier.addEventListener('change', go);
 document.getElementById('go').addEventListener('click', go);

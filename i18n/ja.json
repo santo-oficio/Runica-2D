@@ -123,6 +123,9 @@
   "fin.goldTotal": "獲得ゴールド: {0}",
   "fin.worldsFell": "すべての世界が落ちた",
   "fin.finalBoss": "最後の守護者…",
+  "fin.treasureWakes": "宝が目覚める…",
+  "fin.bossRises": "最後の守護者はまだ倒れない！",
+  "fin.worldsPower": "七つの世界が君に力を貸す",
   "fin.replay": "Runika 2Dは無限：毎回のゲームは唯一無二で、同じパズルは二度と出ない。各難易度には何千もの新しい挑戦が待っている。冒険はまだ終わらない！",
   "game.practice": "練習",
   "game.practiceTag": "練習 · 記録なし",
@@ -159,7 +162,7 @@
   "demo.bossrun.launch": "ボスをプレイ",
   "demo.bossrun.hint": "ボスの実際の画面（島12）：矢印でプレイ — 負けて敗北を、勝って祝典と世界地図への帰還を確認（MAZMORRAでは最終ムービー）。記録なし。",
   "demo.bossfinal.launch": "最終ボスをプレイ",
-  "demo.bossfinal.cine": "ムービーのみ",
-  "demo.bossfinal.hint": "MAZMORRAのボスへの実際の対戦（島12）：勝つとモーダルなしで直接最終ムービーへ。記録なし。",
+  "demo.bossfinal.cine": "エンディングだけ見る",
+  "demo.bossfinal.hint": "MAZMORRAのボス（島12）との実戦：宝にたどり着くと同じ盤面で最終決戦が始まり、クレジットへ続く。「エンディングだけ見る」はパズルなしで開始。記録なし。",
   "demo.lastboss.hint": "最後の通常世界のボス：勝つと7世界制覇済み・MAZMORRA解放済みの世界地図に戻る。記録なし。"
 }

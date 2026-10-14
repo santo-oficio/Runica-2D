@@ -199,8 +199,24 @@ renderizarla igual.
   para retomarla entre pantallas — la música no se corta al navegar.
   Las pistas de `ONESHOT_MUSIC` (mapa pista→relevo) no repiten ni en loop:
   `worldWin` (fanfarria de boss de mundo) acaba yendo a `MUSIC.main`.
-  `fin` (victoria.mp3 de la cinemática final) va en **loop**: suena desde
-  la explosión del boss hasta los créditos, que ponen `MUSIC.main`.
+  `fin` (`victory.mp3`, ~2 min) va en **loop**: arranca desde 0 al empezar
+  la batalla final y suena hasta los créditos, que ponen `MUSIC.main`.
+- **Batalla final** (`final-battle.js`, MAZMORRA isla 12): al llegar al
+  tesoro NO hay modal ni cambio de página — la batalla ocurre sobre el
+  tablero vivo de `game.html`, con héroe y guardián en sus casillas reales:
+  oro que sale del cofre → el guardián absorbe a los demás enemigos →
+  oleadas de orbes de fuego (el héroe esquiva casilla a casilla) → oro y 7
+  orbes de los mundos al héroe → choque de rayos → explosión y el tablero se
+  rompe al vacío → coronación (título con `playerName`, oro total contado,
+  Continuar → `creditos.html`). ~70 s. La partida se guarda al empezar.
+  Demo: `demo-boss-final.html` (`&autowin=1` = sin jugar el puzle).
+  `fin.html` queda solo como página suelta, ya no forma parte del flujo.
+- **Música larga por secciones**: `tools/gen-music-long.py salida.wav
+  --sections secciones.txt [--seed-audio x.mp3]` encadena secciones de
+  MusicGen por continuación (cada una con su prompt) — evita la deriva de
+  una sola pasada larga. Así se hizo `victory.mp3` (semilla: la fanfarria
+  original en `assets/music/old/victory.mp3`; la versión anterior de 2 min
+  está en `assets/music/old/victory-120s-v1.mp3`).
   Los jingles `victoria.mp3`/`derrota.mp3` van por `playMusicSting`
   (pausan el loop, suenan una sola vez, retoman el loop donde quedó).
   Pistas por contexto en `MUSIC` (`assets-cache.js`): `main` (menús/mapamundi),

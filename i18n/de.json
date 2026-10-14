@@ -123,6 +123,9 @@
   "fin.goldTotal": "Ersammeltes Gold: {0}",
   "fin.worldsFell": "Alle Welten sind gefallen",
   "fin.finalBoss": "Der letzte Wächter...",
+  "fin.treasureWakes": "Der Schatz erwacht …",
+  "fin.bossRises": "Der letzte Wächter gibt nicht auf!",
+  "fin.worldsPower": "Die sieben Welten leihen dir ihre Kraft",
   "fin.replay": "Runika 2D ist unendlich: Jede Partie ist einzigartig und kein Rätsel wiederholt sich. Auf jedem Schwierigkeitsgrad warten tausende neue Herausforderungen. Das Abenteuer ist noch nicht vorbei!",
   "game.practice": "Übung",
   "game.practiceTag": "Übung · nichts wird gespeichert",
@@ -159,7 +162,7 @@
   "demo.bossrun.launch": "Boss spielen",
   "demo.bossrun.hint": "echte Boss-Szene (Insel 12): mit den Pfeilen spielen — verlieren zeigt die Niederlage, gewinnen die Feier und die Rückkehr zur Weltkarte (mit MAZMORRA: die Endszene). Nichts wird gespeichert.",
   "demo.bossfinal.launch": "Finalboss spielen",
-  "demo.bossfinal.cine": "Nur Endszene",
-  "demo.bossfinal.hint": "echte Partie gegen den MAZMORRA-Boss (Insel 12): gewinnen, um direkt in die Endszene überzugehen — kein Modal. Nichts wird gespeichert.",
+  "demo.bossfinal.cine": "Nur das Ende ansehen",
+  "demo.bossfinal.hint": "echte Partie gegen den MAZMORRA-Boss (Insel 12): Am Schatz beginnt der Endkampf auf demselben Spielfeld und endet im Abspann. „Nur das Ende ansehen“ startet ihn ohne das Rätsel. Nichts wird gespeichert.",
   "demo.lastboss.hint": "Boss der letzten normalen Welt: gewinnen, um zur Karte zurückzukehren — alle 7 Welten erobert und MAZMORRA farbig freigeschaltet. Nichts wird gespeichert."
 }

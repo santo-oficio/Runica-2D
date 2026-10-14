@@ -295,6 +295,7 @@
   <div id="modal-overlay"><div id="modal-box"><img id="modal-img" src="/assets/comunes/modal.webp" alt=""><svg id="modal-svg"></svg><div id="modal-content"></div><div id="modal-gold"><img src="/assets/comunes/monedas.webp" alt=""><span id="modal-gold-n"></span></div><div id="modal-btn-l" class="modal-btn"></div><div id="modal-btn-r" class="modal-btn"></div></div></div>
 
 <script src="/assets-cache.js"></script>
+<script src="/final-battle.js"></script>
 <script>
 // Base URL: si estamos en un preview proxy (puerto != 3000), apuntar al 3000.
 const BASE = (window.location.port && window.location.port !== '3000') ? 'http://localhost:3000' : '';
@@ -323,12 +324,15 @@ const REAL_MODE = !!REAL_WORLD;
 // vuelo de monedas + modal (win) o la celebración de boss de mundo
 // (winboss). No toca la bbdd.
 const DEMO_WIN = PARAMS.get('demo') === 'win' || PARAMS.get('demo') === 'winboss' || PARAMS.get('demo') === 'winfinal';
-const DEMO_FINAL = PARAMS.get('demo') === 'winfinal'; // boss de MAZMORRA -> fin.html
+const DEMO_FINAL = PARAMS.get('demo') === 'winfinal'; // boss de MAZMORRA -> batalla final
 const DEMO_BOSS = PARAMS.get('demo') === 'winboss' || DEMO_FINAL;
 // ?demo=bossrun&world=X&level=11 — partida real SIMULADA a un boss de
 // mundo: se juega de verdad (derrota/victoria/celebración/modal) pero sin
 // escribir en la bbdd (pantalla de práctica tier 14, sin level-complete).
 const DEMO_RUN = PARAMS.get('demo') === 'bossrun';
+// &autowin=1 (solo con bossrun): tras la cuenta atrás el héroe aparece en el
+// tesoro y se gana sola — para revisar la batalla final sin jugar el puzle
+const AUTO_WIN = DEMO_RUN && PARAMS.get('autowin') === '1';
 let playerData = null;
 let T = {};
 let currentMinMoves = 0;
@@ -356,8 +360,8 @@ function backToSubmundo() {
 // se desactiva); cualquier otra isla -> submundo donde estabas
 function afterVictory() {
   if (REAL_LEVEL === FINAL_ISLAND_IDX) {
-    // Boss final de MAZMORRA: cinematica de fin de juego (fin.html)
-    if (REAL_WORLD === FINAL_WORLD) { AssetsCache.transitionTo('/fin.html?auto=1'); return; }
+    // Boss final de MAZMORRA: la batalla final ocurre en el tablero; de ahí, créditos
+    if (REAL_WORLD === FINAL_WORLD) { AssetsCache.transitionTo('/creditos.html'); return; }
     // El mapamundi celebra la conquista del mundo (animación + B/N)
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
     location.href = '/mapamundi.html';
@@ -750,7 +754,12 @@ async function loadScreen() {
   positionSelector();
   await renderEntities();
   renderBoardTexts();
-  startCountdown(() => {});
+  startCountdown(() => {
+    if (!AUTO_WIN) return;
+    player.c = goal.c; player.r = goal.r;
+    positionSelector();
+    setTimeout(winGame, 450);
+  });
 }
 
 function positionSelector() {
@@ -1455,8 +1464,7 @@ function confirmWin() {
   // en el flujo real (runika-world-done + fanfarria worldWin + ?demo=B/N)
   if (DEMO_RUN) {
     closeWinModal();
-    // Boss final de MAZMORRA: sigue el flujo real → cinemática de fin.html
-    if (REAL_WORLD === FINAL_WORLD) { setTimeout(() => AssetsCache.transitionTo('/fin.html?auto=1'), 350); return; }
+    if (REAL_WORLD === FINAL_WORLD) { setTimeout(() => AssetsCache.transitionTo('/creditos.html'), 350); return; }
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
     // &mapdemo=all7: demo del último boss normal → mapa con los 7 mundos
     // conquistados y MAZMORRA desbloqueada a color
@@ -1466,8 +1474,7 @@ function confirmWin() {
   }
   if (DEMO_WIN) {
     closeWinModal();
-    // Demo boss final: sigue el flujo real → cinemática de fin.html
-    if (DEMO_FINAL) { setTimeout(() => AssetsCache.transitionTo('/fin.html?auto=1'), 350); return; }
+    if (DEMO_FINAL) { setTimeout(() => AssetsCache.transitionTo('/creditos.html'), 350); return; }
     // Demo boss: sigue el flujo real → mapamundi con el mundo recién
     // conquistado (celebración + drenaje a B/N), sin tocar la partida
     if (DEMO_BOSS) {
@@ -1510,21 +1517,20 @@ window.addEventListener('resize', () => { if (modalOpen) renderModal(); });
 function winGame() {
   gameOver = true; won = true;
   // Victoria de boss = isla final de cualquier mundo (MAZMORRA incluida:
-  // ahí la celebración es la transición a la cinemática, no la genérica)
+  // ahí no hay celebración genérica — empieza la batalla final)
   const isBossWin = DEMO_BOSS ||
     (REAL_MODE && REAL_LEVEL === FINAL_ISLAND_IDX);
   // Jingle de victoria — salvo en boss de mundo (worldWin lo sustituiría)
-  // y en el boss FINAL: ahí la música de mazmorra sigue sonando y
-  // fin.html la retoma en el mismo punto — la secuencia es todo uno
+  // y en el boss FINAL: la batalla pone su propia canción
   const worldFanfare = isBossWin && REAL_MODE && REAL_WORLD !== FINAL_WORLD;
-  const finalSting = isBossWin && REAL_MODE && REAL_WORLD === FINAL_WORLD;
+  const finalSting = (isBossWin && REAL_MODE && REAL_WORLD === FINAL_WORLD) || DEMO_FINAL;
   if (!worldFanfare && !finalSting) AssetsCache.playMusicSting(AssetsCache.MUSIC.victoria);
   overlayTitle.textContent = tt('game.victory');
   if (REAL_MODE || DEMO_WIN) {
     if (DEMO_WIN) turn = currentMinMoves; // demo: cifra verosímil en el modal
     // Boss de mundo derrotado: fanfarria que suena una sola vez en el
     // tablero (al volver al mapamundi retoma el tema principal; en
-    // MAZMORRA la música del final la pone fin.html)
+    // MAZMORRA la canción del final la pone la batalla)
     if (worldFanfare) AssetsCache.setMusicTrack(AssetsCache.MUSIC.worldWin);
     // Título del modal: "¡Mundo conquistado!" si es boss, "¡Victoria!" si no
     const bossWorld = REAL_MODE ? REAL_WORLD : (worlds[worldIdx] && worlds[worldIdx].world);
@@ -1547,15 +1553,11 @@ function winGame() {
         : tt('game.levelDone', REAL_LEVEL + 1, turn);
     renderBoardTexts();
     const gp = cellPos(goal.c, goal.r, true);
-    const isFinalWin = REAL_MODE && REAL_WORLD === FINAL_WORLD;
+    const isFinalWin = (REAL_MODE && REAL_WORLD === FINAL_WORLD) || DEMO_FINAL;
     if (isFinalWin) {
-      // El boss FINAL no usa la pantalla normal de victoria: el boss
-      // cae, el oro vuela al HUD, temblores y corte a blanco directo a
-      // la cinemática — que retoma el tablero tal cual (ver
-      // runika-final-state) como continuación, no como escena nueva
-      finalWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
-      flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, () => {});
-      setTimeout(confirmWin, 1700);
+      // El boss FINAL: ni modal ni cinemática aparte — la batalla final
+      // sigue aquí mismo, con el héroe y el guardián en sus casillas
+      startFinalBattle();
     } else if (isBossWin) {
       bossWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
       // Las monedas vuelan ~2.2s tras la victoria — se cobra el tesoro del
@@ -1573,33 +1575,39 @@ function winGame() {
   document.getElementById('overlay-restart').textContent = tt('game.practiceNext');
 }
 
-// Victoria del boss FINAL (MAZMORRA:11): nada de pantalla normal —
-// el boss cae, temblores y un flash blanco corta hacia la cinemática
-// de fin.html, donde vive todo el espectáculo.
-function finalWinFx() {
-  // La cinemática retoma el tablero TAL CUAL: le pasamos las casillas
-  // del héroe (en el tesoro) y del boss, y el oro total para el final
-  try {
-    sessionStorage.setItem('runika-final-state', JSON.stringify({
-      hero: [player.c, player.r],
-      boss: enemies.length ? [enemies[0].c, enemies[0].r] : null,
-      gold: winGoldBefore + winGoldEarned,
-    }));
-  } catch {}
-  document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
-    .forEach(e => e.classList.add('dying'));
-  shakeLayers();
-  setTimeout(shakeLayers, 300);
-  setTimeout(shakeLayers, 600);
-  playFading(crumbleAudio); // rumble que acompaña el fundido a la cinemática
-  // Corte cinematográfico: la pantalla entera se va a blanco
-  setTimeout(() => {
-    const f = document.createElement('div');
-    f.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:0;' +
-      'pointer-events:none;z-index:80;transition:opacity .5s ease-in';
-    document.body.appendChild(f);
-    requestAnimationFrame(() => { f.style.opacity = '1'; });
-  }, 1150);
+// Victoria del boss FINAL (MAZMORRA:11): la batalla final (final-battle.js)
+// continúa sobre este mismo tablero. La partida se guarda al empezar, así
+// que cerrar a mitad no pierde el final; al terminar → créditos.
+function startFinalBattle() {
+  if (REAL_MODE && !DEMO_RUN) {
+    fetch(BASE + '/api/level-complete', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: winGoldEarned, screenId: currentScreenId }),
+    }).catch(() => {});
+  }
+  const foes = [...document.querySelectorAll('#entities .entity[data-type="enemy"]')];
+  const bossEl = foes.find(e => e.dataset.idx === '0') || foes[0];
+  const boss = enemies[+(bossEl?.dataset.idx || 0)] || enemies[0];
+  if (!bossEl || !boss || !window.FinalBattle) { AssetsCache.transitionTo('/creditos.html'); return; }
+  FinalBattle.run({
+    hero: selector, heroImg: avatarImg, boss: bossEl,
+    others: foes.filter(e => e !== bossEl),
+    goal: document.querySelector('#entities .entity[data-type="goal"]'),
+    heroCell: [player.c, player.r], bossCell: [boss.c, boss.r],
+    cell: (c, r) => cellPos(c, r, true), cols: COLS, rows: ROWS,
+    image: img, imgRect: visibleImageRect,
+    goldBefore: winGoldBefore, goldEarned: winGoldEarned,
+    goldTotal: winGoldBefore + winGoldEarned,
+    flyGold: flyGoldToHud,
+    name: playerData?.playerName || '',
+    tt, shake: shakeLayers, step: playStep,
+    hideHud: () => {
+      const bt = document.getElementById('boardtexts');
+      if (bt) { bt.style.transition = 'opacity 1s ease'; bt.style.opacity = '0'; }
+    },
+    finish: () => AssetsCache.transitionTo('/creditos.html'),
+    exit: () => AssetsCache.transitionTo('/menu.html'),
+  });
 }
 
 // Sacudida de las capas del tablero (sin flash — reusable para el
@@ -1686,7 +1694,10 @@ function updateDebugTier() {
   // del boss final y el tier elegido en la demo bossrun)
   debugTierEl.textContent = tt('game.tier') + ' ' + (REAL_MODE ? gameLevel : currentTier);
 }
+document.addEventListener('pointerdown', () => { if (window.FinalBattle?.active) FinalBattle.onPointer(); });
 document.addEventListener('keydown', (e) => {
+  // Batalla final en curso: ella gestiona el teclado (Continuar / Esc)
+  if (window.FinalBattle?.active) { FinalBattle.onKey(e); return; }
   if (e.key === 't' || e.key === 'T' || e.key === 'p' || e.key === 'P') {
     e.preventDefault();
     const on = debugTierEl.style.display === 'none';

@@ -123,6 +123,9 @@
   "fin.goldTotal": "Kazanılan altın: {0}",
   "fin.worldsFell": "Tüm dünyalar düştü",
   "fin.finalBoss": "Son muhafız…",
+  "fin.treasureWakes": "Hazine uyanıyor…",
+  "fin.bossRises": "Son muhafız pes etmiyor!",
+  "fin.worldsPower": "Yedi dünya sana gücünü veriyor",
   "fin.replay": "Runika 2D sonsuzdur: her oyun benzersizdir ve hiçbir bulmaca tekrarlanmaz. Her zorluk seviyesinde binlerce yeni mücadele seni bekliyor. Macera burada bitmiyor!",
   "game.practice": "Antrenman",
   "game.practiceTag": "Antrenman · hiçbir şey kaydedilmez",
@@ -159,7 +162,7 @@
   "demo.bossrun.launch": "Boss ile oyna",
   "demo.bossrun.hint": "boss'un gerçek ekranı (ada 12): ok tuşlarıyla oyna — yenilgiyi görmek için kaybet, kutlamayı ve dünya haritasına dönüşü görmek için kazan (MAZMORRA'da final sahnesi). Hiçbir şey kaydedilmez.",
   "demo.bossfinal.launch": "Final boss ile oyna",
-  "demo.bossfinal.cine": "Sadece sahne",
-  "demo.bossfinal.hint": "MAZMORRA boss'u ile gerçek karşılaşma (ada 12): kazan ve pencere olmadan doğrudan final sahnesine geç. Hiçbir şey kaydedilmez.",
+  "demo.bossfinal.cine": "Sadece finali izle",
+  "demo.bossfinal.hint": "MAZMORRA boss’u ile gerçek oyun (ada 12): hazineye ulaşınca aynı tahtada final savaşı başlar ve künyeyle biter. «Sadece finali izle» bulmacayı oynamadan başlatır. Hiçbir şey kaydedilmez.",
   "demo.lastboss.hint": "son normal dünyanın boss'u: kazanınca 7 dünyası fethedilmiş ve MAZMORRA'sı renkli olarak açılmış dünya haritasına dönersin. Hiçbir şey kaydedilmez."
 }

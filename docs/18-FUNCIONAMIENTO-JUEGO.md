@@ -19,8 +19,9 @@
    menús (`The_Captain_s_Last_Map.mp3`), `world` = dentro de un mundo
    (`mistery.mp3`, submundo + tablero), `worldWin` = victoria de un mundo no
    final (`victory_mundo.mp3`, sigue sonando en el mapamundi vía
-   `runika-music-override` en sessionStorage), `fin` = cinemática final tras
-   derrotar al boss (`victory.mp3`). `setMusicTrack()` cambia de pista y cada
+   `runika-music-override` en sessionStorage), `fin` = batalla final sobre el
+   tablero tras llegar al tesoro de MAZMORRA (`victory.mp3`, ~2 min, en loop
+   hasta los créditos — ver `final-battle.js`). `setMusicTrack()` cambia de pista y cada
    una retoma su posición al volver. Intentar entrar a un mundo completado o
    bloqueado suena `choque.wav` (denegación).
 5. `GET /api/savegame` → `{exists, player}`. Sin partida empezada

@@ -123,6 +123,9 @@
   "fin.goldTotal": "Gold earned: {0}",
   "fin.worldsFell": "All worlds have fallen",
   "fin.finalBoss": "The last guardian...",
+  "fin.treasureWakes": "The treasure awakens…",
+  "fin.bossRises": "The last guardian won’t give up!",
+  "fin.worldsPower": "The seven worlds lend you their strength",
   "fin.replay": "Runika 2D is infinite: every playthrough is unique and no puzzle ever repeats. Thousands of new challenges await at every difficulty level. The adventure is not over!",
   "game.practice": "Practice",
   "game.practiceTag": "Practice · nothing is saved",
@@ -159,7 +162,7 @@
   "demo.bossrun.launch": "Play boss",
   "demo.bossrun.hint": "real boss screen (island 12): play with the arrows — lose to see the defeat, win to see the celebration and the return to the world map (with MAZMORRA: the final cinematic). Nothing is saved.",
   "demo.bossfinal.launch": "Play final boss",
-  "demo.bossfinal.cine": "Cinematic only",
-  "demo.bossfinal.hint": "real run at the MAZMORRA boss (island 12): win to chain straight into the final cinematic — no modal. Nothing is saved.",
+  "demo.bossfinal.cine": "Watch the ending only",
+  "demo.bossfinal.hint": "real run at the MAZMORRA boss (island 12): reaching the treasure starts the final battle on the same board, ending in the credits. “Watch the ending only” starts it without playing the puzzle. Nothing is saved.",
   "demo.lastboss.hint": "boss of the last normal world: win to return to the map with all 7 worlds conquered and MAZMORRA unlocked in color. Nothing is saved."
 }

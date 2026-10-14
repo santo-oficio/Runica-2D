@@ -123,6 +123,9 @@
   "fin.goldTotal": "Or amassé : {0}",
   "fin.worldsFell": "Tous les mondes sont tombés",
   "fin.finalBoss": "Le dernier gardien...",
+  "fin.treasureWakes": "Le trésor s’éveille…",
+  "fin.bossRises": "Le dernier gardien ne renonce pas !",
+  "fin.worldsPower": "Les sept mondes te prêtent leur force",
   "fin.replay": "Runika 2D est infini : chaque partie est unique et aucun puzzle ne se répète. Des milliers de nouveaux défis t'attendent à chaque niveau de difficulté. L'aventure ne s'arrête pas ici !",
   "game.practice": "Entraînement",
   "game.practiceTag": "Entraînement · rien n'est sauvegardé",
@@ -159,7 +162,7 @@
   "demo.bossrun.launch": "Jouer le boss",
   "demo.bossrun.hint": "écran réel du boss (île 12) : jouez avec les flèches — perdez pour voir la défaite, gagnez pour voir la célébration et le retour à la carte du monde (avec MAZMORRA : la cinématique finale). Rien n'est enregistré.",
   "demo.bossfinal.launch": "Jouer le boss final",
-  "demo.bossfinal.cine": "Cinématique seule",
-  "demo.bossfinal.hint": "partie réelle contre le boss de MAZMORRA (île 12) : gagnez pour enchaîner directement sur la cinématique finale — sans modal. Rien n'est enregistré.",
+  "demo.bossfinal.cine": "Voir seulement la fin",
+  "demo.bossfinal.hint": "vraie partie contre le boss de MAZMORRA (île 12) : atteindre le trésor lance la bataille finale sur le même plateau, jusqu’aux crédits. « Voir seulement la fin » la lance sans jouer le puzzle. Rien n’est sauvegardé.",
   "demo.lastboss.hint": "boss du dernier monde normal : gagnez pour revenir à la carte avec les 7 mondes conquis et MAZMORRA débloquée en couleur. Rien n'est enregistré."
 }

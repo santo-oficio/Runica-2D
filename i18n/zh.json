@@ -123,6 +123,9 @@
   "fin.goldTotal": "获得金币: {0}",
   "fin.worldsFell": "所有世界都已陨落",
   "fin.finalBoss": "最后的守护者…",
+  "fin.treasureWakes": "宝藏苏醒了…",
+  "fin.bossRises": "最后的守护者不肯认输！",
+  "fin.worldsPower": "七个世界将力量借给你",
   "fin.replay": "Runika 2D 是无限的：每一局都独一无二，没有任何谜题会重复。每个难度等级都有数千个新挑战等着你。冒险远未结束！",
   "game.practice": "练习",
   "game.practiceTag": "练习 · 不保存记录",
@@ -159,7 +162,7 @@
   "demo.bossrun.launch": "挑战 Boss",
   "demo.bossrun.hint": "Boss 的真实关卡（第 12 岛）：用方向键游玩 — 输了看败北画面，赢了看庆祝并返回世界地图（MAZMORRA 则是最终动画）。不保存记录。",
   "demo.bossfinal.launch": "挑战最终 Boss",
-  "demo.bossfinal.cine": "只看动画",
-  "demo.bossfinal.hint": "与 MAZMORRA Boss 的真实对战（第 12 岛）：获胜后直接进入最终动画——没有弹窗。不保存记录。",
+  "demo.bossfinal.cine": "只看结局",
+  "demo.bossfinal.hint": "与 MAZMORRA Boss 的真实对战（第 12 岛）：到达宝藏后在同一棋盘上展开最终决战，直到制作名单。“只看结局”无需解谜直接开始。不保存记录。",
   "demo.lastboss.hint": "最后一个普通世界的 Boss：获胜后返回世界地图，7 个世界已被征服，MAZMORRA 已解锁并显示彩色。不保存记录。"
 }
