@@ -151,5 +151,8 @@
   "loading.tip2": "Kein Rätsel wiederholt sich jemals: Jede Herausforderung wird nur für dich erschaffen.",
   "loading.tip3": "Fünfzehn Schwierigkeitsgrade und tausende verschiedene Rätsel in jedem.",
   "demo.bossrun.launch": "Boss spielen",
-  "demo.bossrun.hint": "echte Boss-Szene (Insel 12): mit den Pfeilen spielen — verlieren zeigt die Niederlage, gewinnen die Feier und die Rückkehr zur Weltkarte (mit MAZMORRA: die Endszene). Nichts wird gespeichert."
+  "demo.bossrun.hint": "echte Boss-Szene (Insel 12): mit den Pfeilen spielen — verlieren zeigt die Niederlage, gewinnen die Feier und die Rückkehr zur Weltkarte (mit MAZMORRA: die Endszene). Nichts wird gespeichert.",
+  "demo.bossfinal.launch": "Finalboss spielen",
+  "demo.bossfinal.cine": "Nur Endszene",
+  "demo.bossfinal.hint": "echte Partie gegen den MAZMORRA-Boss (Insel 12): gewinnen, um direkt in die Endszene überzugehen — kein Modal. Nichts wird gespeichert."
 }

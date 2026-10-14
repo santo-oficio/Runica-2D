@@ -151,5 +151,8 @@
   "loading.tip2": "Ningún puzle se repite jamás: cada reto se crea solo para ti.",
   "loading.tip3": "Quince niveles de dificultad y miles de puzles distintos en cada uno.",
   "demo.bossrun.launch": "Jugar boss",
-  "demo.bossrun.hint": "pantalla real del boss (isla 12): juega con las flechas — pierde para ver la derrota, gana para ver la celebración y la vuelta al mapamundi (con MAZMORRA: la cinemática final). No se guarda nada."
+  "demo.bossrun.hint": "pantalla real del boss (isla 12): juega con las flechas — pierde para ver la derrota, gana para ver la celebración y la vuelta al mapamundi (con MAZMORRA: la cinemática final). No se guarda nada.",
+  "demo.bossfinal.launch": "Jugar boss final",
+  "demo.bossfinal.cine": "Solo cinemática",
+  "demo.bossfinal.hint": "partida real al boss de MAZMORRA (isla 12): gana para encadenar directo con la cinemática final — sin modal. No se guarda nada."
 }

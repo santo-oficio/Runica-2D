@@ -151,5 +151,8 @@
   "loading.tip2": "No puzzle ever repeats: each challenge is created just for you.",
   "loading.tip3": "Fifteen difficulty levels and thousands of different puzzles in each.",
   "demo.bossrun.launch": "Play boss",
-  "demo.bossrun.hint": "real boss screen (island 12): play with the arrows — lose to see the defeat, win to see the celebration and the return to the world map (with MAZMORRA: the final cinematic). Nothing is saved."
+  "demo.bossrun.hint": "real boss screen (island 12): play with the arrows — lose to see the defeat, win to see the celebration and the return to the world map (with MAZMORRA: the final cinematic). Nothing is saved.",
+  "demo.bossfinal.launch": "Play final boss",
+  "demo.bossfinal.cine": "Cinematic only",
+  "demo.bossfinal.hint": "real run at the MAZMORRA boss (island 12): win to chain straight into the final cinematic — no modal. Nothing is saved."
 }
