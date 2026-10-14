@@ -115,6 +115,7 @@
   "game.bossBody": "Glückwunsch, du hast den Wächter {0} in {1} Zügen besiegt",
   "game.bossDown": "Wächter besiegt",
   "board.level": "Level {0}",
+  "board.levelOf": "Level {0} von {1}",
   "game.go": "LOS!",
   "fin.completed": "Du hast Runika 2D abgeschlossen!",
   "fin.completedNamed": "{0} hat Runika 2D abgeschlossen!",

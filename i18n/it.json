@@ -115,6 +115,7 @@
   "game.bossBody": "Congratulazioni, hai sconfitto il guardiano {0} in {1} turni",
   "game.bossDown": "Guardiano sconfitto",
   "board.level": "Livello {0}",
+  "board.levelOf": "Livello {0} di {1}",
   "game.go": "VIA!",
   "fin.completed": "Hai completato Runika 2D!",
   "fin.completedNamed": "{0} ha completato Runika 2D!",

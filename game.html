@@ -221,7 +221,7 @@
     justify-content: flex-end; color: #ffd34e; text-align: right;
     text-shadow: 1px 1px 2px #000, 0 0 12px rgba(255,180,0,.8), 0 0 26px rgba(255,140,0,.5);
   }
-  .btext.info { flex-direction: column; line-height: 1.08; gap: 2px; }
+  .btext.info { flex-direction: column; line-height: 1.06; }
   .btext.info .info-name { color: #ffd34e; text-shadow: 2px 2px 4px #000, 0 0 12px rgba(255,180,0,.7); }
   /* Cuenta atrás antes de empezar la pantallita (5 · 4 · 3 · 2 · 1 · YA) */
   #countdown {
@@ -434,7 +434,9 @@ function btValue(k) {
   if (k === 'optimal') return tt('board.optimal');
   if (k === 'nOptimal') return String(currentMinMoves);
   if (k === 'gold') return String(playerData?.gold ?? 0);
-  return tt('board.level', REAL_MODE ? REAL_LEVEL + 1 : gameLevel); // info → isla (modo real) o tier (práctica)
+  return REAL_MODE
+    ? tt('board.levelOf', REAL_LEVEL + 1, FINAL_ISLAND_IDX + 1) // info → "Nivel isla de 12"
+    : tt('board.level', gameLevel);                              // práctica → tier
 }
 
 function renderBoardTexts() {
@@ -468,6 +470,7 @@ function renderBoardTexts() {
       el.appendChild(coin); el.appendChild(span);
     } else if (k === 'info' && REAL_MODE && playerData?.playerName) {
       el.classList.add('info');
+      el.style.gap = Math.max(3, Math.round(p.h * 0.08)) + 'px';
       el.innerHTML = '';
       const nm = document.createElement('div'); nm.className = 'info-name';
       nm.textContent = playerData.playerName;
@@ -482,6 +485,7 @@ function renderBoardTexts() {
       continue;
     } else {
       el.classList.remove('info');
+      el.style.gap = '';
       el.textContent = btValue(k);
     }
     let fs = Math.max(12, p.h * .62 * (a.fontScale || 1));
