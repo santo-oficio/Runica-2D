@@ -7,3 +7,28 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* Fuentes de apoyo por idioma (OFL): solo sustituyen a ChelseaMarket en los
+   glifos que esta no tiene. Se activan por idioma desde assets-cache.js
+   (applyLangFont), nunca en la pila por defecto. */
+@font-face {
+  font-family: 'Yomogi';          /* japonés — manuscrita */
+  src: url('/assets/fonts/Yomogi-JP.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'MaShanZheng';     /* chino — pincel caligráfico */
+  src: url('/assets/fonts/MaShanZheng-CJK.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Caveat';          /* ruso — manuscrita con cirílico */
+  src: url('/assets/fonts/Caveat-Cyr.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

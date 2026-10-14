@@ -359,9 +359,12 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   para resolver las traducciones. Si falta una clave en un idioma, se usa el
   español como fallback. Idiomas soportados: español (`es`), inglés (`en`),
   francés (`fr`), alemán (`de`), italiano (`it`), japonés (`ja`), chino (`zh`),
-  ruso (`ru`), turco (`tr`), polaco (`pl`). La fuente ChelseaMarket no tiene
-  glifos CJK ni cirílicos: en ja/zh/ru esos caracteres caen a la fuente del
-  sistema automáticamente.
+  ruso (`ru`), turco (`tr`), polaco (`pl`). ChelseaMarket no cubre CJK ni
+  cirílico: hay fuentes de apoyo OFL en `assets/fonts/` — `Yomogi` (ja),
+  `MaShanZheng` (zh) y `Caveat` (ru) — que `assets-cache.js`/`applyLangFont`
+  inserta en la pila solo cuando el idioma activo las necesita (los latinos
+  siguen con ChelseaMarket). Las demos sin `assets-cache.js` caen a fuente
+  del sistema.
 - **A fuego — prohibido literales en HTML/UI**: ningún texto visible en
   pantallas HTML (menu, juego, instrucciones, creditos, etc.) puede estar
   escrito directamente en el HTML o JS. Todo texto debe obtenerse en tiempo de

@@ -243,7 +243,9 @@
     background: rgba(0,0,0,0.7); padding: 8px 14px;
     border-radius: 4px; font-family: 'ChelseaMarket', cursive;
     font-size: 0.8em; color: #aaa; line-height: 1.7;
+    display: none;
   }
+  #hud.debug { display: block; }
   #hud .key { color: #fc4; }
   #hud b { color: #0ff; }
   #hud .green { color: #0f0; }
@@ -272,7 +274,7 @@
 <div id="loading-screen">
   <div class="title">RUNIKA 2D</div>
   <div id="loading-bar-bg"><div id="loading-bar"></div></div>
-  <div id="loading-text">Cargando... 0%</div>
+  <div id="loading-text" data-i18n="loading.text"></div>
 </div>
 
 <div id="transition-overlay"></div>
@@ -310,6 +312,7 @@
   // ?demo=all7: finge los 7 mundos normales conquistados → MAZMORRA se
   // desbloquea a color (demo de "último boss normal vencido").
   const DEMO_WORLD = new URLSearchParams(location.search).get('demo') || '';
+  if (new URLSearchParams(location.search).has('debug')) document.getElementById('hud').classList.add('debug');
   const DEMO_ALL7 = DEMO_WORLD === 'all7';
   const DEMO_MODE = WORLD_ORDER.includes(DEMO_WORLD) || DEMO_ALL7;
   // Mundo recién conquistado (lo marca game.html al ganar la isla 12):
@@ -667,7 +670,7 @@
       avatarEl.style.height = asz + 'px';
     }
 
-    document.getElementById('pos-info').textContent = 'Mundo: ' + world;
+    document.getElementById('pos-info').textContent = t('game.world') + ': ' + t('worlds.' + world);
   }
 
   let isMoving = false;
@@ -847,7 +850,7 @@
     await AssetsCache.preloadAll((loaded, total) => {
       const pct = Math.round((loaded / total) * 100);
       loadingBar.style.width = pct + '%';
-      loadingText.textContent = 'Cargando... ' + pct + '%';
+      loadingText.textContent = t('loading.text') + ' ' + pct + '%';
     });
 
     await AssetsCache.loadSettings();

@@ -136,11 +136,25 @@ function getCachedSound(url) { return cache.sounds.get(url) ?? null; }
 
 // --- Ajustes globales (persisten en db/settings.json via /api/settings) ---
 const settings = { sound: true, music: true, lang: 'es' };
+// Fuente de apoyo por idioma: ChelseaMarket no cubre CJK ni cirílico, así que
+// en ja/zh/ru se añade su fuente manuscrita detrás en la pila (los caracteres
+// latinos siguen saliendo con ChelseaMarket, solo los glifos que le faltan
+// caen a la fuente del idioma).
+const LANG_FONT = { ja: "'Yomogi'", zh: "'MaShanZheng'", ru: "'Caveat'" };
+function applyLangFont() {
+  document.documentElement.lang = settings.lang || 'es';
+  const extra = LANG_FONT[settings.lang];
+  let st = document.getElementById('lang-font-fix');
+  if (!extra) { if (st) st.remove(); return; }
+  if (!st) { st = document.createElement('style'); st.id = 'lang-font-fix'; document.head.appendChild(st); }
+  st.textContent = "html *, html *::before, html *::after { font-family: 'ChelseaMarket', " + extra + ", 'Trebuchet MS', cursive, sans-serif !important; }";
+}
 async function loadSettings() {
   try {
     const r = await fetch('/api/settings');
     if (r.ok) { const d = await r.json(); if (d) Object.assign(settings, d); }
   } catch {}
+  applyLangFont();
   const sel = document.getElementById('lang-select');
   if (sel) sel.value = settings.lang;
   return settings;
@@ -150,6 +164,7 @@ function isMusicEnabled() { return settings.music !== false; }
 function currentLang() { return settings.lang || 'es'; }
 async function setSetting(key, value) {
   settings[key] = value;
+  if (key === 'lang') applyLangFont();
   if (key === 'music') { value ? startMusic() : stopMusic(); }
   try {
     await fetch('/api/settings', {
