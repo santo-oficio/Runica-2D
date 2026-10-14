@@ -354,10 +354,14 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
 - **A fuego — sin textos hardcodeados**: ningún texto visible al usuario puede estar
   escrito directamente en el código (HTML, TS, etc.). Todo texto debe venir de
   archivos de idioma en `i18n/` (`es.json`, `en.json`, `fr.json`, `de.json`,
-  `it.json`). El sistema de i18n carga el archivo del idioma activo y expone
-  una función `t("clave")` para resolver las traducciones. Si falta una clave en
-  un idioma, se usa el español como fallback. Idiomas soportados: español (`es`),
-  inglés (`en`), francés (`fr`), alemán (`de`), italiano (`it`).
+  `it.json`, `ja.json`, `zh.json`, `ru.json`, `tr.json`, `pl.json`). El sistema
+  de i18n carga el archivo del idioma activo y expone una función `t("clave")`
+  para resolver las traducciones. Si falta una clave en un idioma, se usa el
+  español como fallback. Idiomas soportados: español (`es`), inglés (`en`),
+  francés (`fr`), alemán (`de`), italiano (`it`), japonés (`ja`), chino (`zh`),
+  ruso (`ru`), turco (`tr`), polaco (`pl`). La fuente ChelseaMarket no tiene
+  glifos CJK ni cirílicos: en ja/zh/ru esos caracteres caen a la fuente del
+  sistema automáticamente.
 - **A fuego — prohibido literales en HTML/UI**: ningún texto visible en
   pantallas HTML (menu, juego, instrucciones, creditos, etc.) puede estar
   escrito directamente en el HTML o JS. Todo texto debe obtenerse en tiempo de

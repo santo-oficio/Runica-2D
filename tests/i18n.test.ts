@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const I18N_DIR = join(__dirname, "..", "i18n");
 
-const LANGS = ["es", "en", "fr", "de", "it"] as const;
+const LANGS = ["es", "en", "fr", "de", "it", "ja", "zh", "ru", "tr", "pl"] as const;
 type Lang = (typeof LANGS)[number];
 
 function loadLang(lang: Lang): Record<string, string> {
