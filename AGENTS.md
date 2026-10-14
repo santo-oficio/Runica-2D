@@ -173,6 +173,11 @@ renderizarla igual.
 - La bbdd del jugador es `db/player.json` (módulo `db/db.ts`). `PlayerState`
   tiene `started?: boolean`, `playerName?`, `avatarIndex?`; el estado solo
   existe como partida real si `started === true`.
+- En la selección, **Adelante** exige avatar elegido Y nombre escrito: si
+  falta algo sale el modal de reintentar (`modal-reintentar.webp` +
+  `modal-reintentar-areas.json`, un botón centrado) con el motivo
+  (`selection.needAvatar` / `needName` / `needBoth`). El nombre guardado es
+  siempre el tecleado (ya no hay nombre por defecto del avatar).
 - En la selección, **Atrás** vuelve al menú y **Adelante** llama a
   `POST /api/new-game {name, avatar}` (resetea progreso, `started:true`) y va a
   `mapamundi.html`.
