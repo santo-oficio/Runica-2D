@@ -137,6 +137,7 @@
   "game.keySpace": "Espacio",
   "game.restart": "Reiniciar",
   "map.worldDone": "¡{0} conquistado!",
+  "map.finalAwaken": "¡{0} despierta!",
   "demo.worldLabel": "Mundo:",
   "demo.launch": "Lanzar celebración",
   "demo.hint": "simula la victoria sin jugar — no toca la partida guardada",

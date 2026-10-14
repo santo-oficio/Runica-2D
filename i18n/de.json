@@ -137,6 +137,7 @@
   "game.keySpace": "Leertaste",
   "game.restart": "Neustart",
   "map.worldDone": "{0} erobert!",
+  "map.finalAwaken": "{0} erwacht!",
   "demo.worldLabel": "Welt:",
   "demo.launch": "Feier starten",
   "demo.hint": "simuliert den Sieg ohne zu spielen — Speicherstand bleibt unberührt",

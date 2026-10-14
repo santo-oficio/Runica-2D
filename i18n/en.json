@@ -137,6 +137,7 @@
   "game.keySpace": "Space",
   "game.restart": "Restart",
   "map.worldDone": "{0} conquered!",
+  "map.finalAwaken": "{0} awakens!",
   "demo.worldLabel": "World:",
   "demo.launch": "Launch celebration",
   "demo.hint": "simulates victory without playing — does not touch the savegame",
