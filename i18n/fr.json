@@ -117,6 +117,7 @@
   "board.level": "Niveau {0}",
   "game.go": "GO !",
   "fin.completed": "Tu as terminé Runika 2D !",
+  "fin.completedNamed": "{0} a terminé Runika 2D !",
   "fin.worldsFell": "Tous les mondes sont tombés",
   "fin.finalBoss": "Le dernier gardien...",
   "fin.replay": "Runika 2D est infini : chaque partie est unique et aucun puzzle ne se répète. Des milliers de nouveaux défis t'attendent à chaque niveau de difficulté. L'aventure ne s'arrête pas ici !",

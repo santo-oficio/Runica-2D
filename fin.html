@@ -848,7 +848,11 @@ async function sceneEnd() {
   const big = document.getElementById('big-text');
   big.style.opacity = 1; big.style.top = '13%';
   big.innerHTML = '';
-  const text = tt('fin.completed');
+  // El título nombra al héroe — el nombre que el jugador tecleó en la
+  // máquina de la selección de personaje; sin nombre, genérico
+  const text = player?.playerName
+    ? tt('fin.completedNamed', player.playerName)
+    : tt('fin.completed');
   const letters = [];
   for (const ch of text) {
     const sp = document.createElement('span');
