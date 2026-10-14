@@ -196,7 +196,8 @@ function musicForWorld(world) {
 // El valor es la pista que toma el relevo al terminar — `null` = silencio.
 const ONESHOT_MUSIC = new Map([
   [MUSIC.worldWin, MUSIC.main], // fanfarria de boss → tema principal
-  [MUSIC.fin, null],            // canción del final → silencio (los créditos ponen la suya)
+  // La canción del final (MUSIC.fin) va en LOOP: suena desde la
+  // explosión del boss hasta los créditos, que ponen su propia pista
 ]);
 let musicEl = null;
 // La pista activa se persiste para que cualquier pantalla retome la

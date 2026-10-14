@@ -1528,12 +1528,12 @@ function winGame() {
     const gp = cellPos(goal.c, goal.r, true);
     const isFinalWin = REAL_MODE && REAL_WORLD === FINAL_WORLD;
     if (isFinalWin) {
-      // El boss FINAL no usa la celebración genérica de boss: muerte
-      // corta (dying + rótulo + temblores + monedas) y fundido directo
-      // a fin.html, donde continúa la cinemática espectacular
+      // El boss FINAL no usa la pantalla normal de victoria: el boss
+      // cae, temblores y corte a blanco directo a la cinemática —
+      // nada de modal, rótulos ni monedas al HUD (el oro se cuenta
+      // igual al confirmar; la escenografía es de fin.html)
       finalWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
-      setTimeout(() => flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, () => {}), 1100);
-      setTimeout(confirmWin, 3200);
+      setTimeout(confirmWin, 1500);
     } else if (isBossWin) {
       bossWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
       // Las monedas vuelan ~2.2s tras la victoria — se cobra el tesoro del
@@ -1551,17 +1551,24 @@ function winGame() {
   document.getElementById('overlay-restart').textContent = tt('game.practiceNext');
 }
 
-// Victoria del boss FINAL (MAZMORRA:11): muerte corta — el boss cae y
-// unos temblores sujetan el fundido hacia la cinemática de fin.html.
-// Nada de rótulo ni derrumbe genérico: la celebración y la destrucción
-// del mundo son espectáculo de la cinemática, no del tablero.
+// Victoria del boss FINAL (MAZMORRA:11): nada de pantalla normal —
+// el boss cae, temblores y un flash blanco corta hacia la cinemática
+// de fin.html, donde vive todo el espectáculo.
 function finalWinFx() {
   document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
     .forEach(e => e.classList.add('dying'));
   shakeLayers();
-  setTimeout(shakeLayers, 420);
-  setTimeout(shakeLayers, 850);
+  setTimeout(shakeLayers, 300);
+  setTimeout(shakeLayers, 600);
   playFading(crumbleAudio); // rumble que acompaña el fundido a la cinemática
+  // Corte cinematográfico: la pantalla entera se va a blanco
+  setTimeout(() => {
+    const f = document.createElement('div');
+    f.style.cssText = 'position:fixed;inset:0;background:#fff;opacity:0;' +
+      'pointer-events:none;z-index:80;transition:opacity .5s ease-in';
+    document.body.appendChild(f);
+    requestAnimationFrame(() => { f.style.opacity = '1'; });
+  }, 850);
 }
 
 // Sacudida de las capas del tablero (sin flash — reusable para el

@@ -243,6 +243,21 @@
     animation:heroGlow 2.4s ease-in-out infinite alternate}
   @keyframes heroGlow{from{opacity:.7;transform:scale(.96)}to{opacity:1;transform:scale(1.07)}}
   .hero-glow{filter:drop-shadow(0 0 12px rgba(255,225,140,.95)) drop-shadow(0 0 38px rgba(255,170,60,.6))!important}
+  /* Carga del héroe: se enciende antes del golpe de luz */
+  @keyframes heroCharge {
+    0%   { filter: none; transform: scale(1); }
+    55%  { filter: brightness(2) drop-shadow(0 0 16px rgba(255,220,120,.9)); transform: scale(1.1); }
+    100% { filter: brightness(3.2) drop-shadow(0 0 32px #fff); transform: scale(1.2); }
+  }
+  /* Golpe definitivo: columna de luz que cae del cielo sobre el boss */
+  .smite-beam{position:fixed;z-index:40;pointer-events:none;
+    background:linear-gradient(to bottom,rgba(255,250,220,0) 0%,#fff 10%,#ffe9a0 55%,rgba(255,190,70,.95));
+    clip-path:polygon(40% 0,60% 0,90% 100%,10% 100%);
+    filter:drop-shadow(0 0 26px rgba(255,220,120,.95));
+    transform-origin:top center;
+    animation:smiteIn .22s ease-out forwards,smiteOut .8s ease .35s forwards}
+  @keyframes smiteIn{from{opacity:0;transform:scaleY(.1) scaleX(.4)}to{opacity:1;transform:scaleY(1) scaleX(1)}}
+  @keyframes smiteOut{to{opacity:0}}
 
   /* Rótulo "¡Guardián derrotado!" sobre el tablero */
   .down-title{
@@ -472,28 +487,34 @@ async function sceneBoard() {
   await wait(1600); sub.classList.remove('on');
   await wait(300);
 
-  // Un único golpe definitivo con destello y sacudida — tras esto el
-  // boss se sobrecarga y estalla
-  {
-    const dx = bossRC.cx - heroRC.cx, dy = bossRC.cy - heroRC.cy;
-    const dist = Math.hypot(dx, dy) || 1;
-    const reach = Math.max(0, dist - cw * 0.75); // se planta junto al boss
-    const ux = dx / dist * reach, uy = dy / dist * reach;
-    hero.animate([
-      { transform: 'translate(0,0) rotate(0)' },
-      { transform: `translate(${-ux * 0.12}px,${-uy * 0.12 + 5}px) rotate(-7deg) scaleY(.9)`, offset: .18 },
-      { transform: `translate(${ux}px,${uy - 6}px) rotate(9deg)`, offset: .46 },
-      { transform: `translate(${ux * 0.82}px,${uy * 0.82}px) rotate(5deg)`, offset: .62 },
-      { transform: 'translate(0,0) rotate(0)' },
-    ], { duration: 560, easing: 'ease-in-out' });
-    snd('/assets/sounds/comun/choque.wav', 0.7);
-    boss.style.animation = 'bossHit .4s ease';
-    flash(0.55, 260);
-    shakeStage(true);
-    await wait(650);
-    boss.style.animation = '';
-    await wait(250);
-  }
+  // El golpe definitivo: el héroe se carga de luz (partículas de
+  // energía suben a su alrededor) y una columna de luz cae del cielo
+  // sobre el boss — tras esto el boss se sobrecarga y estalla
+  hero.style.animation = 'heroCharge 1.05s ease-in forwards';
+  const chargeIv = setInterval(() => {
+    burst(heroRC.cx + (Math.random() * 40 - 20), heroRC.cy + heroRC.h * 0.25, 10,
+      ['#fff3c4', '#ffd54f', '#fff'], 2.5,
+      { spark: true, up: 3.5, g: -0.05, size: 2.5, life: 42 });
+  }, 110);
+  await wait(1050);
+  clearInterval(chargeIv);
+  const smite = document.createElement('div');
+  smite.className = 'smite-beam';
+  smite.style.left = (bossRC.cx - cw * 1.15) + 'px';
+  smite.style.top = '0px';
+  smite.style.width = (cw * 2.3) + 'px';
+  smite.style.height = (bossRC.cy + bossRC.h * 0.6) + 'px';
+  document.body.appendChild(smite);
+  setTimeout(() => smite.remove(), 1400);
+  flash(0.95, 350); shakeStage(false); redPulse();
+  snd('/assets/sounds/comun/choque.wav', 1);
+  boss.style.animation = 'bossHit .45s ease';
+  burst(bossRC.cx, bossRC.cy, 60,
+    ['#fff3c4', '#ffd54f', '#ff9a3c', '#fff'], 9,
+    { size: 4, g: 0.12, spark: true, life: 60 });
+  hero.style.animation = '';
+  await wait(700);
+  boss.style.animation = '';
 
   // Golpe final: el boss FINAL no cae gris como un guardián más — se
   // sobrecarga de luz incandescente y estalla
@@ -542,8 +563,8 @@ async function sceneBoard() {
   setTimeout(() => { beam.remove(); halo.remove(); }, 15000);
 
   await wait(900);
-  // Canción del final del juego — la única fanfarria, una sola vez
-  // (ONESHOT_MUSIC); nada de stings sueltos por escena
+  // Canción del final del juego — en loop desde la explosión del
+  // boss hasta los créditos (que ponen su propia pista); sin stings
   AssetsCache.setMusicTrack(AssetsCache.MUSIC.fin);
   const big = document.getElementById('big-text');
   big.textContent = tt('game.victory');
@@ -560,7 +581,7 @@ async function crumbleBoard() {
   // Restos de la celebración del boss viven en <body> fuera de la escena:
   // si no se limpian aquí, el foco/halo del héroe se cuelan a las
   // siguientes escenas (su timeout de seguridad es de 15s)
-  document.querySelectorAll('.win-beam,.win-halo,.down-title,.win-flash,.win-ring,.win-spark,.win-debris,.win-dust')
+  document.querySelectorAll('.win-beam,.win-halo,.down-title,.win-flash,.win-ring,.win-spark,.win-debris,.win-dust,.smite-beam')
     .forEach(e => e.remove());
   const sc = document.getElementById('scene-board');
   const hero = document.getElementById('hero-img');
@@ -685,8 +706,8 @@ async function sceneEnd() {
   // El derrumbe de MAZMORRA (21s) aún rugiría bajo la celebración:
   // la destrucción se apaga al entrar la escena final
   fadeOutSnd(finalRumble, 2.2); finalRumble = null;
-  // El tema del final suena una sola vez desde la explosión del boss;
-  // si ya acabó, vuelve a arrancar para la coronación — todo uno
+  // El tema del final sigue en loop desde la explosión del boss —
+  // se reafirma por si algo lo cortó, sin reiniciarlo si ya suena
   AssetsCache.setMusicTrack(AssetsCache.MUSIC.fin);
   showScene('scene-end');
   const se = document.getElementById('scene-end');
