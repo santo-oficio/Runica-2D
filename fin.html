@@ -292,6 +292,7 @@
 <canvas id="fx-canvas"></canvas>
 <div class="big-text" id="big-text"></div>
 <div class="sub-text" id="sub-text"></div>
+<div id="continue-hint"></div>
 
 <script src="/assets-cache.js"></script>
 <script>
@@ -454,11 +455,12 @@ async function sceneBoard() {
     img.style.width = rc.w + 'px'; img.style.height = rc.h + 'px';
     return rc;
   };
-  // Heroe al azar en la mitad izquierda, boss en la derecha — nunca coinciden
+  // El héroe ya está junto al boss — la pelea se ganó en el tablero;
+  // la cinemática muestra el remate espectacular, no una re-pelea
   const ri = n => Math.floor(Math.random() * n);
-  let hc = ri(4), hr = ri(6);
-  let bc = 4 + ri(4), br = ri(6);
-  let heroRC = setCell(hero, hc, hr, heroCal);
+  const bc = 4 + ri(4), br = ri(6);
+  const hc = bc - 1, hr = br; // adyacente al boss, a su izquierda
+  const heroRC = setCell(hero, hc, hr, heroCal);
   const bossRC = setCell(boss, bc, br, bossCal);
 
   // Presentacion
@@ -467,26 +469,11 @@ async function sceneBoard() {
   sub.style.top = '12%';
   await wait(300); sub.classList.add('on');
   await wait(1600); sub.classList.remove('on');
+  await wait(300);
 
-  // Persecucion por casillas: el heroe avanza como en el juego
-  // (horizontal primero, luego vertical) hasta quedar junto al boss
-  hero.style.transition = 'left .3s ease, top .3s ease';
-  while (hc < bc - 1 || hr !== br) {
-    if (hc < bc - 1) hc++;
-    else if (hr < br) hr++;
-    else if (hr > br) hr--;
-    heroRC = setCell(hero, hc, hr, heroCal);
-    hero.style.animation = 'cellHop .3s ease';
-    snd('/assets/sounds/comun/move.wav', 0.4);
-    await wait(340);
-    hero.style.animation = '';
-    await wait(60);
-  }
-  await wait(350);
-
-  // Lucha: 3 golpes con destello + sacudida (gana el avatar).
-  // La embestida se calcula en px reales hacia el boss (distancia variable)
-  for (let i = 0; i < 3; i++) {
+  // Un único golpe definitivo con destello y sacudida — tras esto el
+  // boss se sobrecarga y estalla
+  {
     const dx = bossRC.cx - heroRC.cx, dy = bossRC.cy - heroRC.cy;
     const dist = Math.hypot(dx, dy) || 1;
     const reach = Math.max(0, dist - cw * 0.75); // se planta junto al boss
@@ -498,13 +485,13 @@ async function sceneBoard() {
       { transform: `translate(${ux * 0.82}px,${uy * 0.82}px) rotate(5deg)`, offset: .62 },
       { transform: 'translate(0,0) rotate(0)' },
     ], { duration: 560, easing: 'ease-in-out' });
-    snd('/assets/sounds/comun/choque.wav', 0.5);
+    snd('/assets/sounds/comun/choque.wav', 0.7);
     boss.style.animation = 'bossHit .4s ease';
     flash(0.55, 260);
     shakeStage(true);
-    await wait(520);
+    await wait(650);
     boss.style.animation = '';
-    await wait(240);
+    await wait(250);
   }
 
   // Golpe final: el boss FINAL no cae gris como un guardián más — se
@@ -886,10 +873,13 @@ async function sceneEnd() {
   setTimeout(() => clearInterval(fw), 6500);
 
   await wait(1800);
-  busy = false; // tecla/clic adelanta a los créditos antes de tiempo
-  // El final fluye solo: cuando los fuegos terminan, pasa a los créditos
-  await wait(6800);
-  if (scene === 3) advance();
+  // Todo ha acabado: espera a que el jugador pulse para continuar —
+  // de aquí se va a los créditos (Esc sigue llevando al menú)
+  const hint = document.getElementById('continue-hint');
+  hint.style.top = '93%';
+  hint.textContent = tt('instructions.continue');
+  hint.classList.add('on');
+  busy = false;
 }
 function coinRain() {
   for (let i = 0; i < 26; i++) {

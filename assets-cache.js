@@ -192,9 +192,12 @@ const MUSIC = {
 function musicForWorld(world) {
   return MUSIC.worlds[world] || MUSIC.world;
 }
-// Pistas que suenan UNA sola vez (fanfarrias): no repiten ni retoman
-// posición — al terminar vuelven a la pista principal.
-const ONESHOT_MUSIC = new Set([MUSIC.worldWin, MUSIC.fin]);
+// Pistas que suenan UNA sola vez (fanfarrias): no repiten ni en loop.
+// El valor es la pista que toma el relevo al terminar — `null` = silencio.
+const ONESHOT_MUSIC = new Map([
+  [MUSIC.worldWin, MUSIC.main], // fanfarria de boss → tema principal
+  [MUSIC.fin, null],            // canción del final → silencio (los créditos ponen la suya)
+]);
 let musicEl = null;
 // La pista activa se persiste para que cualquier pantalla retome la
 // musica correcta aunque no haya pasado por preloadAll (ej. instrucciones).
@@ -230,14 +233,22 @@ async function startMusic(url) {
   } catch {}
   musicEl.addEventListener('timeupdate', saveMusicPos);
   if (oneShot) {
-    // Al acabar la fanfarria: olvida su posición y vuelve al tema principal
+    // Al acabar la fanfarria: olvida su posición y toma el relevo la
+    // pista indicada (o queda en silencio si es null)
     musicEl.addEventListener('ended', () => {
       try {
         const map = JSON.parse(localStorage.getItem(MUSIC_POS_KEY) || '{}');
         delete map[url];
         localStorage.setItem(MUSIC_POS_KEY, JSON.stringify(map));
       } catch {}
-      setMusicTrack(MUSIC.main);
+      const next = ONESHOT_MUSIC.get(url);
+      if (next) setMusicTrack(next);
+      else {
+        // Sin relevo: la pista muere del todo (un resume posterior no
+        // debe levantar una fanfarria ya acabada)
+        musicTrack = null;
+        try { localStorage.removeItem(MUSIC_TRACK_KEY); } catch {}
+      }
     });
   }
   musicEl.play().catch(() => {});

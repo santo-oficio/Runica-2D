@@ -197,9 +197,10 @@ renderizarla igual.
 - **Música global**: `AssetsCache.startMusic()` reproduce la pista del
   manifiesto en loop y guarda la posición en `localStorage` (`runika-music-pos`)
   para retomarla entre pantallas — la música no se corta al navegar.
-  Las pistas de `ONESHOT_MUSIC` (`worldWin` = fanfarria de boss de mundo y
-  `fin` = victoria.mp3 de la cinemática final) no repiten ni en loop:
-  suenan una vez y al terminar vuelven a `MUSIC.main`.
+  Las pistas de `ONESHOT_MUSIC` (mapa pista→relevo) no repiten ni en loop:
+  `worldWin` (fanfarria de boss de mundo) acaba yendo a `MUSIC.main` y
+  `fin` (victoria.mp3 de la cinemática final) acaba en silencio — los
+  créditos ponen su propia pista.
   Los jingles `victoria.mp3`/`derrota.mp3` van por `playMusicSting`
   (pausan el loop, suenan una sola vez, retoman el loop donde quedó).
   Pistas por contexto en `MUSIC` (`assets-cache.js`): `main` (menús/mapamundi),

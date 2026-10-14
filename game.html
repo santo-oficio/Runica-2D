@@ -355,7 +355,7 @@ function backToSubmundo() {
 function afterVictory() {
   if (REAL_LEVEL === FINAL_ISLAND_IDX) {
     // Boss final de MAZMORRA: cinematica de fin de juego (fin.html)
-    if (REAL_WORLD === FINAL_WORLD) { location.href = '/fin.html?auto=1'; return; }
+    if (REAL_WORLD === FINAL_WORLD) { AssetsCache.transitionTo('/fin.html?auto=1'); return; }
     // El mapamundi celebra la conquista del mundo (animación + B/N)
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
     location.href = '/mapamundi.html';
@@ -1426,7 +1426,7 @@ function confirmWin() {
   if (DEMO_RUN) {
     closeWinModal();
     // Boss final de MAZMORRA: sigue el flujo real → cinemática de fin.html
-    if (REAL_WORLD === FINAL_WORLD) { setTimeout(() => location.href = '/fin.html?auto=1', 350); return; }
+    if (REAL_WORLD === FINAL_WORLD) { setTimeout(() => AssetsCache.transitionTo('/fin.html?auto=1'), 350); return; }
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
     setTimeout(() => location.href = '/mapamundi.html?demo=' + REAL_WORLD, 350);
     return;
@@ -1434,7 +1434,7 @@ function confirmWin() {
   if (DEMO_WIN) {
     closeWinModal();
     // Demo boss final: sigue el flujo real → cinemática de fin.html
-    if (DEMO_FINAL) { setTimeout(() => location.href = '/fin.html?auto=1', 350); return; }
+    if (DEMO_FINAL) { setTimeout(() => AssetsCache.transitionTo('/fin.html?auto=1'), 350); return; }
     // Demo boss: sigue el flujo real → mapamundi con el mundo recién
     // conquistado (celebración + drenaje a B/N), sin tocar la partida
     if (DEMO_BOSS) {
@@ -1512,17 +1512,21 @@ function winGame() {
         : tt('game.levelDone', REAL_LEVEL + 1, turn);
     renderBoardTexts();
     const gp = cellPos(goal.c, goal.r, true);
-    if (isBossWin) {
+    const isFinalWin = REAL_MODE && REAL_WORLD === FINAL_WORLD;
+    if (isFinalWin) {
+      // El boss FINAL no usa la celebración genérica de boss: muerte
+      // corta (dying + rótulo + temblores + monedas) y fundido directo
+      // a fin.html, donde continúa la cinemática espectacular
+      finalWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
+      setTimeout(() => flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, () => {}), 1100);
+      setTimeout(confirmWin, 3200);
+    } else if (isBossWin) {
       bossWinFx(gp.left + gp.w / 2, gp.top + gp.h / 2);
       // Las monedas vuelan ~2.2s tras la victoria — se cobra el tesoro del
       // guardián ANTES de que la pantalla se desquebraje (~4.6s). El modal
       // llega ~7.4s, con el mundo ya roto detrás
       setTimeout(() => flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, () => {}), 2200);
-      // El boss FINAL no es un boss normal: no hay modal de continuar —
-      // la celebración encadena directo con la cinemática de fin.html
-      // (confirmWin persiste el nivel en partida real; en demo navega)
-      const isFinalWin = REAL_MODE && REAL_WORLD === FINAL_WORLD;
-      setTimeout(isFinalWin ? confirmWin : openWinModal, 7400);
+      setTimeout(openWinModal, 7400);
     } else {
       flyGoldToHud(gp.left + gp.w / 2, gp.top + gp.h / 2, winGoldBefore, winGoldEarned, openWinModal);
     }
@@ -1531,6 +1535,23 @@ function winGame() {
   overlay.classList.add('show', 'win');
   overlaySubtitle.textContent = tt('game.practiceDone', turn);
   document.getElementById('overlay-restart').textContent = tt('game.practiceNext');
+}
+
+// Victoria del boss FINAL (MAZMORRA:11): muerte corta — el boss cae,
+// el rótulo lo corona y unos temblores sujetan el fundido hacia la
+// cinemática de fin.html. Nada de derrumbe genérico ni desquebrajado:
+// la destrucción del mundo es espectáculo de la cinemática, no del tablero.
+function finalWinFx() {
+  document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
+    .forEach(e => e.classList.add('dying'));
+  const down = document.getElementById('boss-down');
+  down.textContent = tt('game.bossDown');
+  down.classList.add('show');
+  setTimeout(() => { down.classList.remove('show'); down.textContent = ''; }, 2600);
+  shakeLayers();
+  setTimeout(shakeLayers, 420);
+  setTimeout(shakeLayers, 850);
+  playFading(crumbleAudio); // rumble que acompaña el fundido a la cinemática
 }
 
 // Sacudida de las capas del tablero (sin flash — reusable para el
