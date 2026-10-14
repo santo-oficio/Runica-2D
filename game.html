@@ -1488,14 +1488,16 @@ window.addEventListener('resize', () => { if (modalOpen) renderModal(); });
 
 function winGame() {
   gameOver = true; won = true;
-  // Victoria de boss = isla final de cualquier mundo (incl. MAZMORRA:
-  // el boss final tambien recibe la celebracion completa en el tablero)
+  // Victoria de boss = isla final de cualquier mundo (MAZMORRA incluida:
+  // ahí la celebración es la transición a la cinemática, no la genérica)
   const isBossWin = DEMO_BOSS ||
     (REAL_MODE && REAL_LEVEL === FINAL_ISLAND_IDX);
-  // Jingle de victoria — salvo en boss de mundo, que tiene su propia
-  // fanfarria (worldWin) que lo sustituiría al instante
+  // Jingle de victoria — salvo en boss de mundo (worldWin lo sustituiría)
+  // y en el boss FINAL: ahí la música de mazmorra sigue sonando y
+  // fin.html la retoma en el mismo punto — la secuencia es todo uno
   const worldFanfare = isBossWin && REAL_MODE && REAL_WORLD !== FINAL_WORLD;
-  if (!worldFanfare) AssetsCache.playMusicSting(AssetsCache.MUSIC.victoria);
+  const finalSting = isBossWin && REAL_MODE && REAL_WORLD === FINAL_WORLD;
+  if (!worldFanfare && !finalSting) AssetsCache.playMusicSting(AssetsCache.MUSIC.victoria);
   overlayTitle.textContent = tt('game.victory');
   if (REAL_MODE || DEMO_WIN) {
     if (DEMO_WIN) turn = currentMinMoves; // demo: cifra verosímil en el modal
@@ -1549,17 +1551,13 @@ function winGame() {
   document.getElementById('overlay-restart').textContent = tt('game.practiceNext');
 }
 
-// Victoria del boss FINAL (MAZMORRA:11): muerte corta — el boss cae,
-// el rótulo lo corona y unos temblores sujetan el fundido hacia la
-// cinemática de fin.html. Nada de derrumbe genérico ni desquebrajado:
-// la destrucción del mundo es espectáculo de la cinemática, no del tablero.
+// Victoria del boss FINAL (MAZMORRA:11): muerte corta — el boss cae y
+// unos temblores sujetan el fundido hacia la cinemática de fin.html.
+// Nada de rótulo ni derrumbe genérico: la celebración y la destrucción
+// del mundo son espectáculo de la cinemática, no del tablero.
 function finalWinFx() {
   document.querySelectorAll('.entity[data-type="enemy"], .entity[data-type="boss"]')
     .forEach(e => e.classList.add('dying'));
-  const down = document.getElementById('boss-down');
-  down.textContent = tt('game.bossDown');
-  down.classList.add('show');
-  setTimeout(() => { down.classList.remove('show'); down.textContent = ''; }, 2600);
   shakeLayers();
   setTimeout(shakeLayers, 420);
   setTimeout(shakeLayers, 850);
