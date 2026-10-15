@@ -145,7 +145,11 @@ let S = null; // estado de la batalla en curso
 
 function el(tag, cls, parent = document.body) {
   const e = document.createElement(tag);
-  if (cls) e.className = cls;
+  // Los textos del juego ya van traducidos desde i18n — la traducción
+  // automática del navegador solo podría mezclar idiomas encima
+  e.classList.add('notranslate');
+  e.setAttribute('translate', 'no');
+  if (cls) e.className += ' ' + cls;
   parent.appendChild(e);
   S.trash.push(e);
   return e;

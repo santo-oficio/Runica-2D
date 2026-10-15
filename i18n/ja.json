@@ -1,5 +1,6 @@
 {
   "menu.title": "RUNIKA 2D",
+  "exit.closed": "ゲームは終了しました。このタブを閉じてください。",
   "menu.subtitle": "無限の冒険",
   "menu.newGame": "新しいゲーム",
   "menu.continue": "続きから",
@@ -33,7 +34,6 @@
   "credits.title": "クレジット",
   "credits.design": "デザイン・コード・パズル — Javier Q.",
   "credits.inspired": "Monkey Islandの美学とRon Gilbertのアドベンチャーに影響を受けて",
-  "credits.wappo": "ゲームシステムはSoftex Digitalの傑作「Wappo」に着想",
   "credits.back": "戻る",
   "worlds.ESPACIO": "宇宙",
   "worlds.AGUA": "水",
@@ -120,6 +120,7 @@
   "game.bossTitle": "ワールド制覇",
   "game.bossBody": "おめでとう！{0}の守護者を{1}ターンで倒した",
   "game.bossDown": "守護者撃破",
+  "game.loadError": "画面を読み込めませんでした",
   "board.level": "レベル {0}",
   "board.levelOf": "レベル {0} / {1}",
   "game.go": "いけ！",

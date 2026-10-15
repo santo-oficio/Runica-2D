@@ -1,5 +1,6 @@
 {
   "menu.title": "RUNIKA 2D",
+  "exit.closed": "Игра закрыта. Можешь закрыть эту вкладку.",
   "menu.subtitle": "Бесконечное приключение",
   "menu.newGame": "Новая игра",
   "menu.continue": "Продолжить",
@@ -33,7 +34,6 @@
   "credits.title": "Титры",
   "credits.design": "Дизайн, код и головоломки — Javier Q.",
   "credits.inspired": "Вдохновлено эстетикой Monkey Island и приключениями Рона Гилберта",
-  "credits.wappo": "Механика вдохновлена Wappo — той самой жемчужиной от Softex Digital",
   "credits.back": "Назад",
   "worlds.ESPACIO": "Космос",
   "worlds.AGUA": "Вода",
@@ -120,6 +120,7 @@
   "game.bossTitle": "Мир покорён",
   "game.bossBody": "Поздравляем, ты победил стража {0} за {1} ходов",
   "game.bossDown": "Страж повержен",
+  "game.loadError": "Не удалось загрузить экран",
   "board.level": "Уровень {0}",
   "board.levelOf": "Уровень {0} из {1}",
   "game.go": "Вперёд!",

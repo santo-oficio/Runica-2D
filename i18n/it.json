@@ -1,5 +1,6 @@
 {
   "menu.title": "RUNIKA 2D",
+  "exit.closed": "Il gioco è stato chiuso. Puoi chiudere questa scheda.",
   "menu.subtitle": "Avventura Infinita",
   "menu.newGame": "Nuova Partita",
   "menu.continue": "Continua",
@@ -33,7 +34,6 @@
   "credits.title": "Crediti",
   "credits.design": "Design, codice ed enigmi — Javier Q.",
   "credits.inspired": "Ispirato all’estetica di Monkey Island e alle avventure di Ron Gilbert",
-  "credits.wappo": "Meccanica ispirata a Wappo, quel gioiellino di Softex Digital",
   "credits.back": "Indietro",
   "worlds.ESPACIO": "Spazio",
   "worlds.AGUA": "Acqua",
@@ -120,6 +120,7 @@
   "game.bossTitle": "Mondo conquistato",
   "game.bossBody": "Congratulazioni, hai sconfitto il guardiano {0} in {1} turni",
   "game.bossDown": "Guardiano sconfitto",
+  "game.loadError": "Impossibile caricare la schermata",
   "board.level": "Livello {0}",
   "board.levelOf": "Livello {0} di {1}",
   "game.go": "VIA!",

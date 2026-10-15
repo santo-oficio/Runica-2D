@@ -1,5 +1,6 @@
 {
   "menu.title": "RUNIKA 2D",
+  "exit.closed": "Oyun kapandı. Bu sekmeyi kapatabilirsin.",
   "menu.subtitle": "Sonsuz Macera",
   "menu.newGame": "Yeni Oyun",
   "menu.continue": "Devam Et",
@@ -33,7 +34,6 @@
   "credits.title": "Künye",
   "credits.design": "Tasarım, kod ve bulmacalar — Javier Q.",
   "credits.inspired": "Monkey Island'ın estetiğinden ve Ron Gilbert'ın maceralarından ilhamla",
-  "credits.wappo": "Oynanış, Softex Digital'ın küçük incisi Wappo'dan ilhamla",
   "credits.back": "Geri",
   "worlds.ESPACIO": "Uzay",
   "worlds.AGUA": "Su",
@@ -120,6 +120,7 @@
   "game.bossTitle": "Dünya fethedildi",
   "game.bossBody": "Tebrikler, {0} muhafızını {1} turda yendin",
   "game.bossDown": "Muhafız yenildi",
+  "game.loadError": "Ekran yüklenemedi",
   "board.level": "Seviye {0}",
   "board.levelOf": "Seviye {0} / {1}",
   "game.go": "Hadi!",

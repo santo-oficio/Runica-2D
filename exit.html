@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="google" content="notranslate">
 <title>Runika 2D</title>
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
@@ -19,11 +20,15 @@
 </style>
 </head>
 <body>
-<div id="closed">El juego se ha cerrado. Puede cerrar esta pestana.</div>
+<div id="closed"></div>
 <script>
   // Intentar cerrar la ventana
   try { window.close(); } catch {}
   // Si no se cerro, la pagina se queda en negro
+  fetch('/api/i18n').then(r => r.json()).then(tr => {
+    const d = document.getElementById('closed');
+    d.textContent = tr['exit.closed'] || '';
+  }).catch(() => {});
 </script>
 </body>
 </html>

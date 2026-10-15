@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Runika 2D — Submundo</title>
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
@@ -161,7 +162,9 @@
     background: rgba(0,0,0,0.7); padding: 8px 14px;
     border-radius: 4px; font-family: 'ChelseaMarket', cursive;
     font-size: 0.8em; color: #aaa; line-height: 1.7;
+    display: none;
   }
+  #hud.debug { display: block; }
   #hud .key { color: #fc4; }
   #hud b { color: #0ff; }
   #hud .green { color: #0f0; }
@@ -189,7 +192,7 @@
 <div id="loading-screen">
   <div class="title">RUNIKA 2D</div>
   <div id="loading-bar-bg"><div id="loading-bar"></div></div>
-  <div id="loading-text">Cargando... 0%</div>
+  <div id="loading-text"></div>
 </div>
 
 <div id="transition-overlay"></div>
@@ -586,6 +589,7 @@
   (async () => {
     // Obtener mundo de la URL
     const params = new URLSearchParams(window.location.search);
+    if (params.has('debug')) document.getElementById('hud').classList.add('debug');
     currentWorld = params.get('world') || 'ESPACIO';
     if (!WORLD_ORDER.includes(currentWorld)) currentWorld = 'ESPACIO';
     // Progreso de la bbdd: ultima isla jugada + islas completadas
@@ -608,13 +612,16 @@
     bg.addEventListener('error', () => onBgReady(100), { once: true });
     setTimeout(() => onBgReady(100), 8000);
 
+    // Idioma y ajustes ANTES de la carga: así la pantalla de carga ya
+    // muestra los textos traducidos (nunca un literal)
+    await AssetsCache.loadSettings();
+    AssetsCache.setMusicTrack(AssetsCache.musicForWorld(currentWorld));
+    fallback = await loadLang('es');
+    translations = await loadLang();
+    applyI18n();
+
     if (sessionStorage.getItem('runika-session') === 'active') {
       AssetsCache.unlockAudio();
-      await AssetsCache.loadSettings();
-      AssetsCache.setMusicTrack(AssetsCache.musicForWorld(currentWorld));
-      fallback = await loadLang('es');
-      translations = await loadLang();
-      applyI18n();
       bg.src = WORLD_IMAGES[currentWorld];
       await loadPositions(currentWorld);
       await loadTextAreas(currentWorld);
@@ -629,14 +636,9 @@
     await AssetsCache.preloadAll((loaded, total) => {
       const pct = Math.round((loaded / total) * 100);
       loadingBar.style.width = pct + '%';
-      loadingText.textContent = 'Cargando... ' + pct + '%';
+      loadingText.textContent = t('loading.text') + ' ' + pct + '%';
     });
 
-    await AssetsCache.loadSettings();
-    AssetsCache.setMusicTrack(AssetsCache.musicForWorld(currentWorld));
-    fallback = await loadLang('es');
-    translations = await loadLang();
-    applyI18n();
     bg.src = WORLD_IMAGES[currentWorld];
     await loadPositions(currentWorld);
     await loadTextAreas(currentWorld);

@@ -1,5 +1,6 @@
 {
   "menu.title": "RUNIKA 2D",
+  "exit.closed": "The game has closed. You can close this tab.",
   "menu.subtitle": "Endless Adventure",
   "menu.newGame": "New Game",
   "menu.continue": "Continue",
@@ -33,7 +34,6 @@
   "credits.title": "Credits",
   "credits.design": "Design, code and puzzles — Javier Q.",
   "credits.inspired": "Inspired by the look and feel of Monkey Island and Ron Gilbert’s adventures",
-  "credits.wappo": "Mechanics inspired by Wappo, that little gem by Softex Digital",
   "credits.back": "Back",
   "worlds.ESPACIO": "Space",
   "worlds.AGUA": "Water",
@@ -120,6 +120,7 @@
   "game.bossTitle": "World conquered",
   "game.bossBody": "Congratulations, you defeated the guardian {0} in {1} turns",
   "game.bossDown": "Guardian defeated",
+  "game.loadError": "The screen could not be loaded",
   "board.level": "Level {0}",
   "board.levelOf": "Level {0} of {1}",
   "game.go": "GO!",

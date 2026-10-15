@@ -1,5 +1,6 @@
 {
   "menu.title": "RUNIKA 2D",
+  "exit.closed": "Gra została zamknięta. Możesz zamknąć tę kartę.",
   "menu.subtitle": "Nieskończona przygoda",
   "menu.newGame": "Nowa gra",
   "menu.continue": "Kontynuuj",
@@ -33,7 +34,6 @@
   "credits.title": "Twórcy",
   "credits.design": "Projekt, kod i łamigłówki — Javier Q.",
   "credits.inspired": "Zainspirowana estetyką Monkey Island i przygodami Rona Gilberta",
-  "credits.wappo": "Mechanika inspirowana Wappo — tym małym klejnocie od Softex Digital",
   "credits.back": "Wróć",
   "worlds.ESPACIO": "Kosmos",
   "worlds.AGUA": "Woda",
@@ -120,6 +120,7 @@
   "game.bossTitle": "Świat podbity",
   "game.bossBody": "Gratulacje, pokonałeś strażnika {0} w {1} turach",
   "game.bossDown": "Strażnik pokonany",
+  "game.loadError": "Nie udało się wczytać planszy",
   "board.level": "Poziom {0}",
   "board.levelOf": "Poziom {0} z {1}",
   "game.go": "Jazda!",
