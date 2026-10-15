@@ -24,8 +24,18 @@ import {
   setLevelPosition,
   getLevelScreen,
   completeLevel,
+  getScreenById,
+  getScreenAt,
+  indexOfScreen,
+  tierSize,
   FIRST_TIER,
 } from "./db/db.js";
+import {
+  screenToLevelData,
+  solvePath,
+  nextMoveFrom,
+  countSolutionsOfMinLength,
+} from "./generator/generate-screens.js";
 
 const PORT = 3000;
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -1036,6 +1046,108 @@ const server = http.createServer((req, res) => {
     const screen = getRandomScreenByTier(tier);
     res.writeHead(screen ? 200 : 404, { "Content-Type": "application/json" });
     res.end(JSON.stringify(screen ? { ok: true, screen, tier } : { ok: false, error: "Tier sin pantallas" }));
+    return;
+  }
+
+  // ── API consola de hacks: navegar el banco, resolver y pedir pistas ────────
+
+  // GET /api/screen?id=l7-s12  |  ?tier=7&index=12
+  if (url.startsWith("/api/screen") && !url.startsWith("/api/screen-nav")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const id = u.searchParams.get("id");
+    const tier = u.searchParams.get("tier");
+    const index = u.searchParams.get("index");
+    const screen = id
+      ? getScreenById(id)
+      : tier !== null && index !== null
+        ? getScreenAt(Number(tier) || 0, Number(index) || 0)
+        : null;
+    res.writeHead(screen ? 200 : 404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(screen ? { ok: true, screen } : { ok: false, error: "Pantalla no encontrada" }));
+    return;
+  }
+
+  // GET /api/screen-nav?id=l7-s12&dir=next|prev → pantalla adyacente en el banco de su tier
+  if (url.startsWith("/api/screen-nav")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const id = u.searchParams.get("id") ?? "";
+    const dir = u.searchParams.get("dir") === "prev" ? -1 : 1;
+    const cur = getScreenById(id);
+    const idx = cur ? indexOfScreen(cur) : -1;
+    const screen = cur && idx >= 0 ? getScreenAt(cur.level, idx + dir) : null;
+    res.writeHead(screen ? 200 : 404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(screen ? { ok: true, screen } : { ok: false, error: "Sin pantalla adyacente" }));
+    return;
+  }
+
+  // GET /api/tier-size?tier=7 → tamaño del banco
+  if (url.startsWith("/api/tier-size")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const tier = Number(u.searchParams.get("tier") ?? "0") || 0;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, tier, size: tierSize(tier) }));
+    return;
+  }
+
+  // GET /api/solve-screen?id=l7-s12 → solución BFS del puzzle
+  // {ok, par, trueMin, sols:[n_par,n_par-1,n_par-2], moves:[[dc,dr]…], path:[[c,r]…]}
+  if (url.startsWith("/api/solve-screen")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const screen = getScreenById(u.searchParams.get("id") ?? "");
+    if (!screen) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Pantalla no encontrada" }));
+      return;
+    }
+    const lv = screenToLevelData(screen);
+    const sol = solvePath(lv);
+    const path = sol.solvable && sol.path ? sol.path : null;
+    const par = screen.par ?? sol.length ?? 0;
+    const sols = screen.sols ?? (sol.solvable
+      ? [par, par - 1, par - 2].map((len) => countSolutionsOfMinLength(lv, len))
+      : null);
+    const moves: Array<[number, number]> = [];
+    const cells: Array<[number, number]> = [];
+    if (path) {
+      for (const idx of path) cells.push([idx % 8, Math.floor(idx / 8)]);
+      for (let i = 1; i < path.length; i++) {
+        const prev = path[i - 1]!;
+        const cur = path[i]!;
+        if (cur !== prev) moves.push([(cur % 8) - (prev % 8), Math.floor(cur / 8) - Math.floor(prev / 8)]);
+      }
+    }
+    res.writeHead(path ? 200 : 404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(path
+      ? { ok: true, par, trueMin: screen.trueMin ?? sol.length, sols, moves, path: cells }
+      : { ok: false, error: "Sin solución" }));
+    return;
+  }
+
+  // GET /api/hint?id=…&p=c,r&e=c,r,c,r&ps=0&es=0,0 → siguiente movimiento desde el estado actual
+  if (url.startsWith("/api/hint")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const screen = getScreenById(u.searchParams.get("id") ?? "");
+    const parsePair = (s: string | null): [number, number] | null => {
+      const m = s?.match(/^(-?\d+),(-?\d+)$/);
+      return m ? [Number(m[1]), Number(m[2])] : null;
+    };
+    const p = parsePair(u.searchParams.get("p"));
+    const eRaw = (u.searchParams.get("e") ?? "")
+      .split(";")
+      .map(parsePair)
+      .filter((e): e is [number, number] => e !== null);
+    const ps = Number(u.searchParams.get("ps") ?? "0") || 0;
+    const es = (u.searchParams.get("es") ?? "").split(",").map((n) => Number(n) || 0);
+    if (!screen || !p) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "Parámetros inválidos" }));
+      return;
+    }
+    const lv = screenToLevelData(screen);
+    const idx = (cr: [number, number]) => cr[1] * 8 + cr[0];
+    const move = nextMoveFrom(lv, { p: idx(p), e: eRaw.map(idx), s: es, ps });
+    res.writeHead(move ? 200 : 404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(move ? { ok: true, move: [move.dc, move.dr], remaining: move.remaining } : { ok: false, error: "Sin ruta desde aquí" }));
     return;
   }
 

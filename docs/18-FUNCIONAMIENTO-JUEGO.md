@@ -46,7 +46,7 @@
 | `lastWorld` | último mundo seleccionado en el mapamundi |
 | `worldProgress.<M>.last` | última isla jugada del mundo (completada o no) |
 | `worldProgress.<M>.completed` | islas completadas del mundo |
-| `gameLevel` | nivel de juego actual = **tier 4..14** por pantallas superadas (`tierForCompleted`); la última isla de MAZMORRA usa el **tier 15** exclusivo (`FINAL_TIER`) |
+| `gameLevel` | nivel de juego actual = **tier 3..14** por pantallas superadas (`tierForCompleted`); la última isla de MAZMORRA usa el **tier 15** exclusivo (`FINAL_TIER`) |
 | `currentWorld`, `currentSubLevel`, `totalStagesCompleted` | modelo lineal legacy (1..15) |
 
 APIs de progreso: `/api/map-position`, `/api/level-position`,
@@ -77,8 +77,8 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
   correspondiente (`mapTierFor`: misma pantalla hasta completar la isla;
   excepción — `world=MAZMORRA&level=11` siempre usa el **tier 15**, el banco
   exclusivo del boss final `db/screens-tier-15.json`).
-- El **nivel de juego** mostrado es el **tier por progreso** (1..14; 15 en el boss final):
-  niveles 1–3 de 3 pantallas, luego `floor((c-9) × 11 / 87) + 4` — depende
+- El **nivel de juego** mostrado es el **tier por progreso** (3..14; 15 en el boss final):
+  `min(14, 3 + floor(c × 12 / 96))`, 8 islas por tier — depende
   del contador global, no de la isla/mundo (los mundos se juegan libremente).
 - Textos en áreas calibradas (`text-areas.json` del mundo): `turn`/`nTurn`
   (turno actual), `optimal`/`nOptimal` (movimientos mínimos del solver),

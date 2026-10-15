@@ -42,6 +42,12 @@ export interface Screen {
   obstacles: [number, number][];
   traps: [number, number][];
   minMoves: number;
+  /** Jugada óptima mostrada (par): mínimo real +1/2. Generada por el generador nuevo. */
+  par?: number;
+  /** Mínimo real BFS de la solución óptima. */
+  trueMin?: number;
+  /** Conteos de soluciones [par, par-1, par-2] (capado). */
+  sols?: number[];
 }
 
 export type ProgressStatus = "in_use" | "completed";
@@ -99,8 +105,8 @@ export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
 export const TOTAL_TIERS = 14;
 /** Tier exclusivo del boss final (ultima isla de MAZMORRA): fuera de la curva. */
 export const FINAL_TIER = 15;
-/** Tier de dificultad inicial: la partida siempre empieza en el nivel 4. */
-export const FIRST_TIER = 4;
+/** Tier de dificultad inicial: la partida siempre empieza en el nivel 3. */
+export const FIRST_TIER = 3;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
 export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
@@ -114,10 +120,10 @@ export function stageFor(world: number, subLevel: number): number {
 }
 
 /**
- * Tier de dificultad (4..14) según el Nº DE PANTALLAS SUPERADAS, no la
+ * Tier de dificultad (3..14) según el Nº DE PANTALLAS SUPERADAS, no la
  * posición en el mapa (los mundos se juegan en orden libre). La partida
- * siempre empieza en el tier 4 y los 96 escenarios se reparten de forma
- * uniforme entre los 11 tiers restantes (~8-9 islas por tier).
+ * siempre empieza en el tier 3 y los 96 escenarios se reparten de forma
+ * uniforme entre los 12 tiers (8 islas por tier).
  */
 export function tierForCompleted(completed: number): number {
   const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
@@ -528,4 +534,27 @@ export function getScreenById(id: string): Screen | null {
   const tier = Number(match[1]);
   const pool = ensureTierLoaded(tier);
   return pool.find((s) => s.id === id) ?? null;
+}
+
+/** Pantalla en la posición `index` del banco de un tier (para next/prev de la consola). */
+export function getScreenAt(tier: number, index: number): Screen | null {
+  const pool = ensureTierLoaded(tier);
+  if (pool.length === 0) return null;
+  const i = ((index % pool.length) + pool.length) % pool.length;
+  return pool[i] ?? null;
+}
+
+/** Índice de una pantalla dentro del banco de su tier (-1 si no está). */
+export function indexOfScreen(screen: Screen): number {
+  const pool = ensureTierLoaded(screen.level);
+  return pool.findIndex((s) => s.id === screen.id);
+}
+
+/** Número de pantallas del banco de un tier (0 si no existe el archivo). */
+export function tierSize(tier: number): number {
+  try {
+    return ensureTierLoaded(tier).length;
+  } catch {
+    return 0;
+  }
 }

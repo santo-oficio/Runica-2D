@@ -43,10 +43,10 @@ function main() {
       const seed = tier.level * 10_000 + attempt;
       const result = generateLevel(tier, seed, 500);
       if (result !== null) {
-        // Preferir niveles con longitud cercana al centro del rango
+        // Preferir niveles con par cercano al centro del rango
         const center = (tier.minSolutionLen[0] + tier.minSolutionLen[1]) / 2;
-        if (best === null || Math.abs(result.length - center) < Math.abs(best.length - center)) {
-          best = result;
+        if (best === null || Math.abs(result.par - center) < Math.abs(best.length - center)) {
+          best = { lv: result.lv, length: result.par };
         }
       }
     }

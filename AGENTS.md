@@ -13,7 +13,7 @@ npx tsx server.ts  # juego y calibradores en http://localhost:3000
 ## Modo práctica (`game.html`)
 
 `http://localhost:3000/game.html` — modo práctica que elige una pantalla
-**al azar** del tier 4 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
+**al azar** del tier 3 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
 mundo al azar. **No guarda nada en la bbdd** (solo lectura).
 
 Controles: `Flechas/WASD` mover · `R` otra pantalla · `Espacio` cambiar mundo ·
@@ -364,14 +364,26 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   - **No es obligatorio mostrar todas** las imágenes del mundo en cada pantalla; basta con las que el nivel genere.
   - Si un mundo no tiene carpeta de obstáculos, se usa una imagen de marcador (placeholder) y se documenta el faltante.
   - Mapeo de carpetas especiales: `VIENTO` → `assets/obstaculos/AIRE/`.
-- **Progresión de dificultad**: 8 mundos × 12 islas = 96 pantallas, repartidas en los tiers **5..14** (la partida
-  siempre empieza en el nivel 4) según el **nº de pantallas superadas** —
-  `min(14, 4 + floor(c × 11 / 96))`, ~8-9 islas por tier. NO depende de la
+- **Progresión de dificultad**: 8 mundos × 12 islas = 96 pantallas, repartidas en los tiers **3..14** (la partida
+  siempre empieza en el nivel 3) según el **nº de pantallas superadas** —
+  `min(14, 3 + floor(c × 12 / 96))`, 8 islas por tier. NO depende de la
   isla/mundo (los mundos se juegan en orden libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
   **Excepción — boss final**: la última isla de MAZMORRA (`level=11`) usa el
   **tier 15**, exclusivo y fuera de la curva (`mapTierFor` en `db/db.ts`).
-  Su banco es `db/screens-tier-15.json` (5.000 pantallas, 3 enemigos,
-  4-6 obstáculos, 3-4 trampas, solución óptima 15-22 pasos).
+  Su banco es `db/screens-tier-15.json`.
+- **Generador de niveles** (`generator/generate-screens.ts`): rediseñado —
+  máx. 2 enemigos (separación Manhattan ≥4 entre ellos, colocación táctica
+  en el tramo final del camino), todo elemento imprescindible (quitarlo
+  rompe o cambia el óptimo), "jugada óptima" = par = mínimo real +1/+2
+  (bateable), par ≥12 desde tier 7, uso de tablero ≥35% desde tier 7,
+  mín. 2 obstáculos desde tier 4, sin camino directo, dedupe por
+  simetrías (espejo H/V + 180°), conteo de soluciones par/par−1/par−2.
+  El tier 1 se enumera exhaustivamente (espacio completo ≈ 32 puzzles).
+  Reglas completas: `docs/16-DISENADOR-NIVELES-TIERS.md`.
+- **Consola de hacks** (`game.html`): `Tab` abre/cierra panel inferior
+  semitransparente; comandos `help level complete next prev seed restart
+  undo optimal turns hint solutions god speed debug clear`. Endpoints
+  `/api/screen`, `/api/screen-nav`, `/api/solve-screen`, `/api/hint`.
 - **A fuego — sin textos hardcodeados**: ningún texto visible al usuario puede estar
   escrito directamente en el código (HTML, TS, etc.). Todo texto debe venir de
   archivos de idioma en `i18n/` (`es.json`, `en.json`, `fr.json`, `de.json`,

@@ -1,38 +1,38 @@
 ﻿/**
  * Generador de pantallas (screens) para el banco local — Runika 2D.
  *
- * Porta fielmente el pipeline original del diseñador de niveles
- * (generator/simulator/solver en Python) a TypeScript:
+ * Rediseño de niveles (ver docs/16-DISENADOR-NIVELES-TIERS.md):
  *
- *  - 14 tiers de dificultad con rangos parametrizados (enemigos, obstáculos,
- *    trampas, longitud de solución, distancia mínima enemigo-jugador).
- *  - Colocación aleatoria con bias hacia el camino directo jugador→salida.
- *  - Pruning de elementos redundantes: cada obstáculo/trampa/enemigo debe
- *    ser funcional (su eliminación cambia la resolubilidad, la longitud
- *    óptima, o la libertad del jugador a profundidad óptima).
- *  - Validación final: longitud de solución en rango del tier, al menos un
- *    enemigo presente, todos los elementos funcionales.
- *  - Solver BFS determinista que replica LITERALMENTE las reglas del motor
- *    (engine/rules.ts): movimiento ortogonal, enemigo CHASE 2 sub-pasos
- *    por turno, trampa aturde 3 turnos, colisión = derrota.
+ *  - 15 tiers de dificultad con rangos parametrizados. La partida empieza
+ *    en el tier 3 (FIRST_TIER en db/db.ts); los tiers 1-2 existen solo en
+ *    el banco para práctica/futuro.
+ *  - "Jugada óptima" mostrada = PAR: el mínimo real (BFS) + 1 o +2, de modo
+ *    que el jugador SIEMPRE pueda batir el número mostrado. Se exige
+ *    solución en TODA longitud entre el mínimo real y el par.
+ *  - Máximo 2 enemigos por pantalla (3 solo estaría permitido en bosses
+ *    desde dificultad ~10-11, y hoy no se usa: el boss final prefiere
+ *    laberinto + trampas). Con ≥2 enemigos, distancia Manhattan entre
+ *    ellos ≥ 4 y con sentido táctico (cubren tramos distintos del camino).
+ *  - Todo elemento es NECESARIO: quitarlo cambia la resolubilidad o el
+ *    mínimo real. Si tras el pruning faltan obstáculos para el mínimo del
+ *    tier, se buscan colocaciones alternativas que sí condicionen la
+ *    solución; si no se encuentran, se descarta la pantalla.
+ *  - Desde el tier 7: par mínimo 12 y uso del tablero ≥ MIN_BOARD_USE
+ *    (casillas del recorrido óptimo ∪ elementos / 48).
+ *  - Ningún nivel se resuelve por el camino geométrico directo: el mínimo
+ *    real debe superar la distancia BFS del tablero vacío.
+ *  - Dedupe por clave canónica incluyendo las 4 simetrías válidas del
+ *    tablero 8×6 (espejo H, espejo V, rotación 180°).
+ *  - Motor determinista: una pasada del solver BFS demuestra resolubilidad
+ *    (explora todo el espacio de estados) — más fuerte que 100 simulaciones.
  *
  * Tablero fijo 8×6 (8 columnas × 6 filas).
- *
- * Reglas del juego (docs/11-REGLAS-JUEGO-ORIGINAL.md):
- *  - Jugador: 1 casilla/turno, ortogonal.
- *  - Enemigo CHASE: 2 sub-pasos/turno, horizontal primero, luego vertical.
- *  - Todo enemigo persigue (no hay enemigos estáticos).
- *  - Obstáculo (X): bloquea a ambos.
- *  - Trampa (T): aturde 3 turnos a quien la pisa (jugador o enemigo).
- *  - Salida (G): victoria inmediata al llegar (antes del movimiento enemigo).
- *  - Contacto con enemigo: derrota.
- *  - Movimiento inválido (pared/obstáculo/límite): no cuenta como turno.
- *  - Sin solapamiento inicial: ninguna casilla con más de un item.
  */
 
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { spawn } from "node:child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -41,11 +41,19 @@ const W = 8;
 const H = 6;
 const CELLS = W * H;
 
-// Pantallas por tier: 50k para tiers 1-9, 5k para tiers 10-15
-// (el 15 incluido: solo sirve al boss final de MAZMORRA).
-function screensForTier(tierLevel: number): number {
-  return tierLevel <= 9 ? 50000 : 5000;
-}
+/** Pantallas por tier: 100.000 según rediseño de niveles. */
+export const SCREENS_PER_TIER = 100_000;
+
+/**
+ * Uso mínimo del tablero desde el tier 7: fracción de las 48 casillas
+ * cubiertas por (casillas del camino óptimo ∪ enemigos ∪ obstáculos ∪
+ * trampas ∪ jugador ∪ salida). Medido real: ver docs/16.
+ */
+export const MIN_BOARD_USE = 0.35;
+/** Tier desde el que se exige el uso mínimo del tablero. */
+export const BOARD_USE_FROM_TIER = 7;
+/** Tier desde el que el par mínimo es 12 (minSolutionLen ya lo refleja). */
+export const MIN_PAR_T12_FROM_TIER = 7;
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -63,7 +71,10 @@ export interface Screen {
   enemies: { pos: [number, number]; pattern: Pattern }[];
   obstacles: [number, number][];
   traps: [number, number][];
+  /** Par mostrado como "jugada óptima" = mínimo real + 1 o +2 (bateable). */
   minMoves: number;
+  /** Soluciones distintas en [par, par-1, par-2] (cap 50 por entrada). */
+  sols?: [number, number, number];
 }
 
 export interface Tier {
@@ -71,35 +82,42 @@ export interface Tier {
   numEnemies: number;
   numObstacles: [number, number]; // (min, max)
   numTraps: [number, number];
-  minSolutionLen: [number, number]; // rango aceptable de longitud óptima
+  minSolutionLen: [number, number]; // rango del PAR mostrado
   minEnemyPlayerDist: number;
+  minEnemyEnemyDist: number; // ≥4 cuando numEnemies ≥ 2
 }
 
 // ---------------------------------------------------------------------------
-// 15 tiers de dificultad (los 14 primeros portados del generator.py original).
-// El tier 15 es exclusivo del boss final (ultima isla de MAZMORRA): no sale en
-// la curva de progresion, solo lo pide el servidor para esa pantalla.
+// 15 tiers de dificultad (rediseño).
+//
+// Par = "jugada óptima" mostrada. El mínimo real es par−1 o par−2.
+// Escala del par: progresiva +1/+2 por tier hasta el 6; desde el 7 el
+// mínimo salta a 12 turnos (regla del rediseño).
+// Enemigos: 1 hasta el tier 5, 2 a partir del 6. Máximo 2 en todo el juego
+// (3 solo permitido en bosses desde dificultad ~10-11 — no se usa).
+// Obstáculos: mínimo 2 desde el tier 4 (regla), todos necesarios.
 // ---------------------------------------------------------------------------
 
 export const TIERS: Tier[] = [
-  { level: 1, numEnemies: 1, numObstacles: [0, 1], numTraps: [0, 0], minSolutionLen: [4, 7], minEnemyPlayerDist: 4 },
-  { level: 2, numEnemies: 1, numObstacles: [1, 2], numTraps: [0, 0], minSolutionLen: [5, 8], minEnemyPlayerDist: 4 },
-  { level: 3, numEnemies: 1, numObstacles: [1, 2], numTraps: [0, 1], minSolutionLen: [6, 9], minEnemyPlayerDist: 4 },
-  { level: 4, numEnemies: 1, numObstacles: [1, 3], numTraps: [0, 1], minSolutionLen: [6, 10], minEnemyPlayerDist: 4 },
-  { level: 5, numEnemies: 1, numObstacles: [2, 3], numTraps: [1, 1], minSolutionLen: [7, 11], minEnemyPlayerDist: 4 },
-  { level: 6, numEnemies: 2, numObstacles: [2, 3], numTraps: [1, 1], minSolutionLen: [8, 12], minEnemyPlayerDist: 3 },
-  { level: 7, numEnemies: 2, numObstacles: [2, 3], numTraps: [1, 2], minSolutionLen: [9, 13], minEnemyPlayerDist: 3 },
-  { level: 8, numEnemies: 2, numObstacles: [2, 4], numTraps: [1, 2], minSolutionLen: [9, 13], minEnemyPlayerDist: 3 },
-  { level: 9, numEnemies: 2, numObstacles: [2, 4], numTraps: [1, 2], minSolutionLen: [10, 14], minEnemyPlayerDist: 3 },
-  { level: 10, numEnemies: 2, numObstacles: [3, 4], numTraps: [2, 2], minSolutionLen: [10, 15], minEnemyPlayerDist: 3 },
-  { level: 11, numEnemies: 3, numObstacles: [3, 4], numTraps: [2, 3], minSolutionLen: [11, 16], minEnemyPlayerDist: 3 },
-  { level: 12, numEnemies: 3, numObstacles: [3, 4], numTraps: [2, 3], minSolutionLen: [12, 17], minEnemyPlayerDist: 3 },
-  { level: 13, numEnemies: 3, numObstacles: [3, 5], numTraps: [2, 3], minSolutionLen: [13, 18], minEnemyPlayerDist: 3 },
-  { level: 14, numEnemies: 3, numObstacles: [3, 5], numTraps: [2, 3], minSolutionLen: [14, 20], minEnemyPlayerDist: 3 },
-  // Boss final: solo 2 enemigos pero tablero mucho mas denso y soluciones
-  // mas largas — la dificultad viene del laberinto y las trampas, no del
-  // numero de perseguidores (medido: ~97% de aceptacion, media ~20 movimientos)
-  { level: 15, numEnemies: 2, numObstacles: [5, 7], numTraps: [4, 5], minSolutionLen: [16, 24], minEnemyPlayerDist: 3 },
+  { level: 1,  numEnemies: 1, numObstacles: [0, 1], numTraps: [0, 0], minSolutionLen: [4, 6],  minEnemyPlayerDist: 3, minEnemyEnemyDist: 0 },
+  { level: 2,  numEnemies: 1, numObstacles: [0, 2], numTraps: [0, 1], minSolutionLen: [5, 7],  minEnemyPlayerDist: 3, minEnemyEnemyDist: 0 },
+  { level: 3,  numEnemies: 1, numObstacles: [1, 2], numTraps: [0, 1], minSolutionLen: [6, 8],  minEnemyPlayerDist: 4, minEnemyEnemyDist: 0 },
+  { level: 4,  numEnemies: 1, numObstacles: [2, 3], numTraps: [0, 1], minSolutionLen: [7, 9],  minEnemyPlayerDist: 4, minEnemyEnemyDist: 0 },
+  { level: 5,  numEnemies: 1, numObstacles: [2, 3], numTraps: [1, 1], minSolutionLen: [8, 10], minEnemyPlayerDist: 4, minEnemyEnemyDist: 0 },
+  { level: 6,  numEnemies: 2, numObstacles: [2, 4], numTraps: [1, 2], minSolutionLen: [10, 14], minEnemyPlayerDist: 4, minEnemyEnemyDist: 4 },
+  // Desde el tier 7 el par mínimo es 12: en tablero abierto el mínimo real
+  // casi nunca llega — hacen falta tableros densos (más obstáculos y
+  // trampas, todos necesarios) para forzar los rodeos largos.
+  { level: 7,  numEnemies: 2, numObstacles: [4, 8],  numTraps: [2, 4], minSolutionLen: [12, 16], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 8,  numEnemies: 2, numObstacles: [4, 9],  numTraps: [2, 4], minSolutionLen: [13, 18], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 9,  numEnemies: 2, numObstacles: [5, 9],  numTraps: [2, 5], minSolutionLen: [14, 19], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 10, numEnemies: 2, numObstacles: [5, 10], numTraps: [2, 5], minSolutionLen: [15, 20], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 11, numEnemies: 2, numObstacles: [5, 10], numTraps: [3, 6], minSolutionLen: [16, 21], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 12, numEnemies: 2, numObstacles: [5, 11], numTraps: [3, 6], minSolutionLen: [17, 22], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 13, numEnemies: 2, numObstacles: [5, 11], numTraps: [3, 7], minSolutionLen: [18, 24], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 14, numEnemies: 2, numObstacles: [5, 12], numTraps: [3, 7], minSolutionLen: [19, 25], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  // Boss final: 2 enemigos + laberinto denso de obstáculos/trampas.
+  { level: 15, numEnemies: 2, numObstacles: [5, 8], numTraps: [4, 6], minSolutionLen: [18, 26], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -128,7 +146,7 @@ function cloneLevel(lv: LevelData): LevelData {
 // RNG determinista (mulberry32)
 // ---------------------------------------------------------------------------
 
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a |= 0;
@@ -168,7 +186,7 @@ function allCells(): number[] {
 }
 
 /** BFS shortest path en tablero vacío (sin obstáculos/enemigos). */
-function directPathCells(player: number, exit: number): number[] {
+function directPathCells(player: number, exit: number, blocked?: Set<number>): number[] {
   const prev = new Map<number, number | null>();
   const queue: number[] = [player];
   prev.set(player, null);
@@ -182,6 +200,7 @@ function directPathCells(player: number, exit: number): number[] {
       const ny = cy + dy;
       if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
       const nk = idx(nx, ny);
+      if (blocked && blocked.has(nk)) continue;
       if (prev.has(nk)) continue;
       prev.set(nk, cur);
       queue.push(nk);
@@ -197,11 +216,16 @@ function directPathCells(player: number, exit: number): number[] {
   return path;
 }
 
+/** Distancia BFS jugador→salida en el tablero vacío (-1 si no hay camino). */
+function emptyBoardDistance(player: number, exit: number): number {
+  return directPathCells(player, exit).length - 1;
+}
+
 // ---------------------------------------------------------------------------
-// Generación de candidato aleatorio (portado de random_candidate)
+// Generación de candidato aleatorio
 // ---------------------------------------------------------------------------
 
-function randomCandidate(tier: Tier, rnd: () => number): LevelData | null {
+export function randomCandidate(tier: Tier, rnd: () => number): LevelData | null {
   const cells = allCells();
   shuffle(cells, rnd);
   const used = new Set<number>();
@@ -210,40 +234,74 @@ function randomCandidate(tier: Tier, rnd: () => number): LevelData | null {
   const exitC = cells.pop()!;
   used.add(exitC);
 
-  // Jugador: distancia Manhattan >= 4 desde la salida
-  let playerC: number | null = null;
-  for (let i = cells.length - 1; i >= 0; i--) {
-    const c = cells[i]!;
-    if (manhattan(c, exitC) >= 4 && !used.has(c)) {
-      playerC = c;
-      break;
-    }
-  }
-  if (playerC === null) return null;
+  // Jugador: distancia Manhattan a la salida acotada al rango del tier —
+  // el mínimo real T no puede bajar de la distancia BFS, así que en tiers
+  // de par corto el jugador tiene que estar cerca (T1: 4-5) o jamás cae
+  // en ventana; en tiers altos toda la anchura del tablero sirve.
+  const loD = Math.min(4, Math.max(2, tier.minSolutionLen[0] - 4));
+  const hiD = Math.min(W - 1 + H - 1, tier.minSolutionLen[1] - 1);
+  const distPool = cells.filter((c) => {
+    const d = manhattan(c, exitC);
+    return d >= loD && d <= hiD && !used.has(c);
+  });
+  if (distPool.length === 0) return null;
+  const playerC = distPool[Math.floor(rnd() * distPool.length)]!;
   used.add(playerC);
 
   const freeAfterPlayer = cells.filter((c) => !used.has(c));
 
-  // Camino directo para bias de enemigos
+  // Camino directo para bias de enemigos (cada enemigo cubre un tramo
+  // distinto: sentido táctico, no posición al azar)
   const pathCells = directPathCells(playerC, exitC);
-
   const nearPath = (c: number, radius: number): boolean =>
     pathCells.some((p) => manhattan(c, p) <= radius);
+  const nearestPathIdx = (c: number): number => {
+    let best = 0, bd = Infinity;
+    pathCells.forEach((p, i) => {
+      const d = manhattan(c, p);
+      if (d < bd) { bd = d; best = i; }
+    });
+    return best;
+  };
 
-  // Enemigos: bias hacia celdas que amenazan el camino directo
+  // Enemigos: bias hacia celdas que amenazan el camino directo; con ≥2,
+  // separación Manhattan ≥ minEnemyEnemyDist y tramos del camino distintos
   const enemies: number[] = [];
+  const enemyPathIdx: number[] = [];
   for (let i = 0; i < tier.numEnemies; i++) {
+    const valid = (c: number) =>
+      !used.has(c) &&
+      manhattan(c, playerC) >= tier.minEnemyPlayerDist &&
+      enemies.every((e) => manhattan(c, e) >= tier.minEnemyEnemyDist);
+    // Preferencia táctica: enemigo amenazando el TRAMO FINAL del camino
+    // (último ~40% o la salida) — en pars cortos coincide con "guardar la
+    // salida" (obliga a entrar de lado, el patrón viable de los tiers
+    // bajos) y en pars largos da presupuesto para cebarlo. Un enemigo
+    // suelto lejos de la ruta atrapa casi siempre (es 2× más rápido) y
+    // solo genera ruido irresoluble.
+    const pathEnd = pathCells.slice(Math.floor(pathCells.length * 0.6));
+    const threat = (c: number) =>
+      manhattan(c, exitC) <= 4 || pathEnd.some((p) => manhattan(c, p) <= 2);
     let candidates = freeAfterPlayer.filter(
-      (c) => !used.has(c) && manhattan(c, playerC) >= tier.minEnemyPlayerDist && nearPath(c, 5),
+      (c) => valid(c) && threat(c) &&
+        enemyPathIdx.every((pi) => Math.abs(nearestPathIdx(c) - pi) >= 2),
     );
     if (candidates.length === 0) {
       candidates = freeAfterPlayer.filter(
-        (c) => !used.has(c) && manhattan(c, playerC) >= tier.minEnemyPlayerDist,
+        (c) => valid(c) && nearPath(c, 4) &&
+          enemyPathIdx.every((pi) => Math.abs(nearestPathIdx(c) - pi) >= 2),
       );
+    }
+    if (candidates.length === 0) {
+      candidates = freeAfterPlayer.filter((c) => valid(c) && nearPath(c, 5));
+    }
+    if (candidates.length === 0) {
+      candidates = freeAfterPlayer.filter(valid);
     }
     if (candidates.length === 0) return null;
     const e = candidates[Math.floor(rnd() * candidates.length)]!;
     enemies.push(e);
+    enemyPathIdx.push(nearestPathIdx(e));
     used.add(e);
   }
 
@@ -270,39 +328,103 @@ function randomCandidate(tier: Tier, rnd: () => number): LevelData | null {
  *  - player: 0..47
  *  - playerStun: 0..3
  *  - cada enemigo: 0..47 (posición) + stun 0..3
- *
- * Reglas (idénticas a engine/rules.ts playTurn):
- *  1. Jugador aturdido: decrementa stun, enemigos se mueven (turno avanza).
- *  2. Jugador se mueve 1 casilla ortogonal. Si bloqueado (pared/obstáculo/
- *     límite/enemigo): movimiento inválido, NO cuenta como turno.
- *  3. ¿Jugador en salida? → VICTORIA (antes de que se mueva el enemigo).
- *  4. Jugador pisa trampa → aturdido 3 turnos.
- *  5. Enemigos: cada uno hace 2 sub-pasos (horizontal primero, luego vertical).
- *     Si un enemigo está aturdido: decrementa stun y salta todo el turno.
- *     Si un enemigo pisa trampa: aturdido 3 turnos, para de moverse.
- *     Colisión tras cada sub-paso → DERROTA.
- *  6. ¿Jugador en salida? → VICTORIA (recheck).
- *  7. Turno++.
  */
+
+export interface GameStartState {
+  p: number; // posición del jugador
+  e: number[]; // posiciones de enemigos
+  s: number[]; // stun de cada enemigo
+  ps: number; // stun del jugador
+}
 
 interface SolveResult {
   solvable: boolean;
   length: number | null;
+  /** Celdas visitadas por UNA solución óptima (incl. inicio y salida). */
+  path?: number[];
 }
 
-function solve(lv: LevelData): SolveResult {
+function initialState(lv: LevelData): GameStartState {
+  return { p: lv.player, e: lv.enemies.slice(), s: lv.enemies.map(() => 0), ps: 0 };
+}
+
+/** Comparte el simulador de turno entre solve, solvePath y countSolutions. */
+function makeSimulator(lv: LevelData) {
   const n = lv.enemies.length;
   const blocked = new Uint8Array(CELLS);
   const trap = new Uint8Array(CELLS);
   for (const k of lv.obstacles) blocked[k] = 1;
   for (const k of lv.traps) trap[k] = 1;
-
-  const enemyStart = lv.enemies.slice();
-  const playerStart = lv.player;
   const goalIdx = lv.exit;
 
-  // Codificación de estado: player + enemies + stuns
+  /** Mueve un enemigo 1 sub-paso hacia el jugador (CHASE: horizontal primero). */
+  function enemySubstep(ep: number, pp: number): number {
+    const ec = ep % W;
+    const er = Math.floor(ep / W);
+    const pc = pp % W;
+    const pr = Math.floor(pp / W);
+    const dx = Math.sign(pc - ec);
+    const dy = Math.sign(pr - er);
+    const cand: number[] = [];
+    if (dx !== 0) cand.push(ep + dx);
+    if (dy !== 0) cand.push(ep + dy * W);
+    for (const nc of cand) {
+      if (nc < 0 || nc >= CELLS) continue;
+      if (Math.floor(nc / W) !== er && Math.abs(nc - ep) === 1) continue;
+      if (blocked[nc]) continue;
+      return nc;
+    }
+    return ep;
+  }
+
+  /** Turno de enemigos: nuevas posiciones, stuns y captura. */
+  function moveEnemies(
+    e: number[],
+    s: number[],
+    np: number,
+  ): { e: number[]; s: number[]; captured: boolean } {
+    const ne = e.slice();
+    const ns = s.slice();
+    let captured = false;
+    for (let i = 0; i < n; i++) {
+      if (ns[i]! > 0) {
+        ns[i] = ns[i]! - 1;
+        continue;
+      }
+      for (let step = 0; step < 2; step++) {
+        const before = ne[i]!;
+        const newPos = enemySubstep(ne[i]!, np);
+        ne[i] = newPos;
+        if (newPos === np) {
+          captured = true;
+          break;
+        }
+        if (trap[newPos] && newPos !== before) {
+          ns[i] = 3;
+          break;
+        }
+      }
+      if (captured) break;
+    }
+    return { e: ne, s: ns, captured };
+  }
+
+  return { n, blocked, trap, goalIdx, moveEnemies };
+}
+
+/**
+ * BFS desde un estado arbitrario. Devuelve la longitud de la solución
+ * óptima (nº de turnos/movimientos) y, si wantPath, las celdas visitadas
+ * por una solución óptima.
+ */
+function solveFrom(
+  lv: LevelData,
+  start: GameStartState,
+  wantPath = false,
+): SolveResult {
+  const { n, blocked, trap, goalIdx, moveEnemies } = makeSimulator(lv);
   const base = CELLS;
+
   function keyOf(p: number, e: number[], s: number[], ps: number): number {
     let k = p;
     let mult = base;
@@ -319,84 +441,40 @@ function solve(lv: LevelData): SolveResult {
     return k;
   }
 
-  /** Mueve un enemigo 1 sub-paso hacia el jugador (CHASE: horizontal primero). */
-  function enemySubstep(ep: number, pp: number): number {
-    const ec = ep % W;
-    const er = Math.floor(ep / W);
-    const pc = pp % W;
-    const pr = Math.floor(pp / W);
-    const dx = Math.sign(pc - ec);
-    const dy = Math.sign(pr - er);
-    const cand: number[] = [];
-    if (dx !== 0) cand.push(ep + dx);
-    if (dy !== 0) cand.push(ep + dy * W);
-    for (const nc of cand) {
-      if (nc < 0 || nc >= CELLS) continue;
-      // No atravesar bordes horizontalmente
-      if (Math.floor(nc / W) !== er && Math.abs(nc - ep) === 1) continue;
-      if (blocked[nc]) continue;
-      return nc;
-    }
-    return ep;
-  }
-
-  /** Procesa el turno de enemigos. Devuelve nuevas posiciones, stuns y captura. */
-  function moveEnemies(
-    e: number[],
-    s: number[],
-    np: number,
-  ): { e: number[]; s: number[]; captured: boolean } {
-    const ne = e.slice();
-    const ns = s.slice();
-    let captured = false;
-    for (let i = 0; i < n; i++) {
-      // Aturdido: decrementa 1 vez por turno, salta los 2 sub-pasos
-      if (ns[i]! > 0) {
-        ns[i] = ns[i]! - 1;
-        continue;
-      }
-      for (let step = 0; step < 2; step++) {
-        // Recalcular dx/dy con posición actual del jugador
-        const before = ne[i]!;
-        const newPos = enemySubstep(ne[i]!, np);
-        ne[i] = newPos;
-        // Colisión tras cada sub-paso
-        if (newPos === np) {
-          captured = true;
-          break;
-        }
-        // Pisó trampa: aturdir 3 turnos, parar. Solo aturde al ENTRAR en la
-        // trampa (si realmente se movió): un enemigo bloqueado sobre una
-        // trampa no se re-aturde — igual que el motor (rules.ts).
-        if (trap[newPos] && newPos !== before) {
-          ns[i] = 3;
-          break;
-        }
-      }
-      if (captured) break;
-    }
-    return { e: ne, s: ns, captured };
-  }
-
-  const startKey = keyOf(playerStart, enemyStart, enemyStart.map(() => 0), 0);
+  const startKey = keyOf(start.p, start.e, start.s, start.ps);
   const visited = new Set<number>([startKey]);
+  // parent[childKey] = [parentKey, playerCell] para reconstruir el camino
+  const parent = wantPath ? new Map<number, [number, number]>() : null;
   const queue: { p: number; e: number[]; s: number[]; ps: number; depth: number }[] = [
-    { p: playerStart, e: enemyStart, s: enemyStart.map(() => 0), ps: 0, depth: 0 },
+    { p: start.p, e: start.e.slice(), s: start.s.slice(), ps: start.ps, depth: 0 },
   ];
 
   const DIRS = [1, -1, W, -W];
 
+  const buildPath = (endKey: number, endP: number): number[] => {
+    const cells = [endP];
+    let cur = endKey;
+    while (parent!.has(cur)) {
+      const [pk, pp] = parent!.get(cur)!;
+      cells.push(pp);
+      cur = pk;
+    }
+    cells.reverse();
+    return cells;
+  };
+
   while (queue.length > 0) {
     const cur = queue.shift()!;
     if (cur.depth > 60) continue;
+    const curKey = wantPath ? keyOf(cur.p, cur.e, cur.s, cur.ps) : 0;
 
-    // Jugador aturdido: pasa el turno (enemigos se mueven)
     if (cur.ps > 0) {
       const res = moveEnemies(cur.e, cur.s, cur.p);
       if (res.captured) continue;
       const key = keyOf(cur.p, res.e, res.s, cur.ps - 1);
       if (visited.has(key)) continue;
       visited.add(key);
+      if (parent) parent.set(key, [curKey, cur.p]);
       queue.push({ p: cur.p, e: res.e, s: res.s, ps: cur.ps - 1, depth: cur.depth + 1 });
       continue;
     }
@@ -408,103 +486,66 @@ function solve(lv: LevelData): SolveResult {
       if (d === 1 && pc === W - 1) continue;
       if (d === -1 && pc === 0) continue;
 
-      // Movimiento inválido: no cuenta turno
       if (blocked[np]) continue;
       if (cur.e.includes(np)) continue;
 
-      // ¿Victoria? (antes de que se mueva el enemigo)
-      if (np === goalIdx) return { solvable: true, length: cur.depth + 1 };
+      if (np === goalIdx) {
+        const path = wantPath ? [...buildPath(curKey, cur.p), np] : undefined;
+        return { solvable: true, length: cur.depth + 1, path };
+      }
 
-      // El jugador pisa trampa → aturdido 3 turnos
       const newPs = trap[np] ? 3 : 0;
-
       const res = moveEnemies(cur.e, cur.s, np);
       if (res.captured) continue;
 
       const key = keyOf(np, res.e, res.s, newPs);
       if (visited.has(key)) continue;
       visited.add(key);
+      if (parent) parent.set(key, [curKey, cur.p]);
       queue.push({ p: np, e: res.e, s: res.s, ps: newPs, depth: cur.depth + 1 });
     }
   }
   return { solvable: false, length: null };
 }
 
+export function solve(lv: LevelData): SolveResult {
+  return solveFrom(lv, initialState(lv), false);
+}
+
+/** Solución óptima con camino de celdas (para métricas y endpoint). */
+export function solvePath(lv: LevelData): SolveResult {
+  return solveFrom(lv, initialState(lv), true);
+}
+
+/**
+ * Siguiente movimiento óptimo DESDE un estado arbitrario (para el comando
+ * `hint` de la consola de hacks). Devuelve {dc, dr} y turnos restantes.
+ */
+export function nextMoveFrom(
+  lv: LevelData,
+  state: GameStartState,
+): { dc: number; dr: number; remaining: number } | null {
+  const res = solveFrom(lv, state, true);
+  if (!res.solvable || !res.path || res.path.length < 2) return null;
+  const from = res.path[0]!;
+  const to = res.path[1]!;
+  return { dc: col(to) - col(from), dr: row(to) - row(from), remaining: res.length! };
+}
+
 // ---------------------------------------------------------------------------
 // Conteo de soluciones de longitud exacta (freedom counting con memoización)
 // ---------------------------------------------------------------------------
 
-/**
- * Cuenta (hasta `cap`) secuencias distintas de exactamente `len` acciones
- * que ganan. Sirve como proxy de la libertad del jugador a profundidad óptima.
- *
- * Memoizado en (stateKey, remaining) para evitar explosión exponencial.
- */
-function countSolutionsOfMinLength(lv: LevelData, len: number, cap = 50): number {
-  const n = lv.enemies.length;
-  const blocked = new Uint8Array(CELLS);
-  const trap = new Uint8Array(CELLS);
-  for (const k of lv.obstacles) blocked[k] = 1;
-  for (const k of lv.traps) trap[k] = 1;
-
+export function countSolutionsOfMinLength(lv: LevelData, len: number, cap = 50): number {
+  if (len <= 0) return 0;
+  const { n, blocked, trap, goalIdx, moveEnemies } = makeSimulator(lv);
   const enemyStart = lv.enemies.slice();
   const playerStart = lv.player;
-  const goalIdx = lv.exit;
 
   function keyOf(p: number, e: number[], s: number[], ps: number): string {
     let k = `${p},${ps}`;
     for (let i = 0; i < n; i++) k += `,${e[i]},${s[i]}`;
     return k;
-  }
-
-  function enemySubstep(ep: number, pp: number): number {
-    const ec = ep % W;
-    const er = Math.floor(ep / W);
-    const pc = pp % W;
-    const pr = Math.floor(pp / W);
-    const dx = Math.sign(pc - ec);
-    const dy = Math.sign(pr - er);
-    const cand: number[] = [];
-    if (dx !== 0) cand.push(ep + dx);
-    if (dy !== 0) cand.push(ep + dy * W);
-    for (const nc of cand) {
-      if (nc < 0 || nc >= CELLS) continue;
-      if (Math.floor(nc / W) !== er && Math.abs(nc - ep) === 1) continue;
-      if (blocked[nc]) continue;
-      return nc;
-    }
-    return ep;
-  }
-
-  function moveEnemies(
-    e: number[],
-    s: number[],
-    np: number,
-  ): { e: number[]; s: number[]; captured: boolean } {
-    const ne = e.slice();
-    const ns = s.slice();
-    let captured = false;
-    for (let i = 0; i < n; i++) {
-      if (ns[i]! > 0) {
-        ns[i] = ns[i]! - 1;
-        continue;
-      }
-      for (let step = 0; step < 2; step++) {
-        const before = ne[i]!;
-        const newPos = enemySubstep(ne[i]!, np);
-        ne[i] = newPos;
-        if (newPos === np) {
-          captured = true;
-          break;
-        }
-        if (trap[newPos] && newPos !== before) {
-          ns[i] = 3;
-          break;
-        }
-      }
-      if (captured) break;
-    }
-    return { e: ne, s: ns, captured };
   }
 
   const DIRS = [1, -1, W, -W];
@@ -519,7 +560,6 @@ function countSolutionsOfMinLength(lv: LevelData, len: number, cap = 50): number
     let total = 0;
 
     if (ps > 0) {
-      // Jugador aturdido: pasa el turno
       const res = moveEnemies(e, s, p);
       if (!res.captured) {
         total += rec(p, res.e, res.s, ps - 1, remaining - 1);
@@ -538,7 +578,6 @@ function countSolutionsOfMinLength(lv: LevelData, len: number, cap = 50): number
       if (blocked[np]) continue;
       if (e.includes(np)) continue;
 
-      // ¿Victoria?
       if (np === goalIdx) {
         if (remaining === 1) total += 1;
         continue;
@@ -561,27 +600,18 @@ function countSolutionsOfMinLength(lv: LevelData, len: number, cap = 50): number
 }
 
 // ---------------------------------------------------------------------------
-// Pruning de elementos redundantes (portado de prune_redundant)
+// Pruning de elementos (regla: cada elemento debe CONDICIONAR la solución)
 // ---------------------------------------------------------------------------
 
 /**
- * Devuelve true si el elemento ES funcional: su eliminación cambia la
- * resolubilidad, la longitud óptima, O aumenta la libertad del jugador
- * a profundidad óptima.
+ * Un elemento es NECESARIO si quitarlo hace el puzzle irresoluble o cambia
+ * el mínimo real (en cualquier dirección: un obstáculo que alarga el
+ * camino condiciona la solución igual que una trampa que abre una ventana).
  */
-function isFunctionalRemoval(
-  lv: LevelData,
-  modifyFn: (lv: LevelData) => LevelData,
-  baseLen: number,
-  baseFreedom: number,
-): boolean {
-  const modified = modifyFn(lv);
-  const res = solve(modified);
-  if (!res.solvable) return true; // era solvable, ahora no → funcional
-  if (res.length !== baseLen) return true; // cambia longitud → funcional
-  const newFreedom = countSolutionsOfMinLength(modified, res.length!, 50);
-  if (newFreedom > baseFreedom) return true; // aumenta libertad → funcional
-  return false;
+function isRequired(lv: LevelData, modifyFn: (lv: LevelData) => LevelData, baseLen: number): boolean {
+  const res = solve(modifyFn(lv));
+  if (!res.solvable) return true;
+  return res.length !== baseLen;
 }
 
 function removeObstacle(lv: LevelData, obs: number): LevelData {
@@ -602,19 +632,18 @@ function removeEnemy(lv: LevelData, enemy: number): LevelData {
   return clone;
 }
 
-function pruneRedundant(lv: LevelData): LevelData | null {
+export function pruneRedundant(lv: LevelData): LevelData | null {
   const res = solve(lv);
   if (!res.solvable) return null;
-  const length = res.length!;
+  let length = res.length!;
 
   let current = lv;
   let changed = true;
   while (changed) {
     changed = false;
-    const freedom = countSolutionsOfMinLength(current, length, 50);
 
     for (const obs of current.obstacles) {
-      if (!isFunctionalRemoval(current, (lv2) => removeObstacle(lv2, obs), length, freedom)) {
+      if (!isRequired(current, (lv2) => removeObstacle(lv2, obs), length)) {
         current = removeObstacle(current, obs);
         changed = true;
         break;
@@ -623,7 +652,7 @@ function pruneRedundant(lv: LevelData): LevelData | null {
     if (changed) continue;
 
     for (const trp of current.traps) {
-      if (!isFunctionalRemoval(current, (lv2) => removeTrap(lv2, trp), length, freedom)) {
+      if (!isRequired(current, (lv2) => removeTrap(lv2, trp), length)) {
         current = removeTrap(current, trp);
         changed = true;
         break;
@@ -632,105 +661,469 @@ function pruneRedundant(lv: LevelData): LevelData | null {
     if (changed) continue;
 
     for (const en of current.enemies) {
-      if (!isFunctionalRemoval(current, (lv2) => removeEnemy(lv2, en), length, freedom)) {
+      if (!isRequired(current, (lv2) => removeEnemy(lv2, en), length)) {
         current = removeEnemy(current, en);
         changed = true;
         break;
       }
     }
+
+    if (changed) {
+      const r = solve(current);
+      if (!r.solvable) return null; // no debería pasar: cada paso valida
+      length = r.length!;
+    }
+  }
+  return current;
+}
+
+/**
+ * Tras el pruning, completa los mínimos del tier (enemigos, obstáculos,
+ * trampas) con colocaciones que SÍ condicionen la solución: un elemento
+ * añadido es necesario si su presencia cambia el mínimo real (quitarlo
+ * devolvería el óptimo anterior).
+ *
+ * Para obstáculos/trampas también se prueban PAREJAS: en tablero abierto
+ * una celda suelta casi nunca alarga el óptimo (hay muchos caminos
+ * Manhattan equivalentes), pero dos celdas juntas sí pueden forzar el
+ * rodeo — y cada una es necesaria porque quitarla devuelve el óptimo
+ * corto.
+ */
+function occupiedCells(lv: LevelData): Set<number> {
+  return new Set<number>([
+    lv.player, lv.exit, ...lv.enemies,
+    ...lv.traps, ...lv.obstacles,
+  ]);
+}
+
+function elementCount(lv: LevelData, kind: "enemy" | "obstacle" | "trap"): number {
+  return kind === "enemy" ? lv.enemies.length : kind === "obstacle" ? lv.obstacles.size : lv.traps.size;
+}
+
+function addElement(lv: LevelData, kind: "enemy" | "obstacle" | "trap", cell: number): LevelData {
+  const c = cloneLevel(lv);
+  if (kind === "enemy") c.enemies.push(cell);
+  else if (kind === "obstacle") c.obstacles.add(cell);
+  else c.traps.add(cell);
+  return c;
+}
+
+function dropElement(lv: LevelData, kind: "enemy" | "obstacle" | "trap", cell: number): LevelData {
+  const c = cloneLevel(lv);
+  if (kind === "enemy") c.enemies = c.enemies.filter((e) => e !== cell);
+  else if (kind === "obstacle") c.obstacles.delete(cell);
+  else c.traps.delete(cell);
+  return c;
+}
+
+function fillTo(
+  lv: LevelData,
+  kind: "enemy" | "obstacle" | "trap",
+  min: number,
+  max: number,
+  tier: Tier,
+  rnd: () => number,
+): LevelData | null {
+  let current = lv;
+  let guard = 0;
+  while (elementCount(current, kind) < min && guard++ < 60) {
+    const res = solvePath(current);
+    if (!res.solvable || !res.path) return null;
+    const baseLen = res.length!;
+    const occupied = occupiedCells(current);
+    const pathSet = new Set(res.path);
+    const onPath = res.path.slice(1, -1).filter((c) => !occupied.has(c));
+    const adjPath = allCells().filter((c) =>
+      !occupied.has(c) && !pathSet.has(c) &&
+      [[1, 0], [-1, 0], [0, W], [0, -W]].some(([d]) => pathSet.has(c + d!)),
+    );
+    const offPath = allCells().filter((c) => !occupied.has(c) && !pathSet.has(c) && !adjPath.includes(c));
+
+    // Candidatos válidos según el tipo (reglas de distancia de enemigos)
+    const validFor = (c: number): boolean => {
+      if (kind !== "enemy") return true;
+      return (
+        manhattan(c, current.player) >= tier.minEnemyPlayerDist &&
+        current.enemies.every((e) => manhattan(c, e) >= tier.minEnemyEnemyDist)
+      );
+    };
+    const pool = [
+      ...shuffle(onPath, rnd).filter(validFor),
+      ...shuffle(adjPath, rnd).filter(validFor),
+      ...shuffle(offPath, rnd).filter(validFor),
+    ];
+
+    let added = false;
+    // 1) Elemento suelto que cambie el mínimo real → necesario por definición
+    if (elementCount(current, kind) + 1 <= max) {
+      for (const c of pool) {
+        const test = addElement(current, kind, c);
+        const r = solve(test);
+        if (r.solvable && r.length !== baseLen) {
+          current = test;
+          added = true;
+          break;
+        }
+      }
+    }
+    // 2) Pareja de obstáculos/trampas: juntas fuerzan el rodeo y cada una
+    //    es necesaria (quitarla cambia el nuevo óptimo). Solo si caben 2.
+    if (!added && kind !== "enemy" && elementCount(current, kind) + 2 <= max) {
+      const top = pool.slice(0, 16);
+      outer: for (let i = 0; i < top.length; i++) {
+        for (let j = i + 1; j < top.length; j++) {
+          const test = addElement(addElement(current, kind, top[i]!), kind, top[j]!);
+          const r = solve(test);
+          if (!r.solvable || r.length === baseLen) continue;
+          const newLen = r.length!;
+          if (
+            isRequired(test, (l) => dropElement(l, kind, top[i]!), newLen) &&
+            isRequired(test, (l) => dropElement(l, kind, top[j]!), newLen)
+          ) {
+            current = test;
+            added = true;
+            break outer;
+          }
+        }
+      }
+    }
+    if (!added) return null;
+  }
+  return elementCount(current, kind) >= min ? current : null;
+}
+
+export function ensureMinObstacles(lv: LevelData, tier: Tier, rnd: () => number): LevelData | null {
+  return fillTo(lv, "obstacle", tier.numObstacles[0], tier.numObstacles[1], tier, rnd);
+}
+
+/**
+ * Completa los mínimos del tier tras el pruning: enemigos primero
+ * (condicionan todo lo demás), luego obstáculos y trampas.
+ */
+export function ensureElements(lv: LevelData, tier: Tier, rnd: () => number): LevelData | null {
+  // Primero la geometría (obstáculos/trampas crean cobertura y rodeos) y
+  // DESPUÉS los enemigos: un enemigo en tablero abierto casi siempre hace
+  // el puzzle irresoluble (es 2× más rápido); con obstáculos hay huecos
+  // donde condiciona la solución siendo escapable.
+  let current = fillTo(lv, "obstacle", tier.numObstacles[0], tier.numObstacles[1], tier, rnd);
+  if (current === null) return null;
+  current = fillTo(current, "trap", tier.numTraps[0], tier.numTraps[1], tier, rnd);
+  if (current === null) return null;
+  current = fillTo(current, "enemy", tier.numEnemies, tier.numEnemies, tier, rnd);
+  if (current === null) return null;
+  return trimTo(lengthenTo(current, tier, rnd), tier, rnd);
+}
+
+/**
+ * Si el mínimo real queda por debajo del rango del par, sigue añadiendo
+ * obstáculos/trampas (hasta los máximos del tier) que ALARGUEN la
+ * solución. Cada elemento añadido es necesario por construcción:
+ * quitarlo devuelve el óptimo más corto. Es lo que construye los pars
+ * ≥12 de los tiers altos — imposibles de conseguir en tablero abierto
+ * tras el pruning.
+ */
+function lengthenTo(lv: LevelData, tier: Tier, rnd: () => number): LevelData {
+  // trueMin T admite par ∈ {T+1, T+2} → para entrar en rango basta
+  // T ≥ parMin−2; y T > parMax−1 ya no puede producir par ≤ parMax.
+  const lo = tier.minSolutionLen[0] - 2;
+  const hi = tier.minSolutionLen[1] - 1;
+  let current = lv;
+  let res = solvePath(current);
+  let guard = 0;
+  while (res.solvable && res.length! < lo && guard++ < 24) {
+    const baseLen = res.length!;
+    const path = res.path ?? [];
+    const pathSet = new Set(path);
+    const occupied = occupiedCells(current);
+    const onPath = path.slice(1, -1).filter((c) => !occupied.has(c));
+    const adjPath = allCells().filter((c) =>
+      !occupied.has(c) && !pathSet.has(c) &&
+      [[1, 0], [-1, 0], [0, W], [0, -W]].some(([d]) => pathSet.has(c + d!)),
+    );
+    const offPath = allCells().filter((c) => !occupied.has(c) && !pathSet.has(c) && !adjPath.includes(c));
+    const pool = [...shuffle(onPath, rnd), ...shuffle(adjPath, rnd), ...shuffle(offPath, rnd)];
+
+    let added = false;
+    for (const kind of ["obstacle", "trap"] as const) {
+      const max = kind === "obstacle" ? tier.numObstacles[1] : tier.numTraps[1];
+      if (elementCount(current, kind) >= max) continue;
+      for (const c of pool) {
+        const test = addElement(current, kind, c);
+        const r = solve(test);
+        // Alarga sin pasarse: T' > T y T' ≤ hi → el par queda en rango.
+        if (r.solvable && r.length! > baseLen && r.length! <= hi) {
+          current = test;
+          added = true;
+          break;
+        }
+      }
+      if (added) break;
+    }
+    if (!added) break;
+    res = solvePath(current);
+  }
+  return current;
+}
+
+/**
+ * Espejo de lengthenTo: si el mínimo real se pasa del rango del par,
+ * retira obstáculos/trampas (nunca por debajo de los mínimos del tier)
+ * eligiendo la retirada que deja T más cerca de la ventana. Los elementos
+ * retirados dejan de existir en el puzzle final; los que quedan se
+ * re-verifican como necesarios en la validación.
+ */
+function trimTo(lv: LevelData, tier: Tier, rnd: () => number): LevelData {
+  const lo = tier.minSolutionLen[0] - 2;
+  const hi = tier.minSolutionLen[1] - 1;
+  let current = lv;
+  let res = solve(current);
+  let guard = 0;
+  while (res.solvable && res.length! > hi && guard++ < 24) {
+    const baseLen = res.length!;
+    let best: { lv: LevelData; len: number } | null = null;
+    const cands: { kind: "obstacle" | "trap"; cell: number }[] = [
+      ...[...current.obstacles].map((cell) => ({ kind: "obstacle" as const, cell })),
+      ...[...current.traps].map((cell) => ({ kind: "trap" as const, cell })),
+    ];
+    shuffle(cands, rnd);
+    for (const { kind, cell } of cands) {
+      const min = kind === "obstacle" ? tier.numObstacles[0] : tier.numTraps[0];
+      if (elementCount(current, kind) <= min) continue;
+      const test = dropElement(current, kind, cell);
+      const r = solve(test);
+      if (!r.solvable || r.length! >= baseLen) continue;
+      // Mejor retirada: la que aterriza T dentro de [lo, hi] o la más
+      // cercana por encima (nunca por debajo de lo: empeoraría).
+      const len = r.length!;
+      const score = len >= lo ? 0 : lo - len; // 0 = en ventana
+      if (best === null || score < (best.len >= lo ? 0 : lo - best.len) || (score === 0 && len < best.len)) {
+        best = { lv: test, len };
+      }
+      if (len >= lo && len <= hi) { best = { lv: test, len }; break; }
+    }
+    if (best === null) break;
+    current = best.lv;
+    res = solve(current);
   }
   return current;
 }
 
 // ---------------------------------------------------------------------------
-// Validación final (portado de validate_candidate)
+// Uso del tablero y clave canónica (dedupe con simetrías)
 // ---------------------------------------------------------------------------
 
-interface ValidationResult {
-  ok: boolean;
-  reason: string;
-  length: number | null;
+/**
+ * Fracción del tablero usada: casillas del camino óptimo ∪ enemigos ∪
+ * obstáculos ∪ trampas ∪ jugador ∪ salida, sobre las 48 celdas.
+ */
+export function boardUse(lv: LevelData, optimalPath: number[]): number {
+  const used = new Set<number>(optimalPath);
+  used.add(lv.player);
+  used.add(lv.exit);
+  for (const e of lv.enemies) used.add(e);
+  for (const o of lv.obstacles) used.add(o);
+  for (const t of lv.traps) used.add(t);
+  return used.size / CELLS;
 }
 
-function validateCandidate(lv: LevelData, tier: Tier): ValidationResult {
-  const res = solve(lv);
-  if (!res.solvable) return { ok: false, reason: "no_solution", length: null };
-  const L = res.length!;
-  if (L < tier.minSolutionLen[0] || L > tier.minSolutionLen[1]) {
-    return { ok: false, reason: `length_out_of_range(${L})`, length: L };
+/** Serializa el tablero a una clave de 48 caracteres (.,X,T,P,G,E). */
+function serialize(lv: LevelData): string {
+  let s = "";
+  for (let k = 0; k < CELLS; k++) {
+    if (lv.obstacles.has(k)) s += "X";
+    else if (lv.traps.has(k)) s += "T";
+    else if (k === lv.exit) s += "G";
+    else if (k === lv.player) s += "P";
+    else if (lv.enemies.includes(k)) s += "E";
+    else s += ".";
   }
-  if (lv.enemies.length === 0) return { ok: false, reason: "no_enemies_left", length: L };
+  return s;
+}
 
-  // Exigir que los counts post-pruning cumplan los rangos del tier.
-  // Si el pruning eliminó demasiados elementos, el nivel se rechaza.
+/** Simetrías válidas del 8×6: identidad, espejo H, espejo V, rotación 180°. */
+function transformCell(k: number, mode: 0 | 1 | 2 | 3): number {
+  const c = col(k), r = row(k);
+  switch (mode) {
+    case 1: return idx(W - 1 - c, r);       // espejo horizontal
+    case 2: return idx(c, H - 1 - r);       // espejo vertical
+    case 3: return idx(W - 1 - c, H - 1 - r); // rotación 180°
+    default: return k;
+  }
+}
+
+/** Clave canónica: la menor serialización entre las 4 simetrías. */
+export function canonicalKey(lv: LevelData): string {
+  let best: string | null = null;
+  for (const mode of [0, 1, 2, 3] as const) {
+    const t: LevelData = {
+      obstacles: new Set([...lv.obstacles].map((k) => transformCell(k, mode))),
+      traps: new Set([...lv.traps].map((k) => transformCell(k, mode))),
+      exit: transformCell(lv.exit, mode),
+      player: transformCell(lv.player, mode),
+      enemies: lv.enemies.map((k) => transformCell(k, mode)),
+    };
+    const s = serialize(t);
+    if (best === null || s < best) best = s;
+  }
+  return best!;
+}
+
+// ---------------------------------------------------------------------------
+// Validación final
+// ---------------------------------------------------------------------------
+
+export interface ValidationResult {
+  ok: boolean;
+  reason: string;
+  trueMin: number | null;
+  /** Par mostrado (mínimo real +1/+2) si la pantalla es válida. */
+  par: number | null;
+  /** Conteos en [par, par-1, par-2]. */
+  sols?: [number, number, number];
+  /** Camino óptimo (celdas) si la pantalla es válida. */
+  path?: number[];
+  use?: number;
+}
+
+export function validateCandidate(lv: LevelData, tier: Tier): ValidationResult {
+  const res = solvePath(lv);
+  if (!res.solvable || !res.path) {
+    return { ok: false, reason: "no_solution", trueMin: null, par: null };
+  }
+  const T = res.length!;
+  if (lv.enemies.length === 0) {
+    return { ok: false, reason: "no_enemies_left", trueMin: T, par: null };
+  }
+
+  // Nunca camino directo ni una tirada: el mínimo real supera la
+  // distancia geométrica del tablero vacío.
+  if (T <= emptyBoardDistance(lv.player, lv.exit)) {
+    return { ok: false, reason: `direct_path(${T})`, trueMin: T, par: null };
+  }
+
+  // Conteos/rangos post-pruning (incluye separación entre enemigos)
   if (lv.enemies.length < tier.numEnemies) {
-    return { ok: false, reason: `too_few_enemies(${lv.enemies.length}/${tier.numEnemies})`, length: L };
+    return { ok: false, reason: `too_few_enemies(${lv.enemies.length}/${tier.numEnemies})`, trueMin: T, par: null };
+  }
+  for (let i = 0; i < lv.enemies.length; i++) {
+    for (let j = i + 1; j < lv.enemies.length; j++) {
+      if (manhattan(lv.enemies[i]!, lv.enemies[j]!) < tier.minEnemyEnemyDist) {
+        return { ok: false, reason: "enemy_distance", trueMin: T, par: null };
+      }
+    }
   }
   if (lv.obstacles.size < tier.numObstacles[0] || lv.obstacles.size > tier.numObstacles[1]) {
-    return { ok: false, reason: `obstacles_out_of_range(${lv.obstacles.size}/${tier.numObstacles[0]}-${tier.numObstacles[1]})`, length: L };
+    return { ok: false, reason: `obstacles_out_of_range(${lv.obstacles.size}/${tier.numObstacles[0]}-${tier.numObstacles[1]})`, trueMin: T, par: null };
   }
   if (lv.traps.size < tier.numTraps[0] || lv.traps.size > tier.numTraps[1]) {
-    return { ok: false, reason: `traps_out_of_range(${lv.traps.size}/${tier.numTraps[0]}-${tier.numTraps[1]})`, length: L };
+    return { ok: false, reason: `traps_out_of_range(${lv.traps.size}/${tier.numTraps[0]}-${tier.numTraps[1]})`, trueMin: T, par: null };
   }
 
-  const freedom = countSolutionsOfMinLength(lv, L, 50);
+  // Uso del tablero desde el tier 7
+  const use = boardUse(lv, res.path);
+  if (tier.level >= BOARD_USE_FROM_TIER && use < MIN_BOARD_USE) {
+    return { ok: false, reason: `board_use(${(use * 100).toFixed(0)}%)`, trueMin: T, par: null, use };
+  }
 
+  // Par: mínimo real + 2 si existe solución en T+2; si no, mínimo + 1 si
+  // existe en T+1. La regla es "bateable en óptimo−1 U óptimo−2": basta
+  // una de las dos (si no existe T+1 pero sí T+2, par=T+2 es bateable).
+  // Si no existe ni T+1 ni T+2, no es bateable → rechazo.
+  const cT1 = countSolutionsOfMinLength(lv, T + 1, 1);
+  let par: number;
+  if (countSolutionsOfMinLength(lv, T + 2, 1) > 0) {
+    par = T + 2;
+  } else if (cT1 > 0) {
+    par = T + 1;
+  } else {
+    return { ok: false, reason: `not_beatable(T=${T})`, trueMin: T, par: null, use };
+  }
+  if (par < tier.minSolutionLen[0] || par > tier.minSolutionLen[1]) {
+    return { ok: false, reason: `par_out_of_range(${par})`, trueMin: T, par, use };
+  }
+
+  // Todos los elementos deben condicionar la solución
   for (const obs of lv.obstacles) {
-    if (!isFunctionalRemoval(lv, (lv2) => removeObstacle(lv2, obs), L, freedom)) {
-      return { ok: false, reason: `redundant_obstacle(${col(obs)},${row(obs)})`, length: L };
+    if (!isRequired(lv, (lv2) => removeObstacle(lv2, obs), T)) {
+      return { ok: false, reason: `redundant_obstacle(${col(obs)},${row(obs)})`, trueMin: T, par, use };
     }
   }
   for (const trp of lv.traps) {
-    if (!isFunctionalRemoval(lv, (lv2) => removeTrap(lv2, trp), L, freedom)) {
-      return { ok: false, reason: `redundant_trap(${col(trp)},${row(trp)})`, length: L };
+    if (!isRequired(lv, (lv2) => removeTrap(lv2, trp), T)) {
+      return { ok: false, reason: `redundant_trap(${col(trp)},${row(trp)})`, trueMin: T, par, use };
     }
   }
   for (const en of lv.enemies) {
-    if (!isFunctionalRemoval(lv, (lv2) => removeEnemy(lv2, en), L, freedom)) {
-      return { ok: false, reason: `decorative_enemy(${col(en)},${row(en)})`, length: L };
+    if (!isRequired(lv, (lv2) => removeEnemy(lv2, en), T)) {
+      return { ok: false, reason: `decorative_enemy(${col(en)},${row(en)})`, trueMin: T, par, use };
     }
   }
 
-  return { ok: true, reason: "ok", length: L };
+  const sols: [number, number, number] = [
+    countSolutionsOfMinLength(lv, par, 50),
+    countSolutionsOfMinLength(lv, par - 1, 50),
+    countSolutionsOfMinLength(lv, par - 2, 50),
+  ];
+
+  return { ok: true, reason: "ok", trueMin: T, par, sols, path: res.path, use };
 }
 
 // ---------------------------------------------------------------------------
-// Generación de un nivel completo (portado de generate_level)
+// Generación de un nivel completo
 // ---------------------------------------------------------------------------
 
-export function generateLevel(tier: Tier, seed: number, maxTries = 2500): { lv: LevelData; length: number } | null {
+export interface GeneratedLevel {
+  lv: LevelData;
+  trueMin: number;
+  par: number;
+  sols: [number, number, number];
+  path: number[];
+  use: number;
+}
+
+export function generateLevel(tier: Tier, seed: number, maxTries = 2500): GeneratedLevel | null {
   const rnd = mulberry32(seed);
   for (let attempt = 0; attempt < maxTries; attempt++) {
     const raw = randomCandidate(tier, rnd);
     if (raw === null) continue;
     const pruned = pruneRedundant(raw);
     if (pruned === null) continue;
-    const validation = validateCandidate(pruned, tier);
+    const fixed = ensureElements(pruned, tier, rnd);
+    if (fixed === null) continue;
+    const validation = validateCandidate(fixed, tier);
     if (validation.ok) {
-      return { lv: pruned, length: validation.length! };
+      return {
+        lv: fixed,
+        trueMin: validation.trueMin!,
+        par: validation.par!,
+        sols: validation.sols!,
+        path: validation.path!,
+        use: validation.use!,
+      };
     }
   }
   return null;
 }
 
 // ---------------------------------------------------------------------------
-// Conversión LevelData → Screen
+// Conversión LevelData ↔ Screen
 // ---------------------------------------------------------------------------
 
-export function levelToScreen(lv: LevelData, tier: number, index: number, length: number): Screen {
+export function levelToScreen(gen: GeneratedLevel, tier: number, index: number): Screen {
+  const { lv } = gen;
   const grid: string[] = [];
   for (let r = 0; r < H; r++) {
-    let row = "";
+    let rowStr = "";
     for (let c = 0; c < W; c++) {
       const k = idx(c, r);
-      if (lv.obstacles.has(k)) row += "X";
-      else if (lv.traps.has(k)) row += "T";
-      else if (lv.exit === k) row += "G";
-      else if (lv.player === k) row += "P";
-      else if (lv.enemies.includes(k)) row += "E";
-      else row += ".";
+      if (lv.obstacles.has(k)) rowStr += "X";
+      else if (lv.traps.has(k)) rowStr += "T";
+      else if (lv.exit === k) rowStr += "G";
+      else if (lv.player === k) rowStr += "P";
+      else if (lv.enemies.includes(k)) rowStr += "E";
+      else rowStr += ".";
     }
-    grid.push(row);
+    grid.push(rowStr);
   }
 
   return {
@@ -743,88 +1136,377 @@ export function levelToScreen(lv: LevelData, tier: number, index: number, length
     enemies: lv.enemies.map((e) => ({ pos: [col(e), row(e)] as [number, number], pattern: "CHASE" as Pattern })),
     obstacles: [...lv.obstacles].map((k) => [col(k), row(k)] as [number, number]),
     traps: [...lv.traps].map((k) => [col(k), row(k)] as [number, number]),
-    minMoves: length,
+    minMoves: gen.par,
+    sols: gen.sols,
+  };
+}
+
+/** Screen del banco → LevelData (para los endpoints del servidor). */
+export function screenToLevelData(s: {
+  grid?: string[];
+  player: [number, number];
+  goal: [number, number];
+  enemies: { pos: [number, number] }[];
+  obstacles: [number, number][];
+  traps: [number, number][];
+}): LevelData {
+  const obstacles = new Set<number>(s.obstacles.map(([c, r]) => idx(c, r)));
+  const traps = new Set<number>(s.traps.map(([c, r]) => idx(c, r)));
+  // Paredes '#' del grid (el generador no las usa, pero el formato las admite)
+  if (s.grid) {
+    for (let r = 0; r < Math.min(H, s.grid.length); r++) {
+      const rowStr = s.grid[r]!;
+      for (let c = 0; c < Math.min(W, rowStr.length); c++) {
+        if (rowStr[c] === "#") obstacles.add(idx(c, r));
+      }
+    }
+  }
+  return {
+    obstacles,
+    traps,
+    exit: idx(s.goal[0], s.goal[1]),
+    player: idx(s.player[0], s.player[1]),
+    enemies: s.enemies.map((e) => idx(e.pos[0], e.pos[1])),
   };
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Generación por tier con dedupe (usada por el worker y el driver)
 // ---------------------------------------------------------------------------
 
-function main() {
+export interface GenStats {
+  tier: number;
+  attempts: number;
+  accepted: number;
+  duplicates: number;
+  reasons: Record<string, number>;
+  elapsedMs: number;
+  /** Distribución del uso del tablero (solo aceptados), en % redondeado. */
+  useHistogram: Record<string, number>;
+  /** Distribución del par mostrado. */
+  parHistogram: Record<string, number>;
+}
+
+/**
+ * Genera hasta `target` pantallas únicas de un tier.
+ * Devuelve las pantallas y las estadísticas. Se detiene antes si se
+ * agotan las seeds útiles (maxAttempts) — el espacio de puzzles distintos
+ * de los tiers bajos puede ser menor que el objetivo.
+ */
+export function generateTierBatch(
+  tier: Tier,
+  target: number,
+  seedBase: number,
+  maxAttempts = target * 60,
+  dedupeSeed: Set<string> | null = null,
+): { screens: Screen[]; stats: GenStats } {
+  const seen = dedupeSeed ?? new Set<string>();
+  const screens: Screen[] = [];
+  const reasons: Record<string, number> = {};
+  const useHistogram: Record<string, number> = {};
+  const parHistogram: Record<string, number> = {};
+  let attempts = 0;
+  let duplicates = 0;
+  const t0 = Date.now();
+
+  while (screens.length < target && attempts < maxAttempts) {
+    attempts++;
+    // seed única por intento (mezcla de tier+base+intento en 32 bits)
+    const seed = (seedBase + Math.imul(attempts, 2246822519)) >>> 0;
+    const rnd = mulberry32(seed ^ Math.imul(tier.level + 1, 2654435761));
+    const raw = randomCandidate(tier, rnd);
+    if (raw === null) {
+      reasons["candidate_null"] = (reasons["candidate_null"] ?? 0) + 1;
+      continue;
+    }
+    const pruned = pruneRedundant(raw);
+    if (pruned === null) {
+      reasons["unprunable"] = (reasons["unprunable"] ?? 0) + 1;
+      continue;
+    }
+    let fixed = ensureElements(pruned, tier, rnd);
+    if (fixed === null) {
+      reasons["min_elements_unreachable"] = (reasons["min_elements_unreachable"] ?? 0) + 1;
+      continue;
+    }
+    // Estabilización: alargar/recortar puede dejar elementos redundantes.
+    // Re-podar y re-completar hasta 2 veces convierte esos descartes en
+    // candidatos válidos en lugar de tirarlos.
+    let validation = validateCandidate(fixed, tier);
+    for (let stab = 0; stab < 2 && !validation.ok && validation.reason.startsWith("redundant"); stab++) {
+      const repruned = pruneRedundant(fixed);
+      if (repruned === null) break;
+      fixed = ensureElements(repruned, tier, rnd);
+      if (fixed === null) break;
+      validation = validateCandidate(fixed, tier);
+    }
+    if (fixed === null || !validation.ok) {
+      const k = fixed === null ? "min_elements_unreachable" : validation.reason.split("(")[0]!;
+      reasons[k] = (reasons[k] ?? 0) + 1;
+      continue;
+    }
+    const key = canonicalKey(fixed);
+    if (seen.has(key)) {
+      duplicates++;
+      continue;
+    }
+    seen.add(key);
+    const gen: GeneratedLevel = {
+      lv: fixed,
+      trueMin: validation.trueMin!,
+      par: validation.par!,
+      sols: validation.sols!,
+      path: validation.path!,
+      use: validation.use!,
+    };
+    screens.push(levelToScreen(gen, tier.level, 0)); // id se reasigna al final
+    const useBucket = `${Math.floor(validation.use! * 10) * 10}-${Math.floor(validation.use! * 10) * 10 + 9}`;
+    useHistogram[useBucket] = (useHistogram[useBucket] ?? 0) + 1;
+    parHistogram[String(validation.par)] = (parHistogram[String(validation.par)] ?? 0) + 1;
+  }
+
+  screens.forEach((s, i) => { s.id = `l${tier.level}-s${i + 1}`; });
+  return {
+    screens,
+    stats: {
+      tier: tier.level,
+      attempts,
+      accepted: screens.length,
+      duplicates,
+      reasons,
+      elapsedMs: Date.now() - t0,
+      useHistogram,
+      parHistogram,
+    },
+  };
+}
+
+/**
+ * Enumeración exhaustiva del tier 1: el espacio combinatorio es pequeño
+ * (jugador a 2-5 de la salida, 1 enemigo, 0-1 obstáculos, sin trampas) y
+ * la tasa de acierto por muestreo aleatorio es bajísima — enumerarlo da
+ * TODOS los puzzles válidos que existen (la spec permite bancos pequeños
+ * en tiers bajos, sin rellenar con duplicados).
+ */
+export function generateTier1Exhaustive(tier: Tier): { screens: Screen[]; stats: GenStats } {
+  const seen = new Set<string>();
+  const screens: Screen[] = [];
+  const reasons: Record<string, number> = {};
+  const useHistogram: Record<string, number> = {};
+  const parHistogram: Record<string, number> = {};
+  let attempts = 0;
+  let duplicates = 0;
+  const t0 = Date.now();
+
+  for (let exit = 0; exit < CELLS; exit++) {
+    for (let player = 0; player < CELLS; player++) {
+      if (player === exit) continue;
+      const dp = manhattan(player, exit);
+      if (dp < 2 || dp > 5) continue;
+      for (let enemy = 0; enemy < CELLS; enemy++) {
+        if (enemy === exit || enemy === player) continue;
+        if (manhattan(enemy, player) < tier.minEnemyPlayerDist) continue;
+        for (let obs = -1; obs < CELLS; obs++) {
+          if (obs === exit || obs === player || obs === enemy) continue;
+          attempts++;
+          const lv: LevelData = {
+            obstacles: obs < 0 ? new Set() : new Set([obs]),
+            traps: new Set(),
+            exit, player, enemies: [enemy],
+          };
+          const res = solve(lv);
+          if (!res.solvable) continue;
+          const validation = validateCandidate(lv, tier);
+          if (!validation.ok) {
+            const k = validation.reason.split("(")[0]!;
+            reasons[k] = (reasons[k] ?? 0) + 1;
+            continue;
+          }
+          const key = canonicalKey(lv);
+          if (seen.has(key)) { duplicates++; continue; }
+          seen.add(key);
+          screens.push(levelToScreen(
+            { lv, trueMin: validation.trueMin!, par: validation.par!, sols: validation.sols!, path: validation.path!, use: validation.use! },
+            tier.level, 0,
+          ));
+          const b = `${Math.floor(validation.use! * 10) * 10}-${Math.floor(validation.use! * 10) * 10 + 9}`;
+          useHistogram[b] = (useHistogram[b] ?? 0) + 1;
+          parHistogram[String(validation.par)] = (parHistogram[String(validation.par)] ?? 0) + 1;
+        }
+      }
+    }
+  }
+  screens.forEach((s, i) => { s.id = `l${tier.level}-s${i + 1}`; });
+  return {
+    screens,
+    stats: {
+      tier: tier.level, attempts, accepted: screens.length, duplicates,
+      reasons, elapsedMs: Date.now() - t0, useHistogram, parHistogram,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// CLI: driver principal + worker
+// ---------------------------------------------------------------------------
+//
+//   npx tsx generator/generate-screens.ts                     → todos los tiers, 100k c/u
+//   npx tsx generator/generate-screens.ts --tier=7 --count=1000
+//   npx tsx generator/generate-screens.ts --test              → lote pequeño + estadísticas
+//   npx tsx generator/generate-screens.ts --workers=8         → paralelo por tier
+//   npx tsx generator/generate-screens.ts --worker --tier=7 --count=5000 --seed=3 --out=part.json
+//
+// ---------------------------------------------------------------------------
+
+function argVal(name: string): string | null {
+  const a = process.argv.find((x) => x.startsWith(`--${name}=`));
+  return a ? a.split("=")[1]! : null;
+}
+const hasFlag = (name: string) => process.argv.includes(`--${name}`);
+
+function writeTierFile(tierLevel: number, screens: Screen[], outDir: string) {
+  if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+  const path = join(outDir, `screens-tier-${tierLevel}.json`);
+  writeFileSync(path, JSON.stringify(screens), "utf-8");
+  return path;
+}
+
+function printStats(s: GenStats) {
+  const rate = s.attempts > 0 ? ((s.accepted / s.attempts) * 100).toFixed(1) : "0";
+  console.log(`  tier ${s.tier}: ${s.accepted} aceptadas / ${s.attempts} intentos (${rate}% éxito, ${s.duplicates} duplicados, ${(s.elapsedMs / 1000).toFixed(1)}s)`);
+  const rs = Object.entries(s.reasons).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (rs.length) console.log(`    descartes: ${rs.map(([k, v]) => `${k}=${v}`).join(" ")}`);
+}
+
+async function runWorker(tierLevel: number, count: number, seed: number, outPath: string) {
+  const tier = TIERS.find((t) => t.level === tierLevel)!;
+  const { screens, stats } = generateTierBatch(tier, count, seed);
+  writeFileSync(outPath, JSON.stringify(screens), "utf-8");
+  printStats(stats);
+}
+
+function spawnWorker(tierLevel: number, count: number, seed: number, outPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.execPath,
+      ["--import", "tsx", fileURLToPath(import.meta.url), "--worker", `--tier=${tierLevel}`, `--count=${count}`, `--seed=${seed}`, `--out=${outPath}`],
+      { stdio: "inherit", cwd: ROOT },
+    );
+    child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`worker tier ${tierLevel} exit ${code}`))));
+  });
+}
+
+async function generateTier(tier: Tier, target: number, workers: number): Promise<Screen[]> {
+  if (workers <= 1) {
+    const { screens, stats } = generateTierBatch(tier, target, tier.level * 1_000_003);
+    printStats(stats);
+    return screens;
+  }
+  // Paralelo: cada worker genera su parte con seeds disjuntas; el merge
+  // deduplica entre workers (las simetrías se canonicalizan igual).
+  const per = Math.ceil(target / workers);
+  const tmpDir = join(ROOT, ".tmp_chk", "gen-parts");
+  if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
+  const jobs: Promise<void>[] = [];
+  for (let w = 0; w < workers; w++) {
+    jobs.push(spawnWorker(tier.level, per, (tier.level * 1_000_003 + w * 97_531) >>> 0, join(tmpDir, `t${tier.level}-w${w}.json`)));
+  }
+  await Promise.all(jobs);
+  const seen = new Set<string>();
+  const merged: Screen[] = [];
+  for (let w = 0; w < workers; w++) {
+    const part = JSON.parse(readFileSync(join(tmpDir, `t${tier.level}-w${w}.json`), "utf-8")) as Screen[];
+    for (const s of part) {
+      const key = canonicalKey(screenToLevelData(s));
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(s);
+    }
+  }
+  return merged;
+}
+
+async function main() {
   const dataDir = join(ROOT, "db");
-  if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+
+  // --- modo worker (proceso hijo) ---
+  if (hasFlag("worker")) {
+    await runWorker(
+      Number(argVal("tier")), Number(argVal("count")),
+      Number(argVal("seed") ?? "0") >>> 0, argVal("out") ?? join(ROOT, ".tmp_chk", "part.json"),
+    );
+    return;
+  }
+
+  const workers = Math.max(1, Number(argVal("workers") ?? "1") || 1);
+  const onlyTier = argVal("tier") ? Number(argVal("tier")) : null;
+  const count = argVal("count") ? Number(argVal("count")) : SCREENS_PER_TIER;
+  const test = hasFlag("test");
+  const outDir = test ? join(ROOT, ".tmp_chk", "gen-test") : dataDir;
+  const target = test ? Math.min(count, 300) : count;
+  const maxAttempts = test ? target * 80 : target * 60;
 
   const startedAt = Date.now();
   let totalScreens = 0;
+  const globalStats: GenStats[] = [];
 
   for (const tier of TIERS) {
-    const target = screensForTier(tier.level);
-    const tierPath = join(dataDir, `screens-tier-${tier.level}.json`);
+    if (onlyTier !== null && tier.level !== onlyTier) continue;
+    console.log(`Nivel ${tier.level} (objetivo ${target}${workers > 1 ? `, ${workers} workers` : ""})…`);
 
-    // Saltar si ya existe el archivo con suficientes pantallas
-    if (existsSync(tierPath)) {
-      try {
-        const existing = JSON.parse(readFileSync(tierPath, "utf-8")) as Screen[];
-        if (existing.length >= target) {
-          console.log(`Nivel ${tier.level}: ya tiene ${existing.length} pantallas (≥${target}), saltando`);
-          totalScreens += existing.length;
-          continue;
-        }
-      } catch {
-        // Si el archivo está corrupto, regenerar
+    if (workers <= 1) {
+      // Tier 1: espacio combinatorio pequeño → enumeración exhaustiva (da
+      // TODOS los válidos que existen). Resto: muestreo aleatorio por seeds.
+      const { screens, stats } = tier.level === 1
+        ? generateTier1Exhaustive(tier)
+        : generateTierBatch(tier, target, tier.level * 1_000_003, maxAttempts);
+      screens.forEach((s, i) => { s.id = `l${tier.level}-s${i + 1}`; });
+      globalStats.push(stats);
+      printStats(stats);
+      const path = writeTierFile(tier.level, screens, outDir);
+      const sizeMB = (Buffer.byteLength(JSON.stringify(screens), "utf-8") / 1024 / 1024).toFixed(1);
+      console.log(`  → ${path} (${sizeMB} MB)`);
+      totalScreens += screens.length;
+      if (screens.length < target) {
+        console.log(`  ⚠ ${screens.length} distintas en ${stats.attempts} intentos (tope de intentos alcanzado)`);
+      }
+    } else {
+      const t0 = Date.now();
+      const merged = await generateTier(tier, target, workers);
+      merged.forEach((s, i) => { s.id = `l${tier.level}-s${i + 1}`; });
+      const path = writeTierFile(tier.level, merged, outDir);
+      const sizeMB = (Buffer.byteLength(JSON.stringify(merged), "utf-8") / 1024 / 1024).toFixed(1);
+      console.log(`  → ${merged.length} pantallas en ${path} (${sizeMB} MB, ${((Date.now() - t0) / 1000).toFixed(1)}s)`);
+      totalScreens += merged.length;
+      if (merged.length < target) {
+        console.log(`  ⚠ solo ${merged.length} únicas tras dedupe entre workers`);
       }
     }
-
-    let accepted = 0;
-    let attempts = 0;
-    let consecutiveFails = 0;
-    const MAX_CONSECUTIVE_FAILS = 200;
-    const levelStarted = Date.now();
-    const tierScreens: Screen[] = [];
-
-    while (accepted < target) {
-      attempts++;
-      const seed = tier.level * 1_000_000 + attempts;
-      const result = generateLevel(tier, seed);
-      if (result === null) {
-        consecutiveFails++;
-        if (consecutiveFails >= MAX_CONSECUTIVE_FAILS) {
-          console.warn(`  nivel ${tier.level}: ${consecutiveFails} fallos consecutivos, parando en ${accepted} pantallas`);
-          break;
-        }
-        continue;
-      }
-      consecutiveFails = 0;
-
-      accepted++;
-      const screen = levelToScreen(result.lv, tier.level, accepted, result.length);
-      tierScreens.push(screen);
-
-      if (accepted % 1000 === 0) {
-        const elapsed = ((Date.now() - levelStarted) / 1000).toFixed(1);
-        console.log(`  nivel ${tier.level}: ${accepted}/${target} (${elapsed}s, ${attempts} intentos)`);
-      }
-    }
-
-    // Escribir archivo por tier
-    writeFileSync(tierPath, JSON.stringify(tierScreens), "utf-8");
-    totalScreens += accepted;
-
-    const elapsed = ((Date.now() - levelStarted) / 1000).toFixed(1);
-    const sizeMB = (Buffer.byteLength(JSON.stringify(tierScreens), "utf-8") / 1024 / 1024).toFixed(1);
-    console.log(
-      `Nivel ${tier.level}: ${accepted} pantallas en ${tierPath} (${sizeMB} MB, ${elapsed}s, ` +
-      `${accepted > 0 ? ((accepted / attempts * 100).toFixed(1)) : "0"}% éxito)`,
-    );
   }
 
   const total = ((Date.now() - startedAt) / 1000).toFixed(1);
   console.log(`\nTotal: ${totalScreens} pantallas en ${total}s`);
+
+  if (test) {
+    console.log("\n=== Resumen del lote de prueba ===");
+    for (const s of globalStats) {
+      const rate = s.attempts > 0 ? (s.accepted / s.attempts) : 0;
+      console.log(
+        `tier ${s.tier}: éxito ${(rate * 100).toFixed(1)}% · ` +
+        `uso[${Object.entries(s.useHistogram).sort().map(([k, v]) => `${k}%:${v}`).join(" ")}] · ` +
+        `par[${Object.entries(s.parHistogram).sort((a, b) => +a[0] - +b[0]).map(([k, v]) => `${k}:${v}`).join(" ")}]`,
+      );
+    }
+    const okStats = globalStats.filter((s) => s.accepted > 0);
+    if (okStats.length) {
+      const msPer = okStats.reduce((a, s) => a + s.elapsedMs / Math.max(1, s.accepted), 0) / okStats.length;
+      console.log(`\nTiempo medio por pantalla aceptada: ${msPer.toFixed(0)}ms ` +
+        `(estimación 100k/tier con ${workers} worker(s): ${((msPer * 100_000) / workers / 3600000).toFixed(1)}h por tier)`);
+    }
+  }
 }
 
 // Solo ejecutar main cuando es el punto de entrada directo
-import { pathToFileURL } from "node:url";
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  main().catch((e) => { console.error(e); process.exit(1); });
 }

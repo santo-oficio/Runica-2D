@@ -254,6 +254,40 @@
     90% { transform: translate(-3px, -2px); }
   }
   .shake { animation: screenShake .55s linear; }
+  @keyframes modalQuake {
+    0%,100% { transform: translate(0,0) rotate(0); }
+    12% { transform: translate(-7px,3px) rotate(-.5deg); }
+    25% { transform: translate(6px,-3px) rotate(.5deg); }
+    38% { transform: translate(-5px,-2px) rotate(-.4deg); }
+    52% { transform: translate(5px,2px) rotate(.4deg); }
+    68% { transform: translate(-3px,1px) rotate(-.25deg); }
+    84% { transform: translate(2px,-1px) rotate(.15deg); }
+  }
+  .quake { animation: modalQuake .5s linear; }
+  @media (prefers-reduced-motion: reduce) {
+    .shake, .quake { animation: none !important; }
+  }
+  /* Consola de hacks (Tab) — estilo clásico, casi opaca sobre el juego */
+  #hack-console {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 32vh; z-index: 600;
+    background: rgba(0,0,0,.78);
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    border-top: 1px solid #2e7d32;
+    font: 13px/1.5 Consolas, 'Courier New', monospace; color: #86d992;
+    display: none; flex-direction: column; text-align: left;
+  }
+  #hack-console.open { display: flex; }
+  #hc-out { flex: 1; overflow-y: auto; padding: 8px 12px 4px; white-space: pre-wrap; word-break: break-word; }
+  #hc-out .cmd { color: #d6f0da; }
+  #hc-out .err { color: #e08080; }
+  #hc-row { display: flex; align-items: center; gap: 8px; padding: 4px 12px 8px; }
+  #hc-row .prompt { color: #2e7d32; font-weight: bold; }
+  #hc-in { flex: 1; background: transparent; border: 0; outline: 0; color: #d6f0da; font: inherit; caret-color: #86d992; }
+  #hc-debug {
+    position: fixed; right: 8px; top: 8px; z-index: 590; display: none;
+    font: bold 13px/1.5 monospace; color: #8fd; background: rgba(0,0,0,.75);
+    padding: 6px 10px; border-radius: 4px; pointer-events: none; white-space: pre;
+  }
   #hitflash {
     position: fixed; inset: 0; pointer-events: none; z-index: 35; display: none;
     background: radial-gradient(ellipse at center,
@@ -312,7 +346,7 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlaySubtitle = document.getElementById('overlay-subtitle');
 
 // === Práctica: tier seleccionable, pantalla al azar en cada recarga ===
-let currentTier = 4; // la partida siempre empieza en el tier 4
+let currentTier = 3; // la partida siempre empieza en el tier 3
 const COLS = 8, ROWS = 6;
 
 // === Modo real: ?world=X&level=N → la isla N del submundo X (progreso bbdd) ===
@@ -518,6 +552,7 @@ let gameOver = false;
 let won = false;
 let moving = false;
 let currentScreenId = null;
+let godMode = false; // consola de hacks: invulnerabilidad
 
 // === Sonidos ===
 const stepAudio = document.getElementById('step-sound');
@@ -716,7 +751,14 @@ async function loadScreen() {
     if (REAL_MODE) { overlay.classList.add('show', 'lose'); overlayTitle.textContent = data.error; }
     return;
   }
-  const s = data.screen;
+  await applyScreen(data.screen);
+}
+
+// Inicializa tablero/entidades/estado a partir de los datos de una pantalla
+// (la usa loadScreen y los comandos de la consola de hacks).
+let lastScreen = null;
+async function applyScreen(s) {
+  lastScreen = s;
   currentScreenId = s.id;
   currentMinMoves = s.minMoves || 0;
   if (REAL_MODE && (data.tier || s.level)) gameLevel = data.tier ?? s.level;
@@ -742,6 +784,8 @@ async function loadScreen() {
   gameOver = false;
   won = false;
   moving = false;
+  undoStack.length = 0;
+  hackSolve = null; // la solución en caché deja de valer con otra pantalla
   selector.style.zIndex = '';
   overlay.classList.remove('show', 'win', 'lose');
 
@@ -909,8 +953,21 @@ function canEnemyEnter(c, r) {
   return true;
 }
 
+// Pila de estados para el `undo` de la consola de hacks
+const undoStack = [];
+function pushUndo() {
+  undoStack.push({
+    p: { c: player.c, r: player.r },
+    e: enemies.map(e => ({ c: e.c, r: e.r, st: e.stunnedTurns })),
+    ps: playerStunnedTurns,
+    turn,
+  });
+  if (undoStack.length > 200) undoStack.shift();
+}
+
 function movePlayer(dc, dr) {
   if (moving || gameOver || countingDown) return;
+  pushUndo();
 
   // Aturdido: input ignorado pero el turno avanza
   if (playerStunnedTurns > 0) {
@@ -944,7 +1001,7 @@ function movePlayer(dc, dr) {
     playStep();
   }
 
-  if (enemyAt(player.c, player.r)) {
+  if (!godMode && enemyAt(player.c, player.r)) {
     selector.style.zIndex = 20;
     setTimeout(loseGame, 600);
     return;
@@ -1003,7 +1060,7 @@ function moveEnemiesAnimated() {
         }
       }
       updateEnemyPositions();
-      if (enemyAt(player.c, player.r)) { resolve(true); return; }
+      if (!godMode && enemyAt(player.c, player.r)) { resolve(true); return; }
       step++;
       anyMoved ? setTimeout(doStep, 350) : doStep();
     }
@@ -1445,6 +1502,9 @@ function openLoseModal() {
   document.getElementById('modal-img').src = BASE + '/assets/comunes/modal-reintentar.webp';
   modalOpen = true; modalSel = 1;
   modalOverlay.classList.add('show');
+  // Tembleque del cartel al aparecer (CSS lo anula con prefers-reduced-motion)
+  modalOverlay.classList.add('quake');
+  setTimeout(() => modalOverlay.classList.remove('quake'), 550);
   requestAnimationFrame(() => requestAnimationFrame(() => modalOverlay.classList.add('visible')));
   renderModal();
 }
@@ -1696,6 +1756,10 @@ function updateDebugTier() {
 }
 document.addEventListener('pointerdown', () => { if (window.FinalBattle?.active) FinalBattle.onPointer(); });
 document.addEventListener('keydown', (e) => {
+  // Consola de hacks: Tab la abre/cierra siempre; abierta, el input
+  // gestiona sus teclas y el avatar no se mueve
+  if (e.key === 'Tab') { e.preventDefault(); hackToggle(); return; }
+  if (hackOpen) return;
   // Batalla final en curso: ella gestiona el teclado (Continuar / Esc)
   if (window.FinalBattle?.active) { FinalBattle.onKey(e); return; }
   if (e.key === 't' || e.key === 'T' || e.key === 'p' || e.key === 'P') {
@@ -1751,7 +1815,7 @@ document.addEventListener('keydown', (e) => {
   // Cambiar tier: [ ] o - / +
   if (e.key === '[' || e.key === '-') {
     e.preventDefault();
-    currentTier = Math.max(4, currentTier - 1); // el nivel más bajo es el 4
+    currentTier = Math.max(3, currentTier - 1); // el nivel más bajo es el 3
     loadScreen();
     return;
   }
@@ -1773,6 +1837,200 @@ document.addEventListener('keydown', (e) => {
   if (d) { e.preventDefault(); movePlayer(d[0], d[1]); }
 });
 
+// === Consola de hacks (Tab) ===
+// Panel inferior semitransparente con historial y mapa de comandos
+// extensible (HACK_CMDS). Abierta, bloquea el input del juego.
+let hackOpen = false;
+let hackSpeed = 1;      // multiplicador de la animación de `complete`
+let hackReplaying = false;
+let hackSolve = null;   // caché de /api/solve-screen por pantalla
+let hackDebug = false;
+const hcEl = document.createElement('div');
+hcEl.id = 'hack-console';
+hcEl.innerHTML = '<div id="hc-out"></div><div id="hc-row"><span class="prompt">&gt;</span><input id="hc-in" autocomplete="off" spellcheck="false"></div>';
+document.body.appendChild(hcEl);
+const hcOut = hcEl.querySelector('#hc-out');
+const hcIn = hcEl.querySelector('#hc-in');
+const hcDebugEl = document.createElement('div');
+hcDebugEl.id = 'hc-debug';
+document.body.appendChild(hcDebugEl);
+const hcHistory = [];
+let hcHistIdx = -1;
+
+function hk(key, ...args) { try { return tt(key, ...args); } catch { return key; } }
+function hcPrint(text, cls) {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = text;
+  hcOut.appendChild(d);
+  hcOut.scrollTop = hcOut.scrollHeight;
+}
+function hackToggle() {
+  hackOpen = !hackOpen;
+  hcEl.classList.toggle('open', hackOpen);
+  if (hackOpen) { setTimeout(() => hcIn.focus(), 0); }
+  else hcIn.blur();
+}
+hcIn.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (hcHistory.length) { hcHistIdx = Math.max(0, hcHistIdx < 0 ? hcHistory.length - 1 : hcHistIdx - 1); hcIn.value = hcHistory[hcHistIdx] || ''; }
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (hcHistIdx >= 0) { hcHistIdx++; if (hcHistIdx >= hcHistory.length) { hcHistIdx = -1; hcIn.value = ''; } else hcIn.value = hcHistory[hcHistIdx]; }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const line = hcIn.value.trim();
+    hcIn.value = '';
+    if (!line) return;
+    hcHistory.push(line); hcHistIdx = -1;
+    hcPrint('> ' + line, 'cmd');
+    hackRun(line);
+  } else if (e.key === 'Escape') {
+    e.preventDefault(); hackToggle();
+  }
+});
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+async function waitIdle() {
+  while ((moving || countingDown) && !gameOver) await sleep(60);
+}
+async function fetchSolve() {
+  if (hackSolve && hackSolve.id === currentScreenId) return hackSolve.data;
+  try {
+    const r = await fetch(`${BASE}/api/solve-screen?id=${encodeURIComponent(currentScreenId)}`);
+    const d = await r.json();
+    if (d.ok) { hackSolve = { id: currentScreenId, data: d }; return d; }
+  } catch {}
+  return null;
+}
+async function hackLoadScreen(url) {
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.ok) { hcPrint(hk('hack.notfound', ''), 'err'); return null; }
+    await applyScreen(d.screen);
+    hcPrint(hk('hack.loaded', d.screen.id));
+    return d.screen;
+  } catch { hcPrint(hk('hack.notfound', ''), 'err'); return null; }
+}
+const hackTier = () => (REAL_MODE ? gameLevel : currentTier);
+
+// Mapa de comandos — añadir uno nuevo = una entrada aquí
+const HACK_CMDS = {
+  help: () => hcPrint(hk('hack.help')),
+  clear: () => { hcOut.innerHTML = ''; },
+  level: async (args) => {
+    if (!args.length) { hcPrint(hk('hack.tier', hackTier())); return; }
+    const n = parseInt(args[0], 10);
+    if (!Number.isFinite(n) || n < 1 || n > 15) { hcPrint(hk('hack.usageLevel'), 'err'); return; }
+    currentTier = n;
+    await hackLoadScreen(`${BASE}/api/practice-screen?tier=${n}&t=${Date.now()}`);
+  },
+  seed: async (args) => {
+    let id = args[0] || '';
+    const m = id.match(/^(\d+)[-:](\d+)$/);
+    if (m) id = `l${m[1]}-s${m[2]}`;
+    if (!id) { hcPrint(hk('hack.usageSeed'), 'err'); return; }
+    await hackLoadScreen(`${BASE}/api/screen?id=${encodeURIComponent(id)}`);
+  },
+  next: () => hackLoadScreen(`${BASE}/api/screen-nav?id=${encodeURIComponent(currentScreenId)}&dir=next`),
+  prev: () => hackLoadScreen(`${BASE}/api/screen-nav?id=${encodeURIComponent(currentScreenId)}&dir=prev`),
+  restart: async () => { if (lastScreen) await applyScreen(lastScreen); },
+  undo: () => {
+    const s = undoStack.pop();
+    if (!s) { hcPrint(hk('hack.noUndo'), 'err'); return; }
+    player.c = s.p.c; player.r = s.p.r;
+    s.e.forEach((e, i) => { if (enemies[i]) { enemies[i].c = e.c; enemies[i].r = e.r; enemies[i].stunnedTurns = e.st; } });
+    playerStunnedTurns = s.ps; turn = s.turn;
+    positionSelector(); updateEnemyPositions(); updateTurnDisplay();
+  },
+  optimal: async () => {
+    const sol = await fetchSolve();
+    hcPrint(hk('hack.optimal', sol?.par ?? lastScreen?.par ?? currentMinMoves));
+  },
+  turns: () => hcPrint(hk('hack.turns', turn)),
+  solutions: async () => {
+    const sol = await fetchSolve();
+    if (!sol || !sol.sols) { hcPrint(hk('hack.nosol'), 'err'); return; }
+    hcPrint(hk('hack.solutions', sol.sols[0] ?? 0, sol.sols[1] ?? 0, sol.sols[2] ?? 0));
+  },
+  hint: async () => {
+    const q = `id=${encodeURIComponent(currentScreenId)}&p=${player.c},${player.r}` +
+      `&e=${enemies.map(e => `${e.c},${e.r}`).join(';')}` +
+      `&ps=${playerStunnedTurns}&es=${enemies.map(e => e.stunnedTurns).join(',')}`;
+    try {
+      const r = await fetch(`${BASE}/api/hint?${q}`);
+      const d = await r.json();
+      if (!d.ok) { hcPrint(hk('hack.nosol'), 'err'); return; }
+      const [dc, dr] = d.move;
+      hcPrint(hk('hack.hint', dc === 1 ? '→' : dc === -1 ? '←' : dr === -1 ? '↑' : dr === 1 ? '↓' : '·'));
+      movePlayer(dc, dr);
+    } catch { hcPrint(hk('hack.nosol'), 'err'); }
+  },
+  god: () => { godMode = !godMode; hcPrint(hk('hack.god', hk(godMode ? 'hack.on' : 'hack.off'))); },
+  speed: (args) => {
+    const x = parseFloat(args[0]);
+    if (!Number.isFinite(x) || x <= 0) { hcPrint(hk('hack.speed', hackSpeed)); return; }
+    hackSpeed = Math.min(16, Math.max(0.25, x));
+    hcPrint(hk('hack.speed', hackSpeed));
+  },
+  debug: async () => {
+    hackDebug = !hackDebug;
+    hcDebugEl.style.display = hackDebug ? 'block' : 'none';
+    hcPrint(hk('hack.debug', hk(hackDebug ? 'hack.on' : 'hack.off')));
+    if (hackDebug) hackDebugUpdate();
+  },
+  complete: async () => {
+    if (!lastScreen) { hcPrint(hk('hack.nosol'), 'err'); return; }
+    hackReplaying = false;
+    await applyScreen(lastScreen); // reinicia la pantalla
+    const sol = await fetchSolve();
+    if (!sol || !sol.moves || !sol.moves.length) { hcPrint(hk('hack.nosol'), 'err'); return; }
+    hcPrint(hk('hack.replaying'));
+    hackReplaying = true;
+    try {
+      for (const [dc, dr] of sol.moves) {
+        await waitIdle();
+        if (!hackReplaying || gameOver) break;
+        while (playerStunnedTurns > 0 && !gameOver) { movePlayer(1, 0); await waitIdle(); }
+        if (gameOver || !hackReplaying) break;
+        movePlayer(dc, dr);
+        await sleep(Math.max(80, 380 / hackSpeed));
+      }
+      await waitIdle();
+      hcPrint(hk('hack.done'));
+    } finally { hackReplaying = false; }
+  },
+};
+function hackRun(line) {
+  const [name, ...args] = line.split(/\s+/);
+  const cmd = HACK_CMDS[name.toLowerCase()];
+  if (!cmd) { hcPrint(hk('hack.unknown', name), 'err'); return; }
+  Promise.resolve(cmd(args)).catch(() => hcPrint(hk('hack.notfound', name), 'err'));
+}
+async function hackDebugUpdate() {
+  if (!hackDebug) return;
+  const sol = await fetchSolve();
+  // Métricas: distancias Manhattan entre enemigos, nº de obstáculos+trampas y
+  // % de casillas usadas (camino de la solución ∪ elementos).
+  const dists = [];
+  for (let i = 0; i < enemies.length; i++)
+    for (let j = i + 1; j < enemies.length; j++)
+      dists.push(Math.abs(enemies[i].c - enemies[j].c) + Math.abs(enemies[i].r - enemies[j].r));
+  const obsTraps = obstacleCells.size + trapCells.size;
+  let use = 0;
+  if (sol && sol.path) {
+    const used = new Set(sol.path.map(([c, r]) => `${c},${r}`));
+    for (const k of obstacleCells) used.add(k);
+    for (const k of trapCells) used.add(k);
+    for (const e of enemies) used.add(`${e.c},${e.r}`);
+    used.add(`${goal.c},${goal.r}`);
+    use = Math.round(used.size / (COLS * ROWS) * 100);
+  }
+  hcDebugEl.textContent = hk('hack.metrics',
+    enemies.length, dists.length ? dists.join('/') : '-', obsTraps, use);
+}
 document.getElementById('overlay-restart').addEventListener('click', () => {
   if (REAL_MODE && won) { play(pressAudio); confirmWin(); return; }
   play(pressAudio);
