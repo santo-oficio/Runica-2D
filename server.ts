@@ -1315,8 +1315,9 @@ const server = http.createServer((req, res) => {
     "Content-Type": mime,
     "Content-Length": String(stat.size),
   };
-  // No cachear JSON ni HTML para que los cambios surtan efecto inmediatamente
-  if (ext === ".json" || ext === ".html") {
+  // No cachear código/datos (JSON, HTML, JS, CSS) para que los cambios
+  // surtan efecto inmediatamente y nunca se sirva un script desfasado
+  if (ext === ".json" || ext === ".html" || ext === ".js" || ext === ".css") {
     headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
   }
   res.writeHead(200, headers);

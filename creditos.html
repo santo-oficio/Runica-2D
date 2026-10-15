@@ -428,8 +428,10 @@
     // Idioma primero (JSON local, instantaneo): asi la pantalla de carga
     // ya muestra los textos traducidos.
     await AssetsCache.loadSettings();
-    // Los créditos son del menú: siempre suena el tema principal
-    AssetsCache.setMusicTrack(AssetsCache.MUSIC.main);
+    // Continua la pista que traía la pantalla anterior: si venimos de la
+    // batalla final, victory.mp3 sigue sonando durante los créditos (una
+    // sola película, sin corte); si venimos del menú, sigue su tema.
+    AssetsCache.setMusicTrack(AssetsCache.currentMusicTrack() || AssetsCache.MUSIC.main);
     fallback = await loadLang('es');
     translations = await loadLang();
     applyI18n();

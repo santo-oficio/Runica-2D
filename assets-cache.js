@@ -327,13 +327,18 @@ function endMusicSting() {
 function setMusicTrack(url) {
   stopSting();
   if (!url) return;
-  // Misma pista: si el loop quedo pausado por un jingle cortado, reanudar
-  if (url === musicTrack) { if (musicEl && musicEl.paused) startMusic(); return; }
+  // Misma pista: crear el elemento si no existe (página recién cargada) o
+  // reanudar el loop si quedó pausado por un jingle cortado
+  if (url === musicTrack) { if (!musicEl || musicEl.paused) startMusic(); return; }
   if (musicEl) { saveMusicPos(); musicEl.pause(); musicEl = null; }
   musicTrack = url;
   try { localStorage.setItem(MUSIC_TRACK_KEY, url); } catch {}
   startMusic();
 }
+
+// La pista activa (persistida en localStorage — válida también en una
+// página recién cargada que aún no ha creado su <audio>).
+function currentMusicTrack() { return musicTrack; }
 
 function stopMusic() {
   stopSting();
@@ -451,5 +456,5 @@ window.AssetsCache = {
   transitionTo, transitionIn, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
-  startMusic, stopMusic, setMusicTrack, playMusicSting, endMusicSting, MUSIC, musicForWorld,
+  startMusic, stopMusic, setMusicTrack, playMusicSting, endMusicSting, MUSIC, musicForWorld, currentMusicTrack,
 };

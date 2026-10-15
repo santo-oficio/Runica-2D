@@ -205,7 +205,9 @@ renderizarla igual.
   Las pistas de `ONESHOT_MUSIC` (mapa pista→relevo) no repiten ni en loop:
   `worldWin` (fanfarria de boss de mundo) acaba yendo a `MUSIC.main`.
   `fin` (`victory.mp3`, ~2 min) va en **loop**: arranca desde 0 al empezar
-  la batalla final y suena hasta los créditos, que ponen `MUSIC.main`.
+  la batalla final y **continúa sin cortarse en `creditos.html`** (retoma
+  la posición guardada — la secuencia final es "una sola película");
+  `creditos.html` continúa la pista activa (`currentMusicTrack()`).
 - **Batalla final** (`final-battle.js`, MAZMORRA isla 12): al llegar al
   tesoro NO hay modal ni cambio de página — la batalla ocurre sobre el
   tablero vivo de `game.html`, con héroe y guardián en sus casillas reales:

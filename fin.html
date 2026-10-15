@@ -590,8 +590,13 @@ async function sceneBoard() {
   setTimeout(() => { beam.remove(); halo.remove(); }, 15000);
 
   await wait(900);
-  // Canción del final del juego — en loop desde la explosión del
-  // boss hasta los créditos (que ponen su propia pista); sin stings
+  // Canción del final del juego — en loop desde la explosión del boss,
+  // desde el principio y continua hasta los créditos; sin stings
+  try {
+    const m = JSON.parse(localStorage.getItem('runika-music-pos') || '{}');
+    delete m[AssetsCache.MUSIC.fin];
+    localStorage.setItem('runika-music-pos', JSON.stringify(m));
+  } catch {}
   AssetsCache.setMusicTrack(AssetsCache.MUSIC.fin);
   const big = document.getElementById('big-text');
   big.textContent = tt('game.victory');
