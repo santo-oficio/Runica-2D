@@ -124,9 +124,9 @@ describe("rediseño — tier 1 exhaustivo", () => {
   it("el espacio completo del tier 1 es pequeño pero no vacío", () => {
     const t1 = TIERS.find((t) => t.level === 1)!;
     const { screens } = generateTier1Exhaustive(t1);
-    // Espacio medido: ~32 puzzles únicos (sin duplicados ni simetrías)
-    expect(screens.length).toBeGreaterThan(0);
-    expect(screens.length).toBeLessThan(500);
+    // Espacio medido: ~258 puzzles únicos (sin duplicados ni simetrías)
+    expect(screens.length).toBeGreaterThan(100);
+    expect(screens.length).toBeLessThan(2000);
     for (const s of screens) expect(s.minMoves).toBeGreaterThanOrEqual(4);
-  }, 120_000);
+  }, 300_000);
 });

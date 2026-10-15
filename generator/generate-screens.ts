@@ -99,7 +99,7 @@ export interface Tier {
 // ---------------------------------------------------------------------------
 
 export const TIERS: Tier[] = [
-  { level: 1,  numEnemies: 1, numObstacles: [0, 1], numTraps: [0, 0], minSolutionLen: [4, 6],  minEnemyPlayerDist: 3, minEnemyEnemyDist: 0 },
+  { level: 1,  numEnemies: 1, numObstacles: [0, 2], numTraps: [0, 0], minSolutionLen: [4, 7],  minEnemyPlayerDist: 2, minEnemyEnemyDist: 0 },
   { level: 2,  numEnemies: 1, numObstacles: [0, 2], numTraps: [0, 1], minSolutionLen: [5, 7],  minEnemyPlayerDist: 3, minEnemyEnemyDist: 0 },
   { level: 3,  numEnemies: 1, numObstacles: [1, 2], numTraps: [0, 1], minSolutionLen: [6, 8],  minEnemyPlayerDist: 4, minEnemyEnemyDist: 0 },
   { level: 4,  numEnemies: 1, numObstacles: [2, 3], numTraps: [0, 1], minSolutionLen: [7, 9],  minEnemyPlayerDist: 4, minEnemyEnemyDist: 0 },
@@ -1281,12 +1281,32 @@ export function generateTierBatch(
   };
 }
 
+/** Itera todos los subconjuntos de `arr` de tamaño 0..k. */
+function* subsetsUpTo(arr: number[], k: number): Generator<number[]> {
+  yield [];
+  const n = arr.length;
+  for (let size = 1; size <= Math.min(k, n); size++) {
+    const idxs = Array.from({ length: size }, (_, i) => i);
+    for (;;) {
+      yield idxs.map((i) => arr[i]!);
+      let i = size - 1;
+      while (i >= 0 && idxs[i] === n - size + i) i--;
+      if (i < 0) break;
+      idxs[i]!++;
+      for (let j = i + 1; j < size; j++) idxs[j] = idxs[j - 1]! + 1;
+    }
+  }
+}
+
 /**
  * Enumeración exhaustiva del tier 1: el espacio combinatorio es pequeño
- * (jugador a 2-5 de la salida, 1 enemigo, 0-1 obstáculos, sin trampas) y
- * la tasa de acierto por muestreo aleatorio es bajísima — enumerarlo da
- * TODOS los puzzles válidos que existen (la spec permite bancos pequeños
- * en tiers bajos, sin rellenar con duplicados).
+ * y la tasa de acierto por muestreo aleatorio es bajísima — enumerarlo
+ * da TODOS los puzzles válidos que existen (la spec permite bancos
+ * pequeños en tiers bajos, sin rellenar con duplicados).
+ * Recorrido: salida × jugador (distancia ≤ parMax−1, porque
+ * distManhattan ≤ minReal ≤ par−1) × enemigo × subconjuntos de
+ * obstáculos/trampas dentro del corredor jugador↔salida (un elemento
+ * fuera del corredor jamás condiciona la solución → sería decorativo).
  */
 export function generateTier1Exhaustive(tier: Tier): { screens: Screen[]; stats: GenStats } {
   const seen = new Set<string>();
@@ -1297,41 +1317,53 @@ export function generateTier1Exhaustive(tier: Tier): { screens: Screen[]; stats:
   let attempts = 0;
   let duplicates = 0;
   const t0 = Date.now();
+  const maxObs = tier.numObstacles[1];
+  const maxTraps = tier.numTraps[1];
+  const dpHi = tier.minSolutionLen[1] - 1;
 
   for (let exit = 0; exit < CELLS; exit++) {
     for (let player = 0; player < CELLS; player++) {
-      if (player === exit) continue;
       const dp = manhattan(player, exit);
-      if (dp < 2 || dp > 5) continue;
+      if (dp < 2 || dp > dpHi) continue;
       for (let enemy = 0; enemy < CELLS; enemy++) {
         if (enemy === exit || enemy === player) continue;
         if (manhattan(enemy, player) < tier.minEnemyPlayerDist) continue;
-        for (let obs = -1; obs < CELLS; obs++) {
-          if (obs === exit || obs === player || obs === enemy) continue;
-          attempts++;
-          const lv: LevelData = {
-            obstacles: obs < 0 ? new Set() : new Set([obs]),
-            traps: new Set(),
-            exit, player, enemies: [enemy],
-          };
-          const res = solve(lv);
-          if (!res.solvable) continue;
-          const validation = validateCandidate(lv, tier);
-          if (!validation.ok) {
-            const k = validation.reason.split("(")[0]!;
-            reasons[k] = (reasons[k] ?? 0) + 1;
-            continue;
+        const corridor: number[] = [];
+        for (let c = 0; c < CELLS; c++) {
+          if (c === exit || c === player || c === enemy) continue;
+          if (manhattan(c, player) + manhattan(c, exit) <= dp + 3) corridor.push(c);
+        }
+        for (const obsSet of subsetsUpTo(corridor, maxObs)) {
+          if (obsSet.length < tier.numObstacles[0]) continue;
+          const obsUsed = new Set(obsSet);
+          const rem = corridor.filter((c) => !obsUsed.has(c));
+          for (const trapSet of subsetsUpTo(rem, maxTraps)) {
+            if (trapSet.length < tier.numTraps[0]) continue;
+            attempts++;
+            const lv: LevelData = {
+              obstacles: obsUsed,
+              traps: new Set(trapSet),
+              exit, player, enemies: [enemy],
+            };
+            const res = solve(lv);
+            if (!res.solvable) continue;
+            const validation = validateCandidate(lv, tier);
+            if (!validation.ok) {
+              const k = validation.reason.split("(")[0]!;
+              reasons[k] = (reasons[k] ?? 0) + 1;
+              continue;
+            }
+            const key = canonicalKey(lv);
+            if (seen.has(key)) { duplicates++; continue; }
+            seen.add(key);
+            screens.push(levelToScreen(
+              { lv, trueMin: validation.trueMin!, par: validation.par!, sols: validation.sols!, path: validation.path!, use: validation.use! },
+              tier.level, 0,
+            ));
+            const b = `${Math.floor(validation.use! * 10) * 10}-${Math.floor(validation.use! * 10) * 10 + 9}`;
+            useHistogram[b] = (useHistogram[b] ?? 0) + 1;
+            parHistogram[String(validation.par)] = (parHistogram[String(validation.par)] ?? 0) + 1;
           }
-          const key = canonicalKey(lv);
-          if (seen.has(key)) { duplicates++; continue; }
-          seen.add(key);
-          screens.push(levelToScreen(
-            { lv, trueMin: validation.trueMin!, par: validation.par!, sols: validation.sols!, path: validation.path!, use: validation.use! },
-            tier.level, 0,
-          ));
-          const b = `${Math.floor(validation.use! * 10) * 10}-${Math.floor(validation.use! * 10) * 10 + 9}`;
-          useHistogram[b] = (useHistogram[b] ?? 0) + 1;
-          parHistogram[String(validation.par)] = (parHistogram[String(validation.par)] ?? 0) + 1;
         }
       }
     }

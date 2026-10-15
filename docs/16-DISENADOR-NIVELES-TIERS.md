@@ -86,7 +86,7 @@
 
 | Tier | Enemigos | Obstáculos | Trampas | Par (óptimo) | Dist. E–P | Dist. E–E |
 |------|----------|------------|---------|--------------|-----------|-----------|
-| 1    | 1        | 0–1        | 0       | 4–6          | 3         | —         |
+| 1    | 1        | 0–2        | 0       | 4–7          | 2         | —         |
 | 2    | 1        | 0–2        | 0–1     | 5–7          | 3         | —         |
 | 3    | 1        | 1–2        | 0–1     | 6–8          | 4         | —         |
 | 4    | 1        | 2–3        | 0–1     | 7–9          | 4         | —         |
@@ -135,8 +135,11 @@ npx tsx generator/generate-screens.ts --workers=8
 npx tsx generator/generate-screens.ts --test --count=150
 ```
 
-- El **tier 1 se enumera exhaustivamente** (~2,2M combinaciones): su
-  espacio válido completo es de **~32 puzzles únicos** (dato medido).
+- El **tier 1 se enumera exhaustivamente** (~9,5M combinaciones, jugador
+  a distancia ≤ parMax−1 × enemigo × subconjuntos de obstáculos en el
+  corredor jugador↔salida): su espacio válido completo es de
+  **~258 puzzles únicos** (dato medido; los de par ≤5 no existen porque
+  un enemigo necesario ya fuerza mínimos más largos).
 - Estadísticas del lote de prueba (12000 intentos/tier): éxito ~0,1–1%
   según tier; el mayor descarte es `unprunable` (candidatos
   irresolubles: el enemigo es 2× más rápido y atrapa en tablero
