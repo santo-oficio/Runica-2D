@@ -1,0 +1,95 @@
+Nivel 1 (objetivo 150)…
+  tier 1: 0 aceptadas / 12000 intentos (0.0% éxito, 0 duplicados, 0.7s)
+    descartes: unprunable=11323 min_elements_unreachable=675 direct_path=1 par_out_of_range=1
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-1.json (0.0 MB)
+  ⚠ 0 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 2 (objetivo 150)…
+  tier 2: 0 aceptadas / 12000 intentos (0.0% éxito, 0 duplicados, 1.0s)
+    descartes: unprunable=10133 min_elements_unreachable=1107 not_beatable=393 par_out_of_range=345 direct_path=22
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-2.json (0.0 MB)
+  ⚠ 0 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 3 (objetivo 150)…
+  tier 3: 17 aceptadas / 12000 intentos (0.1% éxito, 1 duplicados, 2.2s)
+    descartes: unprunable=10104 min_elements_unreachable=1056 par_out_of_range=455 direct_path=189 not_beatable=164 redundant_obstacle=11
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-3.json (0.0 MB)
+  ⚠ 17 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 4 (objetivo 150)…
+  tier 4: 21 aceptadas / 12000 intentos (0.2% éxito, 0 duplicados, 2.6s)
+    descartes: unprunable=10074 min_elements_unreachable=1028 par_out_of_range=685 direct_path=75 not_beatable=64 redundant_obstacle=34
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-4.json (0.0 MB)
+  ⚠ 21 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 5 (objetivo 150)…
+  tier 5: 64 aceptadas / 12000 intentos (0.5% éxito, 0 duplicados, 4.7s)
+    descartes: unprunable=8857 min_elements_unreachable=1457 par_out_of_range=1170 not_beatable=151 redundant_obstacle=125 direct_path=119
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-5.json (0.0 MB)
+  ⚠ 64 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 6 (objetivo 150)…
+  tier 6: 0 aceptadas / 12000 intentos (0.0% éxito, 0 duplicados, 0.8s)
+    descartes: unprunable=11706 min_elements_unreachable=236 par_out_of_range=48 not_beatable=7 redundant_obstacle=1 decorative_enemy=1
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-6.json (0.0 MB)
+  ⚠ 0 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 7 (objetivo 150)…
+  tier 7: 7 aceptadas / 12000 intentos (0.1% éxito, 0 duplicados, 6.2s)
+    descartes: unprunable=10582 min_elements_unreachable=796 par_out_of_range=467 not_beatable=58 board_use=44 redundant_obstacle=29
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-7.json (0.0 MB)
+  ⚠ 7 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 8 (objetivo 150)…
+  tier 8: 30 aceptadas / 12000 intentos (0.3% éxito, 0 duplicados, 6.6s)
+    descartes: unprunable=10610 min_elements_unreachable=788 par_out_of_range=391 not_beatable=52 board_use=52 redundant_obstacle=51
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-8.json (0.0 MB)
+  ⚠ 30 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 9 (objetivo 150)…
+  tier 9: 25 aceptadas / 12000 intentos (0.2% éxito, 0 duplicados, 9.7s)
+    descartes: unprunable=10410 min_elements_unreachable=903 par_out_of_range=474 redundant_obstacle=82 not_beatable=44 board_use=29
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-9.json (0.0 MB)
+  ⚠ 25 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 10 (objetivo 150)…
+  tier 10: 22 aceptadas / 12000 intentos (0.2% éxito, 0 duplicados, 10.3s)
+    descartes: unprunable=10399 min_elements_unreachable=939 par_out_of_range=426 redundant_obstacle=87 not_beatable=65 board_use=28
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-10.json (0.0 MB)
+  ⚠ 22 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 11 (objetivo 150)…
+  tier 11: 31 aceptadas / 12000 intentos (0.3% éxito, 0 duplicados, 15.6s)
+    descartes: unprunable=9984 min_elements_unreachable=1052 par_out_of_range=679 redundant_obstacle=108 not_beatable=79 board_use=28
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-11.json (0.0 MB)
+  ⚠ 31 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 12 (objetivo 150)…
+  tier 12: 56 aceptadas / 12000 intentos (0.5% éxito, 0 duplicados, 15.1s)
+    descartes: unprunable=10007 min_elements_unreachable=1065 par_out_of_range=605 redundant_obstacle=91 not_beatable=88 decorative_enemy=37
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-12.json (0.0 MB)
+  ⚠ 56 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 13 (objetivo 150)…
+  tier 13: 146 aceptadas / 12000 intentos (1.2% éxito, 0 duplicados, 21.2s)
+    descartes: unprunable=9729 min_elements_unreachable=1139 par_out_of_range=601 redundant_obstacle=163 not_beatable=115 decorative_enemy=43
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-13.json (0.0 MB)
+  ⚠ 146 distintas en 12000 intentos (tope de intentos alcanzado)
+Nivel 14 (objetivo 150)…
+  tier 14: 150 aceptadas / 11152 intentos (1.3% éxito, 0 duplicados, 19.0s)
+    descartes: unprunable=9211 min_elements_unreachable=1041 par_out_of_range=437 redundant_obstacle=143 not_beatable=72 decorative_enemy=49
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-14.json (0.0 MB)
+Nivel 15 (objetivo 150)…
+  tier 15: 121 aceptadas / 12000 intentos (1.0% éxito, 0 duplicados, 25.7s)
+    descartes: unprunable=9634 min_elements_unreachable=1148 par_out_of_range=702 redundant_obstacle=174 not_beatable=108 decorative_enemy=43
+  → C:\Proyectos personales\Runika 2D\.tmp_chk\gen-test\screens-tier-15.json (0.0 MB)
+  ⚠ 121 distintas en 12000 intentos (tope de intentos alcanzado)
+
+Total: 690 pantallas en 141.6s
+
+=== Resumen del lote de prueba ===
+tier 1: éxito 0.0% · uso[] · par[]
+tier 2: éxito 0.0% · uso[] · par[]
+tier 3: éxito 0.1% · uso[10-19%:15 20-29%:2] · par[8:17]
+tier 4: éxito 0.2% · uso[10-19%:8 20-29%:13] · par[8:8 9:13]
+tier 5: éxito 0.5% · uso[10-19%:12 20-29%:52] · par[8:6 9:9 10:49]
+tier 6: éxito 0.0% · uso[] · par[]
+tier 7: éxito 0.1% · uso[30-39%:3 40-49%:4] · par[14:1 15:4 16:2]
+tier 8: éxito 0.3% · uso[30-39%:12 40-49%:12 50-59%:6] · par[15:2 16:3 17:6 18:19]
+tier 9: éxito 0.2% · uso[30-39%:4 40-49%:17 50-59%:4] · par[16:1 17:3 18:9 19:12]
+tier 10: éxito 0.2% · uso[30-39%:2 40-49%:15 50-59%:5] · par[16:1 17:2 18:7 19:4 20:8]
+tier 11: éxito 0.3% · uso[30-39%:6 40-49%:12 50-59%:13] · par[16:1 17:5 18:1 19:4 20:9 21:11]
+tier 12: éxito 0.5% · uso[30-39%:6 40-49%:28 50-59%:19 60-69%:3] · par[17:1 18:5 19:4 20:10 21:16 22:20]
+tier 13: éxito 1.2% · uso[30-39%:11 40-49%:58 50-59%:69 60-69%:8] · par[18:9 19:8 20:12 21:17 22:27 23:31 24:42]
+tier 14: éxito 1.3% · uso[30-39%:19 40-49%:61 50-59%:66 60-69%:4] · par[19:6 20:12 21:22 22:18 23:28 24:34 25:30]
+tier 15: éxito 1.0% · uso[30-39%:10 40-49%:41 50-59%:63 60-69%:7] · par[18:3 19:2 20:2 21:9 22:12 23:18 24:20 25:21 26:34]
+
+Tiempo medio por pantalla aceptada: 296ms (estimación 100k/tier con 1 worker(s): 8.2h por tier)

@@ -41,8 +41,9 @@ const W = 8;
 const H = 6;
 const CELLS = W * H;
 
-/** Pantallas por tier: 100.000 según rediseño de niveles. */
-export const SCREENS_PER_TIER = 100_000;
+/** Pantallas por tier: 25.000 (reducido de 100k — la partida consume
+ *  como mucho 96 pantallas; sobra variedad). */
+export const SCREENS_PER_TIER = 25_000;
 
 /**
  * Uso mínimo del tablero desde el tier 7: fracción de las 48 casillas
@@ -108,14 +109,14 @@ export const TIERS: Tier[] = [
   // Desde el tier 7 el par mínimo es 12: en tablero abierto el mínimo real
   // casi nunca llega — hacen falta tableros densos (más obstáculos y
   // trampas, todos necesarios) para forzar los rodeos largos.
-  { level: 7,  numEnemies: 2, numObstacles: [4, 8],  numTraps: [2, 4], minSolutionLen: [12, 16], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
-  { level: 8,  numEnemies: 2, numObstacles: [4, 9],  numTraps: [2, 4], minSolutionLen: [13, 18], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
-  { level: 9,  numEnemies: 2, numObstacles: [5, 9],  numTraps: [2, 5], minSolutionLen: [14, 19], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
-  { level: 10, numEnemies: 2, numObstacles: [5, 10], numTraps: [2, 5], minSolutionLen: [15, 20], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
-  { level: 11, numEnemies: 2, numObstacles: [5, 10], numTraps: [3, 6], minSolutionLen: [16, 21], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
-  { level: 12, numEnemies: 2, numObstacles: [5, 11], numTraps: [3, 6], minSolutionLen: [17, 22], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
-  { level: 13, numEnemies: 2, numObstacles: [5, 11], numTraps: [3, 7], minSolutionLen: [18, 24], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
-  { level: 14, numEnemies: 2, numObstacles: [5, 12], numTraps: [3, 7], minSolutionLen: [19, 25], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 7,  numEnemies: 2, numObstacles: [4, 8],  numTraps: [2, 4], minSolutionLen: [12, 18], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 8,  numEnemies: 2, numObstacles: [4, 9],  numTraps: [2, 4], minSolutionLen: [13, 19], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 9,  numEnemies: 2, numObstacles: [5, 9],  numTraps: [2, 5], minSolutionLen: [14, 20], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 10, numEnemies: 2, numObstacles: [5, 10], numTraps: [2, 5], minSolutionLen: [15, 21], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 11, numEnemies: 2, numObstacles: [5, 10], numTraps: [3, 6], minSolutionLen: [16, 22], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 12, numEnemies: 2, numObstacles: [5, 11], numTraps: [3, 6], minSolutionLen: [17, 23], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 13, numEnemies: 2, numObstacles: [5, 11], numTraps: [3, 7], minSolutionLen: [18, 25], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
+  { level: 14, numEnemies: 2, numObstacles: [5, 12], numTraps: [3, 7], minSolutionLen: [19, 26], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
   // Boss final: 2 enemigos + laberinto denso de obstáculos/trampas.
   { level: 15, numEnemies: 2, numObstacles: [5, 8], numTraps: [4, 6], minSolutionLen: [18, 26], minEnemyPlayerDist: 3, minEnemyEnemyDist: 4 },
 ];
@@ -171,22 +172,22 @@ function shuffle<T>(arr: T[], rnd: () => number): T[] {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const idx = (c: number, r: number) => r * W + c;
-const col = (k: number) => k % W;
-const row = (k: number) => Math.floor(k / W);
+export const idx = (c: number, r: number) => r * W + c;
+export const col = (k: number) => k % W;
+export const row = (k: number) => Math.floor(k / W);
 
-function manhattan(a: number, b: number): number {
+export function manhattan(a: number, b: number): number {
   return Math.abs(col(a) - col(b)) + Math.abs(row(a) - row(b));
 }
 
-function allCells(): number[] {
+export function allCells(): number[] {
   const cells: number[] = [];
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) cells.push(idx(c, r));
   return cells;
 }
 
 /** BFS shortest path en tablero vacío (sin obstáculos/enemigos). */
-function directPathCells(player: number, exit: number, blocked?: Set<number>): number[] {
+export function directPathCells(player: number, exit: number, blocked?: Set<number>): number[] {
   const prev = new Map<number, number | null>();
   const queue: number[] = [player];
   prev.set(player, null);
@@ -217,7 +218,7 @@ function directPathCells(player: number, exit: number, blocked?: Set<number>): n
 }
 
 /** Distancia BFS jugador→salida en el tablero vacío (-1 si no hay camino). */
-function emptyBoardDistance(player: number, exit: number): number {
+export function emptyBoardDistance(player: number, exit: number): number {
   return directPathCells(player, exit).length - 1;
 }
 
@@ -234,12 +235,14 @@ export function randomCandidate(tier: Tier, rnd: () => number): LevelData | null
   const exitC = cells.pop()!;
   used.add(exitC);
 
-  // Jugador: distancia Manhattan a la salida acotada al rango del tier —
-  // el mínimo real T no puede bajar de la distancia BFS, así que en tiers
-  // de par corto el jugador tiene que estar cerca (T1: 4-5) o jamás cae
-  // en ventana; en tiers altos toda la anchura del tablero sirve.
-  const loD = Math.min(4, Math.max(2, tier.minSolutionLen[0] - 4));
+  // Jugador: la distancia máxima alcanzable depende de DÓNDE cayó la
+  // salida (una salida central no permite dp > ~7), así que la banda se
+  // calcula por-exit: se toma el tramo ALTO de lo alcanzable, siempre
+  // por debajo de parMax−1 (dp > parMax−1 haría imposible el par).
   const hiD = Math.min(W - 1 + H - 1, tier.minSolutionLen[1] - 1);
+  let maxD = 0;
+  for (const c of cells) if (!used.has(c)) maxD = Math.max(maxD, manhattan(c, exitC));
+  const loD = Math.max(2, Math.min(hiD, maxD - 2, Math.max(2, tier.minSolutionLen[0] - 6)));
   const distPool = cells.filter((c) => {
     const d = manhattan(c, exitC);
     return d >= loD && d <= hiD && !used.has(c);
@@ -248,13 +251,77 @@ export function randomCandidate(tier: Tier, rnd: () => number): LevelData | null
   const playerC = distPool[Math.floor(rnd() * distPool.length)]!;
   used.add(playerC);
 
-  const freeAfterPlayer = cells.filter((c) => !used.has(c));
-
-  // Camino directo para bias de enemigos (cada enemigo cubre un tramo
-  // distinto: sentido táctico, no posición al azar)
   const pathCells = directPathCells(playerC, exitC);
-  const nearPath = (c: number, radius: number): boolean =>
-    pathCells.some((p) => manhattan(c, p) <= radius);
+  const pathSet = new Set(pathCells);
+  const freeCells = () => allCells().filter((c) => !used.has(c));
+  const adjPath = (c: number): boolean => {
+    const cc = col(c), rr = row(c);
+    return [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const nc = cc + dx!, nr = rr + dy!;
+      return nc >= 0 && nc < W && nr >= 0 && nr < H && pathSet.has(nr * W + nc);
+    });
+  };
+
+  const nObs = tier.numObstacles[0] + Math.floor(rnd() * (tier.numObstacles[1] - tier.numObstacles[0] + 1));
+  const nTrp = tier.numTraps[0] + Math.floor(rnd() * (tier.numTraps[1] - tier.numTraps[0] + 1));
+
+  // --- Obstáculos ---
+  const obstacles = new Set<number>();
+  let gapCell = -1;
+  let wallSide: ((c: number) => boolean) | null = null;
+  // Variante estructural (tiers con sitio para muro): barrera completa
+  // entre jugador y salida con UN hueco — fuerza un rodeo garantizado.
+  // El pruning recorta después los tramos decorativos (los alejados del
+  // hueco no cambian el óptimo y desaparecen), dejando el núcleo
+  // necesario. Los enemigos se colocan en el LADO DEL JUGADOR: deben
+  // pasar el hueco como él → la persecución llega con retraso, y una
+  // trampa en su ruta les roba 3 turnos (el ecualizador del 2×).
+  if (nObs >= 4 && rnd() < 0.5) {
+    const pc = col(playerC), pr = row(playerC), ec = col(exitC), er = row(exitC);
+    const line: number[] = [];
+    if (Math.abs(pc - ec) >= Math.abs(pr - er)) {
+      const wc = Math.floor((pc + ec) / 2);
+      if (wc !== pc && wc !== ec) {
+        for (let r = 0; r < H; r++) line.push(idx(wc, r));
+        wallSide = pc < wc ? (c: number) => col(c) < wc : (c: number) => col(c) > wc;
+      }
+    } else {
+      const wr = Math.floor((pr + er) / 2);
+      if (wr !== pr && wr !== er) {
+        for (let c = 0; c < W; c++) line.push(idx(c, wr));
+        wallSide = pr < wr ? (c: number) => row(c) < wr : (c: number) => row(c) > wr;
+      }
+    }
+    if (line.length > 0) {
+      gapCell = line[Math.floor(rnd() * line.length)]!;
+      for (const c of line) {
+        if (c === gapCell || used.has(c)) continue;
+        if (obstacles.size >= nObs) break;
+        obstacles.add(c);
+        used.add(c);
+      }
+    }
+  }
+  // Dispersión con sesgo al camino directo/adyacentes hasta completar nObs
+  if (obstacles.size < nObs) {
+    const pool = [
+      ...shuffle(pathCells.filter((c) => c !== playerC && c !== exitC && !used.has(c)), rnd),
+      ...shuffle(freeCells().filter((c) => adjPath(c)), rnd),
+      ...shuffle(freeCells(), rnd),
+    ];
+    for (const c of pool) {
+      if (obstacles.size >= nObs) break;
+      if (obstacles.has(c) || used.has(c)) continue;
+      obstacles.add(c);
+      used.add(c);
+    }
+  }
+
+  // --- Enemigos + trampas con reintento (hasta 24): el único patrón
+  //     resoluble con un cazador 2× es ralentizarlo — las trampas se
+  //     siembran en SU ruta de persecución (e→jugador y e→hueco), no en
+  //     la del jugador. Se acepta la primera combinación resoluble y no
+  //     directa. ---
   const nearestPathIdx = (c: number): number => {
     let best = 0, bd = Infinity;
     pathCells.forEach((p, i) => {
@@ -263,58 +330,94 @@ export function randomCandidate(tier: Tier, rnd: () => number): LevelData | null
     });
     return best;
   };
+  const nearPath = (c: number, radius: number): boolean =>
+    pathCells.some((p) => manhattan(c, p) <= radius);
+  const pathEnd = pathCells.slice(Math.floor(pathCells.length * 0.6));
+  const threat = (c: number) =>
+    manhattan(c, exitC) <= 5 || pathEnd.some((p) => manhattan(c, p) <= 3) ||
+    (gapCell >= 0 && manhattan(c, gapCell) <= 4);
 
-  // Enemigos: bias hacia celdas que amenazan el camino directo; con ≥2,
-  // separación Manhattan ≥ minEnemyEnemyDist y tramos del camino distintos
-  const enemies: number[] = [];
-  const enemyPathIdx: number[] = [];
-  for (let i = 0; i < tier.numEnemies; i++) {
-    const valid = (c: number) =>
-      !used.has(c) &&
-      manhattan(c, playerC) >= tier.minEnemyPlayerDist &&
-      enemies.every((e) => manhattan(c, e) >= tier.minEnemyEnemyDist);
-    // Preferencia táctica: enemigo amenazando el TRAMO FINAL del camino
-    // (último ~40% o la salida) — en pars cortos coincide con "guardar la
-    // salida" (obliga a entrar de lado, el patrón viable de los tiers
-    // bajos) y en pars largos da presupuesto para cebarlo. Un enemigo
-    // suelto lejos de la ruta atrapa casi siempre (es 2× más rápido) y
-    // solo genera ruido irresoluble.
-    const pathEnd = pathCells.slice(Math.floor(pathCells.length * 0.6));
-    const threat = (c: number) =>
-      manhattan(c, exitC) <= 4 || pathEnd.some((p) => manhattan(c, p) <= 2);
-    let candidates = freeAfterPlayer.filter(
-      (c) => valid(c) && threat(c) &&
-        enemyPathIdx.every((pi) => Math.abs(nearestPathIdx(c) - pi) >= 2),
-    );
-    if (candidates.length === 0) {
-      candidates = freeAfterPlayer.filter(
-        (c) => valid(c) && nearPath(c, 4) &&
-          enemyPathIdx.every((pi) => Math.abs(nearestPathIdx(c) - pi) >= 2),
+  const freePre = freeCells().filter((c) => !obstacles.has(c));
+  const emptyDist = emptyBoardDistance(playerC, exitC);
+
+  const pickEnemySet = (): number[] | null => {
+    const es: number[] = [];
+    const eIdx: number[] = [];
+    const occ = new Set<number>(used);
+    for (let i = 0; i < tier.numEnemies; i++) {
+      const valid = (c: number) =>
+        !occ.has(c) && !obstacles.has(c) &&
+        manhattan(c, playerC) >= tier.minEnemyPlayerDist &&
+        es.every((e) => manhattan(c, e) >= tier.minEnemyEnemyDist);
+      let cands = freePre.filter(
+        (c) => valid(c) && threat(c) && (wallSide === null || wallSide(c)) &&
+          eIdx.every((pi) => Math.abs(nearestPathIdx(c) - pi) >= 2),
       );
+      if (cands.length === 0) cands = freePre.filter((c) => valid(c) && threat(c));
+      if (cands.length === 0) cands = freePre.filter((c) => valid(c) && nearPath(c, 4));
+      if (cands.length === 0) cands = freePre.filter(valid);
+      if (cands.length === 0) return null;
+      const e = cands[Math.floor(rnd() * cands.length)]!;
+      es.push(e);
+      eIdx.push(nearestPathIdx(e));
+      occ.add(e);
     }
-    if (candidates.length === 0) {
-      candidates = freeAfterPlayer.filter((c) => valid(c) && nearPath(c, 5));
+    return es;
+  };
+
+  const pickTraps = (es: number[]): Set<number> => {
+    const tr = new Set<number>();
+    // Celdas de la ruta de persecución del enemigo (BFS a través de los
+    // obstáculos): hacia el jugador y hacia el hueco del muro. Nunca en
+    // la casilla del jugador ni en la salida.
+    const pool: number[] = [];
+    for (const e of es) {
+      for (const tgt of [playerC, gapCell]) {
+        if (tgt < 0) continue;
+        const route = directPathCells(e, tgt, obstacles);
+        for (const c of route.slice(1)) {
+          if (c === tgt && tgt === playerC) continue;
+          if (manhattan(c, playerC) < 2) continue;
+          if (!used.has(c) && !obstacles.has(c) && !es.includes(c)) pool.push(c);
+        }
+      }
     }
-    if (candidates.length === 0) {
-      candidates = freeAfterPlayer.filter(valid);
+    // Relleno: camino del jugador / adyacentes / libres
+    pool.push(...pathCells.filter((c) => c !== playerC && c !== exitC && !used.has(c) && !obstacles.has(c)));
+    pool.push(...freeCells().filter((c) => !obstacles.has(c) && !es.includes(c) && adjPath(c)));
+    pool.push(...freeCells().filter((c) => !obstacles.has(c) && !es.includes(c)));
+    shuffle(pool, rnd);
+    const seen = new Set<number>();
+    for (const c of pool) {
+      if (tr.size >= nTrp) break;
+      if (seen.has(c) || used.has(c) || obstacles.has(c) || es.includes(c)) continue;
+      tr.add(c);
+      seen.add(c);
     }
-    if (candidates.length === 0) return null;
-    const e = candidates[Math.floor(rnd() * candidates.length)]!;
-    enemies.push(e);
-    enemyPathIdx.push(nearestPathIdx(e));
-    used.add(e);
+    return tr;
+  };
+
+  let enemies: number[] | null = null;
+  let traps = new Set<number>();
+  for (let attempt = 0; attempt < 12 && enemies === null; attempt++) {
+    const es = pickEnemySet();
+    if (es === null) continue;
+    // Por cada colocación de enemigos se prueban 3 disposiciones de
+    // trampas — es la disposición la que decide si el cazador 2× queda
+    // ralentizado lo bastante.
+    for (let j = 0; j < 3 && enemies === null; j++) {
+      const tr = pickTraps(es);
+      if (tr.size < nTrp) break;
+      const test: LevelData = {
+        obstacles: new Set(obstacles), traps: new Set(tr),
+        exit: exitC, player: playerC, enemies: es,
+      };
+      const r = solve(test);
+      if (r.solvable && r.length! > emptyDist) { enemies = es; traps = tr; }
+    }
   }
-
-  const freeAfterEnemies = freeAfterPlayer.filter((c) => !used.has(c));
-
-  // Obstáculos y trampas: cantidades aleatorias dentro del rango del tier
-  const nObs = tier.numObstacles[0] + Math.floor(rnd() * (tier.numObstacles[1] - tier.numObstacles[0] + 1));
-  const nTrp = tier.numTraps[0] + Math.floor(rnd() * (tier.numTraps[1] - tier.numTraps[0] + 1));
-  if (freeAfterEnemies.length < nObs + nTrp) return null;
-
-  const shuffled = shuffle(freeAfterEnemies.slice(), rnd);
-  const obstacles = new Set<number>(shuffled.slice(0, nObs));
-  const traps = new Set<number>(shuffled.slice(nObs, nObs + nTrp));
+  if (enemies === null) return null;
+  for (const t of traps) used.add(t);
 
   return { obstacles, traps, exit: exitC, player: playerC, enemies };
 }
@@ -787,6 +890,35 @@ function fillTo(
         }
       }
     }
+    // 3) Rescate enemigo+trampa: un enemigo suelto en tablero podado casi
+    //    siempre hace el puzzle irresoluble (cazador 2×). Pero enemigo +
+    //    trampa en su ruta de persecución puede ser resoluble, con cada
+    //    elemento necesario (sin trampa no hay escapatoria; sin enemigo
+    //    el óptimo vuelve a ser el base). Consume una trampa si queda
+    //    margen dentro del máximo del tier.
+    if (!added && kind === "enemy" && elementCount(current, "trap") < tier.numTraps[1]) {
+      const blocked = new Set([...current.obstacles, ...current.traps]);
+      outer2: for (const e of pool.slice(0, 10)) {
+        const route = directPathCells(e, current.player, blocked);
+        const mids = route.slice(1).filter(
+          (c) => c !== e && manhattan(c, current.player) >= 2 && !occupied.has(c),
+        );
+        for (const t of shuffle(mids, rnd).slice(0, 6)) {
+          const test = addElement(addElement(current, "enemy", e), "trap", t);
+          const r = solve(test);
+          if (!r.solvable || r.length === baseLen) continue;
+          const newLen = r.length!;
+          if (
+            isRequired(test, (l) => dropElement(l, "enemy", e), newLen) &&
+            isRequired(test, (l) => dropElement(l, "trap", t), newLen)
+          ) {
+            current = test;
+            added = true;
+            break outer2;
+          }
+        }
+      }
+    }
     if (!added) return null;
   }
   return elementCount(current, kind) >= min ? current : null;
@@ -901,7 +1033,30 @@ function trimTo(lv: LevelData, tier: Tier, rnd: () => number): LevelData {
       }
       if (len >= lo && len <= hi) { best = { lv: test, len }; break; }
     }
-    if (best === null) break;
+    // Parejas: cuando lo mejor individual queda fuera de la ventana, dos
+    // elementos juntos pueden aterrizar dentro (p. ej. dos obstáculos
+    // del mismo muro que abren un atajo).
+    if (best === null || best.len < lo || best.len > hi) {
+      const top = cands.slice(0, 10);
+      outer: for (let i = 0; i < top.length; i++) {
+        for (let j = i + 1; j < top.length; j++) {
+          const a = top[i]!, b = top[j]!;
+          const minA = a.kind === "obstacle" ? tier.numObstacles[0] : tier.numTraps[0];
+          const minB = b.kind === "obstacle" ? tier.numObstacles[0] : tier.numTraps[0];
+          if (elementCount(current, a.kind) - (a.kind === b.kind ? 2 : 1) < minA) continue;
+          if (a.kind !== b.kind && elementCount(current, b.kind) - 1 < minB) continue;
+          const test = dropElement(dropElement(current, a.kind, a.cell), b.kind, b.cell);
+          const r = solve(test);
+          if (!r.solvable || r.length! < lo || r.length! >= baseLen) continue;
+          const len = r.length!;
+          if (len <= hi) { best = { lv: test, len }; break outer; }
+          if (best === null || len < best.len) best = { lv: test, len };
+        }
+      }
+    }
+    // Una retirada que acorta pero sigue por encima de hi también sirve:
+    // la siguiente iteración vuelve a intentarlo desde un T menor.
+    if (best === null || best.len >= baseLen) break;
     current = best.lv;
     res = solve(current);
   }
@@ -1545,7 +1700,7 @@ async function main() {
     if (okStats.length) {
       const msPer = okStats.reduce((a, s) => a + s.elapsedMs / Math.max(1, s.accepted), 0) / okStats.length;
       console.log(`\nTiempo medio por pantalla aceptada: ${msPer.toFixed(0)}ms ` +
-        `(estimación 100k/tier con ${workers} worker(s): ${((msPer * 100_000) / workers / 3600000).toFixed(1)}h por tier)`);
+        `(estimación ${target}/tier con ${workers} worker(s): ${((msPer * target) / workers / 3600000).toFixed(1)}h por tier)`);
     }
   }
 }
