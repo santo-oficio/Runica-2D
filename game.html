@@ -269,20 +269,34 @@
   }
   /* Consola de hacks (Tab) — estilo clásico, casi opaca sobre el juego */
   #hack-console {
-    position: fixed; left: 0; right: 0; bottom: 0; height: 32vh; z-index: 600;
-    background: rgba(0,0,0,.78);
-    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
-    border-top: 1px solid #2e7d32;
-    font: 13px/1.5 Consolas, 'Courier New', monospace; color: #86d992;
+    position: fixed; left: 0; right: 0; bottom: 0; height: 19vh; z-index: 600;
+    background: rgba(6,12,8,.87);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    border-top: 1px solid #3f9b4f;
+    font: 13px/1.55 Consolas, 'Courier New', monospace; color: #b8e0bc;
     display: none; flex-direction: column; text-align: left;
   }
   #hack-console.open { display: flex; }
-  #hc-out { flex: 1; overflow-y: auto; padding: 8px 12px 4px; white-space: pre-wrap; word-break: break-word; }
-  #hc-out .cmd { color: #d6f0da; }
-  #hc-out .err { color: #e08080; }
-  #hc-row { display: flex; align-items: center; gap: 8px; padding: 4px 12px 8px; }
-  #hc-row .prompt { color: #2e7d32; font-weight: bold; }
-  #hc-in { flex: 1; background: transparent; border: 0; outline: 0; color: #d6f0da; font: inherit; caret-color: #86d992; }
+  #hc-out { flex: 1; overflow-y: auto; padding: 8px 14px 4px; white-space: pre-wrap; word-break: break-word; }
+  #hc-out .cmd  { color: #8ad4ff; }
+  #hc-out .ok   { color: #7ee787; }
+  #hc-out .err  { color: #ff8585; }
+  #hc-out .warn { color: #f0b456; }
+  #hc-out .dim  { color: #7d9179; }
+  #hc-out .gold { color: #ffd76e; }
+  #hc-row {
+    display: flex; align-items: center; gap: 9px; padding: 6px 14px 9px;
+    border-top: 1px solid rgba(63,155,79,.35);
+  }
+  #hc-row .prompt {
+    color: #6fe08b; font-weight: bold; font-size: 15px;
+    text-shadow: 0 0 7px rgba(111,224,139,.65);
+  }
+  #hc-in {
+    flex: 1; background: rgba(255,255,255,.05); border: 0; outline: 0;
+    color: #eafff0; font: inherit; caret-color: #6fe08b;
+    padding: 4px 9px; border-radius: 4px;
+  }
   #hc-debug {
     position: fixed; right: 8px; top: 8px; z-index: 590; display: none;
     font: bold 13px/1.5 monospace; color: #8fd; background: rgba(0,0,0,.75);
@@ -751,17 +765,17 @@ async function loadScreen() {
     if (REAL_MODE) { overlay.classList.add('show', 'lose'); overlayTitle.textContent = data.error; }
     return;
   }
-  await applyScreen(data.screen);
+  await applyScreen(data.screen, data.tier);
 }
 
 // Inicializa tablero/entidades/estado a partir de los datos de una pantalla
 // (la usa loadScreen y los comandos de la consola de hacks).
 let lastScreen = null;
-async function applyScreen(s) {
+async function applyScreen(s, tier) {
   lastScreen = s;
   currentScreenId = s.id;
   currentMinMoves = s.minMoves || 0;
-  if (REAL_MODE && (data.tier || s.level)) gameLevel = data.tier ?? s.level;
+  if (REAL_MODE && (tier || s.level)) gameLevel = tier ?? s.level;
   if (debugTierEl.style.display !== 'none') updateDebugTier();
 
   player = { c: s.player[0], r: s.player[1] };
@@ -1847,7 +1861,7 @@ let hackSolve = null;   // caché de /api/solve-screen por pantalla
 let hackDebug = false;
 const hcEl = document.createElement('div');
 hcEl.id = 'hack-console';
-hcEl.innerHTML = '<div id="hc-out"></div><div id="hc-row"><span class="prompt">&gt;</span><input id="hc-in" autocomplete="off" spellcheck="false"></div>';
+hcEl.innerHTML = '<div id="hc-out"></div><div id="hc-row"><span class="prompt">❯</span><input id="hc-in" autocomplete="off" spellcheck="false"></div>';
 document.body.appendChild(hcEl);
 const hcOut = hcEl.querySelector('#hc-out');
 const hcIn = hcEl.querySelector('#hc-in');
@@ -1868,8 +1882,10 @@ function hcPrint(text, cls) {
 function hackToggle() {
   hackOpen = !hackOpen;
   hcEl.classList.toggle('open', hackOpen);
-  if (hackOpen) { setTimeout(() => hcIn.focus(), 0); }
-  else hcIn.blur();
+  if (hackOpen) {
+    if (!hcOut.children.length) hcPrint(hk('hack.help'), 'dim');
+    setTimeout(() => hcIn.focus(), 0);
+  } else hcIn.blur();
 }
 hcIn.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowUp') {
@@ -1884,7 +1900,7 @@ hcIn.addEventListener('keydown', (e) => {
     hcIn.value = '';
     if (!line) return;
     hcHistory.push(line); hcHistIdx = -1;
-    hcPrint('> ' + line, 'cmd');
+    hcPrint('❯ ' + line, 'cmd');
     hackRun(line);
   } else if (e.key === 'Escape') {
     e.preventDefault(); hackToggle();
@@ -1910,7 +1926,7 @@ async function hackLoadScreen(url) {
     const d = await r.json();
     if (!d.ok) { hcPrint(hk('hack.notfound', ''), 'err'); return null; }
     await applyScreen(d.screen);
-    hcPrint(hk('hack.loaded', d.screen.id));
+    hcPrint(hk('hack.loaded', d.screen.id), 'ok');
     return d.screen;
   } catch { hcPrint(hk('hack.notfound', ''), 'err'); return null; }
 }
@@ -1918,12 +1934,12 @@ const hackTier = () => (REAL_MODE ? gameLevel : currentTier);
 
 // Mapa de comandos — añadir uno nuevo = una entrada aquí
 const HACK_CMDS = {
-  help: () => hcPrint(hk('hack.help')),
+  help: () => hcPrint(hk('hack.help'), 'dim'),
   clear: () => { hcOut.innerHTML = ''; },
   level: async (args) => {
-    if (!args.length) { hcPrint(hk('hack.tier', hackTier())); return; }
+    if (!args.length) { hcPrint(hk('hack.tier', hackTier()), 'gold'); return; }
     const n = parseInt(args[0], 10);
-    if (!Number.isFinite(n) || n < 1 || n > 15) { hcPrint(hk('hack.usageLevel'), 'err'); return; }
+    if (!Number.isFinite(n) || n < 1 || n > 15) { hcPrint(hk('hack.usageLevel'), 'warn'); return; }
     currentTier = n;
     await hackLoadScreen(`${BASE}/api/practice-screen?tier=${n}&t=${Date.now()}`);
   },
@@ -1931,7 +1947,7 @@ const HACK_CMDS = {
     let id = args[0] || '';
     const m = id.match(/^(\d+)[-:](\d+)$/);
     if (m) id = `l${m[1]}-s${m[2]}`;
-    if (!id) { hcPrint(hk('hack.usageSeed'), 'err'); return; }
+    if (!id) { hcPrint(hk('hack.usageSeed'), 'warn'); return; }
     await hackLoadScreen(`${BASE}/api/screen?id=${encodeURIComponent(id)}`);
   },
   next: () => hackLoadScreen(`${BASE}/api/screen-nav?id=${encodeURIComponent(currentScreenId)}&dir=next`),
@@ -1947,13 +1963,13 @@ const HACK_CMDS = {
   },
   optimal: async () => {
     const sol = await fetchSolve();
-    hcPrint(hk('hack.optimal', sol?.par ?? lastScreen?.par ?? currentMinMoves));
+    hcPrint(hk('hack.optimal', sol?.par ?? lastScreen?.par ?? currentMinMoves), 'gold');
   },
-  turns: () => hcPrint(hk('hack.turns', turn)),
+  turns: () => hcPrint(hk('hack.turns', turn), 'gold'),
   solutions: async () => {
     const sol = await fetchSolve();
     if (!sol || !sol.sols) { hcPrint(hk('hack.nosol'), 'err'); return; }
-    hcPrint(hk('hack.solutions', sol.sols[0] ?? 0, sol.sols[1] ?? 0, sol.sols[2] ?? 0));
+    hcPrint(hk('hack.solutions', sol.sols[0] ?? 0, sol.sols[1] ?? 0, sol.sols[2] ?? 0), 'gold');
   },
   hint: async () => {
     const q = `id=${encodeURIComponent(currentScreenId)}&p=${player.c},${player.r}` +
@@ -1964,21 +1980,21 @@ const HACK_CMDS = {
       const d = await r.json();
       if (!d.ok) { hcPrint(hk('hack.nosol'), 'err'); return; }
       const [dc, dr] = d.move;
-      hcPrint(hk('hack.hint', dc === 1 ? '→' : dc === -1 ? '←' : dr === -1 ? '↑' : dr === 1 ? '↓' : '·'));
+      hcPrint(hk('hack.hint', dc === 1 ? '→' : dc === -1 ? '←' : dr === -1 ? '↑' : dr === 1 ? '↓' : '·'), 'gold');
       movePlayer(dc, dr);
     } catch { hcPrint(hk('hack.nosol'), 'err'); }
   },
-  god: () => { godMode = !godMode; hcPrint(hk('hack.god', hk(godMode ? 'hack.on' : 'hack.off'))); },
+  god: () => { godMode = !godMode; hcPrint(hk('hack.god', hk(godMode ? 'hack.on' : 'hack.off')), godMode ? 'ok' : 'warn'); },
   speed: (args) => {
     const x = parseFloat(args[0]);
-    if (!Number.isFinite(x) || x <= 0) { hcPrint(hk('hack.speed', hackSpeed)); return; }
+    if (!Number.isFinite(x) || x <= 0) { hcPrint(hk('hack.speed', hackSpeed), 'gold'); return; }
     hackSpeed = Math.min(16, Math.max(0.25, x));
-    hcPrint(hk('hack.speed', hackSpeed));
+    hcPrint(hk('hack.speed', hackSpeed), 'ok');
   },
   debug: async () => {
     hackDebug = !hackDebug;
     hcDebugEl.style.display = hackDebug ? 'block' : 'none';
-    hcPrint(hk('hack.debug', hk(hackDebug ? 'hack.on' : 'hack.off')));
+    hcPrint(hk('hack.debug', hk(hackDebug ? 'hack.on' : 'hack.off')), hackDebug ? 'ok' : 'warn');
     if (hackDebug) hackDebugUpdate();
   },
   complete: async () => {
@@ -1987,7 +2003,7 @@ const HACK_CMDS = {
     await applyScreen(lastScreen); // reinicia la pantalla
     const sol = await fetchSolve();
     if (!sol || !sol.moves || !sol.moves.length) { hcPrint(hk('hack.nosol'), 'err'); return; }
-    hcPrint(hk('hack.replaying'));
+    hcPrint(hk('hack.replaying'), 'dim');
     hackReplaying = true;
     try {
       for (const [dc, dr] of sol.moves) {
@@ -1999,7 +2015,7 @@ const HACK_CMDS = {
         await sleep(Math.max(80, 380 / hackSpeed));
       }
       await waitIdle();
-      hcPrint(hk('hack.done'));
+      hcPrint(hk('hack.done'), 'ok');
     } finally { hackReplaying = false; }
   },
 };
