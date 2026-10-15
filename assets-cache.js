@@ -236,7 +236,7 @@ async function startMusic(url) {
   if (!isMusicEnabled()) return;
   url = url || musicTrack;
   if (!url) return;
-  if (musicEl) { if (musicEl.paused) musicEl.play().catch(() => {}); return; }
+  if (musicEl) { if (musicEl.paused) musicEl.play().catch(retryMusicOnGesture); return; }
   musicTrack = url;
   try { localStorage.setItem(MUSIC_TRACK_KEY, url); } catch {}
   musicEl = new Audio(getCachedSound(url) || url);
@@ -267,10 +267,33 @@ async function startMusic(url) {
       }
     });
   }
-  musicEl.play().catch(() => {});
+  musicEl.play().catch(() => {
+    // Autoplay bloqueado (sin gesto previo en este documento — p. ej. una
+    // demo con autowin o un enlace directo al tablero): reintenta en el
+    // primer gesto del usuario en vez de quedarse muda para siempre.
+    retryMusicOnGesture();
+  });
 }
 
-// Jingle puntual (victoria/derrota): pausa el loop en curso, suena una
+// Cuando play() es rechazado por la política de autoplay, la pista queda
+// "armada": el primer gesto del usuario (clic, tecla, toque) la arranca.
+// Si sigue fallando se rearma solo — nunca se queda sin reintento.
+let musicRetryArmed = false;
+function retryMusicOnGesture() {
+  if (musicRetryArmed) return;
+  musicRetryArmed = true;
+  const retry = () => {
+    if (musicEl && musicEl.paused) {
+      musicEl.play().catch(() => {
+        // Aún bloqueado: rearmar para el siguiente gesto
+        ['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+          document.addEventListener(ev, retry, { once: true }));
+      });
+    } else musicRetryArmed = false;
+  };
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, retry, { once: true }));
+}
 // vez y al terminar retoma la pista donde se quedó. Respeta el ajuste
 // de música (es música, no un sfx). Al navegar muere con la página como
 // el resto del audio.
@@ -347,7 +370,7 @@ function playSound(url, volume) {
   return audio;
 }
 
-function unlockAudio() {
+function unlockAudio(withMusic = true) {
   // Reproducir silenciosamente para desbloquear
   const blobUrl = cache.sounds.values().next().value;
   if (blobUrl) {
@@ -356,7 +379,7 @@ function unlockAudio() {
     audio.play().then(() => { audio.pause(); }).catch(() => {});
   }
   // La música arranca tras el primer gesto del usuario (autoplay policy)
-  startMusic();
+  if (withMusic) startMusic();
 }
 
 // Aura irregular determinista a partir de un circulo calibrado {cx,cy,r}.
