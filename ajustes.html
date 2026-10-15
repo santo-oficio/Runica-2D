@@ -177,12 +177,20 @@
     const px = fontSizeFor(area, text);
     el.style.fontSize = px + 'px';
     el.textContent = text;
-    // Si se pasa de ancho, reducir hasta caber
-    const maxW = rw(area.w);
-    if (el.scrollWidth > maxW) {
-      el.style.fontSize = Math.max(8, px * maxW / el.scrollWidth) + 'px';
-    }
     return el;
+  }
+
+  // Ajuste de ancho DESPUÉS de insertar en el DOM (un elemento sin
+  // adjuntar tiene scrollWidth = 0 y nunca encogería la fuente)
+  function fitTexts() {
+    for (const el of document.querySelectorAll('.cfg-text')) {
+      const maxW = el.clientWidth;
+      if (maxW <= 0) continue;
+      const px = parseFloat(el.style.fontSize);
+      if (el.scrollWidth > maxW) {
+        el.style.fontSize = Math.max(8, px * maxW / el.scrollWidth) + 'px';
+      }
+    }
   }
 
   function makeCheck(area, on) {
@@ -211,6 +219,7 @@
     ov.appendChild(makeText(areas.musicText, t('config.music'), 'music'));
     if (areas.langLabel) ov.appendChild(makeText(areas.langLabel, t('menu.language'), 'lang'));
     ov.appendChild(makeText(areas.langText, LANG_NAMES[cfg.lang] || cfg.lang, 'lang'));
+    fitTexts();
 
     // Checkboxes
     ov.appendChild(makeCheck(areas.soundCheck, cfg.sound !== false));
@@ -370,8 +379,15 @@
     } catch {}
     document.getElementById('bg').src = bgImage.src;
 
+    // Esperar la fuente antes de medir textos (scrollWidth con la fuente de
+    // sistema sale más estrecho y luego ChelseaMarket desborda el área)
+    try {
+      await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]);
+    } catch {}
+
     updateImgRect();
     render();
+    document.fonts.ready.then(() => render()).catch(() => {});
 
     document.title = t('menu.settings') + ' — Runika 2D';
     // Fade-in
