@@ -1378,18 +1378,18 @@ function printStats(s: GenStats) {
   if (rs.length) console.log(`    descartes: ${rs.map(([k, v]) => `${k}=${v}`).join(" ")}`);
 }
 
-async function runWorker(tierLevel: number, count: number, seed: number, outPath: string) {
+async function runWorker(tierLevel: number, count: number, seed: number, outPath: string, attempts: number) {
   const tier = TIERS.find((t) => t.level === tierLevel)!;
-  const { screens, stats } = generateTierBatch(tier, count, seed);
+  const { screens, stats } = generateTierBatch(tier, count, seed, attempts);
   writeFileSync(outPath, JSON.stringify(screens), "utf-8");
   printStats(stats);
 }
 
-function spawnWorker(tierLevel: number, count: number, seed: number, outPath: string): Promise<void> {
+function spawnWorker(tierLevel: number, count: number, seed: number, outPath: string, attempts: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      ["--import", "tsx", fileURLToPath(import.meta.url), "--worker", `--tier=${tierLevel}`, `--count=${count}`, `--seed=${seed}`, `--out=${outPath}`],
+      ["--import", "tsx", fileURLToPath(import.meta.url), "--worker", `--tier=${tierLevel}`, `--count=${count}`, `--seed=${seed}`, `--attempts=${attempts}`, `--out=${outPath}`],
       { stdio: "inherit", cwd: ROOT },
     );
     child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`worker tier ${tierLevel} exit ${code}`))));
@@ -1397,19 +1397,29 @@ function spawnWorker(tierLevel: number, count: number, seed: number, outPath: st
 }
 
 async function generateTier(tier: Tier, target: number, workers: number): Promise<Screen[]> {
+  // Tier 1: el espacio combinatorio es pequeño → enumeración exhaustiva
+  // siempre (rápida; da TODOS los válidos que existen, también con workers).
+  if (tier.level === 1) {
+    const { screens, stats } = generateTier1Exhaustive(tier);
+    printStats(stats);
+    return screens;
+  }
   if (workers <= 1) {
-    const { screens, stats } = generateTierBatch(tier, target, tier.level * 1_000_003);
+    const { screens, stats } = generateTierBatch(tier, target, tier.level * 1_000_003, target * 2000);
     printStats(stats);
     return screens;
   }
   // Paralelo: cada worker genera su parte con seeds disjuntas; el merge
   // deduplica entre workers (las simetrías se canonicalizan igual).
+  // Tope de intentos ×2000: cubre aceptaciones de ~0,05% y actúa de
+  // cortafuegos si el espacio único se agota antes del objetivo.
   const per = Math.ceil(target / workers);
+  const attempts = per * 2000;
   const tmpDir = join(ROOT, ".tmp_chk", "gen-parts");
   if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
   const jobs: Promise<void>[] = [];
   for (let w = 0; w < workers; w++) {
-    jobs.push(spawnWorker(tier.level, per, (tier.level * 1_000_003 + w * 97_531) >>> 0, join(tmpDir, `t${tier.level}-w${w}.json`)));
+    jobs.push(spawnWorker(tier.level, per, (tier.level * 1_000_003 + w * 97_531) >>> 0, join(tmpDir, `t${tier.level}-w${w}.json`), attempts));
   }
   await Promise.all(jobs);
   const seen = new Set<string>();
@@ -1431,9 +1441,11 @@ async function main() {
 
   // --- modo worker (proceso hijo) ---
   if (hasFlag("worker")) {
+    const att = Number(argVal("attempts") ?? "0");
     await runWorker(
       Number(argVal("tier")), Number(argVal("count")),
       Number(argVal("seed") ?? "0") >>> 0, argVal("out") ?? join(ROOT, ".tmp_chk", "part.json"),
+      att > 0 ? att : Number(argVal("count")) * 60,
     );
     return;
   }
