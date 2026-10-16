@@ -204,7 +204,7 @@ renderizarla igual.
   para retomarla entre pantallas — la música no se corta al navegar.
   Las pistas de `ONESHOT_MUSIC` (mapa pista→relevo) no repiten ni en loop:
   `worldWin` (fanfarria de boss de mundo) acaba yendo a `MUSIC.main`.
-  `fin` (`victory.mp3?v=144s`, ~2:25) va en **loop**: arranca desde 0 al empezar
+  `fin` (`victory.mp3?v=134s`, ~2:14) va en **loop**: arranca desde 0 al empezar
   la batalla final y **continúa sin cortarse en `creditos.html`** (retoma
   la posición guardada — la secuencia final es "una sola película");
   `creditos.html` continúa la pista activa (`currentMusicTrack()`).
@@ -228,11 +228,12 @@ renderizarla igual.
   `tools/gen-music-extend.py <pista> <seg_extra> <salida.wav> "prompt"`
   alarga una pista existente con material nuevo generado por MusicGen
   (continuación desde sus últimos 25 s + crossfade).
-  `victory.mp3` actual (145 s) es la **fanfarria original de 15,6 s**
-  (`assets/music/old/victory.mp3`) repetida como ostinato épico con arco
-  dinámico y crossfades — el tema que suena al terminar el juego, hecho
-  de 2:25 con su propio audio (versiones largas previas en
-  `assets/music/old/victory-120s-v1.mp3`, `-121s-v2` y `-211s-v3`).
+  `victory.mp3` actual (134 s): la **fanfarria original de 15,6 s**
+  (`assets/music/old/victory.mp3`) verbatim al inicio + pieza nueva de
+  ~2 min generada con `tools/gen-music-melody.py` (musicgen-melody
+  condicionado por la melodía del original — requiere `demucs` en el
+  venv, ya instalado). Versiones previas en `assets/music/old/`
+  (`victory-120s-v1`, `-121s-v2`, `-211s-v3`, `-145s-v4`).
   Los jingles `victoria.mp3`/`derrota.mp3` van por `playMusicSting`
   (pausan el loop, suenan una sola vez, retoman el loop donde quedó).
   Pistas por contexto en `MUSIC` (`assets-cache.js`): `main` (menús/mapamundi),
