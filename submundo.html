@@ -54,20 +54,12 @@
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
   }
+  /* Los submundos son 3:2: cover llena la pantalla con el arte real
+     recortando cielo y suelo — sin rellenos ni repeticiones */
   #bg {
     width: 100%; height: 100%;
-    object-fit: contain; display: block;
+    object-fit: cover; display: block;
     position: relative; z-index: 1;
-  }
-  /* Los submundos son 3:2: rellena los bordes del letterbox con una
-     copia difuminada del mismo fondo, sin estirar ni recortar el arte */
-  #fillbg {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    filter: blur(45px) brightness(0.42) saturate(1.25);
-    transform: scale(1.15);
-    z-index: 0;
   }
   #overlay {
     position: absolute; top: 0; left: 0;
@@ -213,7 +205,6 @@
 <div id="transition-overlay"></div>
 
 <div id="stage">
-  <img id="fillbg" src="" alt="" />
   <img id="bg" src="" />
   <div id="overlay"></div>
   <div id="dynamic-text"></div>
@@ -242,14 +233,14 @@
   const ROWS = 3;
 
   const WORLD_IMAGES = {
-    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.169.webp',
-    AGUA: '/assets/submundos/AGUA/submundo agua.169.webp',
-    TIERRA: '/assets/submundos/TIERRA/submundo tierra.169.webp',
-    FUEGO: '/assets/submundos/FUEGO/submundo fuego.169.webp',
-    HIELO: '/assets/submundos/HIELO/submundo hielo.169.webp',
-    VIENTO: '/assets/submundos/VIENTO/submundo viento.169.webp',
-    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.169.webp',
-    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.169.webp',
+    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.webp',
+    AGUA: '/assets/submundos/AGUA/submundo agua.webp',
+    TIERRA: '/assets/submundos/TIERRA/submundo tierra.webp',
+    FUEGO: '/assets/submundos/FUEGO/submundo fuego.webp',
+    HIELO: '/assets/submundos/HIELO/submundo hielo.webp',
+    VIENTO: '/assets/submundos/VIENTO/submundo viento.webp',
+    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.webp',
+    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.webp',
   };
 
   // Grid 4x3 con numeracion en serpiente:
@@ -384,19 +375,20 @@
   }
 
   const bg = document.getElementById('bg');
-  const fillbg = document.getElementById('fillbg');
+
   const overlay = document.getElementById('overlay');
   const dynamicText = document.getElementById('dynamic-text');
   const avatarEl = document.getElementById('avatar');
   const avatarImg = avatarEl.querySelector('img');
 
-  // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain).
-  // Los submundos son 3:2 — con el rect del elemento las coordenadas calibradas
-  // se desplazan y estiran en cualquier ventana != al ratio de la imagen.
+  // Rect de la imagen dibujada con object-fit: cover — la imagen cubre el
+  // viewport y desborda por arriba/abajo (3:2 en 16:9), así que el rect
+  // sale parcialmente de pantalla. Las coordenadas calibradas siguen en
+  // espacio de imagen (0-1 sobre el bitmap 3:2).
   function getImgRect() {
     const er = bg.getBoundingClientRect();
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
-    const s = Math.min(er.width / iw, er.height / ih);
+    const s = Math.max(er.width / iw, er.height / ih);
     const w = iw * s, h = ih * s;
     const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
     return { left, top, width: w, height: h, right: left + w, bottom: top + h };
@@ -637,6 +629,7 @@
       // La isla jugada se recuerda en la bbdd (completada o no)
       fetch('/api/level-position', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
+        keepalive: true, // la petición sobrevive a la navegación
         body: JSON.stringify({ world: currentWorld, level: currentLevel }),
       }).catch(() => {});
       AssetsCache.transitionTo('/game.html?world=' + encodeURIComponent(currentWorld) + '&level=' + currentLevel);
@@ -688,7 +681,7 @@
 
     if (sessionStorage.getItem('runika-session') === 'active') {
       AssetsCache.unlockAudio();
-      bg.src = fillbg.src = WORLD_IMAGES[currentWorld];
+      bg.src = WORLD_IMAGES[currentWorld];
       await loadPositions(currentWorld);
       await loadTextAreas(currentWorld);
       if (bg.complete && bg.naturalWidth) onBgReady(100);
@@ -705,7 +698,7 @@
       loadingText.textContent = t('loading.text') + ' ' + pct + '%';
     });
 
-    bg.src = fillbg.src = WORLD_IMAGES[currentWorld];
+    bg.src = WORLD_IMAGES[currentWorld];
     await loadPositions(currentWorld);
     await loadTextAreas(currentWorld);
     if (bg.complete && bg.naturalWidth) onBgReady(500);

@@ -144,6 +144,12 @@
     width: 100%; height: 100%;
     z-index: 12; pointer-events: none;
   }
+  #version-tag {
+    position: absolute; bottom: 10px; right: 16px; z-index: 13;
+    font-family: 'ChelseaMarket', cursive; font-size: 13px; letter-spacing: 1px;
+    color: rgba(255, 222, 150, 0.6); text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.85);
+    pointer-events: none;
+  }
   .btn {
     position: absolute;
     cursor: pointer;
@@ -252,6 +258,7 @@
   <img id="bg" src="/assets/menu%20principal/menu%20principal.169.webp?v=menu8k-3" />
   <div id="overlay"></div>
   <svg id="borders"></svg>
+  <div id="version-tag"></div>
 </div>
 
 <div id="hud" style="display:none">
@@ -702,6 +709,11 @@
     loadingScreen.addEventListener('click', enterGame, { once: true });
     document.addEventListener('keydown', enterGame, { once: true });
   })();
+
+  // Versión del juego, abajo a la derecha (de /api/version → package.json)
+  fetch('/api/version').then(r => r.json()).then(d => {
+    if (d && d.version) document.getElementById('version-tag').textContent = 'v' + d.version;
+  }).catch(() => {});
 
   bg.addEventListener('load', render);
   window.addEventListener('resize', render);

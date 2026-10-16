@@ -125,6 +125,9 @@
     var mI18n = path.match(/^\/api\/i18n\/(\w+)$/);
     if (mI18n) return fileJson("i18n/" + mI18n[1] + ".json");
 
+    // ── Versión (la estampa tools/build-tizen.mjs desde package.json) ───────
+    if (path === "/api/version") return json({ version: "__RUNIKA_VERSION__" });
+
     // ── Ajustes ────────────────────────────────────────────────────────────
     if (path === "/api/settings" && method === "GET") return json(readSettings());
     if (path === "/api/settings" && method === "POST") {

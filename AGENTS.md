@@ -156,25 +156,30 @@ viewport deja bandas. Se rellenan con `<img id="fillbg">` — copia del mismo
 fondo con `object-fit: cover` + `blur(45px) brightness(.42)` + `scale(1.15)`,
 detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
 
-**Fondos outpainted a 16:9 (`.169.webp`)**: las pantallas 3:2 de pantalla
-completa usan variantes generadas 16:9 — el original queda intacto en el centro
-y los laterales se outpaintan con SD 1.5 inpainting local:
+**Pantallas 3:2 a 16:9 — dos estrategias**:
 
-- `tools/outpaint_16x9.py <src> <dst> "<prompt>"` — una imagen
-  (7680×5120 → 9102×5120; RTX 3060, ~30 s).
-- `tools/outpaint-batch.py` — las 12 imágenes de pantalla completa:
-  8 submundos + `menu principal` + `seleccion_personaje` + `configuracion`
-  (7680×5120 → 9102×5120) y `mapamundi` (1536×1024 → 1820×1024).
-- Los masters 3:2 originales viven en `assets/**/old/` (excluidos del
-  manifest, webdist y el instalador Electron).
-- `tools/remap-coords-16x9.py` — remapeo aplicado UNA vez a todos los JSON
-  afectados: `x' = (x*W0 + side)/W1`, anchos/tamaños `*W0/W1`, `y`/`h` intactos
-  (mapamundi: 1536→1820; el resto: 7680→9102). Incluye
-  `assets/comunes/fin-areas.json` (auras sobre el mapamundi). NO re-ejecutar:
-  duplicaría el desplazamiento. Las coordenadas actuales son espacio
-  `image-content` del lienzo 16:9.
+- **Submundos → `object-fit: cover` sobre el master 3:2 original**: la imagen
+  real cubre todo el viewport recortando ~7,8% de cielo arriba y de suelo
+  abajo (`getImgRect()` usa `Math.max`, el rect puede salir del viewport).
+  Coordenadas en espacio del bitmap 3:2 original. OJO: la banda visible es
+  `y ∈ [0,078, 0,922]` — las áreas de texto del HUD (`text-areas.json`) están
+  calibradas dentro de esa banda (y≥0,082); no recolocarlas en el borde.
+- **Menú, selección, configuración y mapamundi → `.169.webp` espejo**: esas
+  pantallas tienen contenido pegado a los bordes (el cartel del título,
+  islas del mapa) que el cover cortaría. La variante `.169.webp` extiende los
+  laterales reflejando el borde del master 3:2
+  (`tools/edge_extend_16x9.py`); mismas dimensiones 9102×5120/1820×1024 y
+  mismo centro original → coordenadas 16:9 remapeadas, intactas en el centro.
+  Los masters 3:2 viven en `assets/**/old/` (excluidos del manifest, webdist
+  y el instalador Electron).
+- `tools/remap-coords-16x9.py` — el remapeo x'=(x*W0+side)/W1 se aplicó UNA
+  vez a los JSON de esas 4 pantallas + `assets/comunes/fin-areas.json`
+  (auras sobre el mapamundi). NO re-ejecutar: duplicaría el desplazamiento.
 - Créditos, instrucciones y fondos de tablero ya son 16:9 nativos; los modales
   (`modal.webp`, `modal-reintentar.webp`) viven en un marco 3:2 — no tocar.
+- Descartado: outpainting con SD (laterales que desentonan con el arte) y
+  letterbox difuminado (`#fillbg` solo queda donde la variante `.169` no
+  cubre el ratio).
 
 ## Calibración de sprites y textos del tablero
 

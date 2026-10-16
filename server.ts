@@ -41,6 +41,11 @@ const PORT = Number(process.env.RUNIKA_PORT ?? 3000);
 const ROOT = process.env.RUNIKA_ROOT ?? dirname(fileURLToPath(import.meta.url));
 /** Datos escribibles del usuario (partida, ajustes). En la app instalada, fuera de resources/. */
 const DATA_DIR = process.env.RUNIKA_DB_DIR ?? join(ROOT, "db");
+const APP_VERSION = (() => {
+  try {
+    return (JSON.parse(readFileSync(join(ROOT, "package.json"), "utf-8")) as { version?: string }).version ?? "0.0.0";
+  } catch { return "0.0.0"; }
+})();
 
 // Cargar banco de pantallas + progreso en memoria
 loadDb();
@@ -103,6 +108,13 @@ const server = http.createServer((req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  // API: versión del juego (GET /api/version) — sale de package.json
+  if (url === "/api/version") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ version: APP_VERSION }));
     return;
   }
 

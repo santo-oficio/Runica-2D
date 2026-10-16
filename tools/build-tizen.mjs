@@ -99,9 +99,14 @@ for (const det of detections) {
 }
 writeFileSync(join(OUT, "web", "sprite-assets.json"), JSON.stringify(spriteAssets));
 
+// ── Versión: se estampa en api-shim.js (respuesta /api/version) y config.xml ─
+const APP_VERSION = (JSON.parse(readFileSync(join(ROOT, "package.json"), "utf-8")).version || "0.0.0");
+const shimPath = join(OUT, "web", "api-shim.js");
+writeFileSync(shimPath, readFileSync(shimPath, "utf-8").replaceAll("__RUNIKA_VERSION__", APP_VERSION));
+
 // ── config.xml + index.html + icono ────────────────────────────────────────
 writeFileSync(join(OUT, "config.xml"), `<?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://runika2d/game" version="1.0.0" viewmodes="maximized">
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="http://runika2d/game" version="${APP_VERSION}" viewmodes="maximized">
     <tizen:application id="Runika2D.runika" package="Runika2D" required_version="2.3"/>
     <content src="index.html"/>
     <icon src="icon.png"/>

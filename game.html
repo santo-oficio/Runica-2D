@@ -1577,6 +1577,7 @@ function confirmWin() {
   closeWinModal();
   fetch(BASE + '/api/level-complete', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
+    keepalive: true, // la navegación siguiente no puede cancelar el guardado
     body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: winGoldEarned, screenId: currentScreenId }),
   }).catch(() => {});
   afterVictory();
@@ -1677,6 +1678,7 @@ function startFinalBattle() {
   if (REAL_MODE && !DEMO_RUN) {
     fetch(BASE + '/api/level-complete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
+      keepalive: true, // la navegación siguiente no puede cancelar el guardado
       body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: winGoldEarned + winFinalBonus, screenId: currentScreenId }),
     }).catch(() => {});
   }
