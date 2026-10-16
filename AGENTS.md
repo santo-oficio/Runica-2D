@@ -158,17 +158,18 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
 
 **Pantallas 3:2 a 16:9 — dos estrategias**:
 
-- **Submundos → `object-fit: cover` + `object-position: 50% 0%` sobre el
-  master 3:2 original**: la imagen real cubre todo el viewport anclada al
-  borde superior — la barra decorativa del HUD (arco+calavera+monedas, que
-  ocupa y∈[0,~0,09] del arte) queda intacta con los textos en sus posiciones
-  originales, y el recorte cae entero abajo (~15,6% = puntas de roca de las
-  islas inferiores, que salen del plano). `getImgRect()` usa `Math.max` con
-  `top = er.top` (el rect desborda solo por abajo). Los pies del avatar se
-  clampean al viewport (`avatarBaseTop`) para que nunca se corten. Banda
-  visible `y ∈ [0, 0,844]` — todos los marcadores (pos.y ≤ 0,812) y los
-  textos del HUD (`text-areas.json` en coordenadas 3:2 originales, y≤0,11)
-  quedan dentro.
+- **Submundos → variantes `.pano.webp` panorámicas 2.35:1** (12032×5120):
+  el master 3:2 queda intacto en el centro y los laterales se extienden
+  sintetizando el fondo del propio arte con quilting
+  (`tools/quilt_extend.py`, `tools/quilt-batch.py` — parches de las zonas
+  suaves elegidos por bordes que casan; sin espejo ni IA). Como la imagen
+  es más ancha que cualquier viewport objetivo, `object-fit: cover` +
+  `object-position: 50% 0%` recorta SOLO los laterales de la extensión:
+  la barra del HUD y las 12 islas quedan completas a 16:9, 16:10, 19.5:9,
+  21:9. Coordenadas en espacio del lienzo .pano (x remapeada
+  `(x*7680+2176)/12032`, y intacta — misma altura). `getImgRect()` usa
+  `Math.max` con `top = er.top`; los pies del avatar se clampean al
+  viewport (`avatarBaseTop`).
 - **Menú, selección, configuración y mapamundi → `.169.webp` espejo**: esas
   pantallas tienen contenido pegado a los bordes (el cartel del título,
   islas del mapa) que el cover cortaría. La variante `.169.webp` extiende los
