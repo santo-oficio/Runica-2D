@@ -198,7 +198,16 @@
     render(); updateCoords();
   });
 
-  function getImgRect() { return img.getBoundingClientRect(); }
+  // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain):
+  // las posiciones se guardan normalizadas a la imagen, no a la ventana.
+  function getImgRect() {
+    const er = img.getBoundingClientRect();
+    const iw = img.naturalWidth || 1536, ih = img.naturalHeight || 1024;
+    const s = Math.min(er.width / iw, er.height / ih);
+    const w = iw * s, h = ih * s;
+    const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+    return { left, top, width: w, height: h, right: left + w, bottom: top + h };
+  }
 
   function render() {
     overlay.innerHTML = '';

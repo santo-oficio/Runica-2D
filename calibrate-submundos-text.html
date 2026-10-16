@@ -37,7 +37,7 @@ const SELECT_LABELS={worldName:'Nombre del mundo',level:'Nivel actual',gold:'Tex
 let worldIndex=0,kind='worldName',areas={},dragging=false,start=null,current=null;
 WORLD_ORDER.forEach((w,i)=>{areas[w]={worldName:{x:.35,y:.08,w:.3,h:.08},level:{x:.4,y:.18,w:.2,h:.07},gold:{x:.4,y:.28,w:.2,h:.07}};const o=document.createElement('option');o.value=i;o.textContent=w;worldSelect.appendChild(o)});
 KINDS.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=SELECT_LABELS[k];kindSelect.appendChild(o)});
-function rect(){return img.getBoundingClientRect()}function norm(x,y){const r=rect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}function px(a){const r=rect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
+function rect(){const er=img.getBoundingClientRect();const iw=img.naturalWidth||1536,ih=img.naturalHeight||1024;const s=Math.min(er.width/iw,er.height/ih);const w=iw*s,h=ih*s;const left=er.left+(er.width-w)/2,top=er.top+(er.height-h)/2;return{left,top,width:w,height:h,right:left+w,bottom:top+h}}function norm(x,y){const r=rect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}function px(a){const r=rect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
 let T={};function tt(key){return T[key]??key}function fmtT(key,...args){return tt(key).replace(/\{(\d+)\}/g,(m,i)=>String(args[+i]??m))}
 async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
 function textFor(type,w){return type==='worldName'?tt('worlds.'+w):type==='level'?fmtT('submundo.level',1,12):'3/12'}

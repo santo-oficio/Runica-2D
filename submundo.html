@@ -297,10 +297,10 @@
   let currentLevel = 0; // Siempre empieza en el nivel 1 (indice 0)
   let isMoving = false;
 
-  function worldAvatarIdx(w) { return WORLD_ORDER.indexOf(w); }
+  // avatars[8] del json = tamaño por avatar del JUGADOR (0-7), no por mundo
   function resolvedAvatarSize() {
     const arr = avatarSizes[currentWorld];
-    const i = worldAvatarIdx(currentWorld);
+    const i = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
     if (arr && arr[i] != null) return arr[i];
     return avatarSize;
   }
@@ -339,7 +339,17 @@
   const avatarEl = document.getElementById('avatar');
   const avatarImg = avatarEl.querySelector('img');
 
-  function getImgRect() { return bg.getBoundingClientRect(); }
+  // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain).
+  // Los submundos son 3:2 — con el rect del elemento las coordenadas calibradas
+  // se desplazan y estiran en cualquier ventana != al ratio de la imagen.
+  function getImgRect() {
+    const er = bg.getBoundingClientRect();
+    const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
+    const s = Math.min(er.width / iw, er.height / ih);
+    const w = iw * s, h = ih * s;
+    const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+    return { left, top, width: w, height: h, right: left + w, bottom: top + h };
+  }
 
   async function loadPositions(world) {
     try {
