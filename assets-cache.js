@@ -188,7 +188,7 @@ const MUSIC = {
   world: '/assets/music/mistery.mp3',
   worldWin: '/assets/music/victoria_mundo.mp3', // derrotar al boss de un mundo
   // ?v= rompe la caché de audio del navegador cuando se reemplaza el mp3
-  fin: '/assets/music/victory.mp3?v=231s',
+  fin: '/assets/music/victory.mp3?v=211s',
   victoria: '/assets/music/victoria.mp3',  // jingle al ganar una pantalla
   derrota: '/assets/music/derrota.mp3',    // jingle al ser atrapado
   // Pista por submundo: cada mundo tiene su propia música. Si el archivo de

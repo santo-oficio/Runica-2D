@@ -204,7 +204,7 @@ renderizarla igual.
   para retomarla entre pantallas — la música no se corta al navegar.
   Las pistas de `ONESHOT_MUSIC` (mapa pista→relevo) no repiten ni en loop:
   `worldWin` (fanfarria de boss de mundo) acaba yendo a `MUSIC.main`.
-  `fin` (`victory.mp3?v=231s`, ~3:51) va en **loop**: arranca desde 0 al empezar
+  `fin` (`victory.mp3?v=211s`, ~3:31) va en **loop**: arranca desde 0 al empezar
   la batalla final y **continúa sin cortarse en `creditos.html`** (retoma
   la posición guardada — la secuencia final es "una sola película");
   `creditos.html` continúa la pista activa (`currentMusicTrack()`).
@@ -226,9 +226,11 @@ renderizarla igual.
   está en `assets/music/old/victory-120s-v1.mp3` y la de 121 s en
   `assets/music/old/victory-121s-v2.mp3`).
   `tools/gen-music-extend.py <pista> <seg_extra> <salida.wav> "prompt"`
-  alarga una pista existente **sin repetir**: continúa desde sus últimos
-  25 s con MusicGen y empala con crossfade (así se alargó `victory.mp3`
-  de 121 s a 231 s para cubrir toda la secuencia final).
+  alarga una pista existente con material nuevo generado por MusicGen
+  (continuación desde sus últimos 25 s + crossfade).
+  `victory.mp3` actual (211 s) está alargada **con sus propias secciones**
+  (dev+build 35-105 s y build 80-105 s repetidos antes del clímax,
+  empalmes por crossfade ~103 s) — conserva el tema intacto.
   Los jingles `victoria.mp3`/`derrota.mp3` van por `playMusicSting`
   (pausan el loop, suenan una sola vez, retoman el loop donde quedó).
   Pistas por contexto en `MUSIC` (`assets-cache.js`): `main` (menús/mapamundi),
