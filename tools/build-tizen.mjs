@@ -29,7 +29,8 @@ mkdirSync(OUT, { recursive: true });
 
 // ── Copias ─────────────────────────────────────────────────────────────────
 for (const f of PAGES) copyFileSync(join(ROOT, f), join(OUT, f));
-cpSync(join(ROOT, "assets"), join(OUT, "assets"), { recursive: true });
+cpSync(join(ROOT, "assets"), join(OUT, "assets"), { recursive: true,
+  filter: (src) => !/(^|[\\/])old([\\/]|$)/i.test(src) });
 cpSync(join(ROOT, "i18n"), join(OUT, "i18n"), { recursive: true });
 cpSync(join(ROOT, "web"), join(OUT, "web"), { recursive: true });
 mkdirSync(join(OUT, "db"), { recursive: true });

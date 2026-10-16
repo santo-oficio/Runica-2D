@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 </head>
 <body>
-<div id="stage"><img id="image" src="/assets/configuracion/configuracion.webp?v=cfg8k-1" alt=""></div>
+<div id="stage"><img id="image" src="/assets/configuracion/configuracion.169.webp?v=cfg8k-1" alt=""></div>
 <div id="overlay"></div>
 <svg id="draw"></svg>
 <div id="hud"><b>Calibrar pantalla de configuración</b><br>
@@ -40,7 +40,7 @@ let drawing=[],dragging=false,start=null,current=null,dragEl=null;
 let T={};function tt(key){return T[key]??key}
 async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
 KINDS.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=SELECT_LABELS[k];kindSelect.appendChild(o)});
-function imageRect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,height=w/ratio;if(height>h){height=h;width=h*ratio}return{left:(w-width)/2,top:(h-height)/2,width,height,right:(w+width)/2,bottom:(h+height)/2}}
+function imageRect(){const w=innerWidth,h=innerHeight,ratio=(img&&img.naturalWidth)?img.naturalWidth/img.naturalHeight:16/9;let width=w,height=w/ratio;if(height>h){height=h;width=h*ratio}return{left:(w-width)/2,top:(h-height)/2,width,height,right:(w+width)/2,bottom:(h+height)/2}}
 function norm(x,y){const r=imageRect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}
 function px(a){const r=imageRect();return{x:r.left+a.x*r.width,y:r.top+a.y*r.height,w:a.w*r.width,h:a.h*r.height}}
 function pxPt(p){const r=imageRect();return[(r.left+p[0]*r.width).toFixed(2),(r.top+p[1]*r.height).toFixed(2)]}

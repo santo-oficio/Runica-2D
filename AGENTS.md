@@ -151,11 +151,30 @@ calibrador calcula el rect visible de la imagen con `naturalWidth/naturalHeight`
 imagen (recorte, regeneración, cambio de ratio), hay que recalcular sus
 coordenadas partiendo de la imagen original.
 
-**Letterbox cinemático**: las imágenes 3:2 (submundos, mapamundi, configuración,
-menú, selección) dejan bandas laterales en 16:9. Se rellenan con `<img
-id="fillbg">` — copia del mismo fondo con `object-fit: cover` +
-`blur(45px) brightness(.42)` + `scale(1.15)`, detrás de `#bg` (z-index 0/1).
-Nunca estirar ni recortar el arte principal.
+**Letterbox cinemático**: cualquier imagen que no coincida con el ratio del
+viewport deja bandas. Se rellenan con `<img id="fillbg">` — copia del mismo
+fondo con `object-fit: cover` + `blur(45px) brightness(.42)` + `scale(1.15)`,
+detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
+
+**Fondos outpainted a 16:9 (`.169.webp`)**: las pantallas 3:2 de pantalla
+completa usan variantes generadas 16:9 — el original queda intacto en el centro
+y los laterales se outpaintan con SD 1.5 inpainting local:
+
+- `tools/outpaint_16x9.py <src> <dst> "<prompt>"` — una imagen
+  (7680×5120 → 9102×5120; RTX 3060, ~30 s).
+- `tools/outpaint-batch.py` — las 12 imágenes de pantalla completa:
+  8 submundos + `menu principal` + `seleccion_personaje` + `configuracion`
+  (7680×5120 → 9102×5120) y `mapamundi` (1536×1024 → 1820×1024).
+- Los masters 3:2 originales viven en `assets/**/old/` (excluidos del
+  manifest, webdist y el instalador Electron).
+- `tools/remap-coords-16x9.py` — remapeo aplicado UNA vez a todos los JSON
+  afectados: `x' = (x*W0 + side)/W1`, anchos/tamaños `*W0/W1`, `y`/`h` intactos
+  (mapamundi: 1536→1820; el resto: 7680→9102). Incluye
+  `assets/comunes/fin-areas.json` (auras sobre el mapamundi). NO re-ejecutar:
+  duplicaría el desplazamiento. Las coordenadas actuales son espacio
+  `image-content` del lienzo 16:9.
+- Créditos, instrucciones y fondos de tablero ya son 16:9 nativos; los modales
+  (`modal.webp`, `modal-reintentar.webp`) viven en un marco 3:2 — no tocar.
 
 ## Calibración de sprites y textos del tablero
 
@@ -384,7 +403,7 @@ renderizarla igual.
   - `assets/menu principal/character-positions.json` — `polygons` (clip), `borderPolygons` (marco), `avatarTransforms` (thumb en cuadro), `fullBodyAreas` (**por avatar**; `fullBodyArea` es legacy/fallback). Los 4 arrays tienen siempre 8 entradas.
   - `assets/menu principal/selection-buttons.json` — 29 polígonos (A–Z, Borrar, Atrás, Adelante).
   - `assets/menu principal/selection-name-area.json` — rectángulo del nombre.
-- Coordenadas normalizadas 0–1 en espacio **`image-content`** (se descuenta el letterbox del `object-fit: contain`, ratio 3:2). Nunca contra el viewport.
+- Coordenadas normalizadas 0–1 en espacio **`image-content`** de la variante `.169.webp` 16:9 servida (se descuenta el letterbox del `object-fit: contain`). Nunca contra el viewport.
 - API: `/api/load-character-positions`, `/api/save-character-positions`, `/api/load-selection-buttons`, `/api/save-selection-buttons`, `/api/load-selection-name`, `/api/save-selection-name`. El servidor resuelve la raíz desde `server.ts`, no `process.cwd()`.
 - Al guardar se reemplaza **solo la entrada del índice editado** — nunca se envían los otros 7 desde memoria.
 - Avatares: `assets/avatars/avatar_0N.webp` 7680×7680 RGBA (masters) + `thumbs/` 512×512 + `display/` 2048×2048 webp (los que usa el cuerpo completo en pantalla; regenerar con `tools/convert-display-assets.py`). Cache-busting `?v=avatars-N` / `?v=display-N` (incrementar al regenerar). Para calidad extrema: Real-ESRGAN x4plus en `.sam-venv`.

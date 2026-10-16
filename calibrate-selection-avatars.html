@@ -12,7 +12,7 @@ select,button{background:#18202a;color:#fff;border:1px solid #789;padding:4px 7p
 </style>
 </head>
 <body>
-<div id="stage"><img id="image" src="/assets/menu%20principal/seleccion_personaje.webp?v=sel8k-3" alt=""><div id="avatars"></div><img id="body" alt=""><svg id="guide"></svg></div>
+<div id="stage"><img id="image" src="/assets/menu%20principal/seleccion_personaje.169.webp?v=sel8k-3" alt=""><div id="avatars"></div><img id="body" alt=""><svg id="guide"></svg></div>
 <div id="hud"><b>Calibrar selección</b><br>
 Modo: <select id="mode"><option value="avatar">Avatares</option><option value="box">Cuadros</option><option value="border">Bordes de selección</option><option value="body">Cuerpo completo</option></select><br>
 Avatar: <select id="avatar-select"></select><br>
@@ -50,7 +50,7 @@ function getBody(i){if(!bodyAreas[i])bodyAreas[i]={...BODY_DEFAULT};return bodyA
 const polyStore=()=>mode==='border'?borders:polygons;
 for(let i=0;i<N;i++){const o=document.createElement('option');o.value=i;o.textContent='Avatar '+(i+1);select.appendChild(o)}
 const avatarEls=SOURCES.map((src,i)=>{const img=document.createElement('img');img.src=src;img.className='av';img.draggable=false;img.dataset.index=i;avatarsEl.appendChild(img);return img});
-function rect(){const w=innerWidth,h=innerHeight,ratio=1.5;let width=w,height=w/ratio;if(height>h){height=h;width=h*ratio}return{left:(w-width)/2,top:(h-height)/2,width,height}}
+function rect(){const w=innerWidth,h=innerHeight,im=document.getElementById('image'),ratio=(im&&im.naturalWidth)?im.naturalWidth/im.naturalHeight:16/9;let width=w,height=w/ratio;if(height>h){height=h;width=h*ratio}return{left:(w-width)/2,top:(h-height)/2,width,height}}
 function bbox(poly){const xs=poly.map(p=>p[0]),ys=poly.map(p=>p[1]);return{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)}}
 function getTransform(i){const poly=polygons[i],box=poly?.length>=3?bbox(poly):{...DEFAULTS[i]};if(!transforms[i])transforms[i]={...box};return transforms[i]}
 function fitToBox(i){const p=polygons[i];if(!p||p.length<3)return null;return{...bbox(p)}}

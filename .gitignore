@@ -45,3 +45,4 @@ android-app/res/
 android-app/runika.keystore
 android-app/release-signing.properties
 android-res/
+__pycache__/

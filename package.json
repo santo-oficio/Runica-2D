@@ -39,6 +39,7 @@
       "!db/player.json",
       "!db/settings.json",
       "!db/old/**",
+      "!**/old/**",
       "!**/node_modules/**"
     ],
     "win": {
