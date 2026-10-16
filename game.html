@@ -1406,7 +1406,7 @@ const MODAL_LOSE_DEFAULTS = { title: { polygon: [[.25,.28],[.33,.07],[.67,.07],[
   buttonCenterBorder: { polygon: [[.335,.575],[.665,.575],[.665,.75],[.335,.75]], fontScale: 1 } };
 let modalAreas = null, modalLoseAreas = null;
 let modalOpen = false, modalSel = 1, modalMode = 'win'; // 'win' | 'lose'
-let winGoldEarned = 0, winGoldBefore = 0, winBodyText = '', winTitleText = '';
+let winGoldEarned = 0, winGoldBefore = 0, winFinalBonus = 0, winBodyText = '', winTitleText = '';
 
 function modalCurvePath(poly, W, H) {
   if (!poly || poly.length < 2) return null;
@@ -1634,12 +1634,15 @@ function winGame() {
     const goldMult = Math.min(2, Math.max(0.3, 2 * par / Math.max(turn, par)));
     winGoldEarned = isReplay ? 0 : Math.round(goldBase * goldMult * (isBossWin ? 2 : 1));
     winGoldBefore = playerData?.gold ?? 0;
+    const isFinalWin = (REAL_MODE && REAL_WORLD === FINAL_WORLD) || DEMO_FINAL;
+    // Botín del guardián final: el tesoro que despierta en la batalla se
+    // suma de verdad al oro — premio cuantioso que crece con la dificultad
+    winFinalBonus = (isFinalWin && !isReplay) ? 500 + goldTier * 50 : 0;
     winBodyText = isBossWin
         ? tt('game.bossBody', bossWorldOf, turn)
         : tt('game.levelDone', REAL_LEVEL + 1, turn);
     renderBoardTexts();
     const gp = cellPos(goal.c, goal.r, true);
-    const isFinalWin = (REAL_MODE && REAL_WORLD === FINAL_WORLD) || DEMO_FINAL;
     if (isFinalWin) {
       // El boss FINAL: ni modal ni cinemática aparte — la batalla final
       // sigue aquí mismo, con el héroe y el guardián en sus casillas
@@ -1668,7 +1671,7 @@ function startFinalBattle() {
   if (REAL_MODE && !DEMO_RUN) {
     fetch(BASE + '/api/level-complete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: winGoldEarned, screenId: currentScreenId }),
+      body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL, gold: winGoldEarned + winFinalBonus, screenId: currentScreenId }),
     }).catch(() => {});
   }
   const foes = [...document.querySelectorAll('#entities .entity[data-type="enemy"]')];
@@ -1683,7 +1686,8 @@ function startFinalBattle() {
     cell: (c, r) => cellPos(c, r, true), cols: COLS, rows: ROWS,
     image: img, imgRect: visibleImageRect,
     goldBefore: winGoldBefore, goldEarned: winGoldEarned,
-    goldTotal: winGoldBefore + winGoldEarned,
+    goldBonus: winFinalBonus,
+    goldTotal: winGoldBefore + winGoldEarned + winFinalBonus,
     flyGold: flyGoldToHud,
     name: playerData?.playerName || '',
     tt, shake: shakeLayers, step: playStep,

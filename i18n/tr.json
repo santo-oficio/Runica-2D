@@ -127,6 +127,7 @@
   "fin.completed": "Runika 2D'yi bitirdin!",
   "fin.completedNamed": "{0}, Runika 2D'yi bitirdi!",
   "fin.goldTotal": "Kazanılan altın: {0}",
+  "fin.bonus": "Muhafızın ganimeti: +{0}!",
   "fin.worldsFell": "Tüm dünyalar düştü",
   "fin.finalBoss": "Son muhafız…",
   "fin.treasureWakes": "Hazine uyanıyor…",

@@ -90,6 +90,11 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
   base `10 + tier×5` multiplicada por la eficiencia frente al óptimo
   (`min(2, max(0.3, 2×par/turnos))` → ×2 si se resuelve en el mínimo,
   decae hacia ×1 con turnos de más, suelo ×0.3; boss de mundo ×2).
+  **Boss final (MAZMORRA)**: además del oro de la isla, el botín del
+  guardián suma `500 + tier×50` (≈1.000+ en tier 15) — el montón de oro
+  de la cinemática vuela al contador durante la batalla y el total de la
+  coronación lo incluye (`fin.bonus`, `goldBonus`/`goldTotal` en
+  `FinalBattle.run`). Solo la primera victoria (replay → 0).
   → overlay con **"Pulsa para continuar"** (`instructions.continue`) →
   Enter/Espacio/R/click:
   - Isla final (índice 11) → `mapamundi.html` (el mundo queda completado:

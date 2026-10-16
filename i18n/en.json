@@ -127,6 +127,7 @@
   "fin.completed": "You have completed Runika 2D!",
   "fin.completedNamed": "{0} has completed Runika 2D!",
   "fin.goldTotal": "Gold earned: {0}",
+  "fin.bonus": "Guardian's hoard: +{0}!",
   "fin.worldsFell": "All worlds have fallen",
   "fin.finalBoss": "The last guardian...",
   "fin.treasureWakes": "The treasure awakens…",

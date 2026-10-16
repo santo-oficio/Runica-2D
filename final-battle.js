@@ -489,6 +489,14 @@ async function phaseWorlds() {
     }, i * 55);
   });
   await wait(S.coins.length * 55 + 700);
+  // El botín del guardián se cobra de verdad: al absorber el montón, las
+  // monedas saltan del héroe al contador, que sigue acumulando
+  const bonus = S.ctx.goldBonus || 0;
+  if (bonus > 0 && S.ctx.flyGold) {
+    const c = heroCenter();
+    caption(tt('fin.bonus', bonus), 2600);
+    await new Promise(res => S.ctx.flyGold(c.x, c.y, S.ctx.goldBefore + S.ctx.goldEarned, bonus, res));
+  }
   placeHalo(h.w * 3.2);
   // Los 7 mundos le prestan su fuerza: orbes que llegan desde los bordes
   const tl = S.ctx.cell(0, 0), br = S.ctx.cell(S.ctx.cols - 1, S.ctx.rows - 1);
@@ -796,7 +804,9 @@ async function phaseCrown() {
     g.style.top = Math.min(innerHeight * 0.9, sub.getBoundingClientRect().bottom + innerHeight * 0.02) + 'px';
     sp.textContent = tt('fin.goldTotal', 0);
     requestAnimationFrame(() => g.classList.add('on'));
-    const t0 = performance.now(), dur = 2400;
+    // El conteo escala con la cantidad: con el botín final parece que el
+    // oro no para de subir
+    const t0 = performance.now(), dur = Math.min(5600, 2400 + total);
     let lastClink = 0;
     await new Promise(res => {
       const step = () => {

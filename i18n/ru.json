@@ -127,6 +127,7 @@
   "fin.completed": "Ты прошёл Runika 2D!",
   "fin.completedNamed": "{0} прошёл Runika 2D!",
   "fin.goldTotal": "Собрано золота: {0}",
+  "fin.bonus": "Добыча стража: +{0}!",
   "fin.worldsFell": "Все миры пали",
   "fin.finalBoss": "Последний страж…",
   "fin.treasureWakes": "Сокровище пробуждается…",

@@ -127,6 +127,7 @@
   "fin.completed": "你通关了 Runika 2D！",
   "fin.completedNamed": "{0} 通关了 Runika 2D！",
   "fin.goldTotal": "获得金币: {0}",
+  "fin.bonus": "守卫者的宝藏: +{0}!",
   "fin.worldsFell": "所有世界都已陨落",
   "fin.finalBoss": "最后的守护者…",
   "fin.treasureWakes": "宝藏苏醒了…",

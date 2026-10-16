@@ -127,6 +127,7 @@
   "fin.completed": "Ukończyłeś Runika 2D!",
   "fin.completedNamed": "{0} ukończył Runika 2D!",
   "fin.goldTotal": "Zdobyte złoto: {0}",
+  "fin.bonus": "Łup strażnika: +{0}!",
   "fin.worldsFell": "Wszystkie światy upadły",
   "fin.finalBoss": "Ostatni strażnik…",
   "fin.treasureWakes": "Skarb się budzi…",

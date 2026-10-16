@@ -127,6 +127,7 @@
   "fin.completed": "Du hast Runika 2D abgeschlossen!",
   "fin.completedNamed": "{0} hat Runika 2D abgeschlossen!",
   "fin.goldTotal": "Ersammeltes Gold: {0}",
+  "fin.bonus": "Beute des Wächters: +{0}!",
   "fin.worldsFell": "Alle Welten sind gefallen",
   "fin.finalBoss": "Der letzte Wächter...",
   "fin.treasureWakes": "Der Schatz erwacht …",
