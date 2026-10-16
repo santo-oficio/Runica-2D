@@ -298,6 +298,44 @@
     return i === 0 || completedLevels.has(i - 1);
   }
 
+  // Fracción del sprite transparente bajo los pies de cada avatar (0-7).
+  // El ancla calibrada espera los pies en el borde inferior de la caja;
+  // sin compensar este padding el avatar "flota" sobre la isla.
+  const avatarPad = new Array(8).fill(0);
+  function measureAvatarPads() {
+    for (let i = 0; i < 8; i++) {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const w = 64, h = Math.max(1, Math.round(img.naturalHeight * w / img.naturalWidth));
+          const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+          const cx = cv.getContext('2d', { willReadFrequently: true });
+          cx.drawImage(img, 0, 0, w, h);
+          const d = cx.getImageData(0, 0, w, h).data;
+          let pad = 0;
+          scan: for (let y = h - 1; y >= 0; y--) {
+            for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 24) break scan;
+            pad++;
+          }
+          avatarPad[i] = pad / h;
+          const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
+          if (i === idx && avatarEl.style.display === 'block') {
+            const r = getImgRect();
+            const pos = positions[currentLevel];
+            if (pos) avatarEl.style.top = avatarBaseTop(pos, resolvedAvatarSize() * r.width, r) + 'px';
+          }
+        } catch (e) {}
+      };
+      img.src = `/assets/avatars/display/avatar_${String(i + 1).padStart(2, '0')}.webp`;
+    }
+  }
+  // Top de la caja del avatar: centro en pos.y menos media caja, más el
+  // padding transparente del sprite para que los pies pisen el suelo.
+  function avatarBaseTop(pos, sz, r) {
+    const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
+    return r.top + pos.y * r.height - sz / 2 + (avatarPad[idx] || 0) * sz;
+  }
+
   let positions = {};
   let textAreas = {
     worldName: { x: 0.35, y: 0.08, w: 0.3, h: 0.08 },
@@ -449,7 +487,7 @@
       avatarImg.alt = currentWorld;
       avatarEl.style.display = 'block';
       avatarEl.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
-      avatarEl.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
+      avatarEl.style.top = avatarBaseTop(pos, sz, r) + 'px';
       avatarEl.style.width = sz + 'px';
       avatarEl.style.height = sz + 'px';
     }
@@ -540,7 +578,7 @@
     const oldY = parseFloat(avatarEl.style.top) || 0;
     const pos = positions[currentLevel];
     const newX = r.left + pos.x * r.width - sz / 2;
-    const newY = r.top + pos.y * r.height - sz / 2;
+    const newY = avatarBaseTop(pos, sz, r);
     const dist = Math.hypot(newX - oldX, newY - oldY);
     const speed = 800;
     const duration = Math.max(0.2, Math.min(1.0, dist / speed));
@@ -561,7 +599,7 @@
     const pos = positions[currentLevel];
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;
-    const baseY = r.top + pos.y * r.height - sz / 2;
+    const baseY = avatarBaseTop(pos, sz, r);
     const bounceX = Math.max(r.left, Math.min(r.right - sz, baseX + dx * r.width));
     const bounceY = Math.max(r.top, Math.min(r.bottom - sz, baseY + dy * r.height));
 
@@ -621,6 +659,7 @@
     if (!WORLD_ORDER.includes(currentWorld)) currentWorld = 'ESPACIO';
     // Progreso de la bbdd: ultima isla jugada + islas completadas
     await loadPlayer();
+    measureAvatarPads();
     completedLevels = new Set(player?.worldProgress?.[currentWorld]?.completed ?? []);
     currentLevel = getStartLevel(currentWorld);
 
