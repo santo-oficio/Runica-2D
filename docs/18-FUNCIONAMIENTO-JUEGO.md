@@ -86,7 +86,10 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
   alineado a la derecha).
 - Enemigos: imágenes de `assets/enemys/display/<M>/`; **bosses solo en la
   isla final** (índice 11) desde `assets/bosses/display/<M>/`.
-- Victoria → `POST /api/level-complete` (oro = `max(10, minMoves×5 − turnos)`)
+- Victoria → `POST /api/level-complete` — el oro es **progresivo**:
+  base `10 + tier×5` multiplicada por la eficiencia frente al óptimo
+  (`min(2, max(0.3, 2×par/turnos))` → ×2 si se resuelve en el mínimo,
+  decae hacia ×1 con turnos de más, suelo ×0.3; boss de mundo ×2).
   → overlay con **"Pulsa para continuar"** (`instructions.continue`) →
   Enter/Espacio/R/click:
   - Isla final (índice 11) → `mapamundi.html` (el mundo queda completado:

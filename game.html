@@ -1613,15 +1613,21 @@ function winGame() {
     // clave por mundo (cada idioma contrae distinto según el género)
     const bossWorldOf = tt('worlds.of.' + bossWorld);
     winTitleText = isBossWin ? tt('game.bossTitle') : '';
-    // Oro por eficiencia: máximo si se resuelve en el mínimo de movimientos.
-    // El boss de mundo siempre da bastante más que una isla normal.
+    // Oro progresivo: la base crece con el nivel de dificultad (tier) y el
+    // multiplicador premia la eficiencia respecto al óptimo (par):
+    //   turnos = par        → ×2 (solución perfecta)
+    //   turnos entre par y 2·par → decae suave hacia ×1
+    //   muchos turnos de más → suelo ×0.3
+    // El boss de mundo duplica la recompensa.
     // Solo la PRIMERA vez: re-jugar una isla ya completada no da oro (el
     // servidor tampoco lo suma). Se confirma al pulsar Continuar (Reiniciar
     // lo revierte).
     const isReplay = (playerData?.worldProgress?.[REAL_WORLD]?.completed ?? []).includes(REAL_LEVEL);
-    winGoldEarned = isReplay ? 0
-      : isBossWin ? Math.max(50, currentMinMoves * 10 - turn * 2)
-                  : Math.max(10, currentMinMoves * 5 - turn);
+    const par = Math.max(1, currentMinMoves);
+    const goldTier = lastScreen?.level ?? (REAL_MODE ? gameLevel : currentTier);
+    const goldBase = 10 + goldTier * 5;
+    const goldMult = Math.min(2, Math.max(0.3, 2 * par / Math.max(turn, par)));
+    winGoldEarned = isReplay ? 0 : Math.round(goldBase * goldMult * (isBossWin ? 2 : 1));
     winGoldBefore = playerData?.gold ?? 0;
     winBodyText = isBossWin
         ? tt('game.bossBody', bossWorldOf, turn)
