@@ -30,6 +30,29 @@ npm run dist        # genera release/Runika 2D Setup <ver>.exe (NSIS)
 - El instalador excluye `db/player.json`, `db/settings.json` y `db/old` —
   instalación limpia sin partida previa.
 
+## App de TV Samsung (Tizen, `.wgt`)
+
+El juego corre **autónomo en la TV** (sin PC): las APIs del servidor se
+simulan en cliente.
+
+- `web/api-shim.js` — interceptor de `fetch` activo solo en TV
+  (`window.tizen`, UA Tizen, `file:` o `localStorage['runika.tizen']='1'`
+  para pruebas). Mapea `/api/*` → localStorage (settings/savegame),
+  JSONs empaquetados (`load-*`, `manifest`, `detections`, `sprite-assets`)
+  y `window.RunikaDB`/`RunikaSolver`. En localhost queda inerte.
+- `web/webdb.js` — port de `db/db.ts` (progreso, sticky assignments,
+  level-screen/complete) con bancos por fetch y persistencia localStorage.
+- `web/solver.bundle.js` — solver compilado a navegador (`npm run
+  build:solver`, esbuild IIFE + stubs de builtins en `web/node-stub.mjs`).
+- `web/tizen.js` — mando: Back(10009)→Escape, registro de teclas, salir
+  en el menú, puente IME para el nombre del jugador.
+- `npm run wgt` → `tools/build-tizen.mjs` genera `webdist/` (~315 MB:
+  páginas runtime + assets + i18n + `db/screens-tier-*.json` + web/ +
+  `config.xml` + `index.html` + `icon.png`).
+- Empaquetado/firma: `tizen package -t wgt -s <perfil> -- webdist`
+  (requiere Tizen Studio + certificado Samsung). Instalación: TV en
+  Developer Mode con la IP del PC → `sdb connect <ip>` + `tizen install`.
+
 ## Modo práctica (`game.html`)
 
 `http://localhost:3000/game.html` — modo práctica que elige una pantalla

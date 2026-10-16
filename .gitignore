@@ -34,3 +34,5 @@ release/
 electron-test.log
 installed-test.log
 electron-app/server.mjs
+webdist/
+web/solver.bundle.js
