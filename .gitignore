@@ -28,3 +28,9 @@ models/
 # Scratch local / herramientas de análisis
 .tmp_chk/
 debug/
+
+# Build Electron (instalador + app desempaquetada)
+release/
+electron-test.log
+installed-test.log
+electron-app/server.mjs

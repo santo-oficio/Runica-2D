@@ -8,7 +8,27 @@ Juego de puzle determinista por turnos en rejilla. TypeScript puro + Vitest, Nod
 npm run typecheck   # tsc --noEmit (strict + noUncheckedIndexedAccess)
 npm test            # vitest (300 tests, 13 archivos)
 npx tsx server.ts  # juego y calibradores en http://localhost:3000
+npm run app         # Electron en modo dev (ventana fullscreen)
+npm run dist        # genera release/Runika 2D Setup <ver>.exe (NSIS)
 ```
+
+## App de escritorio (Electron)
+
+- `electron-app/main.mjs` (ESM, proceso principal): elige un **puerto libre**,
+  pone `RUNIKA_ROOT` (raíz de la app), `RUNIKA_DB_DIR`
+  (`%APPDATA%/runika-2d/db` — writable) y `RUNIKA_PORT`, importa
+  `electron-app/server.mjs` (bundle esbuild de `server.ts`), espera a que
+  responda y abre `BrowserWindow` fullscreen con retry de `did-fail-load`.
+- El servidor dentro de Electron corre **in-process** (sin node/tsx externo).
+- Empaquetado con electron-builder (`build` en `package.json`), target NSIS
+  per-user (sin admin), `asar: false`, acceso directo en escritorio y menú.
+  `npm run build:server` regenera el bundle antes de empaquetar.
+- Variables de entorno del servidor: `RUNIKA_ROOT` (raíz de assets/páginas),
+  `RUNIKA_DB_DIR` (player.json + settings.json escritibles),
+  `RUNIKA_BANK_DIR` (bancos `screens-tier-*.json` — por defecto ROOT/db) y
+  `RUNIKA_PORT`. En dev sin variables todo sigue igual.
+- El instalador excluye `db/player.json`, `db/settings.json` y `db/old` —
+  instalación limpia sin partida previa.
 
 ## Modo práctica (`game.html`)
 

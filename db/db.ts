@@ -22,7 +22,12 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_DIR = __dirname;
+/** Datos del jugador (writable). En la app instalada, fuera de resources/. */
+const DB_DIR = process.env.RUNIKA_DB_DIR ?? __dirname;
+/** Bancos de pantallas (read-only): junto al código, o ROOT/db en la app. */
+const BANK_DIR =
+  process.env.RUNIKA_BANK_DIR ??
+  join(process.env.RUNIKA_ROOT ?? dirname(__dirname), "db");
 const PLAYER_PATH = join(DB_DIR, "player.json");
 
 // ---------------------------------------------------------------------------
@@ -196,7 +201,7 @@ export function loadDb(): void {
 /** Carga en memoria las pantallas de un tier (lazy-loading con cache). */
 function ensureTierLoaded(tier: number): Screen[] {
   if (loadedTier === tier) return tierScreens;
-  const path = join(DB_DIR, `screens-tier-${tier}.json`);
+  const path = join(BANK_DIR, `screens-tier-${tier}.json`);
   if (!existsSync(path)) {
     throw new Error(`No existe el archivo de pantallas para tier ${tier}: ${path}`);
   }

@@ -37,8 +37,10 @@ import {
   countSolutionsOfMinLength,
 } from "./generator/generate-screens.js";
 
-const PORT = 3000;
-const ROOT = dirname(fileURLToPath(import.meta.url));
+const PORT = Number(process.env.RUNIKA_PORT ?? 3000);
+const ROOT = process.env.RUNIKA_ROOT ?? dirname(fileURLToPath(import.meta.url));
+/** Datos escribibles del usuario (partida, ajustes). En la app instalada, fuera de resources/. */
+const DATA_DIR = process.env.RUNIKA_DB_DIR ?? join(ROOT, "db");
 
 // Cargar banco de pantallas + progreso en memoria
 loadDb();
@@ -769,7 +771,7 @@ const server = http.createServer((req, res) => {
   }
 
   // API: ajustes globales (sound, music, lang) — db/settings.json
-  const SETTINGS_PATH = join(ROOT, "db", "settings.json");
+  const SETTINGS_PATH = join(DATA_DIR, "settings.json");
   const readSettings = () => {
     try {
       if (existsSync(SETTINGS_PATH)) {
@@ -789,6 +791,7 @@ const server = http.createServer((req, res) => {
     req.on("end", () => {
       try {
         const next = { ...readSettings(), ...JSON.parse(body) };
+        if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
         writeFileSync(SETTINGS_PATH, JSON.stringify(next, null, 2), "utf-8");
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true, settings: next }));
