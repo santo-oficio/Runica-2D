@@ -39,6 +39,11 @@
     transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
   }
+  /* Capas del tablero: trampas y meta son suelo; los enemigos (más
+     grandes que la trampa) siempre por encima; el avatar va aún más
+     arriba al estar fuera de #entities (z 15 vs z 13) */
+  .entity.trap, .entity.goal { z-index: 1; }
+  .entity[data-type="enemy"], .entity[data-type="boss"] { z-index: 2; }
   /* Las trampas son estáticas: nunca rotan */
   .entity.stunned {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)) brightness(0.55) saturate(0.4);
