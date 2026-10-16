@@ -170,6 +170,7 @@
   "demo.bossrun.hint": "echte Boss-Szene (Insel 12): mit den Pfeilen spielen — verlieren zeigt die Niederlage, gewinnen die Feier und die Rückkehr zur Weltkarte (mit MAZMORRA: die Endszene). Nichts wird gespeichert.",
   "demo.bossfinal.launch": "Finalboss spielen",
   "demo.bossfinal.cine": "Nur das Ende ansehen",
+  "demo.bossfinal.console": "Konsole · Tab",
   "demo.bossfinal.hint": "echte Partie gegen den MAZMORRA-Boss (Insel 12): Am Schatz beginnt der Endkampf auf demselben Spielfeld und endet im Abspann. „Nur das Ende ansehen“ startet ihn ohne das Rätsel. Nichts wird gespeichert.",
   "demo.lastboss.hint": "Boss der letzten normalen Welt: gewinnen, um zur Karte zurückzukehren — alle 7 Welten erobert und MAZMORRA farbig freigeschaltet. Nichts wird gespeichert.",
   "hack.help": "Befehle: help · level [n] · complete · next · prev · seed <id> · restart · undo · optimal · turns · hint · solutions · god · speed <x> · debug · clear",

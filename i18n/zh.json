@@ -170,6 +170,7 @@
   "demo.bossrun.hint": "Boss 的真实关卡（第 12 岛）：用方向键游玩 — 输了看败北画面，赢了看庆祝并返回世界地图（MAZMORRA 则是最终动画）。不保存记录。",
   "demo.bossfinal.launch": "挑战最终 Boss",
   "demo.bossfinal.cine": "只看结局",
+  "demo.bossfinal.console": "控制台 · Tab",
   "demo.bossfinal.hint": "与 MAZMORRA Boss 的真实对战（第 12 岛）：到达宝藏后在同一棋盘上展开最终决战，直到制作名单。“只看结局”无需解谜直接开始。不保存记录。",
   "demo.lastboss.hint": "最后一个普通世界的 Boss：获胜后返回世界地图，7 个世界已被征服，MAZMORRA 已解锁并显示彩色。不保存记录。",
   "hack.help": "命令：help · level [n] · complete · next · prev · seed <id> · restart · undo · optimal · turns · hint · solutions · god · speed <x> · debug · clear",

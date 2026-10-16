@@ -170,6 +170,7 @@
   "demo.bossrun.hint": "pantalla real del boss (isla 12): juega con las flechas — pierde para ver la derrota, gana para ver la celebración y la vuelta al mapamundi (con MAZMORRA: la cinemática final). No se guarda nada.",
   "demo.bossfinal.launch": "Jugar boss final",
   "demo.bossfinal.cine": "Ver solo el final",
+  "demo.bossfinal.console": "Consola · Tab",
   "demo.bossfinal.hint": "partida real al boss de MAZMORRA (isla 12): al llegar al tesoro empieza la batalla final en el mismo tablero y termina en los créditos. «Ver solo el final» la lanza sin jugar el puzle. No se guarda nada.",
   "demo.lastboss.hint": "boss del último mundo normal: al ganar vuelves al mapamundi con los 7 mundos conquistados y MAZMORRA ya desbloqueada a color. No se guarda nada.",
   "hack.help": "Comandos: help · level [n] · complete · next · prev · seed <id> · restart · undo · optimal · turns · hint · solutions · god · speed <x> · debug · clear",

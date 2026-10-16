@@ -170,6 +170,7 @@
   "demo.bossrun.hint": "écran réel du boss (île 12) : jouez avec les flèches — perdez pour voir la défaite, gagnez pour voir la célébration et le retour à la carte du monde (avec MAZMORRA : la cinématique finale). Rien n'est enregistré.",
   "demo.bossfinal.launch": "Jouer le boss final",
   "demo.bossfinal.cine": "Voir seulement la fin",
+  "demo.bossfinal.console": "Console · Tab",
   "demo.bossfinal.hint": "vraie partie contre le boss de MAZMORRA (île 12) : atteindre le trésor lance la bataille finale sur le même plateau, jusqu’aux crédits. « Voir seulement la fin » la lance sans jouer le puzzle. Rien n’est sauvegardé.",
   "demo.lastboss.hint": "boss du dernier monde normal : gagnez pour revenir à la carte avec les 7 mondes conquis et MAZMORRA débloquée en couleur. Rien n'est enregistré.",
   "hack.help": "Commandes : help · level [n] · complete · next · prev · seed <id> · restart · undo · optimal · turns · hint · solutions · god · speed <x> · debug · clear",

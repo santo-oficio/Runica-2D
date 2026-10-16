@@ -170,6 +170,7 @@
   "demo.bossrun.hint": "ボスの実際の画面（島12）：矢印でプレイ — 負けて敗北を、勝って祝典と世界地図への帰還を確認（MAZMORRAでは最終ムービー）。記録なし。",
   "demo.bossfinal.launch": "最終ボスをプレイ",
   "demo.bossfinal.cine": "エンディングだけ見る",
+  "demo.bossfinal.console": "コンソール · Tab",
   "demo.bossfinal.hint": "MAZMORRAのボス（島12）との実戦：宝にたどり着くと同じ盤面で最終決戦が始まり、クレジットへ続く。「エンディングだけ見る」はパズルなしで開始。記録なし。",
   "demo.lastboss.hint": "最後の通常世界のボス：勝つと7世界制覇済み・MAZMORRA解放済みの世界地図に戻る。記録なし。",
   "hack.help": "コマンド: help · level [n] · complete · next · prev · seed <id> · restart · undo · optimal · turns · hint · solutions · god · speed <x> · debug · clear",

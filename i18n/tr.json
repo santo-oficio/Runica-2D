@@ -170,6 +170,7 @@
   "demo.bossrun.hint": "boss'un gerçek ekranı (ada 12): ok tuşlarıyla oyna — yenilgiyi görmek için kaybet, kutlamayı ve dünya haritasına dönüşü görmek için kazan (MAZMORRA'da final sahnesi). Hiçbir şey kaydedilmez.",
   "demo.bossfinal.launch": "Final boss ile oyna",
   "demo.bossfinal.cine": "Sadece finali izle",
+  "demo.bossfinal.console": "Konsol · Tab",
   "demo.bossfinal.hint": "MAZMORRA boss’u ile gerçek oyun (ada 12): hazineye ulaşınca aynı tahtada final savaşı başlar ve künyeyle biter. «Sadece finali izle» bulmacayı oynamadan başlatır. Hiçbir şey kaydedilmez.",
   "demo.lastboss.hint": "son normal dünyanın boss'u: kazanınca 7 dünyası fethedilmiş ve MAZMORRA'sı renkli olarak açılmış dünya haritasına dönersin. Hiçbir şey kaydedilmez.",
   "hack.help": "Komutlar: help · level [n] · complete · next · prev · seed <id> · restart · undo · optimal · turns · hint · solutions · god · speed <x> · debug · clear",

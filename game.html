@@ -761,9 +761,11 @@ async function loadScreen() {
   selector.style.transition = '';
   const bd = document.getElementById('boss-down');
   if (bd) { bd.classList.remove('show'); bd.textContent = ''; }
+  const tierQ = parseInt(PARAMS.get('tier') || '', 10);
+  const tierSel = Number.isFinite(tierQ) ? tierQ : (DEMO_RUN ? 6 : currentTier);
   const endpoint = (REAL_MODE && !DEMO_RUN)
     ? `${BASE}/api/level-screen?world=${encodeURIComponent(REAL_WORLD)}&level=${REAL_LEVEL}`
-    : `${BASE}/api/practice-screen?tier=${DEMO_RUN ? (parseInt(PARAMS.get('tier') || '6', 10) || 6) : currentTier}&t=${Date.now()}`;
+    : `${BASE}/api/practice-screen?tier=${tierSel}&t=${Date.now()}`;
   const res = await fetch(endpoint);
   const data = await res.json();
   if (!data.ok) {

@@ -170,6 +170,7 @@
   "demo.bossrun.hint": "prawdziwy ekran bossa (wyspa 12): graj strzałkami — przegraj, by zobaczyć porażkę, wygraj, by zobaczyć celebrację i powrót na mapę świata (w MAZMORRA — scena finałowa). Nic się nie zapisuje.",
   "demo.bossfinal.launch": "Zagraj z finałowym bossem",
   "demo.bossfinal.cine": "Obejrzyj tylko finał",
+  "demo.bossfinal.console": "Konsola · Tab",
   "demo.bossfinal.hint": "prawdziwa gra z bossem MAZMORRA (wyspa 12): po dotarciu do skarbu na tej samej planszy zaczyna się finałowa bitwa, a potem napisy końcowe. „Obejrzyj tylko finał” uruchamia ją bez łamigłówki. Nic się nie zapisuje.",
   "demo.lastboss.hint": "boss ostatniego zwykłego świata: po wygranej wracasz na mapę świata z 7 podbitymi światami i odblokowanym, kolorowym Lochiem. Nic się nie zapisuje.",
   "hack.help": "Polecenia: help · level [n] · complete · next · prev · seed <id> · restart · undo · optimal · turns · hint · solutions · god · speed <x> · debug · clear",
