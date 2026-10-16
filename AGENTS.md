@@ -53,6 +53,26 @@ simulan en cliente.
   (requiere Tizen Studio + certificado Samsung). Instalación: TV en
   Developer Mode con la IP del PC → `sdb connect <ip>` + `tizen install`.
 
+## App Android (Cordova, `.apk`)
+
+`android-app/` es el proyecto Cordova (misma app autónoma que la TV).
+
+- `npm run apk` → genera `webdist` + `android-app/www` (con `cordova.js`
+  inyectado). `web/api-shim.js` se activa con `window.cordova` y
+  `web/tizen.js` también pone el puente de Android: `backbutton`→Escape,
+  gestos táctiles (swipe=flechas, tap=Enter, long-press=Escape) y el
+  <input> invisible invoca el teclado en pantalla.
+- Build: `cd android-app && npx cordova build android [--release]`
+  con `JAVA_HOME`=JBR de Android Studio, `ANDROID_HOME`=%LOCALAPPDATA%
+  `\Android\Sdk` y Gradle 8.14.2 en PATH (`C:\Users\jquin\gradle`).
+- Salida: `platforms/android/app/build/outputs/apk/{debug,release}/`.
+  Release se firma con `android-app/runika.keystore` (NO committeado —
+  credenciales en `release-signing.properties`, también ignorado).
+- Icono: calavera (`android-res/` generado con PIL desde
+  `assets/comunes/calavera.webp` — icono clásico + adaptativo).
+- `config.xml`: landscape, fullscreen, minSdk 24, target 36,
+  id `com.runika2d.game`.
+
 ## Modo práctica (`game.html`)
 
 `http://localhost:3000/game.html` — modo práctica que elige una pantalla

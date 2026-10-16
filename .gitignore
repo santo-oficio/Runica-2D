@@ -36,3 +36,12 @@ installed-test.log
 electron-app/server.mjs
 webdist/
 web/solver.bundle.js
+
+# Android (Cordova)
+android-app/platforms/
+android-app/www/
+android-app/plugins/
+android-app/res/
+android-app/runika.keystore
+android-app/release-signing.properties
+android-res/

@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.runika2d.game" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Runika 2D</name>
+    <description>Runika 2D — puzzle por turnos</description>
+    <author>Javier Q.</author>
+    <content src="index.html" />
+    <access origin="*" />
+    <allow-navigation href="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <preference name="Orientation" value="landscape" />
+    <preference name="Fullscreen" value="true" />
+    <preference name="AndroidWindowSplashScreenBackground" value="#1a0f0a" />
+    <preference name="AndroidLaunchMode" value="singleInstance" />
+    <preference name="android-minSdkVersion" value="24" />
+    <preference name="android-targetSdkVersion" value="36" />
+    <preference name="WebViewAssetLoader" value="true" />
+    <platform name="android">
+        <icon foreground="res/icon-foreground.png" background="res/icon-background.png" />
+        <icon src="res/icon.png" density="xxxhdpi" />
+        <icon src="res/icon.png" density="xxhdpi" />
+        <icon src="res/icon.png" density="xhdpi" />
+        <icon src="res/icon.png" density="hdpi" />
+        <icon src="res/icon.png" density="mdpi" />
+        <icon src="res/icon.png" density="ldpi" />
+    </platform>
+</widget>

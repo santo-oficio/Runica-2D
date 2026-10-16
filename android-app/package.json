@@ -1,0 +1,13 @@
+{
+  "name": "runika-2d-android",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "cordova-android": "^15.1.0"
+  },
+  "cordova": {
+    "platforms": [
+      "android"
+    ]
+  }
+}

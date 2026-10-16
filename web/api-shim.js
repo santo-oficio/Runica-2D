@@ -15,6 +15,7 @@
 
   var TV_MODE =
     typeof window.tizen !== "undefined" ||
+    typeof window.cordova !== "undefined" ||
     /Tizen/i.test(navigator.userAgent || "") ||
     location.protocol === "file:" ||
     localStorage.getItem("runika.tizen") === "1";

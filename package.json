@@ -18,7 +18,9 @@
     "build:server": "esbuild server.ts --bundle --platform=node --format=esm --outfile=electron-app/server.mjs",
     "dist": "npm run build:server && electron-builder --win nsis",
     "build:solver": "esbuild web/solver-entry.ts --bundle --platform=browser --format=iife --global-name=RunikaSolver --outfile=web/solver.bundle.js --banner:js=\"var process={argv:[],execArgv:[],env:{},exit:function(){}};\" --alias:node:fs=./web/node-stub.mjs --alias:node:path=./web/node-stub.mjs --alias:node:url=./web/node-stub.mjs --alias:node:child_process=./web/node-stub.mjs",
-    "wgt": "npm run build:solver && node tools/build-tizen.mjs"
+    "wgt": "npm run build:solver && node tools/build-tizen.mjs",
+    "build:android": "node tools/build-android.mjs",
+    "apk": "npm run wgt && npm run build:android"
   },
   "build": {
     "appId": "com.runika2d.game",
@@ -54,6 +56,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.12.0",
+    "cordova": "^13.0.0",
     "electron": "^41.7.1",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
