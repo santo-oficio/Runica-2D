@@ -54,11 +54,14 @@
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
   }
-  /* Los submundos son 3:2: cover llena la pantalla con el arte real
-     recortando cielo y suelo — sin rellenos ni repeticiones */
+  /* Los submundos son 3:2: cover llena la pantalla con el arte real.
+     Anclada arriba (object-position top): la barra decorativa del HUD
+     (calavera + monedas) queda intacta y el recorte cae en las puntas
+     de roca de las islas inferiores, que salen del plano */
   #bg {
     width: 100%; height: 100%;
-    object-fit: cover; display: block;
+    object-fit: cover; object-position: 50% 0%;
+    display: block;
     position: relative; z-index: 1;
   }
   #overlay {
@@ -322,9 +325,13 @@
   }
   // Top de la caja del avatar: centro en pos.y menos media caja, más el
   // padding transparente del sprite para que los pies pisen el suelo.
+  // Con cover-top las islas inferiores salen del plano: los pies nunca
+  // quedan por debajo del borde visible de la ventana.
   function avatarBaseTop(pos, sz, r) {
     const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
-    return r.top + pos.y * r.height - sz / 2 + (avatarPad[idx] || 0) * sz;
+    const pad = avatarPad[idx] || 0;
+    const base = r.top + pos.y * r.height - sz / 2 + pad * sz;
+    return Math.min(base, window.innerHeight - 2 - sz * (1 - pad));
   }
 
   let positions = {};
@@ -381,16 +388,16 @@
   const avatarEl = document.getElementById('avatar');
   const avatarImg = avatarEl.querySelector('img');
 
-  // Rect de la imagen dibujada con object-fit: cover — la imagen cubre el
-  // viewport y desborda por arriba/abajo (3:2 en 16:9), así que el rect
-  // sale parcialmente de pantalla. Las coordenadas calibradas siguen en
-  // espacio de imagen (0-1 sobre el bitmap 3:2).
+  // Rect de la imagen dibujada con object-fit: cover + object-position top —
+  // la imagen cubre el viewport y desborda solo por abajo (3:2 en 16:9).
+  // Las coordenadas calibradas siguen en espacio de imagen (0-1 sobre el
+  // bitmap 3:2).
   function getImgRect() {
     const er = bg.getBoundingClientRect();
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
     const s = Math.max(er.width / iw, er.height / ih);
     const w = iw * s, h = ih * s;
-    const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+    const left = er.left + (er.width - w) / 2, top = er.top;
     return { left, top, width: w, height: h, right: left + w, bottom: top + h };
   }
 

@@ -158,12 +158,17 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
 
 **Pantallas 3:2 a 16:9 — dos estrategias**:
 
-- **Submundos → `object-fit: cover` sobre el master 3:2 original**: la imagen
-  real cubre todo el viewport recortando ~7,8% de cielo arriba y de suelo
-  abajo (`getImgRect()` usa `Math.max`, el rect puede salir del viewport).
-  Coordenadas en espacio del bitmap 3:2 original. OJO: la banda visible es
-  `y ∈ [0,078, 0,922]` — las áreas de texto del HUD (`text-areas.json`) están
-  calibradas dentro de esa banda (y≥0,082); no recolocarlas en el borde.
+- **Submundos → `object-fit: cover` + `object-position: 50% 0%` sobre el
+  master 3:2 original**: la imagen real cubre todo el viewport anclada al
+  borde superior — la barra decorativa del HUD (arco+calavera+monedas, que
+  ocupa y∈[0,~0,09] del arte) queda intacta con los textos en sus posiciones
+  originales, y el recorte cae entero abajo (~15,6% = puntas de roca de las
+  islas inferiores, que salen del plano). `getImgRect()` usa `Math.max` con
+  `top = er.top` (el rect desborda solo por abajo). Los pies del avatar se
+  clampean al viewport (`avatarBaseTop`) para que nunca se corten. Banda
+  visible `y ∈ [0, 0,844]` — todos los marcadores (pos.y ≤ 0,812) y los
+  textos del HUD (`text-areas.json` en coordenadas 3:2 originales, y≤0,11)
+  quedan dentro.
 - **Menú, selección, configuración y mapamundi → `.169.webp` espejo**: esas
   pantallas tienen contenido pegado a los bordes (el cartel del título,
   islas del mapa) que el cover cortaría. La variante `.169.webp` extiende los
