@@ -180,7 +180,14 @@
     render();
   });
 
-  function getImgRect() { return img.getBoundingClientRect(); }
+  function getImgRect() {
+    const er = img.getBoundingClientRect();
+    const iw = img.naturalWidth || 7680, ih = img.naturalHeight || 4320;
+    const s = Math.min(er.width / iw, er.height / ih);
+    const w = iw * s, h = ih * s;
+    const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+    return { left, top, width: w, height: h, right: left + w, bottom: top + h };
+  }
 
   // Determinar direccion segun posicion relativa
   function getDirection(from, to) {

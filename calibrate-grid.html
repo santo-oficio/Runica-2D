@@ -111,7 +111,14 @@ const worldSelect = document.getElementById('world-select');
 let currentWorld = 0;
 let boardArea = { x: 0.2, y: 0.2, w: 0.6, h: 0.6 };
 
-function visibleImageRect() { return img.getBoundingClientRect(); }
+function visibleImageRect() {
+  const er = img.getBoundingClientRect();
+  const iw = img.naturalWidth || 7680, ih = img.naturalHeight || 4320;
+  const s = Math.min(er.width / iw, er.height / ih);
+  const w = iw * s, h = ih * s;
+  const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+  return { left, top, width: w, height: h, right: left + w, bottom: top + h };
+}
 
 MUNDOS.forEach((w, i) => {
   const opt = document.createElement('option');

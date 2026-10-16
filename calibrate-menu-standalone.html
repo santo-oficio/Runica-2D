@@ -43,20 +43,28 @@
   const output = document.getElementById("output");
   let buttons = [], dragging = false, dragStart = null, dragEnd = null;
 
+  function imgRect() {
+    const er = img.getBoundingClientRect();
+    const iw = img.naturalWidth || 7680, ih = img.naturalHeight || 4320;
+    const s = Math.min(er.width / iw, er.height / ih);
+    const w = iw * s, h = ih * s;
+    const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+    return { left, top, width: w, height: h, right: left + w, bottom: top + h };
+  }
   function resizeCanvas() {
-    const rect = img.getBoundingClientRect();
+    const rect = imgRect();
     canvas.width = rect.width; canvas.height = rect.height;
     canvas.style.left = rect.left + "px"; canvas.style.top = rect.top + "px";
     canvas.style.width = rect.width + "px"; canvas.style.height = rect.height + "px";
     drawButtons();
   }
   function getImgCoords(e) {
-    const rect = img.getBoundingClientRect();
+    const rect = imgRect();
     return { x: Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width)), y: Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height)) };
   }
   function drawButtons() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    const rect = img.getBoundingClientRect();
+    const rect = imgRect();
     buttons.forEach((b,i) => {
       const x=b.x*rect.width, y=b.y*rect.height, w=b.w*rect.width, h=b.h*rect.height;
       ctx.strokeStyle="#0ff"; ctx.lineWidth=2; ctx.strokeRect(x,y,w,h);

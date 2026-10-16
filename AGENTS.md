@@ -141,6 +141,22 @@ Controles en `calibrate-areas.html`:
 Las coordenadas se guardan normalizadas respecto a la **imagen visible** (se
 descuenta el letterbox de `object-fit: contain`).
 
+**REGLA GLOBAL — espacio de coordenadas**: TODA coordenada calibrada
+(posiciones, áreas de texto, polígonos, círculos, tamaños) vive en el espacio
+de la **imagen original** (0–1 sobre el bitmap), nunca sobre el viewport ni el
+rect del `<img>` (que incluye las barras del letterbox). Toda página y todo
+calibrador calcula el rect visible de la imagen con `naturalWidth/naturalHeight`
++ `min(w/iw, h/ih)` (ej.: `imageRect()` en `mapamundi.html`,
+`visibleImageRect()` en `game.html`/`calibrate-areas.html`). Si se modifica una
+imagen (recorte, regeneración, cambio de ratio), hay que recalcular sus
+coordenadas partiendo de la imagen original.
+
+**Letterbox cinemático**: las imágenes 3:2 (submundos, mapamundi, configuración,
+menú, selección) dejan bandas laterales en 16:9. Se rellenan con `<img
+id="fillbg">` — copia del mismo fondo con `object-fit: cover` +
+`blur(45px) brightness(.42)` + `scale(1.15)`, detrás de `#bg` (z-index 0/1).
+Nunca estirar ni recortar el arte principal.
+
 ## Calibración de sprites y textos del tablero
 
 Todo es **data-driven por mundo**: cada calibración vive en un JSON dentro de

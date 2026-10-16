@@ -122,6 +122,17 @@
   #bg {
     width: 100%; height: 100%;
     object-fit: contain; display: block;
+    position: relative; z-index: 1;
+  }
+  /* El fondo del menú es 3:2: rellena los bordes del letterbox con una
+     copia difuminada del mismo fondo, sin estirar ni recortar el arte */
+  #fillbg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: blur(45px) brightness(0.42) saturate(1.25);
+    transform: scale(1.15);
+    z-index: 0;
   }
   #overlay {
     position: absolute; top: 0; left: 0;
@@ -237,6 +248,7 @@
 <div id="transition-overlay"></div>
 
 <div id="stage">
+  <img id="fillbg" src="/assets/menu%20principal/menu%20principal.webp?v=menu8k-3" alt="" />
   <img id="bg" src="/assets/menu%20principal/menu%20principal.webp?v=menu8k-3" />
   <div id="overlay"></div>
   <svg id="borders"></svg>
@@ -361,7 +373,16 @@
   const bg = document.getElementById('bg');
   const overlay = document.getElementById('overlay');
 
-  function getImgRect() { return bg.getBoundingClientRect(); }
+  // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain):
+  // las coordenadas calibradas viven en el espacio de la imagen original.
+  function getImgRect() {
+    const er = bg.getBoundingClientRect();
+    const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
+    const s = Math.min(er.width / iw, er.height / ih);
+    const w = iw * s, h = ih * s;
+    const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+    return { left, top, width: w, height: h, right: left + w, bottom: top + h };
+  }
 
   const borders = document.getElementById('borders');
   const SVGNS = 'http://www.w3.org/2000/svg';
