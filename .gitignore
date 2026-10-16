@@ -24,3 +24,7 @@ npm-debug.log*
 # MobileSAM (Python venv + modelo)
 .sam-venv/
 models/
+
+# Scratch local / herramientas de análisis
+.tmp_chk/
+debug/
