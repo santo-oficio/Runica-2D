@@ -355,8 +355,10 @@
 <script src="/assets-cache.js"></script>
 <script src="/final-battle.js"></script>
 <script>
-// Base URL: si estamos en un preview proxy (puerto != 3000), apuntar al 3000.
-const BASE = (window.location.port && window.location.port !== '3000') ? 'http://localhost:3000' : '';
+// APIs y assets viven en el mismo origen que sirve esta página (server dev
+// :3000, Electron con puerto dinámico, shim en TV/Android). ?api=<origen>
+// solo para depurar la página servida desde un host externo.
+const BASE = new URLSearchParams(location.search).get('api') || '';
 
 const img = document.getElementById('image');
 const selector = document.getElementById('selector');
