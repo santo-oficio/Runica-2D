@@ -227,6 +227,9 @@
   let catalog = [];
   let selectedItem = 0;
   let buying = false;
+  // demo=1: vista de testing — oro/inventario falsos, compras simuladas
+  // en memoria. Nunca toca la bbdd.
+  const DEMO = new URLSearchParams(window.location.search).get('demo') === '1';
 
   const WORLD_ORDER = ['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
 
@@ -241,6 +244,7 @@
   }
 
   async function loadPlayer() {
+    if (DEMO) { player = { gold: 500, inventory: { pista: 2 } }; return; }
     try {
       const r = await fetch('/api/savegame');
       if (r.ok) { const d = await r.json(); player = d.player || null; }
@@ -329,11 +333,22 @@
     const item = catalog[selectedItem];
     buying = true;
     try {
-      const r = await fetch('/api/buy-item', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: item.id }),
-      });
-      const d = await r.json();
+      let d;
+      if (DEMO) {
+        const ok = (player.gold ?? 0) >= item.price;
+        if (ok) {
+          player.gold -= item.price;
+          player.inventory = player.inventory || {};
+          player.inventory[item.id] = (player.inventory[item.id] || 0) + (item.uses || 1);
+        }
+        d = { ok, player };
+      } else {
+        const r = await fetch('/api/buy-item', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId: item.id }),
+        });
+        d = await r.json();
+      }
       if (d.ok) {
         player = d.player;
         AssetsCache.playSound('/assets/sounds/comun/moneda.wav', 0.8);
@@ -356,6 +371,11 @@
   function playMove() { AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5); }
   function goBack() {
     AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
+    if (DEMO) {
+      if (window.parent !== window) { window.parent.postMessage({ runika: 'shop-demo-exit' }, '*'); return; }
+      history.back();
+      return;
+    }
     AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(currentWorld));
   }
 

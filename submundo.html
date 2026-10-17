@@ -763,7 +763,13 @@
     await loadPlayer();
     measureAvatarPads();
     completedLevels = new Set(player?.worldProgress?.[currentWorld]?.completed ?? []);
-    currentLevel = getStartLevel(currentWorld);
+    // demo=shop: tienda desbloqueada sin tocar la bbdd (pantalla de testing)
+    if (params.get('demo') === 'shop') {
+      completedLevels = new Set([0, 1, 2]);
+      currentLevel = 2; // isla 3: a un ↑ de la tienda
+    } else {
+      currentLevel = getStartLevel(currentWorld);
+    }
 
     // El fondo decide cuándo quitar la carga, pero NUNCA puede colgarla:
     // si ya está cacheada (complete), si falla (error) o si tarda >8s,

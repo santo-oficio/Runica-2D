@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<title>Demo — tiendas</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #14100c; color: #f0d890;
+    font-family: 'ChelseaMarket', 'Segoe UI', cursive; overflow: hidden; }
+  .bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: #1d1712; border-bottom: 2px solid #5c3a00; flex-wrap: wrap; }
+  select, button { font: inherit; padding: 6px 12px; border-radius: 6px;
+    border: 1px solid #8a6a30; background: #2a2016; color: #f0d890; cursor: pointer; }
+  button:hover, select:hover { background: #3a2c1a; }
+  .hint { font-size: 12px; opacity: .6; }
+  #stage { position: relative; height: calc(100% - 58px); }
+  iframe { width: 100%; height: 100%; border: 0; display: block; }
+  #grid { display: grid; height: 100%; padding: 8px; gap: 8px;
+    grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); }
+  .cell { position: relative; border: 1px solid #5c3a00; border-radius: 8px;
+    overflow: hidden; cursor: pointer; }
+  .cell:hover { border-color: #ffd76a; }
+  .cell iframe { pointer-events: none; }
+  .cell .veil { position: absolute; inset: 0; z-index: 5;
+    background: transparent; }
+  .cell .tag { position: absolute; left: 10px; bottom: 8px; z-index: 6;
+    font-size: 15px; color: #ffd76a;
+    text-shadow: 2px 2px 4px rgba(0,0,0,.95); pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <label><span data-i18n="demo.mode"></span>
+    <select id="mode">
+      <option value="grid" data-i18n="demo.shop.modeGrid"></option>
+      <option value="full" data-i18n="demo.shop.modeShop"></option>
+      <option value="island" data-i18n="demo.shop.modeMap"></option>
+    </select>
+  </label>
+  <label id="worldRow"><span data-i18n="demo.worldLabel"></span>
+    <select id="world"></select>
+  </label>
+  <button id="go" data-i18n="demo.shop.launch"></button>
+  <span class="hint" data-i18n="demo.shop.hint"></span>
+</div>
+<div id="stage"></div>
+
+<script type="module">
+// Demo de tiendas — pantalla de testing para ver cómo quedan.
+//  - "grid":   las 8 tiendas a la vez en miniatura (clic en una = grande).
+//  - "full":   interior de la tienda del mundo elegido, jugable (oro falso).
+//  - "island": submundo del mundo elegido con la isla-tienda desbloqueada;
+//              el avatar queda en la isla 3, a un ↑ de la tienda.
+// Nada escribe en la bbdd (oro/inventario simulados en memoria).
+const WORLDS = ['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+const selMode = document.getElementById('mode');
+const selWorld = document.getElementById('world');
+const stage = document.getElementById('stage');
+const worldRow = document.getElementById('worldRow');
+
+let tr = {};
+try {
+  const r = await fetch('/api/i18n');
+  if (r.ok) tr = await r.json();
+} catch {}
+const tt = k => tr[k] ?? k;
+document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = tt(el.dataset.i18n); });
+for (const w of WORLDS) {
+  const o = document.createElement('option');
+  o.value = w;
+  o.textContent = tt('worlds.' + w);
+  selWorld.appendChild(o);
+}
+
+function shopUrl(w) { return `/shop.html?world=${w}&demo=1`; }
+function showGrid() {
+  stage.innerHTML = '<div id="grid"></div>';
+  const grid = stage.firstChild;
+  for (const w of WORLDS) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerHTML = `<iframe src="${shopUrl(w)}" loading="lazy"></iframe>
+      <div class="veil"></div><div class="tag">${tt('worlds.' + w)}</div>`;
+    cell.addEventListener('click', () => { selMode.value = 'full'; selWorld.value = w; show(); });
+    grid.appendChild(cell);
+  }
+}
+function show() {
+  const m = selMode.value;
+  worldRow.style.display = m === 'grid' ? 'none' : '';
+  if (m === 'grid') { showGrid(); return; }
+  const w = selWorld.value;
+  const src = m === 'island' ? `/submundo.html?world=${w}&demo=shop` : shopUrl(w);
+  stage.innerHTML = `<iframe src="${src}"></iframe>`;
+}
+document.getElementById('go').addEventListener('click', show);
+selMode.addEventListener('change', show);
+selWorld.addEventListener('change', show);
+
+// Esc dentro de la tienda demo (iframe) → volver al mosaico
+window.addEventListener('message', (e) => {
+  if (e.data?.runika === 'shop-demo-exit') { selMode.value = 'grid'; show(); }
+});
+
+show();
+</script>
+</body>
+</html>
