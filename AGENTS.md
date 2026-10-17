@@ -158,20 +158,22 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
 
 **Pantallas 3:2 a 16:9 — dos estrategias**:
 
-- **Submundos → variantes `.pano.webp` panorámicas 2.35:1** (12032×5120):
-  el master 3:2 queda intacto en el centro y los laterales se extienden
-  sintetizando el fondo del propio arte con quilting Efros-Freeman
-  (`tools/quilt_extend.py`, `tools/quilt-batch.py` — parches del 35% más
-  suave del fondo elegidos por bordes que casan, uniones por **min-cut**
-  para que cada parche quede nítido —sin mezcla alfa ni desenfoque— y
-  rebase de baja frecuencia hacia el degradado del borde real; sin espejo
-  ni IA). Como la imagen es más ancha que cualquier viewport objetivo,
-  `object-fit: cover` + `object-position: 50% 0%` recorta SOLO los
-  laterales de la extensión: la barra del HUD y las 12 islas quedan
-  completas a 16:9, 16:10, 19.5:9, 21:9. Coordenadas en espacio del lienzo
-  .pano (x remapeada `(x*7680+2176)/12032`, y intacta — misma altura).
-  `getImgRect()` usa `Math.max` con `top = er.top`; los pies del avatar se
-  clampean al viewport (`avatarBaseTop`).
+- **Submundos → variantes `.pano.webp` 2.35:1** (10152×4320), generadas
+  por `tools/pano_build.py` en dos fases:
+  1. **Squeeze vertical content-aware** (7680×5120 → 7680×4320 = 16:9
+     exacto): cada fila recibe escala según su energía de borde — el HUD
+     y las islas quedan ~1:1 y el cielo vacío entre islas se comprime
+     hasta ~45%. Toda la composición cabe en 16:9 sin recortar ni
+     inventar nada. `squeeze_rows()` devuelve `pos[r]` (fila de salida
+     de cada fila original) para remapear coordenadas.
+  2. **Extensión lateral** con quilting min-cut (`tools/quilt_extend.py`)
+     hasta 2.35:1 — solo visible en pantallas más anchas que 16:9; a
+     16:9 el viewport muestra EXACTAMENTE el arte comprimido.
+  Coordenadas en espacio del lienzo .pano comprimido: x remapeada
+  `(x*7680+1236)/10152`, y remapeada por fila con `pos` — aplicado por
+  `tools/remap-coords-squeeze.py` (UNA sola ejecución). `getImgRect()`
+  usa `Math.max` con `top = er.top`; los pies del avatar se clampean al
+  viewport (`avatarBaseTop`).
 - **Textos del submundo — `anchorX`**: en `text-areas.json` un área puede
   llevar `"anchorX": "viewLeft"|"viewRight"`: entonces `x` y `w` pasan a ser
   fracciones del **ancho visible del viewport** (no de la imagen) y `x` mide
