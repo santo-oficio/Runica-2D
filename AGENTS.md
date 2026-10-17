@@ -189,14 +189,18 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
   (el `gold` usa `viewRight` con `x≈0.015`). Sin `anchorX`, `x`/`w` son
   fracciones de imagen como siempre (`y`/`h` siempre lo son). El
   `worldName` se calibra centrado bajo la calavera de su arco decorativo.
-- **Menú, selección, configuración y mapamundi → `.169.webp` espejo**: esas
-  pantallas tienen contenido pegado a los bordes (el cartel del título,
+- **Menú, selección, configuración y mapamundi → `.169.webp` quilt+bruma**:
+  esas pantallas tienen contenido pegado a los bordes (el cartel del título,
   islas del mapa) que el cover cortaría. La variante `.169.webp` extiende los
-  laterales reflejando el borde del master 3:2
-  (`tools/edge_extend_16x9.py`); mismas dimensiones 9102×5120/1820×1024 y
-  mismo centro original → coordenadas 16:9 remapeadas, intactas en el centro.
-  Los masters 3:2 viven en `assets/**/old/` (excluidos del manifest, webdist
-  y el instalador Electron).
+  laterales con `tools/quilt_extend.py --ratio 1.7778` (quilting Efros-Freeman
+  sobre el master 3:2, parches nítidos con min-cut) + bruma progresiva en la
+  tira extendida (el ~40% interior nítido, luego desenfoque+alta luz que crece
+  hacia el borde — profundidad de campo, nunca objetos reflejados). Mismas
+  dimensiones 9102×5120/1820×1024 y mismo centro original → coordenadas 16:9
+  remapeadas, intactas en el centro. Los masters 3:2 viven en `assets/**/old/`
+  (excluidos del manifest, webdist y el instalador Electron).
+  DESCARTADO: `tools/edge_extend_16x9.py` (espejo) — duplicaba islas y
+  objetos reconocibles a los lados; NO volver a usarlo para estos fondos.
 - `tools/remap-coords-16x9.py` — el remapeo x'=(x*W0+side)/W1 se aplicó UNA
   vez a los JSON de esas 4 pantallas + `assets/comunes/fin-areas.json`
   (auras sobre el mapamundi). NO re-ejecutar: duplicaría el desplazamiento.

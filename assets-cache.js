@@ -4,11 +4,11 @@
 
 const ASSETS = {
   images: [
-    '/assets/menu principal/menu principal.169.webp',
+    '/assets/menu principal/menu principal.169.webp?v=menu8k-4',
     '/assets/menu principal/opciones del juego e instrucciones.webp',
-    '/assets/menu principal/seleccion_personaje.169.webp',
-    '/assets/mapamundi/mapamundi.169.webp',
-    '/assets/configuracion/configuracion.169.webp',
+    '/assets/menu principal/seleccion_personaje.169.webp?v=sel8k-4',
+    '/assets/mapamundi/mapamundi.169.webp?v=mmq-1',
+    '/assets/configuracion/configuracion.169.webp?v=cfgq-1',
     '/assets/comunes/modal.webp',
     '/assets/avatars/display/avatar_01.webp',
     '/assets/avatars/display/avatar_02.webp',
