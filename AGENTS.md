@@ -299,10 +299,15 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   `shop.title` en vez de "Nivel X/12".
 - `assets/tienda/items.json` — catálogo `{items:[{id,price,icon,uses}]}`.
 - `shop.html` — interior estilo recreativa 90s: fondo
-  `assets/tienda/<MUNDO>/tienda.webp` (generado con `tools/shop_gen.py
-  interior`), tendero + bocadillo (`shop.keeper.<MUNDO>`, `shop.welcome`),
-  panel de objetos a la derecha, oro arriba. Teclas: ↑↓ elegir, Enter
-  comprar, Esc volver al submundo.
+  `assets/tienda/<MUNDO>/tienda.webp` (master PNG en `old/tienda-src.png`).
+  El arte lleva todo pintado: tendero único (mismo pirata "Barbarroja el
+  Errante" en los 8 mundos), cartelón, placa de oro y 3 cofres vacíos.
+  El overlay se posiciona en coordenadas de IMAGEN (`HUD` + `imgRect()`):
+  título sobre el cartelón, oro dentro de la placa (fondo fallback si el
+  mundo no la trae pintada, p. ej. VIENTO) y los ítems DENTRO de los
+  cofres (`.item-slot`). Bocadillo del tendero (`shop.keeper.<MUNDO>`,
+  `shop.welcome`). Teclas: ←→ elegir, Enter comprar, Esc volver.
+  `?demo=1` = oro/inventario falsos sin tocar la bbdd.
 - API: `GET /api/load-shop?world=X`, `GET /api/shop-items`,
   `POST /api/buy-item {itemId}` (precio validado en servidor, nunca del
   cliente), `POST /api/consume-item {itemId}`. `web/api-shim.js` los mapea en
