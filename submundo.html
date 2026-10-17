@@ -236,14 +236,14 @@
   const ROWS = 3;
 
   const WORLD_IMAGES = {
-    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.pano.webp',
-    AGUA: '/assets/submundos/AGUA/submundo agua.pano.webp',
-    TIERRA: '/assets/submundos/TIERRA/submundo tierra.pano.webp',
-    FUEGO: '/assets/submundos/FUEGO/submundo fuego.pano.webp',
-    HIELO: '/assets/submundos/HIELO/submundo hielo.pano.webp',
-    VIENTO: '/assets/submundos/VIENTO/submundo viento.pano.webp',
-    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.pano.webp',
-    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.pano.webp',
+    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.pano.webp?v=p2',
+    AGUA: '/assets/submundos/AGUA/submundo agua.pano.webp?v=p2',
+    TIERRA: '/assets/submundos/TIERRA/submundo tierra.pano.webp?v=p2',
+    FUEGO: '/assets/submundos/FUEGO/submundo fuego.pano.webp?v=p2',
+    HIELO: '/assets/submundos/HIELO/submundo hielo.pano.webp?v=p2',
+    VIENTO: '/assets/submundos/VIENTO/submundo viento.pano.webp?v=p2',
+    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.pano.webp?v=p2',
+    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.pano.webp?v=p2',
   };
 
   // Grid 4x3 con numeracion en serpiente:
@@ -492,6 +492,16 @@
     }
 
     dynamicText.innerHTML = '';
+    // Ancla horizontal data-driven: por defecto x/w son fracciones de imagen;
+    // con anchorX 'viewLeft'/'viewRight' son fracciones del ancho VISIBLE del
+    // viewport y x mide el margen desde ese borde — el HUD usa todo el lienzo
+    // panorámico aunque la imagen desborde la pantalla.
+    const vw = bg.getBoundingClientRect().width;
+    const areaX = (area) => {
+      if (area.anchorX === 'viewRight') return { left: vw * (1 - area.x - area.w), w: area.w * vw };
+      if (area.anchorX === 'viewLeft') return { left: area.x * vw, w: area.w * vw };
+      return { left: r.left + area.x * r.width, w: area.w * r.width };
+    };
     const dynamicValues = {
       worldName: t('worlds.' + currentWorld),
       level: format('submundo.level', currentLevel + 1, NUM_LEVELS),
@@ -502,9 +512,10 @@
       const text = document.createElement('div');
       text.className = 'world-text';
       text.textContent = dynamicValues[type];
-      text.style.left = (r.left + area.x * r.width) + 'px';
+      const ax = areaX(area);
+      text.style.left = ax.left + 'px';
       text.style.top = (r.top + area.y * r.height) + 'px';
-      text.style.width = (area.w * r.width) + 'px';
+      text.style.width = ax.w + 'px';
       text.style.height = (area.h * r.height) + 'px';
       text.style.fontSize = Math.max(14, area.h * r.height * 0.62 * (area.fontScale || 1)) + 'px';
       dynamicText.appendChild(text);
@@ -514,9 +525,10 @@
     if (goldArea && player) {
       const goldEl = document.createElement('div');
       goldEl.className = 'world-text gold-text';
-      goldEl.style.left = (r.left + goldArea.x * r.width) + 'px';
+      const ax = areaX(goldArea);
+      goldEl.style.left = ax.left + 'px';
       goldEl.style.top = (r.top + goldArea.y * r.height) + 'px';
-      goldEl.style.width = (goldArea.w * r.width) + 'px';
+      goldEl.style.width = ax.w + 'px';
       goldEl.style.height = (goldArea.h * r.height) + 'px';
       goldEl.style.fontSize = Math.max(14, goldArea.h * r.height * 0.62 * (goldArea.fontScale || 1)) + 'px';
       goldEl.style.justifyContent = 'flex-end';

@@ -160,16 +160,25 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
 
 - **Submundos → variantes `.pano.webp` panorámicas 2.35:1** (12032×5120):
   el master 3:2 queda intacto en el centro y los laterales se extienden
-  sintetizando el fondo del propio arte con quilting
-  (`tools/quilt_extend.py`, `tools/quilt-batch.py` — parches de las zonas
-  suaves elegidos por bordes que casan; sin espejo ni IA). Como la imagen
-  es más ancha que cualquier viewport objetivo, `object-fit: cover` +
-  `object-position: 50% 0%` recorta SOLO los laterales de la extensión:
-  la barra del HUD y las 12 islas quedan completas a 16:9, 16:10, 19.5:9,
-  21:9. Coordenadas en espacio del lienzo .pano (x remapeada
-  `(x*7680+2176)/12032`, y intacta — misma altura). `getImgRect()` usa
-  `Math.max` con `top = er.top`; los pies del avatar se clampean al
-  viewport (`avatarBaseTop`).
+  sintetizando el fondo del propio arte con quilting Efros-Freeman
+  (`tools/quilt_extend.py`, `tools/quilt-batch.py` — parches del 35% más
+  suave del fondo elegidos por bordes que casan, uniones por **min-cut**
+  para que cada parche quede nítido —sin mezcla alfa ni desenfoque— y
+  rebase de baja frecuencia hacia el degradado del borde real; sin espejo
+  ni IA). Como la imagen es más ancha que cualquier viewport objetivo,
+  `object-fit: cover` + `object-position: 50% 0%` recorta SOLO los
+  laterales de la extensión: la barra del HUD y las 12 islas quedan
+  completas a 16:9, 16:10, 19.5:9, 21:9. Coordenadas en espacio del lienzo
+  .pano (x remapeada `(x*7680+2176)/12032`, y intacta — misma altura).
+  `getImgRect()` usa `Math.max` con `top = er.top`; los pies del avatar se
+  clampean al viewport (`avatarBaseTop`).
+- **Textos del submundo — `anchorX`**: en `text-areas.json` un área puede
+  llevar `"anchorX": "viewLeft"|"viewRight"`: entonces `x` y `w` pasan a ser
+  fracciones del **ancho visible del viewport** (no de la imagen) y `x` mide
+  el margen desde ese borde — el HUD se pega a los lados visibles del pano
+  (el `gold` usa `viewRight` con `x≈0.015`). Sin `anchorX`, `x`/`w` son
+  fracciones de imagen como siempre (`y`/`h` siempre lo son). El
+  `worldName` se calibra centrado bajo la calavera de su arco decorativo.
 - **Menú, selección, configuración y mapamundi → `.169.webp` espejo**: esas
   pantallas tienen contenido pegado a los bordes (el cartel del título,
   islas del mapa) que el cover cortaría. La variante `.169.webp` extiende los

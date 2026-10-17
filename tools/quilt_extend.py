@@ -1,6 +1,8 @@
 # Extiende una imagen por los laterales sintetizando fondo con "quilting"
-# (Efros-Freeman lite): parches del propio arte elegidos por bordes que casan,
-# sin espejar ni inventar contenido. El original queda intacto en el centro.
+# (Efros-Freeman): parches del propio arte elegidos por bordes que casan y
+# costuras por el camino de error mínimo (min-cut) — los parches quedan
+# nítidos, sin desenfoque por mezcla alfa. El original queda intacto salvo
+# una franja fina de costura errante junto a cada borde.
 #
 # Uso: python tools/quilt_extend.py <src> <dst> [--ratio 2.35] [--patch 256]
 #       [--overlap 96] [--cands 40] [--excl-top 0.13] [--seed 7]
@@ -35,26 +37,44 @@ def build_pool(img, patch, excl_top, n=6000, seed=0):
     return np.array([(y, x) for _, y, x in cand[:keep]], dtype=np.int64)
 
 
+def mincut_v(err):
+    """Costura vertical (camino de arriba abajo) de error mínimo sobre una
+    superficie err (h×w). Devuelve la columna de corte por fila."""
+    h, w = err.shape
+    cost = err.copy()
+    for i in range(1, h):
+        prev = cost[i - 1]
+        cost[i] += np.minimum(prev, np.minimum(np.roll(prev, 1), np.roll(prev, -1)))
+    seam = np.zeros(h, dtype=np.int64)
+    seam[-1] = int(np.argmin(cost[-1]))
+    for i in range(h - 2, -1, -1):
+        j = seam[i + 1]
+        lo, hi = max(0, j - 1), min(w, j + 2)
+        seam[i] = lo + int(np.argmin(cost[i, lo:hi]))
+    return seam
+
+
 def quilt_strip(img, edge, E, patch, ov, pool, rng, cands):
     """Sintetiza una tira H×E cuyo lado izquierdo casa con `edge` (banda
-    H×~200 del borde real contra el que se pega la tira)."""
+    H×~200 del borde real). Las uniones internas se cortan por el camino
+    de error mínimo — sin desenfoque."""
     H = img.shape[0]
     step = patch - ov
     f = img.astype(np.float32)
     out = np.zeros((H, E, 3), dtype=np.float32)
-    ramp = np.linspace(0, 1, ov + 2)[1:-1].astype(np.float32)
 
     for y in range(0, H, step):
         ph = min(patch, H - y)
         for x in range(0, E, step):
             pw = min(patch, E - x)
-            left_nb = edge[y : y + ph, -ov:] if x == 0 else out[y : y + ph, x - ov : x]
+            kw = min(ov, E - x)
+            left_nb = edge[y : y + ph, -kw:] if x == 0 else out[y : y + ph, x : x + kw]
             top_nb = out[y - ov : y, x : x + pw] if y > 0 else None
 
             best, best_e = None, 1e18
             for _ in range(cands):
                 py, px = pool[rng.integers(len(pool))]
-                e = np.abs(f[py : py + ph, px : px + ov] - left_nb).mean()
+                e = np.abs(f[py : py + ph, px : px + kw] - left_nb).mean()
                 if top_nb is not None:
                     e += np.abs(f[py : py + ov, px : px + pw] - top_nb).mean()
                 if e < best_e:
@@ -62,36 +82,56 @@ def quilt_strip(img, edge, E, patch, ov, pool, rng, cands):
             py, px = best
             p = f[py : py + ph, px : px + pw]
 
-            w = np.ones((ph, pw), dtype=np.float32)
+            if x == 0 and y == 0:
+                out[y : y + ph, x : x + pw] = p
+                continue
+
+            mask = np.zeros((ph, pw), dtype=bool)
+            # Costura izquierda: corta dentro del solape [x, x+ov)
             if x > 0:
-                w[:, : min(ov, pw)] *= ramp[None, : min(ov, pw)]
+                err = ((p[:, :kw] - out[y : y + ph, x : x + kw]) ** 2).sum(axis=2)
+                seam = mincut_v(err)
+                for i in range(ph):
+                    mask[i, seam[i] :] = True
+            else:
+                mask[:] = True  # x==0: pega directo, la costura va en el ensamblado
+            # Costura superior: corta dentro del solape [y, y+ov)
             if y > 0:
                 k = min(ov, ph)
-                w[:k] = np.minimum(w[:k], ramp[:k, None])
-            out[y : y + ph, x : x + pw] = (
-                out[y : y + ph, x : x + pw] * (1 - w[..., None]) + p * w[..., None]
+                err = ((p[:k, :] - out[y : y + k, x : x + pw]) ** 2).sum(axis=2)
+                seam = mincut_v(err.T)
+                top_mask = np.zeros((k, pw), dtype=bool)
+                for j in range(pw):
+                    top_mask[seam[j] :, j] = True
+                mask[:k] &= top_mask
+            out[y : y + ph, x : x + pw] = np.where(
+                mask[..., None], p, out[y : y + ph, x : x + pw]
             )
     return out
 
 
 def tone_match(ext, edge, fade_px):
-    """Continúa el tono del borde real: por fila, acerca la media de cada canal
-    de la tira hacia la del borde, fundiendo con la distancia a la costura."""
-    mu = edge.mean(axis=1)                      # H×3
-    ext_mu = ext[:, :200].mean(axis=1)          # H×3
-    delta = (mu - ext_mu)[:, None, :]           # H×1×3
-    w = np.clip(1.0 - np.arange(ext.shape[1]) / max(fade_px, 1), 0, 1)
-    return np.clip(ext + delta * w[None, :, None], 0, 255)
+    """Rebase de baja frecuencia: la tira conserva su alta frecuencia (textura,
+    estrellas — nítida) pero su degradado pasa a ser la continuación suave del
+    borde real. Cerca de la costura el tono es el del borde; a lo lejos
+    sobrevive la variación propia de la síntesis."""
+    sigma = max(40, fade_px // 4)
+    low = cv2.GaussianBlur(ext, (0, 0), sigma)          # H×E×3 baja frecuencia
+    mu = cv2.GaussianBlur(edge, (0, 0), sigma).mean(axis=1)  # H×3 por fila
+    t = np.clip(np.arange(ext.shape[1]) / max(fade_px, 1), 0, 1)[None, :, None]
+    low_target = (1 - t) * mu[:, None, :] + t * low
+    return np.clip(ext - low + low_target, 0, 255)
 
 
 def extend(img, E, patch, ov, pool, rng, cands):
-    """Devuelve (izquierda, derecha): dos tiras H×E cuyos bordes internos
-    casan con los bordes izq./der. de `img`."""
+    """Devuelve (izquierda, derecha): tiras H×(E+2·ov) que solapan `ov` con
+    el borde real para cortar la costura por min-cut en el ensamblado."""
     f = img.astype(np.float32)
-    right = quilt_strip(img, f[:, -200:], E, patch, ov, pool, rng, cands)
+    W = img.shape[1]
+    right = quilt_strip(img, f[:, -200:], E + 2 * ov, patch, ov, pool, rng, cands)
     right = tone_match(right, f[:, -160:], int(E * 0.65))
     fl = img[:, ::-1]
-    left_f = quilt_strip(fl, fl.astype(np.float32)[:, -200:], E, patch, ov, pool, rng, cands)
+    left_f = quilt_strip(fl, fl.astype(np.float32)[:, -200:], E + 2 * ov, patch, ov, pool, rng, cands)
     left = left_f[:, ::-1]
     left = tone_match(left[:, ::-1], f[:, :160], int(E * 0.65))[:, ::-1]
     return left, right
@@ -113,6 +153,7 @@ def main():
     H, W = img.shape[:2]
     TW = int(round(H * a.ratio / 2) * 2)
     E = (TW - W) // 2
+    ov = a.overlap
     print(f"{a.src}: {W}x{H} -> {TW}x{H} (ext {E}px/lado)", flush=True)
 
     pool = build_pool(img, a.patch, a.excl_top, seed=a.seed)
@@ -122,13 +163,26 @@ def main():
     f = img.astype(np.float32)
     out = np.zeros((H, TW, 3), dtype=np.float32)
     out[:, E : E + W] = f
-    out[:, :E] = left
-    out[:, E + W :] = right
-    s = min(120, E)
-    t = np.linspace(1.0, 0.0, s)[None, :, None]
-    out[:, E + W - s : E + W] = f[:, W - s :] * t + right[:, :s] * (1 - t)
-    t = np.linspace(0.0, 1.0, s)[None, :, None]
-    out[:, E : E + s] = left[:, E - s :] * (1 - t) + f[:, :s] * t
+
+    # Costura derecha: la tira se pega en x0=E+W-2ov y solapa 2ov con el
+    # original; el min-cut recorre ese solape (a la izquierda el original,
+    # a la derecha la tira).
+    x0 = E + W - 2 * ov
+    out[:, x0 : x0 + right.shape[1]] = right
+    err = ((right[:, : 2 * ov] - f[:, W - 2 * ov :]) ** 2).sum(axis=2)
+    seam = mincut_v(err)
+    for i in range(H):
+        c = x0 + seam[i]
+        out[i, x0:c] = f[i, W - 2 * ov : W - 2 * ov + seam[i]]
+        out[i, c:] = right[i, seam[i] :]
+    # Costura izquierda: la tira ocupa [0, E+2ov) solapando sus últimas 2ov
+    # con las primeras del original; el min-cut recorre ese solape.
+    out[:, : E + 2 * ov] = left
+    err = ((left[:, E : E + 2 * ov] - f[:, : 2 * ov]) ** 2).sum(axis=2)
+    seam = mincut_v(err)
+    for i in range(H):
+        c = E + seam[i]
+        out[i, c : E + 2 * ov] = f[i, seam[i] : 2 * ov]
 
     Image.fromarray(out.astype(np.uint8)).save(a.dst, quality=88)
     print("guardado", a.dst)
