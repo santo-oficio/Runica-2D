@@ -84,6 +84,8 @@ export interface PlayerState {
   lastWorld?: string;
   /** Progreso por mundo: última isla jugada + islas completadas (0..MAP_LEVELS_PER_WORLD-1). */
   worldProgress?: Record<string, { last?: number; completed?: number[] }>;
+  /** Inventario de la tienda: itemId -> usos restantes. */
+  inventory?: Record<string, number>;
   /** Nivel de juego actual (tier 1..14 según la curva global; el 15 es solo del boss final). */
   gameLevel?: number;
 }
@@ -482,6 +484,33 @@ export function completeLevel(world: string, level: number, goldEarned = 0, scre
 /** Mundo completado: todas sus islas del mapa terminadas. */
 export function isWorldComplete(world: string): boolean {
   return (player.worldProgress?.[world]?.completed?.length ?? 0) >= MAP_LEVELS_PER_WORLD;
+}
+
+// ---------------------------------------------------------------------------
+// Tienda (isla extra por submundo)
+// ---------------------------------------------------------------------------
+
+/** Compra un ítem: descuenta el oro y suma `uses` al inventario. Falla sin oro. */
+export function buyItem(itemId: string, price: number, uses = 1): { ok: boolean; player: PlayerState } {
+  if ((player.gold ?? 0) < price) return { ok: false, player: { ...player } };
+  player.gold = (player.gold ?? 0) - price;
+  const inv = { ...(player.inventory ?? {}) };
+  inv[itemId] = (inv[itemId] ?? 0) + uses;
+  player.inventory = inv;
+  player.updatedAt = Date.now();
+  persist();
+  return { ok: true, player: { ...player } };
+}
+
+/** Consume un uso de un ítem del inventario (p. ej. una pista en el tablero). */
+export function consumeItem(itemId: string): { ok: boolean; player: PlayerState } {
+  const inv = { ...(player.inventory ?? {}) };
+  if ((inv[itemId] ?? 0) <= 0) return { ok: false, player: { ...player } };
+  inv[itemId] = (inv[itemId] ?? 0) - 1;
+  player.inventory = inv;
+  player.updatedAt = Date.now();
+  persist();
+  return { ok: true, player: { ...player } };
 }
 
 /**

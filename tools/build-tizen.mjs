@@ -19,7 +19,7 @@ const WORLDS = ["ESPACIO", "AGUA", "TIERRA", "FUEGO", "HIELO", "VIENTO", "INFRAM
 const PAGES = [
   "menu.html", "seleccion-personaje.html", "mapamundi.html", "submundo.html",
   "game.html", "ajustes.html", "instructions.html", "creditos.html",
-  "exit.html", "fin.html",
+  "shop.html", "exit.html", "fin.html",
   "assets-cache.js", "final-battle.js",
 ];
 

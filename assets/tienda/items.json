@@ -1,0 +1,10 @@
+{
+  "items": [
+    {
+      "id": "pista",
+      "price": 60,
+      "icon": "/assets/tienda/iconos/pista.webp",
+      "uses": 1
+    }
+  ]
+}

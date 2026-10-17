@@ -321,6 +321,36 @@
   @keyframes hitFlash {
     0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; }
   }
+  /* Badge de pistas compradas en la tienda (modo real, esquina inf-der) */
+  #hint-badge {
+    position: fixed; right: 1.6vw; bottom: 2.4vh; z-index: 40;
+    display: flex; align-items: center; gap: .45em;
+    background: rgba(16,10,5,.78);
+    border: 2px solid rgba(210,170,90,.65); border-radius: 12px;
+    padding: .5vh .9vw;
+    color: #ffe9a8; font-size: 2.4vh;
+    text-shadow: 1px 1px 3px rgba(0,0,0,.9);
+    pointer-events: none;
+  }
+  #hint-badge img { height: 1.5em; }
+  #hint-badge.denied { animation: hintShake .35s ease; border-color: rgba(255,90,70,.9); }
+  @keyframes hintShake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-7px); } 75% { transform: translateX(7px); }
+  }
+  /* Flecha de la pista: se dibuja sobre la casilla del jugador */
+  .hint-arrow {
+    position: fixed; z-index: 39; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    color: #ffd76a; text-shadow: 0 0 14px rgba(255,190,60,.95), 0 0 4px #000;
+    animation: hintArrow 1.6s ease-out forwards;
+  }
+  @keyframes hintArrow {
+    0% { opacity: 0; transform: scale(.5); }
+    15% { opacity: 1; transform: scale(1.15); }
+    70% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1); }
+  }
 </style>
 </head>
 <body>
@@ -328,6 +358,10 @@
   <div id="selector"><img id="avatar" alt="avatar"></div>
   <div id="entities"></div>
   <div id="boardtexts"></div>
+  <div id="hint-badge" style="display:none">
+    <img src="/assets/tienda/iconos/pista.webp" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
+    <span id="hint-count">0</span>
+  </div>
   <div id="countdown"></div>
   <div id="boss-down"></div>
   <div id="hitflash"></div>
@@ -1840,6 +1874,7 @@ document.addEventListener('keydown', (e) => {
       return;
     }
     if (gameOver) return;
+    if (e.key === 'h' || e.key === 'H') { e.preventDefault(); useHintItem(); return; }
     const dirs = {
       'ArrowUp': [0, -1], 'ArrowDown': [0, 1],
       'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0],
@@ -1876,6 +1911,60 @@ document.addEventListener('keydown', (e) => {
   const d = dirs[e.key];
   if (d) { e.preventDefault(); movePlayer(d[0], d[1]); }
 });
+
+// === Pistas de la tienda (tecla H, modo real) ===
+// Consume un uso de 'pista' del inventario y muestra una flecha con la
+// dirección del movimiento óptimo (no mueve al jugador: solo orienta).
+function updateHintBadge() {
+  const badge = document.getElementById('hint-badge');
+  if (!badge) return;
+  const n = (playerData?.inventory?.pista) || 0;
+  if (!REAL_MODE || n <= 0) { badge.style.display = 'none'; return; }
+  badge.style.display = 'flex';
+  document.getElementById('hint-count').textContent = String(n);
+}
+async function useHintItem() {
+  if (!REAL_MODE || gameOver || countingDown || modalOpen) return;
+  const badge = document.getElementById('hint-badge');
+  const deny = () => {
+    badge.style.display = 'flex';
+    document.getElementById('hint-count').textContent = '0';
+    badge.classList.remove('denied'); void badge.offsetWidth;
+    badge.classList.add('denied');
+    AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.45);
+  };
+  if (!((playerData?.inventory?.pista) > 0)) { deny(); return; }
+  try {
+    const q = `id=${encodeURIComponent(currentScreenId)}&p=${player.c},${player.r}` +
+      `&e=${enemies.map(e => `${e.c},${e.r}`).join(';')}` +
+      `&ps=${playerStunnedTurns}&es=${enemies.map(e => e.stunnedTurns).join(',')}`;
+    const [rCons, rHint] = await Promise.all([
+      fetch(`${BASE}/api/consume-item`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: 'pista' }),
+      }),
+      fetch(`${BASE}/api/hint?${q}`),
+    ]);
+    const dCons = await rCons.json();
+    const dHint = await rHint.json();
+    if (!dCons.ok || !dHint.ok) { deny(); return; }
+    if (dCons.player) playerData = dCons.player;
+    updateHintBadge();
+    AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.55);
+    const [dc, dr] = dHint.move;
+    const cell = cellPos(player.c, player.r, true);
+    const el = document.createElement('div');
+    el.className = 'hint-arrow';
+    el.style.left = cell.left + 'px';
+    el.style.top = cell.top + 'px';
+    el.style.width = cell.w + 'px';
+    el.style.height = cell.h + 'px';
+    el.style.fontSize = Math.round(cell.h * 0.9) + 'px';
+    el.textContent = dc === 1 ? '→' : dc === -1 ? '←' : dr === -1 ? '↑' : dr === 1 ? '↓' : '·';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1650);
+  } catch { deny(); }
+}
 
 // === Consola de hacks (Tab) ===
 // Panel inferior semitransparente con historial y mapa de comandos
@@ -2100,7 +2189,7 @@ async function init() {
     // Avatar de la partida (fijo, elegido en la selección de personaje)
     try {
       const r = await fetch(BASE + '/api/savegame');
-      if (r.ok) { const d = await r.json(); playerData = d.player || null; renderBoardTexts(); }
+      if (r.ok) { const d = await r.json(); playerData = d.player || null; renderBoardTexts(); updateHintBadge(); }
     } catch {}
     if (playerData && typeof playerData.avatarIndex === 'number') {
       avatarIdx = playerData.avatarIndex;
@@ -2146,7 +2235,7 @@ async function init() {
     // práctica: se viste como modo real pero no hay level-complete.
     try {
       const r = await fetch(BASE + '/api/savegame');
-      if (r.ok) { const d = await r.json(); playerData = d.player || null; renderBoardTexts(); }
+      if (r.ok) { const d = await r.json(); playerData = d.player || null; renderBoardTexts(); updateHintBadge(); }
     } catch {}
     if (playerData && typeof playerData.avatarIndex === 'number') {
       avatarIdx = playerData.avatarIndex;

@@ -1,0 +1,10 @@
+{
+  "world": "FUEGO",
+  "unlockAfter": 3,
+  "from": 2,
+  "dir": "up",
+  "pos": {
+    "x": 0.704,
+    "y": 0.72
+  }
+}

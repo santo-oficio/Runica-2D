@@ -1,0 +1,10 @@
+{
+  "world": "ESPACIO",
+  "unlockAfter": 3,
+  "from": 2,
+  "dir": "up",
+  "pos": {
+    "x": 0.694,
+    "y": 0.678
+  }
+}

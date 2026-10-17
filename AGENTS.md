@@ -283,6 +283,38 @@ mueve junto: el icono siempre queda a la izquierda del número. Las previews
 de los calibradores ya muestran esta composición y el juego debe
 renderizarla igual.
 
+## Tienda (isla extra por submundo)
+
+Cada submundo puede tener una **isla tienda** — un nodo extra fuera de la
+serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
+
+- `assets/submundos/<MUNDO>/shop.json` — `{world, unlockAfter, from, dir, pos:{x,y}}`:
+  la tienda cuelga de la isla `from` en la dirección `dir` y se desbloquea al
+  completar `unlockAfter` niveles (p. ej. `3` = tras el nivel 3). `pos` es la
+  posición del avatar sobre la isla tienda (espacio .pano, 0-1).
+- `submundo.html`: `loadShop()` la carga; desde la isla `from`, la dirección
+  `dir` mueve el avatar a la tienda (rebotando si está bloqueada — máscara
+  `island-fx locked` como las islas). `INV[dir]` devuelve a la isla. Enter en
+  la tienda navega a `shop.html?world=X`. El HUD central muestra
+  `shop.title` en vez de "Nivel X/12".
+- `assets/tienda/items.json` — catálogo `{items:[{id,price,icon,uses}]}`.
+- `shop.html` — interior estilo recreativa 90s: fondo
+  `assets/tienda/<MUNDO>/tienda.webp` (generado con `tools/shop_gen.py
+  interior`), tendero + bocadillo (`shop.keeper.<MUNDO>`, `shop.welcome`),
+  panel de objetos a la derecha, oro arriba. Teclas: ↑↓ elegir, Enter
+  comprar, Esc volver al submundo.
+- API: `GET /api/load-shop?world=X`, `GET /api/shop-items`,
+  `POST /api/buy-item {itemId}` (precio validado en servidor, nunca del
+  cliente), `POST /api/consume-item {itemId}`. `web/api-shim.js` los mapea en
+  TV/Android y `web/webdb.js` tiene `buyItem`/`consumeItem` equivalentes.
+- `PlayerState.inventory` — `{itemId: usos}` persistente.
+- Ítem `pista`: en `game.html` (modo real) la tecla **H** consume un uso,
+  llama a `/api/hint` y dibuja una flecha con la dirección óptima sobre la
+  casilla del jugador; el badge inferior-derecho muestra el contador.
+- `tools/shop_gen.py island <MUNDO>` — compone la isla tienda en el
+  `.pano.webp` con inpainting SD en las coords de `shop.json`;
+  `interior <MUNDO>` genera el fondo `tienda.webp`.
+
 ## Flujo del menú y partida guardada (bbdd)
 
 - `menu.html` es el **punto de entrada** del juego. **Nueva partida** lleva

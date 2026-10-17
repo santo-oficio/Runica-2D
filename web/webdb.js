@@ -234,6 +234,29 @@
     return c.length >= MAP_LEVELS_PER_WORLD;
   }
 
+  /** Compra un ítem: descuenta oro y suma `uses` al inventario. */
+  function buyItem(itemId, price, uses) {
+    if ((player.gold || 0) < price) return { ok: false, player: getPlayer() };
+    player.gold = (player.gold || 0) - price;
+    var inv = Object.assign({}, player.inventory || {});
+    inv[itemId] = (inv[itemId] || 0) + (uses || 1);
+    player.inventory = inv;
+    player.updatedAt = Date.now();
+    persist();
+    return { ok: true, player: getPlayer() };
+  }
+
+  /** Consume un uso de un ítem del inventario. */
+  function consumeItem(itemId) {
+    var inv = Object.assign({}, player.inventory || {});
+    if ((inv[itemId] || 0) <= 0) return { ok: false, player: getPlayer() };
+    inv[itemId] -= 1;
+    player.inventory = inv;
+    player.updatedAt = Date.now();
+    persist();
+    return { ok: true, player: getPlayer() };
+  }
+
   function isWorldUnlocked(world) {
     if (isWorldComplete(world)) return false;
     if (world !== FINAL_WORLD) return true;
@@ -371,6 +394,8 @@
     failScreen: function () {},
     isWorldComplete: isWorldComplete,
     isWorldUnlocked: isWorldUnlocked,
+    buyItem: buyItem,
+    consumeItem: consumeItem,
     getStats: getStats,
     getProgress: getProgress,
     currentTier: currentTier,

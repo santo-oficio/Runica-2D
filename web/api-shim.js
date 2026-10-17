@@ -65,6 +65,8 @@
       case "/api/load-cells": return "assets/backgrounds/" + w + "/cells.json";
       case "/api/load-subworld-positions": return "assets/submundos/" + w + "/avatar-positions.json";
       case "/api/load-subworld-text-areas": return "assets/submundos/" + w + "/text-areas.json";
+      case "/api/load-shop": return "assets/submundos/" + w + "/shop.json";
+      case "/api/shop-items": return "assets/tienda/items.json";
       case "/api/load-world-paths": return "assets/mapamundi/world-paths.json";
       case "/api/load-avatar-positions": return "assets/mapamundi/avatar-positions.json";
       case "/api/load-mapamundi-text-areas": return "assets/mapamundi/text-areas.json";
@@ -254,6 +256,25 @@
           ? json({ ok: true, move: [move.dc, move.dr], remaining: move.remaining })
           : json({ ok: false, error: "Sin ruta desde aquí" }, 404);
       });
+    }
+
+    // ── Tienda ─────────────────────────────────────────────────────────────
+    if (path === "/api/buy-item" && method === "POST") {
+      var itemId = String(postBody(init).itemId || "");
+      return fileJson("assets/tienda/items.json").then(function (r) {
+        return r.json();
+      }).then(function (catalog) {
+        var items = (catalog && catalog.items) || [];
+        var item = items.find(function (i) { return i.id === itemId; });
+        if (!item) return json({ ok: false, error: "unknown-item" }, 404);
+        var result = DB.buyItem(item.id, item.price, item.uses || 1);
+        return json(result, result.ok ? 200 : 409);
+      });
+    }
+    if (path === "/api/consume-item" && method === "POST") {
+      var cid = String(postBody(init).itemId || "");
+      var cres = DB.consumeItem(cid);
+      return json(cres, cres.ok ? 200 : 409);
     }
 
     // ── Writes de calibración: no-op en TV ─────────────────────────────────

@@ -1,0 +1,10 @@
+{
+  "world": "MAZMORRA",
+  "unlockAfter": 3,
+  "from": 2,
+  "dir": "up",
+  "pos": {
+    "x": 0.7027,
+    "y": 0.69
+  }
+}

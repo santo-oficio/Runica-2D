@@ -335,6 +335,14 @@
   }
 
   let positions = {};
+  // Isla tienda (shop.json por mundo): nodo extra que cuelga de una isla
+  // (`from`) en una dirección (`dir`) y se desbloquea al completar
+  // `unlockAfter` niveles. No cuenta como nivel ni altera la serpiente.
+  let shopData = null;
+  let atShop = false;
+  function isShopUnlocked() {
+    return !!shopData && completedLevels.has((shopData.unlockAfter ?? 1) - 1);
+  }
   let textAreas = {
     worldName: { x: 0.35, y: 0.08, w: 0.3, h: 0.08 },
     level: { x: 0.4, y: 0.18, w: 0.2, h: 0.07 },
@@ -429,6 +437,19 @@
     } catch {}
   }
 
+  async function loadShop(world) {
+    shopData = null;
+    try {
+      const r = await fetch('/api/load-shop?world=' + encodeURIComponent(world));
+      if (r.ok) {
+        const data = await r.json();
+        if (data && data.pos && typeof data.from === 'number' && data.dir) {
+          shopData = data;
+        }
+      }
+    } catch {}
+  }
+
   function render() {
     const r = getImgRect();
     const sz = resolvedAvatarSize() * r.width;
@@ -478,8 +499,41 @@
       }
     }
 
-    // Avatar en la casilla actual
-    const pos = positions[currentLevel];
+    // Isla tienda: misma máscara oscura que las islas bloqueadas hasta
+    // completar `unlockAfter`; sin marcador de nivel (no es una isla jugable).
+    if (shopData) {
+      if (atShop) {
+        const div = document.createElement('div');
+        div.className = 'cell-marker selected';
+        div.style.left = (r.left + shopData.pos.x * r.width - sz / 2) + 'px';
+        div.style.top = (r.top + shopData.pos.y * r.height - sz / 2) + 'px';
+        div.style.width = sz + 'px';
+        div.style.height = sz + 'px';
+        overlay.appendChild(div);
+      }
+      if (!isShopUnlocked()) {
+        const pos = shopData.pos;
+        const fx = document.createElement('div');
+        fx.className = 'island-fx locked';
+        fx.style.left = r.left + 'px';
+        fx.style.top = r.top + 'px';
+        fx.style.width = r.width + 'px';
+        fx.style.height = r.height + 'px';
+        fx.style.backgroundImage = `url("${bg.src}")`;
+        const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.3;
+        const g = (x, y, rad, s, f) =>
+          `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
+        fx.style.webkitMaskImage = fx.style.maskImage = [
+          g(px, py, rr, 58, 88),
+          g(px + rr * 0.5, py - rr * 0.3, rr * 0.6, 42, 80),
+          g(px - rr * 0.55, py + rr * 0.25, rr * 0.55, 42, 80),
+        ].join(',');
+        overlay.appendChild(fx);
+      }
+    }
+
+    // Avatar en la casilla actual (o en la tienda)
+    const pos = atShop && shopData ? shopData.pos : positions[currentLevel];
     if (pos) {
       const avatarSrc = playerAvatarSrc();
       avatarImg.src = AssetsCache.getCachedImageUrl(avatarSrc);
@@ -504,7 +558,7 @@
     };
     const dynamicValues = {
       worldName: t('worlds.' + currentWorld),
-      level: format('submundo.level', currentLevel + 1, NUM_LEVELS),
+      level: atShop ? t('shop.title') : format('submundo.level', currentLevel + 1, NUM_LEVELS),
     };
     for (const type of ['worldName', 'level']) {
       const area = textAreas[type];
@@ -543,7 +597,9 @@
       dynamicText.appendChild(goldEl);
     }
 
-    document.getElementById('pos-info').textContent = format('submundo.level', currentLevel + 1, NUM_LEVELS);
+    document.getElementById('pos-info').textContent = atShop
+      ? t('shop.title')
+      : format('submundo.level', currentLevel + 1, NUM_LEVELS);
     document.getElementById('world-name').textContent = t('worlds.' + currentWorld);
   }
 
@@ -561,6 +617,30 @@
 
   function moveByCell(dir) {
     if (isMoving) return;
+
+    // En la tienda solo se puede volver a la isla de la que cuelga
+    if (atShop && shopData) {
+      if (dir !== INV[shopData.dir]) { bounceAvatar(dir); return; }
+      atShop = false;
+      AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
+      animateAvatarTo(positions[currentLevel]);
+      document.getElementById('pos-info').textContent =
+        format('submundo.level', currentLevel + 1, NUM_LEVELS);
+      render();
+      return;
+    }
+
+    // Desde la isla `from`, la dirección `dir` lleva a la tienda si está
+    // desbloqueada (nivel unlockAfter completado)
+    if (shopData && currentLevel === shopData.from && dir === shopData.dir) {
+      if (!isShopUnlocked()) { bounceAvatar(dir); return; }
+      atShop = true;
+      AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
+      animateAvatarTo(shopData.pos);
+      document.getElementById('pos-info').textContent = t('shop.title');
+      render();
+      return;
+    }
 
     let newLevel = -1;
     // Intentar ir al siguiente nivel
@@ -580,14 +660,19 @@
 
     currentLevel = newLevel;
     AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
-    isMoving = true;
+    animateAvatarTo(positions[currentLevel]);
+    document.getElementById('pos-info').textContent = format('submundo.level', currentLevel + 1, NUM_LEVELS);
+  }
 
-    // Calcular duracion segun distancia
+  // Vuelo del avatar hasta una posición (isla o tienda) con duración
+  // proporcional a la distancia.
+  function animateAvatarTo(pos) {
+    if (!pos) return;
+    isMoving = true;
     const r = getImgRect();
     const sz = resolvedAvatarSize() * r.width;
     const oldX = parseFloat(avatarEl.style.left) || 0;
     const oldY = parseFloat(avatarEl.style.top) || 0;
-    const pos = positions[currentLevel];
     const newX = r.left + pos.x * r.width - sz / 2;
     const newY = avatarBaseTop(pos, sz, r);
     const dist = Math.hypot(newX - oldX, newY - oldY);
@@ -599,7 +684,6 @@
     avatarEl.style.top = newY + 'px';
 
     setTimeout(() => { isMoving = false; }, duration * 1000);
-    document.getElementById('pos-info').textContent = format('submundo.level', currentLevel + 1, NUM_LEVELS);
   }
 
   function bounceAvatar(dir) {
@@ -607,7 +691,7 @@
     const [dx, dy] = offsets[dir];
     const r = getImgRect();
     const sz = resolvedAvatarSize() * r.width;
-    const pos = positions[currentLevel];
+    const pos = atShop && shopData ? shopData.pos : positions[currentLevel];
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;
     const baseY = avatarBaseTop(pos, sz, r);
@@ -643,6 +727,12 @@
     else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); moveByCell('down'); }
     else if (e.key === 'Enter') {
       e.preventDefault();
+      if (atShop && shopData) {
+        if (!isShopUnlocked()) { bounceAvatar('down'); return; }
+        AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
+        AssetsCache.transitionTo('/shop.html?world=' + encodeURIComponent(currentWorld));
+        return;
+      }
       if (!isLevelUnlocked(currentLevel)) { bounceAvatar('down'); return; }
       AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
       // La isla jugada se recuerda en la bbdd (completada o no)
@@ -703,7 +793,9 @@
       bg.src = WORLD_IMAGES[currentWorld];
       await loadPositions(currentWorld);
       await loadTextAreas(currentWorld);
-      if (bg.complete && bg.naturalWidth) onBgReady(100);
+      await loadShop(currentWorld);
+      if (bgDone) render();  // el fondo pudo pintarse antes de los JSON — repintar
+      else if (bg.complete && bg.naturalWidth) onBgReady(100);
       return;
     }
 
@@ -720,7 +812,9 @@
     bg.src = WORLD_IMAGES[currentWorld];
     await loadPositions(currentWorld);
     await loadTextAreas(currentWorld);
-    if (bg.complete && bg.naturalWidth) onBgReady(500);
+    await loadShop(currentWorld);
+    if (bgDone) render();  // el fondo pudo pintarse antes de los JSON — repintar
+    else if (bg.complete && bg.naturalWidth) onBgReady(500);
   })();
 
   window.addEventListener('resize', () => {

@@ -28,6 +28,8 @@ import {
   getScreenAt,
   indexOfScreen,
   tierSize,
+  buyItem,
+  consumeItem,
   FIRST_TIER,
 } from "./db/db.js";
 import {
@@ -386,6 +388,80 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
+  // API: isla tienda de un submundo (GET /api/load-shop?world=XXX)
+  if (url.startsWith("/api/load-shop")) {
+    const u = new URL(url, "http://localhost");
+    const world = u.searchParams.get("world") || "";
+    const loadPath = join(ROOT, "assets", "submundos", world, "shop.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
+  // API: catálogo de la tienda (GET /api/shop-items)
+  if (url === "/api/shop-items") {
+    const loadPath = join(ROOT, "assets", "tienda", "items.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
+  // API: compra (POST /api/buy-item {itemId}) — el precio se valida en
+  // servidor desde items.json, nunca se confía en el cliente.
+  if (url === "/api/buy-item" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", async () => {
+      try {
+        const itemId = String(JSON.parse(body || "{}")?.itemId ?? "");
+        const catalog = JSON.parse(
+          readFileSync(join(ROOT, "assets", "tienda", "items.json"), "utf-8"),
+        ) as { items: Array<{ id: string; price: number; uses?: number }> };
+        const item = catalog.items.find(i => i.id === itemId);
+        if (!item) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: false, error: "unknown-item" }));
+          return;
+        }
+        const result = buyItem(item.id, item.price, item.uses ?? 1);
+        res.writeHead(result.ok ? 200 : 409, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(result));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: consumir un uso del inventario (POST /api/consume-item {itemId})
+  if (url === "/api/consume-item" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const itemId = String(JSON.parse(body || "{}")?.itemId ?? "");
+        const result = consumeItem(itemId);
+        res.writeHead(result.ok ? 200 : 409, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(result));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
     return;
   }
 

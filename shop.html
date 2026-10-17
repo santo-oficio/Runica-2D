@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/web/webdb.js"></script>
+<script src="/web/solver.bundle.js"></script>
+<script src="/web/api-shim.js"></script>
+<script src="/web/tizen.js"></script>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'ChelseaMarket', cursive;
+    user-select: none;
+  }
+  #loading-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 100; background: #0a0806;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #e8d4a8;
+  }
+  #loading-screen .title {
+    font-size: 2.5em; color: #f0d890;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    margin-bottom: 30px; letter-spacing: 3px;
+  }
+  #loading-bar-bg {
+    width: 300px; height: 8px;
+    background: rgba(60, 42, 20, 0.5);
+    border: 1px solid rgba(180, 150, 80, 0.4);
+    border-radius: 4px; overflow: hidden;
+  }
+  #loading-bar {
+    width: 0%; height: 100%;
+    background: linear-gradient(90deg, #c4a050, #f0d890);
+    transition: width 0.2s ease;
+  }
+  #loading-text { margin-top: 12px; font-size: 0.9em; color: #a08850; }
+  #transition-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 90; background: #000;
+    opacity: 0; pointer-events: none; display: none;
+  }
+  #bg {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+  }
+  /* Viñeta suave para que el texto respire sobre el arte */
+  #vignette {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background:
+      radial-gradient(ellipse 130% 105% at 50% 45%, transparent 55%, rgba(0,0,0,0.55) 100%),
+      linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.6) 100%);
+  }
+
+  /* ── Barra superior ─────────────────────────────────────────── */
+  #topbar {
+    position: absolute; top: 0; left: 0; width: 100%; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 2.2vh 3vw;
+  }
+  #shop-title {
+    color: #ffd76a; font-size: 4.2vh;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.9), 0 0 18px rgba(255,190,60,0.35);
+    letter-spacing: 1px;
+  }
+  #gold-hud {
+    display: flex; align-items: center; gap: 0.6em;
+    color: #ffe9a8; font-size: 3.6vh;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+  }
+  #gold-hud img { height: 1.15em; }
+
+  /* ── Tendero + bocadillo ────────────────────────────────────── */
+  #keeper-zone {
+    position: absolute; left: 0; bottom: 0; z-index: 8;
+    width: 42%; height: 78%;
+    display: flex; align-items: flex-end; justify-content: center;
+    pointer-events: none;
+  }
+  #keeper {
+    height: 92%; max-width: 95%;
+    object-fit: contain; object-position: bottom center;
+    filter: drop-shadow(0 0 24px rgba(0,0,0,0.6));
+  }
+  #bubble {
+    position: absolute; z-index: 12;
+    left: 8%; top: 10%; width: 30%; max-width: 520px;
+    background: rgba(24, 16, 8, 0.88);
+    border: 2px solid rgba(210, 170, 90, 0.75);
+    border-radius: 14px;
+    padding: 1.6vh 1.4vw;
+    color: #f2e0b8; font-size: 2.1vh; line-height: 1.45;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  }
+  #bubble::after {
+    content: '';
+    position: absolute; left: 18%; bottom: -14px;
+    border: 8px solid transparent;
+    border-top-color: rgba(210, 170, 90, 0.75);
+    border-left-color: rgba(210, 170, 90, 0.75);
+  }
+  #keeper-name {
+    display: block; color: #ffd76a; font-size: 1.05em;
+    margin-bottom: 0.4em;
+  }
+
+  /* ── Panel de objetos ───────────────────────────────────────── */
+  #items-panel {
+    position: absolute; right: 2.5vw; top: 16vh; bottom: 9vh;
+    width: 44%; z-index: 11;
+    background: rgba(16, 10, 5, 0.82);
+    border: 2px solid rgba(190, 150, 80, 0.6);
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,0,0,0.35);
+    padding: 2vh 1.4vw;
+    display: flex; flex-direction: column; gap: 1.4vh;
+    overflow: hidden;
+  }
+  .item-row {
+    display: flex; align-items: center; gap: 1vw;
+    padding: 1.4vh 1vw;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    background: rgba(60, 42, 20, 0.35);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.12s;
+  }
+  .item-row.selected {
+    border-color: rgba(255, 204, 68, 0.95);
+    background: rgba(90, 62, 26, 0.55);
+    box-shadow: 0 0 16px rgba(255, 204, 68, 0.25);
+  }
+  .item-row.bought { animation: boughtFlash 0.5s ease; }
+  .item-row.denied { animation: deniedShake 0.35s ease; }
+  @keyframes boughtFlash {
+    0% { background: rgba(120, 160, 60, 0.7); }
+    100% { background: rgba(90, 62, 26, 0.55); }
+  }
+  @keyframes deniedShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  .item-icon {
+    width: 7vh; height: 7vh; flex: none;
+    object-fit: contain;
+    filter: drop-shadow(0 0 6px rgba(0,0,0,0.7));
+  }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name {
+    color: #f2e0b8; font-size: 2.5vh;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
+  }
+  .item-desc {
+    color: #bfa878; font-size: 1.7vh; margin-top: 0.3vh;
+    line-height: 1.3;
+  }
+  .item-right {
+    flex: none; text-align: right;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 0.4vh;
+  }
+  .item-price {
+    display: flex; align-items: center; gap: 0.35em;
+    color: #ffd76a; font-size: 2.3vh;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.85);
+  }
+  .item-price img { height: 1em; }
+  .item-owned {
+    color: #8fd0a0; font-size: 1.6vh;
+  }
+
+  /* ── Pie: controles ─────────────────────────────────────────── */
+  #controls-hint {
+    position: absolute; left: 0; bottom: 2.4vh; width: 100%; z-index: 11;
+    text-align: center;
+    color: #c9b48a; font-size: 1.9vh;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+    pointer-events: none;
+  }
+  #controls-hint .key {
+    display: inline-block;
+    border: 1.5px solid rgba(220, 190, 120, 0.7);
+    border-radius: 6px;
+    padding: 0.15em 0.55em; margin: 0 0.25em;
+    background: rgba(30, 20, 10, 0.8);
+    color: #ffe9a8;
+  }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="title" data-i18n="menu.title"></div>
+  <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+  <div id="loading-text"></div>
+</div>
+
+<div id="transition-overlay"></div>
+
+<img id="bg" alt="">
+<div id="vignette"></div>
+
+<div id="topbar">
+  <div id="shop-title"></div>
+  <div id="gold-hud"><img src="/assets/comunes/monedas.webp" alt=""><span id="gold-num">0</span></div>
+</div>
+
+<div id="bubble"><span id="keeper-name"></span><span id="keeper-speech"></span></div>
+<div id="keeper-zone"><img id="keeper" alt=""></div>
+
+<div id="items-panel"></div>
+<div id="controls-hint"></div>
+
+<script src="/assets-cache.js"></script>
+<script>
+  let translations = {};
+  let fallback = {};
+  let currentWorld = 'ESPACIO';
+  let player = null;
+  let catalog = [];
+  let selectedItem = 0;
+  let buying = false;
+
+  const WORLD_ORDER = ['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+
+  async function loadLang(lang) {
+    const r = await fetch('/api/i18n' + (lang ? '/' + lang : ''));
+    if (!r.ok) return {};
+    return await r.json();
+  }
+  function t(key) { return translations[key] ?? fallback[key] ?? key; }
+  function format(key, ...args) {
+    return t(key).replace(/\{(\d+)\}/g, (m, i) => String(args[+i] ?? m));
+  }
+
+  async function loadPlayer() {
+    try {
+      const r = await fetch('/api/savegame');
+      if (r.ok) { const d = await r.json(); player = d.player || null; }
+    } catch {}
+  }
+  async function loadCatalog() {
+    try {
+      const r = await fetch('/api/shop-items');
+      if (r.ok) { const d = await r.json(); catalog = d.items || []; }
+    } catch {}
+  }
+
+  const bg = document.getElementById('bg');
+  const keeperImg = document.getElementById('keeper');
+
+  function ownedCount(id) {
+    return (player && player.inventory && player.inventory[id]) || 0;
+  }
+
+  function renderItems() {
+    const panel = document.getElementById('items-panel');
+    panel.innerHTML = '';
+    catalog.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.className = 'item-row' + (i === selectedItem ? ' selected' : '');
+      row.dataset.itemId = item.id;
+
+      const icon = document.createElement('img');
+      icon.className = 'item-icon';
+      icon.src = item.icon || '/assets/comunes/monedas.webp';
+      icon.alt = '';
+      icon.onerror = () => { icon.src = '/assets/comunes/monedas.webp'; };
+      row.appendChild(icon);
+
+      const info = document.createElement('div');
+      info.className = 'item-info';
+      const name = document.createElement('div');
+      name.className = 'item-name';
+      name.textContent = t('shop.item.' + item.id + '.name');
+      const desc = document.createElement('div');
+      desc.className = 'item-desc';
+      desc.textContent = t('shop.item.' + item.id + '.desc');
+      info.appendChild(name);
+      info.appendChild(desc);
+      row.appendChild(info);
+
+      const right = document.createElement('div');
+      right.className = 'item-right';
+      const price = document.createElement('div');
+      price.className = 'item-price';
+      price.innerHTML = '<img src="/assets/comunes/monedas.webp" alt="">';
+      price.appendChild(document.createTextNode(String(item.price)));
+      right.appendChild(price);
+      const owned = document.createElement('div');
+      owned.className = 'item-owned';
+      owned.textContent = format('shop.owned', ownedCount(item.id));
+      right.appendChild(owned);
+      row.appendChild(right);
+
+      row.addEventListener('mouseenter', () => {
+        if (selectedItem !== i) { selectedItem = i; renderItems(); playHover(); }
+      });
+      row.addEventListener('click', () => {
+        selectedItem = i; renderItems(); buySelected();
+      });
+
+      panel.appendChild(row);
+    });
+    document.getElementById('gold-num').textContent = String(player?.gold ?? 0);
+  }
+
+  function setSpeech(key, ...args) {
+    document.getElementById('keeper-speech').textContent = format(key, ...args);
+  }
+
+  function flashRow(id, cls) {
+    const row = document.querySelector(`.item-row[data-item-id="${id}"]`);
+    if (!row) return;
+    row.classList.remove('bought', 'denied');
+    void row.offsetWidth; // reinicia la animación
+    row.classList.add(cls);
+  }
+
+  async function buySelected() {
+    if (buying || !catalog[selectedItem]) return;
+    const item = catalog[selectedItem];
+    buying = true;
+    try {
+      const r = await fetch('/api/buy-item', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: item.id }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        player = d.player;
+        AssetsCache.playSound('/assets/sounds/comun/moneda.wav', 0.8);
+        flashRow(item.id, 'bought');
+        setSpeech('shop.bought');
+      } else {
+        AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.5);
+        flashRow(item.id, 'denied');
+        setSpeech('shop.noGold');
+      }
+    } catch {
+      AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.5);
+      setSpeech('shop.noGold');
+    }
+    renderItems();
+    buying = false;
+  }
+
+  function playHover() { AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45); }
+  function playMove() { AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5); }
+  function goBack() {
+    AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
+    AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(currentWorld));
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); goBack(); return; }
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' ||
+        e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      e.preventDefault();
+      if (catalog.length) {
+        selectedItem = (selectedItem - 1 + catalog.length) % catalog.length;
+        renderItems(); playMove();
+      }
+    } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' ||
+               e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      e.preventDefault();
+      if (catalog.length) {
+        selectedItem = (selectedItem + 1) % catalog.length;
+        renderItems(); playMove();
+      }
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      buySelected();
+    }
+  });
+
+  AssetsCache.unlockAudio();
+  document.addEventListener('click', () => AssetsCache.unlockAudio(), { once: true });
+  document.addEventListener('keydown', () => AssetsCache.unlockAudio(), { once: true });
+
+  (async () => {
+    const params = new URLSearchParams(window.location.search);
+    currentWorld = params.get('world') || 'ESPACIO';
+    if (!WORLD_ORDER.includes(currentWorld)) currentWorld = 'ESPACIO';
+
+    // Fondo del interior de la tienda del mundo; si falta el arte se queda
+    // la viñeta oscura (la página sigue siendo usable).
+    bg.src = '/assets/tienda/' + currentWorld + '/tienda.webp?v=p4';
+    bg.onerror = () => { bg.style.display = 'none'; };
+    keeperImg.src = '/assets/tienda/' + currentWorld + '/tendero.webp?v=p4';
+    keeperImg.onerror = () => { keeperImg.style.display = 'none'; };
+
+    await AssetsCache.loadSettings();
+    AssetsCache.setMusicTrack(AssetsCache.musicForWorld(currentWorld));
+    fallback = await loadLang('es');
+    translations = await loadLang();
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+
+    await loadPlayer();
+    await loadCatalog();
+
+    document.getElementById('shop-title').textContent =
+      t('shop.title') + ' — ' + t('worlds.' + currentWorld);
+    document.getElementById('keeper-name').textContent = t('shop.keeper.' + currentWorld);
+    setSpeech('shop.welcome');
+    const k = (s) => `<span class="key">${s}</span>`;
+    document.getElementById('controls-hint').innerHTML =
+      k('↑↓') + ' ' + t('shop.choose') + ' · ' + k('Enter') + ' ' + t('shop.buy')
+      + ' · ' + k('Esc') + ' ' + t('shop.leave');
+    renderItems();
+
+    if (sessionStorage.getItem('runika-session') === 'active') {
+      AssetsCache.unlockAudio();
+      AssetsCache.hideLoading();
+      setTimeout(() => AssetsCache.transitionIn(), 100);
+      return;
+    }
+    AssetsCache.showLoading();
+    const loadingBar = document.getElementById('loading-bar');
+    const loadingText = document.getElementById('loading-text');
+    await AssetsCache.preloadAll((loaded, total) => {
+      const pct = Math.round((loaded / total) * 100);
+      loadingBar.style.width = pct + '%';
+      loadingText.textContent = t('loading.text') + ' ' + pct + '%';
+    });
+    AssetsCache.hideLoading();
+    setTimeout(() => AssetsCache.transitionIn(), 500);
+  })();
+</script>
+
+</body>
+</html>
