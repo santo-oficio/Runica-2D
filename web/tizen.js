@@ -9,9 +9,14 @@
  *
  * Android (Cordova):
  *  - Evento 'backbutton' → Escape (misma lógica que arriba).
- *  - Gestos táctiles → teclas: swipe = flechas, tap = Enter,
- *    pulsación larga = Escape. Así todo el juego es jugable sin teclado.
- *  - El <input> invisible también invoca el teclado en pantalla Android.
+ *  - Gestos táctiles: swipe = flechas, pulsación larga = Escape. El tap
+ *    actúa sobre el control tocado mediante los eventos pointer/click
+ *    reales del navegador (nada de Enter sintético: duplicaba acciones y
+ *    activaba el elemento enfocado equivocado al fallar el puntero).
+ *    Una página puede definir window.touchTapMove(x, y) → true para
+ *    interpretar ella misma los taps sobre su tablero/mapa.
+ *  - Sin teclado del sistema: la máquina de escribir de la pantalla de
+ *    selección ya es táctil; el <input> oculto solo se crea en Tizen.
  *
  * Solo actúa con window.tizen o window.cordova presentes.
  */
@@ -76,12 +81,40 @@
       document.addEventListener("backbutton", onBack, false);
     });
 
-    // Gestos: swipe → flecha, tap → Enter, long-press → Escape
-    var t0 = 0, x0 = 0, y0 = 0, longTimer = null, SWIPE = 48, TAP_MS = 300;
+    // Pantalla de juego fija: sin scroll/zoom ni gestos del navegador que
+    // cancelen el touchend, sin resaltado de tap ni menú de selección de
+    // texto en la pulsación larga.
+    var touchCss = document.createElement("style");
+    touchCss.textContent =
+      "*{-webkit-tap-highlight-color:transparent;touch-action:none;" +
+      "user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}";
+    (document.head || document.documentElement).appendChild(touchCss);
+
+    // ¿El punto tocado es un control interactivo? Los controles del juego
+    // llevan cursor:pointer (hotspots, polígonos de botones, slots…) o son
+    // formas SVG/elementos de formulario.
+    function isInteractive(el) {
+      for (; el && el !== document.documentElement; el = el.parentElement) {
+        var tag = el.tagName || "";
+        if (/^(BUTTON|A|INPUT|TEXTAREA|SELECT|polygon|circle|rect|path)$/i.test(tag)) return true;
+        try { if (getComputedStyle(el).cursor === "pointer") return true; } catch (err) {}
+      }
+      return false;
+    }
+
+    // Gestos: swipe → flecha, pulsación larga → Escape (salvo que empiece
+    // sobre un control), tap → el control bajo el dedo o, si la página lo
+    // define, window.touchTapMove(x, y).
+    var t0 = 0, x0 = 0, y0 = 0, longTimer = null, startEl = null;
+    var SWIPE = 48, TAP_MS = 300, LONG_MS = 700;
     window.addEventListener("touchstart", function (e) {
       var t = e.touches[0];
       t0 = Date.now(); x0 = t.clientX; y0 = t.clientY;
-      longTimer = setTimeout(function () { sendEscape(); longTimer = null; }, 700);
+      startEl = document.elementFromPoint(x0, y0);
+      longTimer = setTimeout(function () {
+        longTimer = null;
+        if (!isInteractive(startEl)) sendEscape();
+      }, LONG_MS);
     }, { passive: true });
     window.addEventListener("touchend", function (e) {
       if (longTimer) { clearTimeout(longTimer); longTimer = null; }
@@ -91,18 +124,29 @@
       if (Math.max(adx, ady) >= SWIPE) {
         if (adx >= ady) sendKey(dx > 0 ? "ArrowRight" : "ArrowLeft", dx > 0 ? 39 : 37);
         else sendKey(dy > 0 ? "ArrowDown" : "ArrowUp", dy > 0 ? 40 : 38);
-      } else if (Date.now() - t0 < TAP_MS) {
-        sendKey("Enter", 13);
+        return;
       }
+      if (Date.now() - t0 >= TAP_MS) return;
+      // El tap ya disparó pointerdown/click sobre el control tocado; solo
+      // falta dejar que la página consuma los taps "en vacío" (tablero,
+      // mapa de islas…) en vez de mandar un Enter al elemento equivocado.
+      try {
+        if (window.touchTapMove) window.touchTapMove(t.clientX, t.clientY);
+      } catch (err) {}
     }, { passive: true });
     window.addEventListener("touchmove", function () {
       if (longTimer) { clearTimeout(longTimer); longTimer = null; }
     }, { passive: true });
+    window.addEventListener("touchcancel", function () {
+      if (longTimer) { clearTimeout(longTimer); longTimer = null; }
+    }, { passive: true });
   }
 
-  // ── Puente IME para el nombre del jugador (Tizen y Android) ─────────────
+  // ── Puente IME para el nombre del jugador (solo Tizen) ──────────────────
+  // En Android la máquina de escribir dibujada en la pantalla de selección
+  // ya responde al tacto: el teclado del sistema solo taparía la interfaz.
   var page = location.pathname.split("/").pop();
-  if (page === "seleccion-personaje.html") {
+  if (IS_TIZEN && page === "seleccion-personaje.html") {
     window.addEventListener("DOMContentLoaded", function () {
       var ime = document.createElement("input");
       ime.id = "tv-ime";

@@ -60,8 +60,16 @@ simulan en cliente.
 - `npm run apk` → genera `webdist` + `android-app/www` (con `cordova.js`
   inyectado). `web/api-shim.js` se activa con `window.cordova` y
   `web/tizen.js` también pone el puente de Android: `backbutton`→Escape,
-  gestos táctiles (swipe=flechas, tap=Enter, long-press=Escape) y el
-  <input> invisible invoca el teclado en pantalla.
+  swipe→flechas y pulsación larga→Escape. El tap actúa sobre el control
+  tocado con los eventos pointer/click reales (todos los controles llevan
+  `cursor:pointer` y handlers propios — NO mandar Enter sintético: dobla
+  acciones). Una página puede definir `window.touchTapMove(x,y)` para
+  interpretar taps "en vacío" (game.html mueve hacia la casilla tocada,
+  submundo.html entra/mueve por isla). En Android NO se crea el <input>
+  IME oculto (solo Tizen): la máquina de escribir de
+  `seleccion-personaje.html` ya es táctil y el teclado del sistema solo
+  taparía la interfaz. Se inyecta CSS `touch-action:none` +
+  sin tap-highlight/selección para que los swipes lleguen a touchend.
 - Build: `cd android-app && npx cordova build android [--release]`
   con `JAVA_HOME`=JBR de Android Studio, `ANDROID_HOME`=%LOCALAPPDATA%
   `\Android\Sdk` y Gradle 8.14.2 en PATH (`C:\Users\jquin\gradle`).

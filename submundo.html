@@ -725,25 +725,54 @@
     else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { e.preventDefault(); moveByCell('right'); }
     else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); moveByCell('up'); }
     else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); moveByCell('down'); }
-    else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (atShop && shopData) {
-        if (!isShopUnlocked()) { bounceAvatar('down'); return; }
-        AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
-        AssetsCache.transitionTo('/shop.html?world=' + encodeURIComponent(currentWorld));
-        return;
-      }
-      if (!isLevelUnlocked(currentLevel)) { bounceAvatar('down'); return; }
-      AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
-      // La isla jugada se recuerda en la bbdd (completada o no)
-      fetch('/api/level-position', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        keepalive: true, // la petición sobrevive a la navegación
-        body: JSON.stringify({ world: currentWorld, level: currentLevel }),
-      }).catch(() => {});
-      AssetsCache.transitionTo('/game.html?world=' + encodeURIComponent(currentWorld) + '&level=' + currentLevel);
-    }
+    else if (e.key === 'Enter') { e.preventDefault(); enterCurrent(); }
   });
+
+  // Entrar en la isla (o tienda) donde está el avatar — Enter o tap táctil.
+  function enterCurrent() {
+    if (atShop && shopData) {
+      if (!isShopUnlocked()) { bounceAvatar('down'); return; }
+      AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
+      AssetsCache.transitionTo('/shop.html?world=' + encodeURIComponent(currentWorld));
+      return;
+    }
+    if (!isLevelUnlocked(currentLevel)) { bounceAvatar('down'); return; }
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
+    // La isla jugada se recuerda en la bbdd (completada o no)
+    fetch('/api/level-position', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      keepalive: true, // la petición sobrevive a la navegación
+      body: JSON.stringify({ world: currentWorld, level: currentLevel }),
+    }).catch(() => {});
+    AssetsCache.transitionTo('/game.html?world=' + encodeURIComponent(currentWorld) + '&level=' + currentLevel);
+  }
+
+  // Puente táctil (web/tizen.js, Android): tap sobre la isla donde está el
+  // avatar entra en ella; tap sobre una isla adyacente (o la tienda desde
+  // su isla) mueve el avatar hacia allí.
+  window.touchTapMove = function (x, y) {
+    if (isMoving || !positions) return;
+    const r = getImgRect();
+    const sz = resolvedAvatarSize() * r.width;
+    const hit = pos => pos &&
+      Math.abs(x - (r.left + pos.x * r.width)) < sz * 0.9 &&
+      Math.abs(y - (r.top + pos.y * r.height)) < sz * 0.9;
+    if (atShop && shopData) {
+      if (hit(shopData.pos)) { enterCurrent(); return; }
+      if (hit(positions[shopData.from])) { moveByCell(INV[shopData.dir]); return; }
+      return;
+    }
+    if (hit(positions[currentLevel])) { enterCurrent(); return; }
+    if (shopData && currentLevel === shopData.from && hit(shopData.pos)) {
+      moveByCell(shopData.dir); return;
+    }
+    if (currentLevel < NUM_LEVELS - 1 && hit(positions[currentLevel + 1])) {
+      moveByCell(NEXT_DIR[currentLevel]); return;
+    }
+    if (currentLevel > 0 && hit(positions[currentLevel - 1])) {
+      moveByCell(PREV_DIR[currentLevel]);
+    }
+  };
 
   document.getElementById('back-btn').addEventListener('click', () => {
     AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);

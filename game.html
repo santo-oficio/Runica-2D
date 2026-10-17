@@ -330,7 +330,7 @@
     padding: .5vh .9vw;
     color: #ffe9a8; font-size: 2.4vh;
     text-shadow: 1px 1px 3px rgba(0,0,0,.9);
-    pointer-events: none;
+    pointer-events: auto; cursor: pointer;
   }
   #hint-badge img { height: 1.5em; }
   #hint-badge.denied { animation: hintShake .35s ease; border-color: rgba(255,90,70,.9); }
@@ -1912,7 +1912,7 @@ document.addEventListener('keydown', (e) => {
   if (d) { e.preventDefault(); movePlayer(d[0], d[1]); }
 });
 
-// === Pistas de la tienda (tecla H, modo real) ===
+// === Pistas de la tienda (tecla H o tap en el badge, modo real) ===
 // Consume un uso de 'pista' del inventario y muestra una flecha con la
 // dirección del movimiento óptimo (no mueve al jugador: solo orienta).
 function updateHintBadge() {
@@ -1965,6 +1965,23 @@ async function useHintItem() {
     setTimeout(() => el.remove(), 1650);
   } catch { deny(); }
 }
+document.getElementById('hint-badge').addEventListener('pointerdown', e => {
+  e.preventDefault(); e.stopPropagation(); useHintItem();
+});
+
+// === Puente táctil (web/tizen.js, Android) ===
+// Un tap sobre el tablero mueve un paso en la dirección dominante desde la
+// casilla del avatar hacia el punto tocado. Sin este hook el tap no haría
+// nada (solo se mueve con flechas/WASD o gestos de swipe).
+window.touchTapMove = function (x, y) {
+  if (!board.w || gameOver || won || modalOpen || countingDown || moving) return;
+  const p = cellPos(player.c, player.r, true);
+  const dx = x - (p.left + p.w / 2), dy = y - (p.top + p.h / 2);
+  const adx = Math.abs(dx), ady = Math.abs(dy);
+  if (Math.max(adx, ady) < Math.max(p.w, p.h) * 0.4) return; // tap sobre el avatar
+  if (adx >= ady) movePlayer(dx > 0 ? 1 : -1, 0);
+  else movePlayer(0, dy > 0 ? 1 : -1);
+};
 
 // === Consola de hacks (Tab) ===
 // Panel inferior semitransparente con historial y mapa de comandos
