@@ -1,8 +1,11 @@
 # Extiende una imagen por los laterales sintetizando fondo con "quilting"
 # (Efros-Freeman): parches del propio arte elegidos por bordes que casan y
 # costuras por el camino de error mínimo (min-cut) — los parches quedan
-# nítidos, sin desenfoque por mezcla alfa. El original queda intacto salvo
-# una franja fina de costura errante junto a cada borde.
+# nítidos, sin desenfoque por mezcla alfa. El original queda 100% INTACTO:
+# la tira pega a tope con el borde y una rampa tonal de ~32 px continua el
+# color exacto de la última columna por fila — sin franja de costura
+# errante invadiendo el arte (a 16:9 el borde del arte es el borde de
+# pantalla y cualquier zona de costura sería visible).
 #
 # Uso: python tools/quilt_extend.py <src> <dst> [--ratio 2.35] [--patch 256]
 #       [--overlap 96] [--cands 40] [--excl-top 0.13] [--seed 7]
@@ -123,17 +126,37 @@ def tone_match(ext, edge, fade_px):
     return np.clip(ext - low + low_target, 0, 255)
 
 
+def junction_ramp(ext, edge_col, r=32, inner_first=True):
+    """Rampa tonal junto a la unión: lleva las primeras/últimas `r` columnas
+    de la tira exactamente al color del borde real por fila, fundiendo el
+    salto de textura. inner_first=True si la columna 0 de la tira toca el
+    arte (extensión derecha); False si la toca la última (izquierda)."""
+    H = ext.shape[0]
+    d = edge_col - (ext[:, 0] if inner_first else ext[:, -1])   # H×3
+    t = (1 - np.arange(r) / r)[None, :, None]                   # 1 → 0
+    if inner_first:
+        ext[:, :r] = ext[:, :r] + d[:, None, :] * t
+    else:
+        ext[:, -r:] = ext[:, -r:] + d[:, None, :] * t[:, ::-1]
+    return ext
+
+
 def extend(img, E, patch, ov, pool, rng, cands):
-    """Devuelve (izquierda, derecha): tiras H×(E+2·ov) que solapan `ov` con
-    el borde real para cortar la costura por min-cut en el ensamblado."""
+    """Devuelve (izquierda, derecha): tiras H×E que pegan a tope con el
+    original — el arte no se toca ni un píxel."""
     f = img.astype(np.float32)
     W = img.shape[1]
-    right = quilt_strip(img, f[:, -200:], E + 2 * ov, patch, ov, pool, rng, cands)
+    right = quilt_strip(img, f[:, -200:], E, patch, ov, pool, rng, cands)
     right = tone_match(right, f[:, -160:], int(E * 0.65))
+    right = junction_ramp(right, f[:, -1], inner_first=True)
     fl = img[:, ::-1]
-    left_f = quilt_strip(fl, fl.astype(np.float32)[:, -200:], E + 2 * ov, patch, ov, pool, rng, cands)
+    # En la tira izquierda el borde interior (el que toca el arte) es la
+    # columna 0 ANTES de des-invertir: tone_match y la generación operan en
+    # el espacio volteado, luego se da la vuelta y se aplica la rampa.
+    left_f = quilt_strip(fl, fl.astype(np.float32)[:, -200:], E, patch, ov, pool, rng, cands)
+    left_f = tone_match(left_f, fl.astype(np.float32)[:, -160:], int(E * 0.65))
     left = left_f[:, ::-1]
-    left = tone_match(left[:, ::-1], f[:, :160], int(E * 0.65))[:, ::-1]
+    left = junction_ramp(left, f[:, 0], inner_first=False)
     return left, right
 
 
@@ -163,26 +186,11 @@ def main():
     f = img.astype(np.float32)
     out = np.zeros((H, TW, 3), dtype=np.float32)
     out[:, E : E + W] = f
-
-    # Costura derecha: la tira se pega en x0=E+W-2ov y solapa 2ov con el
-    # original; el min-cut recorre ese solape (a la izquierda el original,
-    # a la derecha la tira).
-    x0 = E + W - 2 * ov
-    out[:, x0 : x0 + right.shape[1]] = right
-    err = ((right[:, : 2 * ov] - f[:, W - 2 * ov :]) ** 2).sum(axis=2)
-    seam = mincut_v(err)
-    for i in range(H):
-        c = x0 + seam[i]
-        out[i, x0:c] = f[i, W - 2 * ov : W - 2 * ov + seam[i]]
-        out[i, c:] = right[i, seam[i] :]
-    # Costura izquierda: la tira ocupa [0, E+2ov) solapando sus últimas 2ov
-    # con las primeras del original; el min-cut recorre ese solape.
-    out[:, : E + 2 * ov] = left
-    err = ((left[:, E : E + 2 * ov] - f[:, : 2 * ov]) ** 2).sum(axis=2)
-    seam = mincut_v(err)
-    for i in range(H):
-        c = E + seam[i]
-        out[i, c : E + 2 * ov] = f[i, seam[i] : 2 * ov]
+    # Uniones a tope: la rampa de junction_ramp hace que la columna de la
+    # tira adyacente al arte continúe el color exacto del borde por fila —
+    # ni un píxel del original es reemplazado.
+    out[:, :E] = left
+    out[:, E + W :] = right
 
     Image.fromarray(out.astype(np.uint8)).save(a.dst, quality=88)
     print("guardado", a.dst)
