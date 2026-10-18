@@ -228,7 +228,7 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-modal.html` | `assets/comunes/modal-areas.json` (`title` = polígono sobre el arco del cartel + `content`/`buttonLeft`/`buttonRight` rectángulos) |
 | `calibrate-config.html` | `assets/configuracion/config-areas.json` (textos/casillas sonido+música rectángulos; flechas idioma y atrás = polígonos) |
 | `calibrate-fin.html` | `assets/comunes/fin-areas.json` — fin del juego: **círculos** `{cx,cy,r}` por mundo (el aura irregular la genera `AssetsCache.auraPoints` de forma determinista) + rectángulos `hero`/`boss` del tablero final |
-| `calibrate-tienda.html` | `assets/tienda/<M>/areas.json` — zonas del interior: `title`/`gold`/`bubble`/`slot1..3` |
+| `calibrate-tienda.html` | `assets/tienda/<M>/areas.json` — zonas del interior: `title`/`gold`/`bubble`/`slotNicon`/`slotNtext` (N=1..3) |
 
 ### `calibrate-board-sprites.html` — sprites + áreas
 
@@ -316,14 +316,18 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   El arte lleva todo pintado: tendero único (mismo pirata "Barbarroja el
   Errante" en los 8 mundos), cartelón, placa de oro y 3 cofres vacíos.
   El overlay se posiciona en coordenadas de IMAGEN (`HUD` + `imgRect()`):
-  título sobre el cartelón, oro dentro de la placa (fondo fallback si el
-  mundo no la trae pintada, p. ej. VIENTO) y los ítems DENTRO de los
-  cofres (`.item-slot`). Bocadillo del tendero (`shop.keeper.<MUNDO>`,
-  `shop.welcome`). Teclas: ←→ elegir, Enter comprar, Esc volver.
+  título sobre el cartelón, oro dentro de la placa (SOLO el número — la
+  moneda ya viene pintada; fondo fallback si el mundo no la trae, p. ej.
+  VIENTO) y en cada cofre el icono y el texto del ítem en zonas separadas
+  (`slotNicon` / `slotNtext`; el `.item-slot` cubre la unión de ambas).
+  Bocadillo del tendero con el nombre como cabecera dentro de la misma
+  caja (`shop.keeper.<MUNDO>`, `shop.welcome`). Teclas: ←→ elegir,
+  Enter comprar, Esc volver.
   `?demo=1` = oro/inventario falsos sin tocar la bbdd.
 - `calibrate-tienda.html` — calibra por mundo las zonas del arte: `title`
-  (cartelón), `gold` (placa de oro), `bubble` (bocadillo) y `slot1..3`
-  (cofres). Mismo set de teclas que el resto de calibradores (arrastrar,
+  (cartelón), `gold` (placa de oro, número sin icono), `bubble`
+  (bocadillo) y `slotNicon`/`slotNtext` N=1..3 (icono y texto de cada
+  cofre por separado). Mismo set de teclas que el resto de calibradores (arrastrar,
   Tab, flechas, +/-, Q/E/Z/X, `,`/`.` fontScale, S copiar tamaño,
   Espacio mundo, G/C). Guarda `assets/tienda/<M>/areas.json` vía
   `POST /api/save-shop-areas`; `shop.html` lo carga con

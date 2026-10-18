@@ -104,8 +104,6 @@
   /* ── Ítems dentro de los cofres-expositores del mostrador ────── */
   .item-slot {
     position: absolute; z-index: 11;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 0.4vh;
     cursor: pointer; pointer-events: auto;
     border: 2px solid transparent; border-radius: 8px;
     transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
@@ -127,8 +125,15 @@
     75% { transform: translateX(8px); }
   }
   .item-icon {
-    height: 38%; flex: none; object-fit: contain;
+    position: absolute; object-fit: contain;
     filter: drop-shadow(0 0 8px rgba(0,0,0,0.8));
+    pointer-events: none;
+  }
+  .item-text {
+    position: absolute;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 0.15vh;
+    pointer-events: none;
   }
   /* --fs: escala de texto calibrada por zona (calibrate-tienda.html) */
   .item-name {
@@ -236,10 +241,15 @@
     title:  { x: 0.20, y: 0.035, w: 0.40, h: 0.105 },
     gold:   { x: 0.815, y: 0.045, w: 0.115, h: 0.08 },
     bubble: { x: 0.04, y: 0.20, w: 0.24, h: 0 },
-    slots: [
-      { x: 0.290, y: 0.625, w: 0.150, h: 0.235 },
-      { x: 0.455, y: 0.625, w: 0.150, h: 0.235 },
-      { x: 0.625, y: 0.625, w: 0.150, h: 0.235 },
+    icons: [
+      { x: 0.305, y: 0.630, w: 0.120, h: 0.135 },
+      { x: 0.470, y: 0.630, w: 0.120, h: 0.135 },
+      { x: 0.640, y: 0.630, w: 0.120, h: 0.135 },
+    ],
+    texts: [
+      { x: 0.290, y: 0.775, w: 0.150, h: 0.085 },
+      { x: 0.455, y: 0.775, w: 0.150, h: 0.085 },
+      { x: 0.625, y: 0.775, w: 0.150, h: 0.085 },
     ],
   };
   let hudAreas = null; // areas.json del mundo, si existe
@@ -250,11 +260,13 @@
       if (r.ok) { const d = await r.json(); if (d && d.areas) hudAreas = d.areas; }
     } catch {}
   }
-  // Zona calibrada sobre el default (title/gold/bubble/slot1..3)
+  // Zona calibrada sobre el default (title/gold/bubble/slotNicon/slotNtext)
   function zone(k) {
-    const a = hudAreas && hudAreas[k];
-    const def = k.startsWith('slot')
-      ? HUD.slots[(+k.slice(4) - 1) % HUD.slots.length]
+    let a = hudAreas && hudAreas[k];
+    const m = k.match(/^slot(\d)(icon|text)$/);
+    if (!a && m && m[2] === 'icon' && hudAreas) a = hudAreas['slot' + m[1]]; // formato antiguo
+    const def = m
+      ? (m[2] === 'icon' ? HUD.icons : HUD.texts)[(+m[1] - 1) % 3]
       : HUD[k];
     return a ? { ...def, ...a } : def;
   }
@@ -288,10 +300,27 @@
     bEl.style.minHeight = ((bubble.h || 0) * r.h) + 'px';
     bEl.style.fontSize = (2 * (bubble.fontScale || 1)) + 'vh';
     document.querySelectorAll('.item-slot').forEach((slot, i) => {
-      let a = zone('slot' + ((i % 3) + 1));
-      if (i >= 3) a = { ...a, y: a.y + a.h + 0.02 };
-      slot.style.setProperty('--fs', a.fontScale || 1);
-      place(slot, a, r);
+      const n = (i % 3) + 1;
+      let ia = zone('slot' + n + 'icon'), ta = zone('slot' + n + 'text');
+      if (i >= 3) { // segunda fila bajo la primera
+        const dy = ia.h + ta.h + 0.05;
+        ia = { ...ia, y: ia.y + dy }; ta = { ...ta, y: ta.y + dy };
+      }
+      // El slot cubre la unión de ambas zonas (hit area + marco de selección)
+      const u = { x: Math.min(ia.x, ta.x), y: Math.min(ia.y, ta.y) };
+      u.w = Math.max(ia.x + ia.w, ta.x + ta.w) - u.x;
+      u.h = Math.max(ia.y + ia.h, ta.y + ta.h) - u.y;
+      place(slot, u, r);
+      const ic = slot.querySelector('.item-icon'), tx = slot.querySelector('.item-text');
+      ic.style.left = ((ia.x - u.x) * r.w) + 'px';
+      ic.style.top = ((ia.y - u.y) * r.h) + 'px';
+      ic.style.width = (ia.w * r.w) + 'px';
+      ic.style.height = (ia.h * r.h) + 'px';
+      tx.style.left = ((ta.x - u.x) * r.w) + 'px';
+      tx.style.top = ((ta.y - u.y) * r.h) + 'px';
+      tx.style.width = (ta.w * r.w) + 'px';
+      tx.style.height = (ta.h * r.h) + 'px';
+      tx.style.setProperty('--fs', ta.fontScale || 1);
     });
   }
   window.addEventListener('resize', layout);
@@ -315,21 +344,26 @@
       icon.onerror = () => { icon.src = '/assets/comunes/monedas.webp'; };
       slot.appendChild(icon);
 
+      const text = document.createElement('div');
+      text.className = 'item-text';
+
       const name = document.createElement('div');
       name.className = 'item-name';
       name.textContent = t('shop.item.' + item.id + '.name');
-      slot.appendChild(name);
+      text.appendChild(name);
 
       const price = document.createElement('div');
       price.className = 'item-price';
       price.innerHTML = '<img src="/assets/comunes/monedas.webp" alt="">';
       price.appendChild(document.createTextNode(String(item.price)));
-      slot.appendChild(price);
+      text.appendChild(price);
 
       const owned = document.createElement('div');
       owned.className = 'item-owned';
       owned.textContent = format('shop.owned', ownedCount(item.id));
-      slot.appendChild(owned);
+      text.appendChild(owned);
+
+      slot.appendChild(text);
 
       slot.addEventListener('mouseenter', () => {
         if (selectedItem !== i) { selectedItem = i; renderItems(); playHover(); }
