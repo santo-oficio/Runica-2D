@@ -83,8 +83,8 @@ export interface PlayerState {
   /** Último mundo seleccionado en el mapamundi (posición del avatar al volver). */
   lastWorld?: string;
   /** Progreso por mundo: última isla jugada + islas completadas (0..MAP_LEVELS_PER_WORLD-1)
-   *  + `shopGone`: la tienda desapareció al pasar de largo sin entrar. */
-  worldProgress?: Record<string, { last?: number; completed?: number[]; shopGone?: boolean }>;
+   *  + `shopGone`: índices de tiendas que desaparecieron al pasar de largo. */
+  worldProgress?: Record<string, { last?: number; completed?: number[]; shopGone?: number[] }>;
   /** Inventario de la tienda: itemId -> usos restantes. */
   inventory?: Record<string, number>;
   /** Nivel de juego actual (tier 1..14 según la curva global; el 15 es solo del boss final). */
@@ -482,13 +482,16 @@ export function completeLevel(world: string, level: number, goldEarned = 0, scre
   return { ...player };
 }
 
-/** La isla tienda desaparece cuando el jugador pasa a la siguiente isla
- *  sin entrar en ella (oportunidad única por mundo). */
-export function markShopGone(world: string): PlayerState {
+/** La isla tienda `index` desaparece cuando el jugador pasa a la isla
+ *  siguiente sin entrar en ella (oportunidad única por tienda). */
+export function markShopGone(world: string, index = 0): PlayerState {
   if (!(WORLDS as readonly string[]).includes(world)) return { ...player };
   const wp = { ...(player.worldProgress ?? {}) };
   const w = { ...(wp[world] ?? {}) };
-  w.shopGone = true;
+  const prev = w.shopGone as number[] | boolean | undefined;
+  const g = prev === true ? [0] : (Array.isArray(prev) ? [...prev] : []);
+  if (!g.includes(index)) g.push(index);
+  w.shopGone = g;
   wp[world] = w;
   player.worldProgress = wp;
   player.updatedAt = Date.now();

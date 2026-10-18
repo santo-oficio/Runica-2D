@@ -155,7 +155,8 @@
       return json({ ok: true, player: DB.setLevelPosition(String(dl.world || ""), Number(dl.level) || 0) });
     }
     if (path === "/api/shop-skip" && method === "POST") {
-      return json({ ok: true, player: DB.markShopGone(String(postBody(init).world || "")) });
+      var ds = postBody(init);
+      return json({ ok: true, player: DB.markShopGone(String(ds.world || ""), Number(ds.index) || 0) });
     }
     if (path === "/api/level-complete" && method === "POST") {
       var dc = postBody(init);

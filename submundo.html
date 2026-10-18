@@ -348,20 +348,25 @@
   // Isla tienda (shop.json por mundo): nodo extra que cuelga de una isla
   // (`from`) en una dirección (`dir`) y se desbloquea al completar
   // `unlockAfter` niveles. No cuenta como nivel ni altera la serpiente.
-  let shopData = null;
-  let atShop = false;
-  // La tienda desaparece si el jugador pasa de largo sin entrar en ella.
-  let shopGone = false;
-  const DEMO_SHOP = new URLSearchParams(window.location.search).get('demo') === 'shop';
-  function isShopUnlocked() {
-    return !!shopData && !shopGone && completedLevels.has((shopData.unlockAfter ?? 1) - 1);
+  // Tiendas del mundo (shop.json `nodes[]`): cada nodo cuelga de una isla
+  // (`from`) en una dirección (`dir`) y se desbloquea al completar
+  // `unlockAfter` niveles. No cuentan como nivel ni alteran la serpiente.
+  // Tienda 1 tras el nivel 3; tienda 2 tras el nivel 9.
+  let shopNodes = [];
+  let atShop = -1; // índice del nodo donde está el avatar (-1 = en una isla)
+  // Cada tienda desaparece por separado si se pasa de largo sin entrar.
+  let shopGone = new Set();
+  const DEMO_SHOP = new URLSearchParams(window.location.search).get('demo') || '';
+  function isShopUnlocked(node) {
+    return !!node && !shopGone.has(shopNodes.indexOf(node)) &&
+      completedLevels.has((node.unlockAfter ?? 1) - 1);
   }
 
   // La isla pintada en el pano no se puede borrar: se cubre con una copia
   // muy difuminada de su propia zona — la isla se deshace en una nube que
   // se funde con el cielo y "desaparece" del mapa.
-  function paintShopGoneFx(r, sz) {
-    const pos = shopData.pos;
+  function paintShopGoneFx(r, sz, node) {
+    const pos = node.pos;
     const fx = document.createElement('div');
     fx.className = 'island-fx shopgone';
     fx.style.left = r.left + 'px';
@@ -474,14 +479,15 @@
   }
 
   async function loadShop(world) {
-    shopData = null;
+    shopNodes = [];
     try {
       const r = await fetch('/api/load-shop?world=' + encodeURIComponent(world));
       if (r.ok) {
         const data = await r.json();
-        if (data && data.pos && typeof data.from === 'number' && data.dir) {
-          shopData = data;
-        }
+        // Esquema actual: nodes[]; el antiguo (campos planos) es un solo nodo
+        const raw = Array.isArray(data?.nodes) ? data.nodes
+          : (data && data.pos && typeof data.from === 'number' && data.dir ? [data] : []);
+        shopNodes = raw.filter(n => n && n.pos && typeof n.from === 'number' && n.dir);
       }
     } catch {}
   }
@@ -535,23 +541,23 @@
       }
     }
 
-    // Isla tienda: misma máscara oscura que las islas bloqueadas hasta
-    // completar `unlockAfter`; sin marcador de nivel (no es una isla jugable).
-    // Si el jugador pasó de largo (shopGone) se disuelve en el cielo.
-    if (shopData) {
-      if (atShop && !shopGone) {
+    // Islas tienda: misma máscara oscura que las islas bloqueadas hasta
+    // completar `unlockAfter`; sin marcador de nivel (no son jugables).
+    // Las pasadas de largo (shopGone) se disuelven en el cielo.
+    shopNodes.forEach((node, ni) => {
+      if (atShop === ni) {
         const div = document.createElement('div');
         div.className = 'cell-marker selected';
-        div.style.left = (r.left + shopData.pos.x * r.width - sz / 2) + 'px';
-        div.style.top = (r.top + shopData.pos.y * r.height - sz / 2) + 'px';
+        div.style.left = (r.left + node.pos.x * r.width - sz / 2) + 'px';
+        div.style.top = (r.top + node.pos.y * r.height - sz / 2) + 'px';
         div.style.width = sz + 'px';
         div.style.height = sz + 'px';
         overlay.appendChild(div);
       }
-      if (shopGone) {
-        paintShopGoneFx(r, sz);
-      } else if (!isShopUnlocked()) {
-        const pos = shopData.pos;
+      if (shopGone.has(ni)) {
+        paintShopGoneFx(r, sz, node);
+      } else if (!isShopUnlocked(node)) {
+        const pos = node.pos;
         const fx = document.createElement('div');
         fx.className = 'island-fx locked';
         fx.style.left = r.left + 'px';
@@ -569,10 +575,10 @@
         ].join(',');
         overlay.appendChild(fx);
       }
-    }
+    });
 
     // Avatar en la casilla actual (o en la tienda)
-    const pos = atShop && shopData ? shopData.pos : positions[currentLevel];
+    const pos = atShop >= 0 && shopNodes[atShop] ? shopNodes[atShop].pos : positions[currentLevel];
     if (pos) {
       const avatarSrc = playerAvatarSrc();
       avatarImg.src = AssetsCache.getCachedImageUrl(avatarSrc);
@@ -597,7 +603,7 @@
     };
     const dynamicValues = {
       worldName: t('worlds.' + currentWorld),
-      level: atShop ? t('shop.title') : format('submundo.level', currentLevel + 1, NUM_LEVELS),
+      level: atShop >= 0 ? t('shop.title') : format('submundo.level', currentLevel + 1, NUM_LEVELS),
     };
     for (const type of ['worldName', 'level']) {
       const area = textAreas[type];
@@ -636,7 +642,7 @@
       dynamicText.appendChild(goldEl);
     }
 
-    document.getElementById('pos-info').textContent = atShop
+    document.getElementById('pos-info').textContent = atShop >= 0
       ? t('shop.title')
       : format('submundo.level', currentLevel + 1, NUM_LEVELS);
     document.getElementById('world-name').textContent = t('worlds.' + currentWorld);
@@ -658,9 +664,10 @@
     if (isMoving) return;
 
     // En la tienda solo se puede volver a la isla de la que cuelga
-    if (atShop && shopData) {
-      if (dir !== INV[shopData.dir]) { bounceAvatar(dir); return; }
-      atShop = false;
+    const shopNode = shopNodes[atShop];
+    if (shopNode) {
+      if (dir !== INV[shopNode.dir]) { bounceAvatar(dir); return; }
+      atShop = -1;
       AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
       animateAvatarTo(positions[currentLevel]);
       document.getElementById('pos-info').textContent =
@@ -669,13 +676,14 @@
       return;
     }
 
-    // Desde la isla `from`, la dirección `dir` lleva a la tienda si está
+    // Desde la isla `from`, la dirección `dir` lleva a su tienda si está
     // desbloqueada (nivel unlockAfter completado)
-    if (shopData && currentLevel === shopData.from && dir === shopData.dir) {
-      if (!isShopUnlocked()) { bounceAvatar(dir); return; }
-      atShop = true;
+    const toShop = shopNodes.findIndex(n => currentLevel === n.from && dir === n.dir);
+    if (toShop >= 0) {
+      if (!isShopUnlocked(shopNodes[toShop])) { bounceAvatar(dir); return; }
+      atShop = toShop;
       AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
-      animateAvatarTo(shopData.pos);
+      animateAvatarTo(shopNodes[toShop].pos);
       document.getElementById('pos-info').textContent = t('shop.title');
       render();
       return;
@@ -699,18 +707,19 @@
 
     // Pasar de largo sin entrar en la tienda: desaparece para siempre.
     // El fx se pinta directo (sin render()) para no cortar el vuelo del avatar.
-    if (shopData && !shopGone && currentLevel === shopData.from &&
-        newLevel === shopData.from + 1 && isShopUnlocked()) {
-      shopGone = true;
+    shopNodes.forEach((node, ni) => {
+      if (shopGone.has(ni) || currentLevel !== node.from ||
+          newLevel !== node.from + 1 || !isShopUnlocked(node)) return;
+      shopGone.add(ni);
       const r = getImgRect();
-      paintShopGoneFx(r, resolvedAvatarSize() * r.width);
+      paintShopGoneFx(r, resolvedAvatarSize() * r.width, node);
       if (!DEMO_SHOP) {
         fetch('/api/shop-skip', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ world: currentWorld }),
+          body: JSON.stringify({ world: currentWorld, index: ni }),
         }).catch(() => {});
       }
-    }
+    });
 
     currentLevel = newLevel;
     AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
@@ -745,7 +754,7 @@
     const [dx, dy] = offsets[dir];
     const r = getImgRect();
     const sz = resolvedAvatarSize() * r.width;
-    const pos = atShop && shopData ? shopData.pos : positions[currentLevel];
+    const pos = atShop >= 0 && shopNodes[atShop] ? shopNodes[atShop].pos : positions[currentLevel];
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;
     const baseY = avatarBaseTop(pos, sz, r);
@@ -784,8 +793,8 @@
 
   // Entrar en la isla (o tienda) donde está el avatar — Enter o tap táctil.
   function enterCurrent() {
-    if (atShop && shopData) {
-      if (!isShopUnlocked()) { bounceAvatar('down'); return; }
+    if (atShop >= 0 && shopNodes[atShop]) {
+      if (!isShopUnlocked(shopNodes[atShop])) { bounceAvatar('down'); return; }
       AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
       AssetsCache.transitionTo('/shop.html?world=' + encodeURIComponent(currentWorld));
       return;
@@ -811,15 +820,15 @@
     const hit = pos => pos &&
       Math.abs(x - (r.left + pos.x * r.width)) < sz * 0.9 &&
       Math.abs(y - (r.top + pos.y * r.height)) < sz * 0.9;
-    if (atShop && shopData) {
-      if (hit(shopData.pos)) { enterCurrent(); return; }
-      if (hit(positions[shopData.from])) { moveByCell(INV[shopData.dir]); return; }
+    if (atShop >= 0 && shopNodes[atShop]) {
+      const nd = shopNodes[atShop];
+      if (hit(nd.pos)) { enterCurrent(); return; }
+      if (hit(positions[nd.from])) { moveByCell(INV[nd.dir]); return; }
       return;
     }
     if (hit(positions[currentLevel])) { enterCurrent(); return; }
-    if (shopData && currentLevel === shopData.from && hit(shopData.pos)) {
-      moveByCell(shopData.dir); return;
-    }
+    const tapShop = shopNodes.find(n => currentLevel === n.from && hit(n.pos));
+    if (tapShop) { moveByCell(tapShop.dir); return; }
     if (currentLevel < NUM_LEVELS - 1 && hit(positions[currentLevel + 1])) {
       moveByCell(NEXT_DIR[currentLevel]); return;
     }
@@ -846,12 +855,17 @@
     await loadPlayer();
     measureAvatarPads();
     completedLevels = new Set(player?.worldProgress?.[currentWorld]?.completed ?? []);
-    shopGone = !!player?.worldProgress?.[currentWorld]?.shopGone;
-    // demo=shop: tienda desbloqueada sin tocar la bbdd (pantalla de testing)
+    const sg = player?.worldProgress?.[currentWorld]?.shopGone;
+    shopGone = new Set(sg === true ? [0] : (Array.isArray(sg) ? sg : []));
+    // demo=shop / demo=shop2: tienda 1 o 2 desbloqueada sin tocar la bbdd
     if (params.get('demo') === 'shop') {
       completedLevels = new Set([0, 1, 2]);
-      shopGone = false;
-      currentLevel = 2; // isla 3: a un ↑ de la tienda
+      shopGone = new Set();
+      currentLevel = 2; // isla 3: a un ↑ de la tienda 1
+    } else if (params.get('demo') === 'shop2') {
+      completedLevels = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+      shopGone = new Set([0]); // la 1ª oportunidad ya la dejaste pasar
+      currentLevel = 8; // isla 9: a un ↑ de la tienda 2
     } else {
       currentLevel = getStartLevel(currentWorld);
     }

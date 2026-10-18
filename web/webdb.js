@@ -234,12 +234,16 @@
     return c.length >= MAP_LEVELS_PER_WORLD;
   }
 
-  /** La isla tienda desaparece al pasar de largo sin entrar (oportunidad única). */
-  function markShopGone(world) {
+  /** La isla tienda `index` desaparece al pasar de largo sin entrar (única). */
+  function markShopGone(world, index) {
     if (WORLDS.indexOf(world) < 0) return getPlayer();
+    index = index || 0;
     var wp = Object.assign({}, player.worldProgress || {});
     var w = Object.assign({}, wp[world] || {});
-    w.shopGone = true;
+    var prev = w.shopGone;
+    var g = prev === true ? [0] : (Array.isArray(prev) ? prev.slice() : []);
+    if (g.indexOf(index) < 0) g.push(index);
+    w.shopGone = g;
     wp[world] = w;
     player.worldProgress = wp;
     player.updatedAt = Date.now();

@@ -1094,7 +1094,7 @@ const server = http.createServer((req, res) => {
     req.on("end", () => {
       try {
         const data = JSON.parse(body);
-        const player = markShopGone(String(data.world ?? ""));
+        const player = markShopGone(String(data.world ?? ""), Number(data.index) || 0);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true, player }));
       } catch (e) {

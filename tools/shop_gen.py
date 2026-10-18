@@ -91,15 +91,23 @@ def gen_interior(world, seed=11):
     print("interior", world, "->", out)
 
 
-def gen_island(world, seed=7, w=700, h=540):
+def gen_island(world, seed=7, w=700, h=540, only=None):
     sj = Path("assets/submundos") / world / "shop.json"
     meta = json.loads(sj.read_text(encoding="utf-8"))
+    nodes = meta.get("nodes") or [meta]
+    for i, node in enumerate(nodes):
+        if only is not None and i != only:
+            continue
+        gen_island_at(world, node["pos"], seed + i * 5, w, h)
+
+
+def gen_island_at(world, pos, seed, w, h):
     cands = list((Path("assets/submundos") / world).glob("submundo*.pano.webp"))
     assert cands, f"sin pano para {world}"
     pano_path = cands[0]
     src = Image.open(pano_path).convert("RGB")
     W, H = src.size
-    cx, cy = int(meta["pos"]["x"] * W), int(meta["pos"]["y"] * H)
+    cx, cy = int(pos["x"] * W), int(pos["y"] * H)
     pad = 260
     x0, y0 = max(0, cx - w // 2 - pad), max(0, cy - h // 2 - pad)
     x1, y1 = min(W, cx + w // 2 + pad), min(H, cy + h // 2 + pad)
@@ -183,12 +191,14 @@ def gen_keeper(world, seed=21):
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "interior"
     seed = int(sys.argv[sys.argv.index("--seed") + 1]) if "--seed" in sys.argv else None
-    worlds = [a for a in sys.argv[2:] if not a.startswith("--") and a != str(seed)]
+    node = int(sys.argv[sys.argv.index("--node") + 1]) if "--node" in sys.argv else None
+    worlds = [a for i, a in enumerate(sys.argv[2:], 2)
+              if not a.startswith("--") and sys.argv[i - 1] not in ("--seed", "--node")]
     worlds = worlds or list(INTERIOR.keys())
     for w in worlds:
         if mode == "interior":
             gen_interior(w)
         elif mode == "island":
-            gen_island(w, seed=seed or 7)
+            gen_island(w, seed=seed or 7, only=node)
         elif mode == "keeper":
             gen_keeper(w, seed=seed or 21)

@@ -296,20 +296,33 @@ mueve junto: el icono siempre queda a la izquierda del número. Las previews
 de los calibradores ya muestran esta composición y el juego debe
 renderizarla igual.
 
-## Tienda (isla extra por submundo)
+## Tienda (islas extra por submundo)
 
-Cada submundo puede tener una **isla tienda** — un nodo extra fuera de la
-serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
+Cada submundo tiene **dos islas tienda** — nodos extra fuera de la
+serpiente 4×3 que cuelgan de islas normales y no cuentan como nivel:
+entre el nivel 3 y el 4 (`from:2, dir:'up', unlockAfter:3`) y entre el
+nivel 9 y el 10 (`from:8, dir:'left', unlockAfter:9`, la isla asoma al
+borde izquierdo del pano — `art` opcional posiciona el arte distinto
+de `pos`).
 
-- `assets/submundos/<MUNDO>/shop.json` — `{world, unlockAfter, from, dir, pos:{x,y}}`:
-  la tienda cuelga de la isla `from` en la dirección `dir` y se desbloquea al
-  completar `unlockAfter` niveles (p. ej. `3` = tras el nivel 3). `pos` es la
-  posición del avatar sobre la isla tienda (espacio .pano, 0-1).
-- `submundo.html`: `loadShop()` la carga; desde la isla `from`, la dirección
-  `dir` mueve el avatar a la tienda (rebotando si está bloqueada — máscara
-  `island-fx locked` como las islas). `INV[dir]` devuelve a la isla. Enter en
-  la tienda navega a `shop.html?world=X`. El HUD central muestra
-  `shop.title` en vez de "Nivel X/12".
+- `assets/submundos/<MUNDO>/shop.json` — `{world, nodes:[{unlockAfter,
+  from, dir, pos:{x,y}, art?:{x,y}}]}` (el formato plano antiguo se
+  normaliza a `nodes[0]`). Cada nodo cuelga de la isla `from` en la
+  dirección `dir` y se desbloquea al completar `unlockAfter` niveles.
+  `pos` es la posición del avatar sobre la isla tienda (espacio .pano,
+  0-1); `art` indica dónde se pintó la isla si difiere (tienda 2).
+- `submundo.html`: `loadShop()` carga `shopNodes`; desde la isla `from`,
+  la dirección `dir` mueve el avatar a la tienda (rebotando si está
+  bloqueada — máscara `island-fx locked` como las islas). `INV[dir]`
+  devuelve a la isla. Enter en la tienda navega a
+  `shop.html?world=X`. El HUD central muestra `shop.title` en vez de
+  "Nivel X/12". **Pasar de largo** (de `from` a `from+1` sin entrar)
+  marca el nodo en `shopGone` (Set de índices, persiste
+  `worldProgress[w].shopGone` vía `POST /api/shop-skip {world,index}` —
+  `true` legado = `[0]`): la isla se disuelve en una mancha difuminada
+  (`paintShopGoneFx`) y queda inaccesible para siempre.
+  `?demo=shop`/`?demo=shop2` simulan el estado tras nivel 3/9 sin tocar
+  la bbdd.
 - `assets/tienda/items.json` — catálogo `{items:[{id,price,icon,uses}]}`.
 - `shop.html` — interior estilo recreativa 90s: fondo
   `assets/tienda/<MUNDO>/tienda.webp` (master PNG en `old/tienda-src.png`).
@@ -371,7 +384,10 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   (`tools/mk-shop-icons.py`).
 - `tools/shop_gen.py island <MUNDO>` — compone la isla tienda en el
   `.pano.webp` con inpainting SD en las coords de `shop.json`;
-  `interior <MUNDO>` genera el fondo `tienda.webp`.
+  `interior <MUNDO>` genera el fondo `tienda.webp`. La **isla 2 no se
+  genera por SD** (el inpainting en cielo vacío rellena la máscara con
+  paisajes): se clona la isla 1 del propio pano con máscara elíptica
+  espejada — mismo arte garantizado (`.tmp_chk/shop2-copy.py`).
 
 ## Flujo del menú y partida guardada (bbdd)
 
