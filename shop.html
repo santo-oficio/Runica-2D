@@ -104,7 +104,7 @@
   /* ── Ítems dentro de los cofres-expositores del mostrador ────── */
   .item-slot {
     position: absolute; z-index: 11;
-    cursor: pointer; pointer-events: auto;
+    pointer-events: none;
     border: 2px solid transparent; border-radius: 8px;
     transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   }
@@ -123,6 +123,20 @@
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-8px); }
     75% { transform: translateX(8px); }
+  }
+  /* Marco de selección poligonal (slotNsel de areas.json) que abraza
+     el trapecio del cofre pintado. Fallback: borde recto de .item-slot */
+  #seldraw { position: absolute; inset: 0; z-index: 12; pointer-events: none; }
+  #seldraw polygon.sel {
+    fill: rgba(255, 204, 68, 0.10);
+    stroke: rgba(255, 204, 68, 0.95); stroke-width: 3px;
+    filter: drop-shadow(0 0 10px rgba(255, 190, 80, 0.55));
+  }
+  #seldraw polygon.bought { animation: polyBought 0.5s ease; }
+  #seldraw polygon.denied { animation: deniedShake 0.35s ease; }
+  @keyframes polyBought {
+    0% { fill: rgba(120, 160, 60, 0.7); stroke: rgba(160, 220, 110, 0.95); }
+    100% { fill: rgba(255, 204, 68, 0.10); }
   }
   .item-icon {
     position: absolute; object-fit: contain;
@@ -148,7 +162,7 @@
   .item-price img { height: 1em; }
   .item-owned { color: #8fd0a0; font-size: calc(1.4vh * var(--fs, 1));
     text-shadow: 1px 1px 3px rgba(0,0,0,0.95); }
-  #slots { position: absolute; inset: 0; z-index: 11; pointer-events: none; }
+  #slots { position: absolute; inset: 0; z-index: 11; pointer-events: auto; }
 
   /* ── Pie: controles ─────────────────────────────────────────── */
   #controls-hint {
@@ -189,6 +203,7 @@
 <div id="bubble"><span id="keeper-name"></span><span id="keeper-speech"></span></div>
 
 <div id="slots"></div>
+<svg id="seldraw"></svg>
 <div id="controls-hint"></div>
 
 <script src="/assets-cache.js"></script>
@@ -251,6 +266,12 @@
       { x: 0.455, y: 0.775, w: 0.150, h: 0.085 },
       { x: 0.625, y: 0.775, w: 0.150, h: 0.085 },
     ],
+    // Marcos de selección poligonales (trapecios que abrazan cada cofre)
+    sels: [
+      [[0.297, 0.632], [0.433, 0.632], [0.448, 0.863], [0.282, 0.863]],
+      [[0.462, 0.632], [0.598, 0.632], [0.613, 0.863], [0.447, 0.863]],
+      [[0.632, 0.632], [0.768, 0.632], [0.783, 0.863], [0.617, 0.863]],
+    ],
   };
   let hudAreas = null; // areas.json del mundo, si existe
 
@@ -271,6 +292,26 @@
     return a ? { ...def, ...a } : def;
   }
 
+  // Zonas de un ítem: icono + texto + polígono de selección (slotNsel).
+  // La fila 2+ repite el patrón desplazado hacia abajo.
+  function slotAreas(i) {
+    const n = (i % 3) + 1;
+    let ia = zone('slot' + n + 'icon'), ta = zone('slot' + n + 'text');
+    const s = hudAreas && hudAreas['slot' + n + 'sel'];
+    let poly = (s && s.polygon && s.polygon.length >= 3)
+      ? s.polygon.map(p => [...p])
+      : HUD.sels[n - 1].map(p => [...p]);
+    if (i >= 3) {
+      const dy = ia.h + ta.h + 0.05;
+      ia = { ...ia, y: ia.y + dy }; ta = { ...ta, y: ta.y + dy };
+      poly = poly.map(p => [p[0], p[1] + dy]);
+    }
+    const u = { x: Math.min(ia.x, ta.x), y: Math.min(ia.y, ta.y) };
+    u.w = Math.max(ia.x + ia.w, ta.x + ta.w) - u.x;
+    u.h = Math.max(ia.y + ia.h, ta.y + ta.h) - u.y;
+    return { icon: ia, text: ta, poly, union: u };
+  }
+
   function imgRect() {
     const vw = window.innerWidth, vh = window.innerHeight;
     const iw = bg.naturalWidth || 1670, ih = bg.naturalHeight || 941;
@@ -284,6 +325,7 @@
     el.style.width = (a.w * r.w) + 'px';
     el.style.height = (a.h * r.h) + 'px';
   }
+  const SVGNS = 'http://www.w3.org/2000/svg';
   function layout() {
     const r = imgRect();
     const title = zone('title'), gold = zone('gold'), bubble = zone('bubble');
@@ -300,16 +342,7 @@
     bEl.style.minHeight = ((bubble.h || 0) * r.h) + 'px';
     bEl.style.fontSize = (2 * (bubble.fontScale || 1)) + 'vh';
     document.querySelectorAll('.item-slot').forEach((slot, i) => {
-      const n = (i % 3) + 1;
-      let ia = zone('slot' + n + 'icon'), ta = zone('slot' + n + 'text');
-      if (i >= 3) { // segunda fila bajo la primera
-        const dy = ia.h + ta.h + 0.05;
-        ia = { ...ia, y: ia.y + dy }; ta = { ...ta, y: ta.y + dy };
-      }
-      // El slot cubre la unión de ambas zonas (hit area + marco de selección)
-      const u = { x: Math.min(ia.x, ta.x), y: Math.min(ia.y, ta.y) };
-      u.w = Math.max(ia.x + ia.w, ta.x + ta.w) - u.x;
-      u.h = Math.max(ia.y + ia.h, ta.y + ta.h) - u.y;
+      const { icon: ia, text: ta, union: u } = slotAreas(i);
       place(slot, u, r);
       const ic = slot.querySelector('.item-icon'), tx = slot.querySelector('.item-text');
       ic.style.left = ((ia.x - u.x) * r.w) + 'px';
@@ -322,8 +355,40 @@
       tx.style.height = (ta.h * r.h) + 'px';
       tx.style.setProperty('--fs', ta.fontScale || 1);
     });
+    // Marco de selección poligonal sobre el cofre elegido
+    const svg = document.getElementById('seldraw');
+    svg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
+    svg.innerHTML = '';
+    const poly = catalog[selectedItem] && slotAreas(selectedItem).poly;
+    if (poly) {
+      const el = document.createElementNS(SVGNS, 'polygon');
+      el.setAttribute('class', 'sel');
+      el.setAttribute('points', poly.map(p =>
+        (r.left + p[0] * r.w).toFixed(1) + ',' + (r.top + p[1] * r.h).toFixed(1)).join(' '));
+      svg.appendChild(el);
+    }
   }
   window.addEventListener('resize', layout);
+
+  // Punto-en-polígono para el hit area exacta de cada cofre
+  function inPoly(x, y, poly) {
+    let s = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) s = !s;
+    }
+    return s;
+  }
+  function hitIndex(e) {
+    const r = imgRect();
+    const nx = (e.clientX - r.left) / r.w, ny = (e.clientY - r.top) / r.h;
+    for (let i = 0; i < catalog.length; i++) {
+      const { poly, union: u } = slotAreas(i);
+      if ((poly && inPoly(nx, ny, poly)) ||
+          (!poly && nx >= u.x && nx <= u.x + u.w && ny >= u.y && ny <= u.y + u.h)) return i;
+    }
+    return -1;
+  }
 
   function ownedCount(id) {
     return (player && player.inventory && player.inventory[id]) || 0;
@@ -334,7 +399,8 @@
     panel.innerHTML = '';
     catalog.forEach((item, i) => {
       const slot = document.createElement('div');
-      slot.className = 'item-slot' + (i === selectedItem ? ' selected' : '');
+      // Con polígono calibrado el marco lo dibuja el SVG; si no, borde recto
+      slot.className = 'item-slot' + (i === selectedItem && !slotAreas(i).poly ? ' selected' : '');
       slot.dataset.itemId = item.id;
 
       const icon = document.createElement('img');
@@ -365,18 +431,25 @@
 
       slot.appendChild(text);
 
-      slot.addEventListener('mouseenter', () => {
-        if (selectedItem !== i) { selectedItem = i; renderItems(); playHover(); }
-      });
-      slot.addEventListener('click', () => {
-        selectedItem = i; renderItems(); buySelected();
-      });
-
       panel.appendChild(slot);
     });
     document.getElementById('gold-num').textContent = String(player?.gold ?? 0);
     layout();
   }
+
+  // Hit-testing sobre los polígonos de selección (o el rect unión si un
+  // mundo no los tiene calibrados). Válido para ratón y táctil.
+  const slotLayer = document.getElementById('slots');
+  slotLayer.addEventListener('pointermove', (e) => {
+    const i = hitIndex(e);
+    slotLayer.style.cursor = i >= 0 ? 'pointer' : 'default';
+    if (i >= 0 && i !== selectedItem) { selectedItem = i; renderItems(); playHover(); }
+  });
+  slotLayer.addEventListener('pointerdown', (e) => {
+    const i = hitIndex(e);
+    if (i < 0) return;
+    selectedItem = i; renderItems(); buySelected();
+  });
 
   function setSpeech(key, ...args) {
     document.getElementById('keeper-speech').textContent = format(key, ...args);
@@ -384,10 +457,13 @@
 
   function flashRow(id, cls) {
     const row = document.querySelector(`.item-slot[data-item-id="${id}"]`);
-    if (!row) return;
-    row.classList.remove('bought', 'denied');
-    void row.offsetWidth; // reinicia la animación
-    row.classList.add(cls);
+    const poly = document.querySelector('#seldraw polygon.sel');
+    for (const el of [row, poly]) {
+      if (!el) continue;
+      el.classList.remove('bought', 'denied');
+      void el.getBoundingClientRect(); // reinicia la animación
+      el.classList.add(cls);
+    }
   }
 
   async function buySelected() {

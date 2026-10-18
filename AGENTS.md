@@ -228,7 +228,7 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-modal.html` | `assets/comunes/modal-areas.json` (`title` = polígono sobre el arco del cartel + `content`/`buttonLeft`/`buttonRight` rectángulos) |
 | `calibrate-config.html` | `assets/configuracion/config-areas.json` (textos/casillas sonido+música rectángulos; flechas idioma y atrás = polígonos) |
 | `calibrate-fin.html` | `assets/comunes/fin-areas.json` — fin del juego: **círculos** `{cx,cy,r}` por mundo (el aura irregular la genera `AssetsCache.auraPoints` de forma determinista) + rectángulos `hero`/`boss` del tablero final |
-| `calibrate-tienda.html` | `assets/tienda/<M>/areas.json` — zonas del interior: `title`/`gold`/`bubble`/`slotNicon`/`slotNtext` (N=1..3) |
+| `calibrate-tienda.html` | `assets/tienda/<M>/areas.json` — zonas del interior: `title`/`gold`/`bubble`/`slotNicon`/`slotNtext`/`slotNsel` (N=1..3; `sel` = **polígono**) |
 
 ### `calibrate-board-sprites.html` — sprites + áreas
 
@@ -326,8 +326,12 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   `?demo=1` = oro/inventario falsos sin tocar la bbdd.
 - `calibrate-tienda.html` — calibra por mundo las zonas del arte: `title`
   (cartelón), `gold` (placa de oro, número sin icono), `bubble`
-  (bocadillo) y `slotNicon`/`slotNtext` N=1..3 (icono y texto de cada
-  cofre por separado). Mismo set de teclas que el resto de calibradores (arrastrar,
+  (bocadillo), `slotNicon`/`slotNtext` N=1..3 (icono y texto de cada
+  cofre por separado) y `slotNsel` (**polígono** — marco dorado de
+  selección que abraza el trapecio del cofre; también es su hit area
+  táctil, punto-en-polígono en `shop.html`; dibujar con clic×N + doble
+  clic, `Z` quita punto, `Esc` cancela). Mismo set de teclas que el
+  resto de calibradores (arrastrar,
   Tab, flechas, +/-, Q/E/Z/X, `,`/`.` fontScale, S copiar tamaño,
   Espacio mundo, G/C). Guarda `assets/tienda/<M>/areas.json` vía
   `POST /api/save-shop-areas`; `shop.html` lo carga con
