@@ -177,6 +177,12 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
   2. **Extensión lateral** con quilting min-cut (`tools/quilt_extend.py`)
      hasta 2.35:1 — solo visible en pantallas más anchas que 16:9; a
      16:9 el viewport muestra EXACTAMENTE el arte comprimido.
+  3. **Bruma en los bordes** (postproceso sobre el .pano): la zona quilt
+     (x<0.118 / x>0.882) lleva limpieza de objetos sueltos por inpainting
+     (telea sobre `|img - blur50| > 55`, componentes <60000 px²) +
+     desenfoque progresivo σ→60 y atenuación ~16% hacia el rim — las
+     costuras y parches del quilt se disuelven en neblina cinemática
+     (script de referencia: `.tmp_chk/edge_haze.py`).
   Coordenadas en espacio del lienzo .pano comprimido: x remapeada
   `(x*7680+1236)/10152`, y remapeada por fila con `pos` — aplicado por
   `tools/remap-coords-squeeze.py` (UNA sola ejecución). `getImgRect()`

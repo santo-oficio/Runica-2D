@@ -488,6 +488,12 @@
         const raw = Array.isArray(data?.nodes) ? data.nodes
           : (data && data.pos && typeof data.from === 'number' && data.dir ? [data] : []);
         shopNodes = raw.filter(n => n && n.pos && typeof n.from === 'number' && n.dir);
+        // Una tienda desaparece al COMPLETAR el nivel de la isla
+        // siguiente a la suya (from+1): moverse hasta ella no la quita —
+        // solo entrar y superar ese nivel. Derivado del progreso.
+        shopNodes.forEach((node, ni) => {
+          if (completedLevels.has(node.from + 1)) shopGone.add(ni);
+        });
       }
     } catch {}
   }
@@ -705,22 +711,6 @@
       return;
     }
 
-    // Pasar de largo sin entrar en la tienda: desaparece para siempre.
-    // El fx se pinta directo (sin render()) para no cortar el vuelo del avatar.
-    shopNodes.forEach((node, ni) => {
-      if (shopGone.has(ni) || currentLevel !== node.from ||
-          newLevel !== node.from + 1 || !isShopUnlocked(node)) return;
-      shopGone.add(ni);
-      const r = getImgRect();
-      paintShopGoneFx(r, resolvedAvatarSize() * r.width, node);
-      if (!DEMO_SHOP) {
-        fetch('/api/shop-skip', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ world: currentWorld, index: ni }),
-        }).catch(() => {});
-      }
-    });
-
     currentLevel = newLevel;
     AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
     animateAvatarTo(positions[currentLevel]);
@@ -855,6 +845,9 @@
     await loadPlayer();
     measureAvatarPads();
     completedLevels = new Set(player?.worldProgress?.[currentWorld]?.completed ?? []);
+    // Índices de tiendas ya consumidas (persistidos por compat con
+    // partidas que lo guardaban como flag; la fuente de verdad es
+    // "nivel from+1 completado", derivado en loadShop).
     const sg = player?.worldProgress?.[currentWorld]?.shopGone;
     shopGone = new Set(sg === true ? [0] : (Array.isArray(sg) ? sg : []));
     // demo=shop / demo=shop2: tienda 1 o 2 desbloqueada sin tocar la bbdd
