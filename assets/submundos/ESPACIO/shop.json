@@ -8,7 +8,8 @@
       "pos": {
         "x": 0.694,
         "y": 0.678
-      }
+      },
+      "painted": false
     },
     {
       "unlockAfter": 9,
@@ -21,7 +22,8 @@
       "art": {
         "x": 0.115,
         "y": 0.26
-      }
+      },
+      "painted": false
     }
   ]
 }

@@ -550,6 +550,8 @@
     // Islas tienda: misma máscara oscura que las islas bloqueadas hasta
     // completar `unlockAfter`; sin marcador de nivel (no son jugables).
     // Las pasadas de largo (shopGone) se disuelven en el cielo.
+    // Nodos con `painted:false` aún no tienen isla dibujada en el pano —
+    // no se pinta ninguna mancha (el nodo sigue siendo navegable).
     shopNodes.forEach((node, ni) => {
       if (atShop === ni) {
         const div = document.createElement('div');
@@ -560,6 +562,7 @@
         div.style.height = sz + 'px';
         overlay.appendChild(div);
       }
+      if (node.painted === false) return;
       if (shopGone.has(ni)) {
         paintShopGoneFx(r, sz, node);
       } else if (!isShopUnlocked(node)) {
