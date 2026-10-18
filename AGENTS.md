@@ -177,12 +177,14 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
   2. **Extensión lateral** con quilting min-cut (`tools/quilt_extend.py`)
      hasta 2.35:1 — solo visible en pantallas más anchas que 16:9; a
      16:9 el viewport muestra EXACTAMENTE el arte comprimido.
-  3. **Bruma en los bordes** (postproceso sobre el .pano): la zona quilt
-     (x<0.118 / x>0.882) lleva limpieza de objetos sueltos por inpainting
-     (telea sobre `|img - blur50| > 55`, componentes <60000 px²) +
-     desenfoque progresivo σ→60 y atenuación ~16% hacia el rim — las
-     costuras y parches del quilt se disuelven en neblina cinemática
-     (script de referencia: `.tmp_chk/edge_haze.py`).
+  3. **Quilt sanado en los bordes** (postproceso sobre el .pano, zona
+     x<0.122 / x>0.878): mediana fuerte (51px) + blur suave funde las
+     costuras de los parches y borra objetos pequeños sueltos; los restos
+     grandes que no tocan el núcleo se sustituyen por el cielo local
+     (modelo por fila medido en franjas limpias); luego grano sutil,
+     estrellas rescatadas del propio pano y atenuación ~15% hacia el rim.
+     El contenido que cruza el límite del núcleo (islas, la tienda 2)
+     se conserva nítido (script: `.tmp_chk/pano_finalize.py`).
   Coordenadas en espacio del lienzo .pano comprimido: x remapeada
   `(x*7680+1236)/10152`, y remapeada por fila con `pos` — aplicado por
   `tools/remap-coords-squeeze.py` (UNA sola ejecución). `getImgRect()`
@@ -322,11 +324,15 @@ de `pos`).
   bloqueada — máscara `island-fx locked` como las islas). `INV[dir]`
   devuelve a la isla. Enter en la tienda navega a
   `shop.html?world=X`. El HUD central muestra `shop.title` en vez de
-  "Nivel X/12". **Pasar de largo** (de `from` a `from+1` sin entrar)
-  marca el nodo en `shopGone` (Set de índices, persiste
-  `worldProgress[w].shopGone` vía `POST /api/shop-skip {world,index}` —
-  `true` legado = `[0]`): la isla se disuelve en una mancha difuminada
-  (`paintShopGoneFx`) y queda inaccesible para siempre.
+  "Nivel X/12". **La tienda desaparece al COMPLETAR el nivel `from+1`**:
+  `shopGone` (Set de índices) se deriva en `loadShop()` de
+  `completedLevels`, no al pisar la isla — moverse de `from` a `from+1`
+  sin entrar la deja accesible; superar ese nivel la disuelve en una
+  mancha difuminada (`paintShopGoneFx`) para siempre. El flag persiste
+  `worldProgress[w].shopGone` vía `POST /api/shop-skip {world,index}`
+  (`true` legado = `[0]`). Las tiendas se conectan al mapa con
+  **catenarias raíl+tablones+lámparas** pintadas en el pano (estilo de
+  las rutas entre islas) y llevan un cofre de monedas como letrero.
   `?demo=shop`/`?demo=shop2` simulan el estado tras nivel 3/9 sin tocar
   la bbdd.
 - `assets/tienda/items.json` — catálogo `{items:[{id,price,icon,uses}]}`.
