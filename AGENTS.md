@@ -164,23 +164,32 @@ viewport deja bandas. Se rellenan con `<img id="fillbg">` — copia del mismo
 fondo con `object-fit: cover` + `blur(45px) brightness(.42)` + `scale(1.15)`,
 detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
 
-**Pantallas 3:2 a 16:9 — una estrategia: `.169.webp` espejo**:
+**Pantallas 3:2 a ratio ancho — dos estrategias**:
 
-- **Todas las pantallas 3:2 → `.169.webp` espejo** generada por
-  `tools/edge_extend_16x9.py`: los 711px exteriores de cada lado del master
-  se reflejan hacia fuera (7680×5120 → 9102×5120 = 16:9). El usuario
-  rechazó el quilt+bruma (costuras, motas magenta, bordes difuminados):
-  el espejo usa solo píxeles reales, nítido, y en los submundos lee como
-  islas que salen del plano. Vale para menú, selección, configuración,
-  mapamundi **y submundos** (`submundo <M>.169.webp`).
-- **Coordenadas de submundo en espacio `.169`**: x remapeada
-  `(x*7680+711)/9102`, y sin tocar. Los JSON que venían del lienzo pano
-  (10152×4320 squeeze+quilt) se revirtieron con la inversa del squeeze
-  (`sqpos-*.npy` en `.tmp_chk/`, script `.tmp_chk/remap-169sub.py` — UNA
-  sola ejecución). El pipeline pano (`tools/pano_build.py`,
-  `quilt_extend.py`, `remap-coords-squeeze.py`) queda DESCARTADO — los
-  `.pano.webp` se eliminaron; el arte original vive en
-  `assets/submundos/<M>/old/`.
+- **Menú, selección, configuración y mapamundi → `.169.webp` espejo**
+  generada por `tools/edge_extend_16x9.py`: los 711px exteriores de cada
+  lado del master se reflejan hacia fuera (7680×5120 → 9102×5120 = 16:9).
+  El usuario rechazó el quilt+bruma (costuras, motas magenta, bordes
+  difuminados): el espejo usa solo píxeles reales, nítido.
+- **Submundos → `.ext.webp` 2.35:1** (12032×5120), generados por
+  `tools/sub_extend.py` con config por mundo en `tools/sub-ext.json`:
+  el master 3:2 queda intacto en el centro (núcleo 7680px) y cada lado se
+  extiende 2176px con **atmósfera continua del propio arte** — base de
+  color por fila tomada del borde del núcleo + detalle de baja frecuencia
+  (modo `flat`) o tesela difuminada del parche de cielo, más "shards"
+  (rocas/aletas lejanas reales recortadas del arte y resiembradas con
+  escala/volteo/bruma) y bandas inferiores (`bands`, p.ej. la cordillera
+  de FUEGO). El usuario rechazó el `.169` espejo en submundos porque
+  repetía islas reconocibles; el `.ext` nunca repite objetos. A 16:9
+  `cover` muestra el núcleo entero sin recortar arriba/abajo; lo que
+  desborda por los lados es atmósfera generada, sacrificable.
+- **Coordenadas de submundo en espacio `.ext`**: x remapeada
+  `(x*7680+2176)/12032`, y sin tocar (mismo desplazamiento de núcleo que
+  el `.169`; remap `.tmp_chk/remap-169-to-ext.py`, UNA sola ejecución).
+  El pipeline pano (`pano_build.py`, `quilt_extend.py`,
+  `remap-coords-squeeze.py`) quedó DESCARTADO y borrado; los
+  `.pano.webp` y `.169.webp` de submundos se eliminaron; el arte original
+  vive en `assets/submundos/<M>/old/`.
 - **Textos del submundo — `anchorX`**: en `text-areas.json` un área puede
   llevar `"anchorX": "viewLeft"|"viewRight"`: entonces `x` y `w` pasan a ser
   fracciones del **ancho visible del viewport** (no de la imagen) y `x` mide
