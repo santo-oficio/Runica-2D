@@ -154,6 +154,9 @@
       var dl = postBody(init);
       return json({ ok: true, player: DB.setLevelPosition(String(dl.world || ""), Number(dl.level) || 0) });
     }
+    if (path === "/api/shop-skip" && method === "POST") {
+      return json({ ok: true, player: DB.markShopGone(String(postBody(init).world || "")) });
+    }
     if (path === "/api/level-complete" && method === "POST") {
       var dc = postBody(init);
       return json({

@@ -82,8 +82,9 @@ export interface PlayerState {
   gold?: number;
   /** Último mundo seleccionado en el mapamundi (posición del avatar al volver). */
   lastWorld?: string;
-  /** Progreso por mundo: última isla jugada + islas completadas (0..MAP_LEVELS_PER_WORLD-1). */
-  worldProgress?: Record<string, { last?: number; completed?: number[] }>;
+  /** Progreso por mundo: última isla jugada + islas completadas (0..MAP_LEVELS_PER_WORLD-1)
+   *  + `shopGone`: la tienda desapareció al pasar de largo sin entrar. */
+  worldProgress?: Record<string, { last?: number; completed?: number[]; shopGone?: boolean }>;
   /** Inventario de la tienda: itemId -> usos restantes. */
   inventory?: Record<string, number>;
   /** Nivel de juego actual (tier 1..14 según la curva global; el 15 es solo del boss final). */
@@ -476,6 +477,20 @@ export function completeLevel(world: string, level: number, goldEarned = 0, scre
   player.worldProgress = wp;
   player.lastWorld = world;
   player.gameLevel = tierForCompleted(player.totalStagesCompleted);
+  player.updatedAt = Date.now();
+  persist();
+  return { ...player };
+}
+
+/** La isla tienda desaparece cuando el jugador pasa a la siguiente isla
+ *  sin entrar en ella (oportunidad única por mundo). */
+export function markShopGone(world: string): PlayerState {
+  if (!(WORLDS as readonly string[]).includes(world)) return { ...player };
+  const wp = { ...(player.worldProgress ?? {}) };
+  const w = { ...(wp[world] ?? {}) };
+  w.shopGone = true;
+  wp[world] = w;
+  player.worldProgress = wp;
   player.updatedAt = Date.now();
   persist();
   return { ...player };

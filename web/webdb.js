@@ -234,6 +234,19 @@
     return c.length >= MAP_LEVELS_PER_WORLD;
   }
 
+  /** La isla tienda desaparece al pasar de largo sin entrar (oportunidad única). */
+  function markShopGone(world) {
+    if (WORLDS.indexOf(world) < 0) return getPlayer();
+    var wp = Object.assign({}, player.worldProgress || {});
+    var w = Object.assign({}, wp[world] || {});
+    w.shopGone = true;
+    wp[world] = w;
+    player.worldProgress = wp;
+    player.updatedAt = Date.now();
+    persist();
+    return getPlayer();
+  }
+
   /** Compra un ítem: descuenta oro y suma `uses` al inventario.
    *  Falla sin oro o si ya se lleva el máximo (`max` por tipo). */
   function buyItem(itemId, price, uses, max) {
@@ -396,6 +409,7 @@
     completeScreen: completeScreen,
     failScreen: function () {},
     isWorldComplete: isWorldComplete,
+    markShopGone: markShopGone,
     isWorldUnlocked: isWorldUnlocked,
     buyItem: buyItem,
     consumeItem: consumeItem,

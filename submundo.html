@@ -114,6 +114,16 @@
   .island-fx.locked {
     filter: grayscale(0.6) brightness(0.35);
   }
+  /* Isla tienda desaparecida: la misma zona muy difuminada — sus propios
+     colores se deshacen en una nube que se funde con el cielo vecino. */
+  .island-fx.shopgone {
+    filter: blur(11px) brightness(1.06) saturate(0.9);
+    animation: shopGoneFade 0.9s ease-out both;
+  }
+  @keyframes shopGoneFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
   #avatar {
     position: absolute;
     z-index: 12;
@@ -340,8 +350,34 @@
   // `unlockAfter` niveles. No cuenta como nivel ni altera la serpiente.
   let shopData = null;
   let atShop = false;
+  // La tienda desaparece si el jugador pasa de largo sin entrar en ella.
+  let shopGone = false;
+  const DEMO_SHOP = new URLSearchParams(window.location.search).get('demo') === 'shop';
   function isShopUnlocked() {
-    return !!shopData && completedLevels.has((shopData.unlockAfter ?? 1) - 1);
+    return !!shopData && !shopGone && completedLevels.has((shopData.unlockAfter ?? 1) - 1);
+  }
+
+  // La isla pintada en el pano no se puede borrar: se cubre con una copia
+  // muy difuminada de su propia zona — la isla se deshace en una nube que
+  // se funde con el cielo y "desaparece" del mapa.
+  function paintShopGoneFx(r, sz) {
+    const pos = shopData.pos;
+    const fx = document.createElement('div');
+    fx.className = 'island-fx shopgone';
+    fx.style.left = r.left + 'px';
+    fx.style.top = r.top + 'px';
+    fx.style.width = r.width + 'px';
+    fx.style.height = r.height + 'px';
+    fx.style.backgroundImage = `url("${bg.src}")`;
+    const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.45;
+    const g = (x, y, rad, s, f) =>
+      `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
+    fx.style.webkitMaskImage = fx.style.maskImage = [
+      g(px, py, rr, 42, 82),
+      g(px - rr * 0.35, py - rr * 0.3, rr * 0.55, 28, 65),
+      g(px + rr * 0.4, py + rr * 0.3, rr * 0.5, 28, 65),
+    ].join(',');
+    overlay.appendChild(fx);
   }
   let textAreas = {
     worldName: { x: 0.35, y: 0.08, w: 0.3, h: 0.08 },
@@ -501,8 +537,9 @@
 
     // Isla tienda: misma máscara oscura que las islas bloqueadas hasta
     // completar `unlockAfter`; sin marcador de nivel (no es una isla jugable).
+    // Si el jugador pasó de largo (shopGone) se disuelve en el cielo.
     if (shopData) {
-      if (atShop) {
+      if (atShop && !shopGone) {
         const div = document.createElement('div');
         div.className = 'cell-marker selected';
         div.style.left = (r.left + shopData.pos.x * r.width - sz / 2) + 'px';
@@ -511,7 +548,9 @@
         div.style.height = sz + 'px';
         overlay.appendChild(div);
       }
-      if (!isShopUnlocked()) {
+      if (shopGone) {
+        paintShopGoneFx(r, sz);
+      } else if (!isShopUnlocked()) {
         const pos = shopData.pos;
         const fx = document.createElement('div');
         fx.className = 'island-fx locked';
@@ -658,6 +697,21 @@
       return;
     }
 
+    // Pasar de largo sin entrar en la tienda: desaparece para siempre.
+    // El fx se pinta directo (sin render()) para no cortar el vuelo del avatar.
+    if (shopData && !shopGone && currentLevel === shopData.from &&
+        newLevel === shopData.from + 1 && isShopUnlocked()) {
+      shopGone = true;
+      const r = getImgRect();
+      paintShopGoneFx(r, resolvedAvatarSize() * r.width);
+      if (!DEMO_SHOP) {
+        fetch('/api/shop-skip', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ world: currentWorld }),
+        }).catch(() => {});
+      }
+    }
+
     currentLevel = newLevel;
     AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
     animateAvatarTo(positions[currentLevel]);
@@ -792,9 +846,11 @@
     await loadPlayer();
     measureAvatarPads();
     completedLevels = new Set(player?.worldProgress?.[currentWorld]?.completed ?? []);
+    shopGone = !!player?.worldProgress?.[currentWorld]?.shopGone;
     // demo=shop: tienda desbloqueada sin tocar la bbdd (pantalla de testing)
     if (params.get('demo') === 'shop') {
       completedLevels = new Set([0, 1, 2]);
+      shopGone = false;
       currentLevel = 2; // isla 3: a un ↑ de la tienda
     } else {
       currentLevel = getStartLevel(currentWorld);

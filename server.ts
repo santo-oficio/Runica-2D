@@ -30,6 +30,7 @@ import {
   tierSize,
   buyItem,
   consumeItem,
+  markShopGone,
   FIRST_TIER,
 } from "./db/db.js";
 import {
@@ -1076,6 +1077,24 @@ const server = http.createServer((req, res) => {
           String(data.world ?? ""), Number(data.level) || 0,
           Number(data.gold) || 0, data.screenId ? String(data.screenId) : undefined,
         );
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, player }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: la isla tienda desaparece al pasar de largo (POST {world})
+  if (url === "/api/shop-skip" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body);
+        const player = markShopGone(String(data.world ?? ""));
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: true, player }));
       } catch (e) {
