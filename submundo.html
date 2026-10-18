@@ -246,14 +246,14 @@
   const ROWS = 3;
 
   const WORLD_IMAGES = {
-    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.pano.webp?v=p4',
-    AGUA: '/assets/submundos/AGUA/submundo agua.pano.webp?v=p4',
-    TIERRA: '/assets/submundos/TIERRA/submundo tierra.pano.webp?v=p4',
-    FUEGO: '/assets/submundos/FUEGO/submundo fuego.pano.webp?v=p4',
-    HIELO: '/assets/submundos/HIELO/submundo hielo.pano.webp?v=p4',
-    VIENTO: '/assets/submundos/VIENTO/submundo viento.pano.webp?v=p4',
-    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.pano.webp?v=p4',
-    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.pano.webp?v=p4',
+    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.pano.webp?v=p5',
+    AGUA: '/assets/submundos/AGUA/submundo agua.pano.webp?v=p5',
+    TIERRA: '/assets/submundos/TIERRA/submundo tierra.pano.webp?v=p5',
+    FUEGO: '/assets/submundos/FUEGO/submundo fuego.pano.webp?v=p5',
+    HIELO: '/assets/submundos/HIELO/submundo hielo.pano.webp?v=p5',
+    VIENTO: '/assets/submundos/VIENTO/submundo viento.pano.webp?v=p5',
+    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.pano.webp?v=p5',
+    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.pano.webp?v=p5',
   };
 
   // Grid 4x3 con numeracion en serpiente:
@@ -364,25 +364,18 @@
 
   // La isla pintada en el pano no se puede borrar: se cubre con una copia
   // muy difuminada de su propia zona — la isla se deshace en una nube que
-  // se funde con el cielo y "desaparece" del mapa.
-  function paintShopGoneFx(r, sz, node) {
+  // se funde con el cielo y "desaparece" del mapa. Devuelve los gradientes
+  // de la mancha para la mascara combinada (un solo div para todas).
+  function shopGoneMasks(r, sz, node) {
     const pos = node.pos;
-    const fx = document.createElement('div');
-    fx.className = 'island-fx shopgone';
-    fx.style.left = r.left + 'px';
-    fx.style.top = r.top + 'px';
-    fx.style.width = r.width + 'px';
-    fx.style.height = r.height + 'px';
-    fx.style.backgroundImage = `url("${bg.src}")`;
     const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.45;
     const g = (x, y, rad, s, f) =>
       `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
-    fx.style.webkitMaskImage = fx.style.maskImage = [
+    return [
       g(px, py, rr, 42, 82),
       g(px - rr * 0.35, py - rr * 0.3, rr * 0.55, 28, 65),
       g(px + rr * 0.4, py + rr * 0.3, rr * 0.5, 28, 65),
-    ].join(',');
-    overlay.appendChild(fx);
+    ];
   }
   let textAreas = {
     worldName: { x: 0.35, y: 0.08, w: 0.3, h: 0.08 },
@@ -503,6 +496,15 @@
     const sz = resolvedAvatarSize() * r.width;
     overlay.innerHTML = '';
 
+    // Las manchas de islas bloqueadas van en UN solo div con la lista de
+    // gradientes como mascara: N divs con background-image del pano 10K +
+    // filter disparaban la presion de memoria y Chrome rasterizaba toda la
+    // pagina (incluido #bg) a baja resolucion — se veia todo borroso.
+    const g = (x, y, rad, s, f) =>
+      `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
+    const lockedMasks = [];
+    const goneMasks = [];
+
     // Marcadores de casillas
     for (let i = 0; i < NUM_LEVELS; i++) {
       const pos = positions[i];
@@ -517,36 +519,19 @@
       overlay.appendChild(div);
 
       // Máscara visual sobre la isla: completada (B/N) o bloqueada (oscura)
-      if (i !== currentLevel) {
-        const locked = !isLevelUnlocked(i);
-        if (locked) { // solo lo bloqueado se oscurece; lo completado queda a color
-          // Div con background en vez de <img>: los backgrounds se repintan
-          // solos al decodificar; un <img> con mask+filter pre-decode
-          // rasterizaba vacío y jamás se repintaba (mundo sin oscurecer)
-          const fx = document.createElement('div');
-          fx.className = 'island-fx locked';
-          fx.style.left = r.left + 'px';
-          fx.style.top = r.top + 'px';
-          fx.style.width = r.width + 'px';
-          fx.style.height = r.height + 'px';
-          fx.style.backgroundImage = `url("${bg.src}")`;
-          // Mancha organica: nucleo suave + 3 blobs desplazados de forma
-          // determinista por isla (nunca un circulo perfecto)
-          const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.15;
-          const a = i * 2.399963; // angulo dorado: dispersa los blobs por isla
-          const g = (x, y, rad, s, f) =>
-            `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
-          fx.style.webkitMaskImage = fx.style.maskImage = [
-            g(px, py, rr, 58, 88),
-            g(px + Math.cos(a) * rr * 0.55, py + Math.sin(a) * rr * 0.55, rr * 0.6, 42, 80),
-            g(px + Math.cos(a + 2.1) * rr * 0.6, py + Math.sin(a + 2.1) * rr * 0.6, rr * 0.55, 42, 80),
-            g(px + Math.cos(a + 4.2) * rr * 0.5, py + Math.sin(a + 4.2) * rr * 0.5, rr * 0.5, 42, 80),
-          ].join(',');
-          overlay.appendChild(fx);
-        }
+      if (i !== currentLevel && !isLevelUnlocked(i)) {
+        // Mancha organica: nucleo suave + 3 blobs desplazados de forma
+        // determinista por isla (nunca un circulo perfecto)
+        const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.15;
+        const a = i * 2.399963; // angulo dorado: dispersa los blobs por isla
+        lockedMasks.push(
+          g(px, py, rr, 58, 88),
+          g(px + Math.cos(a) * rr * 0.55, py + Math.sin(a) * rr * 0.55, rr * 0.6, 42, 80),
+          g(px + Math.cos(a + 2.1) * rr * 0.6, py + Math.sin(a + 2.1) * rr * 0.6, rr * 0.55, 42, 80),
+          g(px + Math.cos(a + 4.2) * rr * 0.5, py + Math.sin(a + 4.2) * rr * 0.5, rr * 0.5, 42, 80),
+        );
       }
     }
-
     // Islas tienda: misma máscara oscura que las islas bloqueadas hasta
     // completar `unlockAfter`; sin marcador de nivel (no son jugables).
     // Las pasadas de largo (shopGone) se disuelven en el cielo.
@@ -564,27 +549,41 @@
       }
       if (node.painted === false) return;
       if (shopGone.has(ni)) {
-        paintShopGoneFx(r, sz, node);
+        goneMasks.push(...shopGoneMasks(r, sz, node));
       } else if (!isShopUnlocked(node)) {
-        const pos = node.pos;
-        const fx = document.createElement('div');
-        fx.className = 'island-fx locked';
-        fx.style.left = r.left + 'px';
-        fx.style.top = r.top + 'px';
-        fx.style.width = r.width + 'px';
-        fx.style.height = r.height + 'px';
-        fx.style.backgroundImage = `url("${bg.src}")`;
-        const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.3;
-        const g = (x, y, rad, s, f) =>
-          `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
-        fx.style.webkitMaskImage = fx.style.maskImage = [
+        const px = node.pos.x * r.width, py = node.pos.y * r.height, rr = sz * 1.3;
+        lockedMasks.push(
           g(px, py, rr, 58, 88),
           g(px + rr * 0.5, py - rr * 0.3, rr * 0.6, 42, 80),
           g(px - rr * 0.55, py + rr * 0.25, rr * 0.55, 42, 80),
-        ].join(',');
-        overlay.appendChild(fx);
+        );
       }
     });
+    // Un solo div oscurece todas las islas bloqueadas. Con background (no
+    // <img>): los backgrounds se repintan solos al decodificar; un <img> con
+    // mask+filter pre-decode rasterizaba vacio y jamas se repintaba.
+    if (lockedMasks.length) {
+      const fx = document.createElement('div');
+      fx.className = 'island-fx locked';
+      fx.style.left = r.left + 'px';
+      fx.style.top = r.top + 'px';
+      fx.style.width = r.width + 'px';
+      fx.style.height = r.height + 'px';
+      fx.style.backgroundImage = `url("${bg.src}")`;
+      fx.style.webkitMaskImage = fx.style.maskImage = lockedMasks.join(',');
+      overlay.appendChild(fx);
+    }
+    if (goneMasks.length) {
+      const fx = document.createElement('div');
+      fx.className = 'island-fx shopgone';
+      fx.style.left = r.left + 'px';
+      fx.style.top = r.top + 'px';
+      fx.style.width = r.width + 'px';
+      fx.style.height = r.height + 'px';
+      fx.style.backgroundImage = `url("${bg.src}")`;
+      fx.style.webkitMaskImage = fx.style.maskImage = goneMasks.join(',');
+      overlay.appendChild(fx);
+    }
 
     // Avatar en la casilla actual (o en la tienda)
     const pos = atShop >= 0 && shopNodes[atShop] ? shopNodes[atShop].pos : positions[currentLevel];
