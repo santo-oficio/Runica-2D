@@ -406,6 +406,44 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: zonas calibradas del interior de tienda (GET /api/shop-areas?world=XXX)
+  // OJO: la ruta no puede llamarse /api/load-shop-areas porque empezaría por
+  // /api/load-shop y colisionaría con el handler de shop.json.
+  if (url.startsWith("/api/shop-areas")) {
+    const u = new URL(url, "http://localhost");
+    const world = u.searchParams.get("world") || "";
+    const loadPath = join(ROOT, "assets", "tienda", world, "areas.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
+  // API: guardar zonas de tienda (POST /api/save-shop-areas?world=XXX)
+  if (url.startsWith("/api/save-shop-areas") && req.method === "POST") {
+    const u = new URL(url, "http://localhost");
+    const world = u.searchParams.get("world") || "";
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const dir = join(ROOT, "assets", "tienda", world);
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, "areas.json"), body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
   // API: catálogo de la tienda (GET /api/shop-items)
   if (url === "/api/shop-items") {
     const loadPath = join(ROOT, "assets", "tienda", "items.json");

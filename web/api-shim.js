@@ -66,6 +66,7 @@
       case "/api/load-subworld-positions": return "assets/submundos/" + w + "/avatar-positions.json";
       case "/api/load-subworld-text-areas": return "assets/submundos/" + w + "/text-areas.json";
       case "/api/load-shop": return "assets/submundos/" + w + "/shop.json";
+      case "/api/shop-areas": return "assets/tienda/" + w + "/areas.json";
       case "/api/shop-items": return "assets/tienda/items.json";
       case "/api/load-world-paths": return "assets/mapamundi/world-paths.json";
       case "/api/load-avatar-positions": return "assets/mapamundi/avatar-positions.json";

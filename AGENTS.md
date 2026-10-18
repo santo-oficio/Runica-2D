@@ -228,6 +228,7 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-modal.html` | `assets/comunes/modal-areas.json` (`title` = polígono sobre el arco del cartel + `content`/`buttonLeft`/`buttonRight` rectángulos) |
 | `calibrate-config.html` | `assets/configuracion/config-areas.json` (textos/casillas sonido+música rectángulos; flechas idioma y atrás = polígonos) |
 | `calibrate-fin.html` | `assets/comunes/fin-areas.json` — fin del juego: **círculos** `{cx,cy,r}` por mundo (el aura irregular la genera `AssetsCache.auraPoints` de forma determinista) + rectángulos `hero`/`boss` del tablero final |
+| `calibrate-tienda.html` | `assets/tienda/<M>/areas.json` — zonas del interior: `title`/`gold`/`bubble`/`slot1..3` |
 
 ### `calibrate-board-sprites.html` — sprites + áreas
 
@@ -320,7 +321,16 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   cofres (`.item-slot`). Bocadillo del tendero (`shop.keeper.<MUNDO>`,
   `shop.welcome`). Teclas: ←→ elegir, Enter comprar, Esc volver.
   `?demo=1` = oro/inventario falsos sin tocar la bbdd.
-- API: `GET /api/load-shop?world=X`, `GET /api/shop-items`,
+- `calibrate-tienda.html` — calibra por mundo las zonas del arte: `title`
+  (cartelón), `gold` (placa de oro), `bubble` (bocadillo) y `slot1..3`
+  (cofres). Mismo set de teclas que el resto de calibradores (arrastrar,
+  Tab, flechas, +/-, Q/E/Z/X, `,`/`.` fontScale, S copiar tamaño,
+  Espacio mundo, G/C). Guarda `assets/tienda/<M>/areas.json` vía
+  `POST /api/save-shop-areas`; `shop.html` lo carga con
+  `GET /api/shop-areas?world=X` mezclando sobre los defaults `HUD`
+  (cada zona puede llevar `fontScale` → tamaño de texto/iconos).
+- API: `GET /api/load-shop?world=X`, `GET /api/shop-areas?world=X`,
+  `POST /api/save-shop-areas?world=X`, `GET /api/shop-items`,
   `POST /api/buy-item {itemId}` (precio validado en servidor, nunca del
   cliente), `POST /api/consume-item {itemId}`. `web/api-shim.js` los mapea en
   TV/Android y `web/webdb.js` tiene `buyItem`/`consumeItem` equivalentes.

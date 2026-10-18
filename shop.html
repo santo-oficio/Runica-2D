@@ -79,10 +79,9 @@
     pointer-events: none;
   }
 
-  /* ── Bocadillo del tendero ──────────────────────────────────── */
+  /* ── Bocadillo del tendero (posición calibrada por mundo) ────── */
   #bubble {
     position: absolute; z-index: 12;
-    left: 4%; top: 20%; width: 24%; max-width: 460px;
     background: rgba(24, 16, 8, 0.85);
     border: 2px solid rgba(210, 170, 90, 0.75);
     border-radius: 14px;
@@ -131,17 +130,18 @@
     height: 38%; flex: none; object-fit: contain;
     filter: drop-shadow(0 0 8px rgba(0,0,0,0.8));
   }
+  /* --fs: escala de texto calibrada por zona (calibrate-tienda.html) */
   .item-name {
-    color: #f2e0b8; font-size: 1.9vh; text-align: center;
+    color: #f2e0b8; font-size: calc(1.9vh * var(--fs, 1)); text-align: center;
     text-shadow: 1px 1px 3px rgba(0,0,0,0.95);
   }
   .item-price {
     display: flex; align-items: center; gap: 0.35em;
-    color: #ffd76a; font-size: 1.8vh;
+    color: #ffd76a; font-size: calc(1.8vh * var(--fs, 1));
     text-shadow: 1px 1px 3px rgba(0,0,0,0.95);
   }
   .item-price img { height: 1em; }
-  .item-owned { color: #8fd0a0; font-size: 1.4vh;
+  .item-owned { color: #8fd0a0; font-size: calc(1.4vh * var(--fs, 1));
     text-shadow: 1px 1px 3px rgba(0,0,0,0.95); }
   #slots { position: absolute; inset: 0; z-index: 11; pointer-events: none; }
 
@@ -228,17 +228,36 @@
   const bg = document.getElementById('bg');
 
   /* Zonas del arte de la tienda (coords normalizadas de imagen):
-     el cartelón para el título, la placa pintada para el oro y los
-     tres cofres-expositores del mostrador para los ítems. */
+     el cartelón para el título, la placa pintada para el oro, el
+     bocadillo junto al tendero y los tres cofres del mostrador para
+     los ítems. Defaults; la calibración por mundo vive en
+     assets/tienda/<M>/areas.json (calibrate-tienda.html). */
   const HUD = {
-    title: { x: 0.20, y: 0.035, w: 0.40, h: 0.105 },
-    gold:  { x: 0.815, y: 0.045, w: 0.115, h: 0.08 },
+    title:  { x: 0.20, y: 0.035, w: 0.40, h: 0.105 },
+    gold:   { x: 0.815, y: 0.045, w: 0.115, h: 0.08 },
+    bubble: { x: 0.04, y: 0.20, w: 0.24, h: 0 },
     slots: [
       { x: 0.290, y: 0.625, w: 0.150, h: 0.235 },
       { x: 0.455, y: 0.625, w: 0.150, h: 0.235 },
       { x: 0.625, y: 0.625, w: 0.150, h: 0.235 },
     ],
   };
+  let hudAreas = null; // areas.json del mundo, si existe
+
+  async function loadAreas() {
+    try {
+      const r = await fetch('/api/shop-areas?world=' + encodeURIComponent(currentWorld));
+      if (r.ok) { const d = await r.json(); if (d && d.areas) hudAreas = d.areas; }
+    } catch {}
+  }
+  // Zona calibrada sobre el default (title/gold/bubble/slot1..3)
+  function zone(k) {
+    const a = hudAreas && hudAreas[k];
+    const def = k.startsWith('slot')
+      ? HUD.slots[(+k.slice(4) - 1) % HUD.slots.length]
+      : HUD[k];
+    return a ? { ...def, ...a } : def;
+  }
 
   function imgRect() {
     const vw = window.innerWidth, vh = window.innerHeight;
@@ -255,11 +274,23 @@
   }
   function layout() {
     const r = imgRect();
-    place(document.getElementById('shop-title'), HUD.title, r);
-    place(document.getElementById('gold-num'), HUD.gold, r);
+    const title = zone('title'), gold = zone('gold'), bubble = zone('bubble');
+    const tEl = document.getElementById('shop-title');
+    place(tEl, title, r);
+    tEl.style.fontSize = (4 * (title.fontScale || 1)) + 'vh';
+    const gEl = document.getElementById('gold-num');
+    place(gEl, gold, r);
+    gEl.style.fontSize = (3.4 * (gold.fontScale || 1)) + 'vh';
+    const bEl = document.getElementById('bubble');
+    bEl.style.left = (r.left + bubble.x * r.w) + 'px';
+    bEl.style.top = (r.top + bubble.y * r.h) + 'px';
+    bEl.style.width = (bubble.w * r.w) + 'px';
+    bEl.style.minHeight = ((bubble.h || 0) * r.h) + 'px';
+    bEl.style.fontSize = (2 * (bubble.fontScale || 1)) + 'vh';
     document.querySelectorAll('.item-slot').forEach((slot, i) => {
-      let a = HUD.slots[i % HUD.slots.length];
-      if (i >= HUD.slots.length) a = { ...a, y: a.y + a.h + 0.02 };
+      let a = zone('slot' + ((i % 3) + 1));
+      if (i >= 3) a = { ...a, y: a.y + a.h + 0.02 };
+      slot.style.setProperty('--fs', a.fontScale || 1);
       place(slot, a, r);
     });
   }
@@ -423,6 +454,7 @@
 
     await loadPlayer();
     await loadCatalog();
+    await loadAreas();
 
     document.getElementById('shop-title').textContent =
       t('shop.title') + ' — ' + t('worlds.' + currentWorld);
