@@ -164,51 +164,32 @@ viewport deja bandas. Se rellenan con `<img id="fillbg">` — copia del mismo
 fondo con `object-fit: cover` + `blur(45px) brightness(.42)` + `scale(1.15)`,
 detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
 
-**Pantallas 3:2 a 16:9 — dos estrategias**:
+**Pantallas 3:2 a 16:9 — una estrategia: `.169.webp` espejo**:
 
-- **Submundos → variantes `.pano.webp` 2.35:1** (10152×4320), generadas
-  por `tools/pano_build.py` en dos fases:
-  1. **Squeeze vertical content-aware** (7680×5120 → 7680×4320 = 16:9
-     exacto): cada fila recibe escala según su energía de borde — el HUD
-     y las islas quedan ~1:1 y el cielo vacío entre islas se comprime
-     hasta ~45%. Toda la composición cabe en 16:9 sin recortar ni
-     inventar nada. `squeeze_rows()` devuelve `pos[r]` (fila de salida
-     de cada fila original) para remapear coordenadas.
-  2. **Extensión lateral** con quilting min-cut (`tools/quilt_extend.py`)
-     hasta 2.35:1 — solo visible en pantallas más anchas que 16:9; a
-     16:9 el viewport muestra EXACTAMENTE el arte comprimido.
-  3. **Quilt sanado en los bordes** (postproceso sobre el .pano, zona
-     x<0.122 / x>0.878): mediana fuerte (51px) + blur suave funde las
-     costuras de los parches y borra objetos pequeños sueltos; los restos
-     grandes que no tocan el núcleo se sustituyen por el cielo local
-     (modelo por fila medido en franjas limpias); luego grano sutil,
-     estrellas rescatadas del propio pano y atenuación ~15% hacia el rim.
-     El contenido que cruza el límite del núcleo (islas, la tienda 2)
-     se conserva nítido (script: `.tmp_chk/pano_finalize.py`).
-  Coordenadas en espacio del lienzo .pano comprimido: x remapeada
-  `(x*7680+1236)/10152`, y remapeada por fila con `pos` — aplicado por
-  `tools/remap-coords-squeeze.py` (UNA sola ejecución). `getImgRect()`
-  usa `Math.max` con `top = er.top`; los pies del avatar se clampean al
-  viewport (`avatarBaseTop`).
+- **Todas las pantallas 3:2 → `.169.webp` espejo** generada por
+  `tools/edge_extend_16x9.py`: los 711px exteriores de cada lado del master
+  se reflejan hacia fuera (7680×5120 → 9102×5120 = 16:9). El usuario
+  rechazó el quilt+bruma (costuras, motas magenta, bordes difuminados):
+  el espejo usa solo píxeles reales, nítido, y en los submundos lee como
+  islas que salen del plano. Vale para menú, selección, configuración,
+  mapamundi **y submundos** (`submundo <M>.169.webp`).
+- **Coordenadas de submundo en espacio `.169`**: x remapeada
+  `(x*7680+711)/9102`, y sin tocar. Los JSON que venían del lienzo pano
+  (10152×4320 squeeze+quilt) se revirtieron con la inversa del squeeze
+  (`sqpos-*.npy` en `.tmp_chk/`, script `.tmp_chk/remap-169sub.py` — UNA
+  sola ejecución). El pipeline pano (`tools/pano_build.py`,
+  `quilt_extend.py`, `remap-coords-squeeze.py`) queda DESCARTADO — los
+  `.pano.webp` se eliminaron; el arte original vive en
+  `assets/submundos/<M>/old/`.
 - **Textos del submundo — `anchorX`**: en `text-areas.json` un área puede
   llevar `"anchorX": "viewLeft"|"viewRight"`: entonces `x` y `w` pasan a ser
   fracciones del **ancho visible del viewport** (no de la imagen) y `x` mide
-  el margen desde ese borde — el HUD se pega a los lados visibles del pano
+  el margen desde ese borde — el HUD se pega a los lados visibles
   (el `gold` usa `viewRight` con `x≈0.015`). Sin `anchorX`, `x`/`w` son
   fracciones de imagen como siempre (`y`/`h` siempre lo son). El
   `worldName` se calibra centrado bajo la calavera de su arco decorativo.
-- **Menú, selección, configuración y mapamundi → `.169.webp` quilt+bruma**:
-  esas pantallas tienen contenido pegado a los bordes (el cartel del título,
-  islas del mapa) que el cover cortaría. La variante `.169.webp` extiende los
-  laterales con `tools/quilt_extend.py --ratio 1.7778` (quilting Efros-Freeman
-  sobre el master 3:2, parches nítidos con min-cut) + bruma progresiva en la
-  tira extendida (el ~40% interior nítido, luego desenfoque+alta luz que crece
-  hacia el borde — profundidad de campo, nunca objetos reflejados). Mismas
-  dimensiones 9102×5120/1820×1024 y mismo centro original → coordenadas 16:9
-  remapeadas, intactas en el centro. Los masters 3:2 viven en `assets/**/old/`
-  (excluidos del manifest, webdist y el instalador Electron).
-  DESCARTADO: `tools/edge_extend_16x9.py` (espejo) — duplicaba islas y
-  objetos reconocibles a los lados; NO volver a usarlo para estos fondos.
+- Los masters 3:2 viven en `assets/**/old/` (excluidos del manifest,
+  webdist y el instalador Electron).
 - `tools/remap-coords-16x9.py` — el remapeo x'=(x*W0+side)/W1 se aplicó UNA
   vez a los JSON de esas 4 pantallas + `assets/comunes/fin-areas.json`
   (auras sobre el mapamundi). NO re-ejecutar: duplicaría el desplazamiento.
@@ -309,16 +290,18 @@ renderizarla igual.
 Cada submundo tiene **dos islas tienda** — nodos extra fuera de la
 serpiente 4×3 que cuelgan de islas normales y no cuentan como nivel:
 entre el nivel 3 y el 4 (`from:2, dir:'up', unlockAfter:3`) y entre el
-nivel 9 y el 10 (`from:8, dir:'left', unlockAfter:9`, la isla asoma al
-borde izquierdo del pano — `art` opcional posiciona el arte distinto
-de `pos`).
+nivel 9 y el 10 (`from:8, dir:'left', unlockAfter:9`). **Actualmente sin
+arte pintado** — los nodos llevan `painted:false` y no se dibuja ninguna
+mancha sobre el cielo (el usuario pondrá las imágenes y recalibraremos
+`pos`/`art`).
 
 - `assets/submundos/<MUNDO>/shop.json` — `{world, nodes:[{unlockAfter,
-  from, dir, pos:{x,y}, art?:{x,y}}]}` (el formato plano antiguo se
+  from, dir, pos:{x,y}, art?:{x,y}, painted}]}` (el formato plano antiguo se
   normaliza a `nodes[0]`). Cada nodo cuelga de la isla `from` en la
   dirección `dir` y se desbloquea al completar `unlockAfter` niveles.
-  `pos` es la posición del avatar sobre la isla tienda (espacio .pano,
-  0-1); `art` indica dónde se pintó la isla si difiere (tienda 2).
+  `pos` es la posición del avatar sobre la isla tienda (espacio `.169`,
+  0-1); `art` indica dónde se pintó la isla si difiere. `painted:false`
+  = nodo navegable pero invisible (sin efectos de bloqueo/disolución).
 - `submundo.html`: `loadShop()` carga `shopNodes`; desde la isla `from`,
   la dirección `dir` mueve el avatar a la tienda (rebotando si está
   bloqueada — máscara `island-fx locked` como las islas). `INV[dir]`
@@ -330,9 +313,7 @@ de `pos`).
   sin entrar la deja accesible; superar ese nivel la disuelve en una
   mancha difuminada (`paintShopGoneFx`) para siempre. El flag persiste
   `worldProgress[w].shopGone` vía `POST /api/shop-skip {world,index}`
-  (`true` legado = `[0]`). Las tiendas se conectan al mapa con
-  **catenarias raíl+tablones+lámparas** pintadas en el pano (estilo de
-  las rutas entre islas) y llevan un cofre de monedas como letrero.
+  (`true` legado = `[0]`).
   `?demo=shop`/`?demo=shop2` simulan el estado tras nivel 3/9 sin tocar
   la bbdd.
 - `assets/tienda/items.json` — catálogo `{items:[{id,price,icon,uses}]}`.
@@ -394,12 +375,10 @@ de `pos`).
   agradecimiento (`shop.thanks.0..2`) tras cada compra.
 - Iconos `assets/tienda/iconos/*.webp` — orbe dorado generado con PIL
   (`tools/mk-shop-icons.py`).
-- `tools/shop_gen.py island <MUNDO>` — compone la isla tienda en el
-  `.pano.webp` con inpainting SD en las coords de `shop.json`;
-  `interior <MUNDO>` genera el fondo `tienda.webp`. La **isla 2 no se
-  genera por SD** (el inpainting en cielo vacío rellena la máscara con
-  paisajes): se clona la isla 1 del propio pano con máscara elíptica
-  espejada — mismo arte garantizado (`.tmp_chk/shop2-copy.py`).
+- `tools/shop_gen.py` — histórico: componía la isla tienda en el
+  `.pano.webp` con inpainting SD (pipeline pano descartado); el interior
+  `tienda.webp` sí se conserva. Las islas tienda del mapa las pintará el
+  usuario; recalibrar `pos`/`art` en `shop.json` y poner `painted:true`.
 
 ## Flujo del menú y partida guardada (bbdd)
 
