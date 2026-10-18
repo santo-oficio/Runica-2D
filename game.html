@@ -321,9 +321,12 @@
   @keyframes hitFlash {
     0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; }
   }
-  /* Badge de pistas compradas en la tienda (modo real, esquina inf-der) */
-  #hint-badge {
+  /* Badges de ítems comprados en la tienda (modo real, esquina inf-der) */
+  #item-badges {
     position: fixed; right: 1.6vw; bottom: 2.4vh; z-index: 40;
+    display: flex; flex-direction: column; gap: .8vh;
+  }
+  .item-badge {
     display: flex; align-items: center; gap: .45em;
     background: rgba(16,10,5,.78);
     border: 2px solid rgba(210,170,90,.65); border-radius: 12px;
@@ -332,8 +335,11 @@
     text-shadow: 1px 1px 3px rgba(0,0,0,.9);
     pointer-events: auto; cursor: pointer;
   }
-  #hint-badge img { height: 1.5em; }
-  #hint-badge.denied { animation: hintShake .35s ease; border-color: rgba(255,90,70,.9); }
+  .item-badge img { height: 1.5em; }
+  .item-badge.denied { animation: hintShake .35s ease; border-color: rgba(255,90,70,.9); }
+  .item-badge .on { display: none; color: #7fe08f; font-weight: bold; }
+  .item-badge.active { border-color: rgba(127,224,143,.9); box-shadow: 0 0 12px rgba(127,224,143,.35); }
+  .item-badge.active .on { display: inline; }
   @keyframes hintShake {
     0%,100% { transform: translateX(0); }
     25% { transform: translateX(-7px); } 75% { transform: translateX(7px); }
@@ -358,9 +364,19 @@
   <div id="selector"><img id="avatar" alt="avatar"></div>
   <div id="entities"></div>
   <div id="boardtexts"></div>
-  <div id="hint-badge" style="display:none">
-    <img src="/assets/tienda/iconos/pista.webp" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
-    <span id="hint-count">0</span>
+  <div id="item-badges">
+    <div class="item-badge" id="badge-midas" style="display:none">
+      <img src="/assets/tienda/iconos/midas.webp" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
+      <span id="midas-count">0</span><span class="on">×2</span>
+    </div>
+    <div class="item-badge" id="badge-undo" style="display:none">
+      <img src="/assets/tienda/iconos/deshacer.webp" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
+      <span id="undo-count">0</span>
+    </div>
+    <div class="item-badge" id="hint-badge" style="display:none">
+      <img src="/assets/tienda/iconos/pista.webp" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
+      <span id="hint-count">0</span>
+    </div>
   </div>
   <div id="countdown"></div>
   <div id="boss-down"></div>
@@ -847,6 +863,7 @@ async function applyScreen(s, tier) {
   won = false;
   moving = false;
   undoStack.length = 0;
+  midasActive = false; // el Toque de Midas es por pantalla
   hackSolve = null; // la solución en caché deja de valer con otra pantalla
   selector.style.zIndex = '';
   overlay.classList.remove('show', 'win', 'lose');
@@ -1675,7 +1692,7 @@ function winGame() {
     const goldTier = lastScreen?.level ?? (REAL_MODE ? gameLevel : currentTier);
     const goldBase = 10 + goldTier * 5;
     const goldMult = Math.min(2, Math.max(0.3, 2 * par / Math.max(turn, par)));
-    winGoldEarned = isReplay ? 0 : Math.round(goldBase * goldMult * (isBossWin ? 2 : 1));
+    winGoldEarned = isReplay ? 0 : Math.round(goldBase * goldMult * (isBossWin ? 2 : 1) * (midasActive ? 2 : 1));
     winGoldBefore = playerData?.gold ?? 0;
     const isFinalWin = (REAL_MODE && REAL_WORLD === FINAL_WORLD) || DEMO_FINAL;
     // Botín del guardián final: el tesoro que despierta en la batalla se
@@ -1875,6 +1892,8 @@ document.addEventListener('keydown', (e) => {
     }
     if (gameOver) return;
     if (e.key === 'h' || e.key === 'H') { e.preventDefault(); useHintItem(); return; }
+    if (e.key === 'u' || e.key === 'U') { e.preventDefault(); useUndoItem(); return; }
+    if (e.key === 'm' || e.key === 'M') { e.preventDefault(); useMidasItem(); return; }
     const dirs = {
       'ArrowUp': [0, -1], 'ArrowDown': [0, 1],
       'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0],
@@ -1912,27 +1931,78 @@ document.addEventListener('keydown', (e) => {
   if (d) { e.preventDefault(); movePlayer(d[0], d[1]); }
 });
 
-// === Pistas de la tienda (tecla H o tap en el badge, modo real) ===
-// Consume un uso de 'pista' del inventario y muestra una flecha con la
-// dirección del movimiento óptimo (no mueve al jugador: solo orienta).
-function updateHintBadge() {
-  const badge = document.getElementById('hint-badge');
+// === Ítems de la tienda (modo real; badges táctiles abajo-derecha) ===
+// pista → flecha del movimiento óptimo (H) · deshacer → rebobina el último
+// turno (U) · midas → ×2 al oro de la pantalla al ganarla (M)
+let midasActive = false; // armado en esta pantalla: se cobra al ganar
+function updateItemBadges() {
+  if (!REAL_MODE) return;
+  const inv = playerData?.inventory || {};
+  const show = (id, n, active) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = (n > 0 || active) ? 'flex' : 'none';
+    el.classList.toggle('active', !!active);
+  };
+  show('hint-badge', inv.pista || 0);
+  show('badge-undo', inv.deshacer || 0);
+  show('badge-midas', inv.midas || 0, midasActive);
+  document.getElementById('hint-count').textContent = String(inv.pista || 0);
+  document.getElementById('undo-count').textContent = String(inv.deshacer || 0);
+  document.getElementById('midas-count').textContent = String(inv.midas || 0);
+}
+function denyBadge(id) {
+  const badge = document.getElementById(id);
   if (!badge) return;
-  const n = (playerData?.inventory?.pista) || 0;
-  if (!REAL_MODE || n <= 0) { badge.style.display = 'none'; return; }
-  badge.style.display = 'flex';
-  document.getElementById('hint-count').textContent = String(n);
+  badge.classList.remove('denied'); void badge.offsetWidth;
+  badge.classList.add('denied');
+  AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.45);
+}
+async function consumeShopItem(itemId) {
+  const r = await fetch(`${BASE}/api/consume-item`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId }),
+  });
+  const d = await r.json();
+  if (d.player) playerData = d.player;
+  return d.ok;
+}
+// Deshacer: la pila de estados ya guarda posición/enemigos/turno
+function undoLastMove() {
+  const s = undoStack.pop();
+  if (!s) return false;
+  player.c = s.p.c; player.r = s.p.r;
+  s.e.forEach((e, i) => { if (enemies[i]) { enemies[i].c = e.c; enemies[i].r = e.r; enemies[i].stunnedTurns = e.st; } });
+  playerStunnedTurns = s.ps; turn = s.turn;
+  positionSelector(); updateEnemyPositions(); updateTurnDisplay();
+  return true;
+}
+async function useUndoItem() {
+  if (!REAL_MODE || gameOver || countingDown || modalOpen || moving) return;
+  if (!undoStack.length || !((playerData?.inventory?.deshacer) > 0)) { denyBadge('badge-undo'); return; }
+  try {
+    if (!(await consumeShopItem('deshacer'))) { denyBadge('badge-undo'); return; }
+    undoLastMove();
+    updateItemBadges();
+    AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.55);
+  } catch { denyBadge('badge-undo'); }
+}
+// Midas: se activa durante la pantalla y duplica el oro AL GANARLA; si
+// pierdes o reinicias, el ítem se ha gastado igualmente (es una apuesta)
+async function useMidasItem() {
+  if (!REAL_MODE || gameOver || countingDown || modalOpen || midasActive) return;
+  if (!((playerData?.inventory?.midas) > 0)) { denyBadge('badge-midas'); return; }
+  try {
+    if (!(await consumeShopItem('midas'))) { denyBadge('badge-midas'); return; }
+    midasActive = true;
+    updateItemBadges();
+    AssetsCache.playSound('/assets/sounds/comun/moneda.wav', 0.7);
+  } catch { denyBadge('badge-midas'); }
 }
 async function useHintItem() {
   if (!REAL_MODE || gameOver || countingDown || modalOpen) return;
   const badge = document.getElementById('hint-badge');
-  const deny = () => {
-    badge.style.display = 'flex';
-    document.getElementById('hint-count').textContent = '0';
-    badge.classList.remove('denied'); void badge.offsetWidth;
-    badge.classList.add('denied');
-    AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.45);
-  };
+  const deny = () => denyBadge('hint-badge');
   if (!((playerData?.inventory?.pista) > 0)) { deny(); return; }
   try {
     const q = `id=${encodeURIComponent(currentScreenId)}&p=${player.c},${player.r}` +
@@ -1949,7 +2019,7 @@ async function useHintItem() {
     const dHint = await rHint.json();
     if (!dCons.ok || !dHint.ok) { deny(); return; }
     if (dCons.player) playerData = dCons.player;
-    updateHintBadge();
+    updateItemBadges();
     AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.55);
     const [dc, dr] = dHint.move;
     const cell = cellPos(player.c, player.r, true);
@@ -1967,6 +2037,12 @@ async function useHintItem() {
 }
 document.getElementById('hint-badge').addEventListener('pointerdown', e => {
   e.preventDefault(); e.stopPropagation(); useHintItem();
+});
+document.getElementById('badge-undo').addEventListener('pointerdown', e => {
+  e.preventDefault(); e.stopPropagation(); useUndoItem();
+});
+document.getElementById('badge-midas').addEventListener('pointerdown', e => {
+  e.preventDefault(); e.stopPropagation(); useMidasItem();
 });
 
 // === Puente táctil (web/tizen.js, Android) ===
@@ -2086,12 +2162,7 @@ const HACK_CMDS = {
   prev: () => hackLoadScreen(`${BASE}/api/screen-nav?id=${encodeURIComponent(currentScreenId)}&dir=prev`),
   restart: async () => { if (lastScreen) await applyScreen(lastScreen); },
   undo: () => {
-    const s = undoStack.pop();
-    if (!s) { hcPrint(hk('hack.noUndo'), 'err'); return; }
-    player.c = s.p.c; player.r = s.p.r;
-    s.e.forEach((e, i) => { if (enemies[i]) { enemies[i].c = e.c; enemies[i].r = e.r; enemies[i].stunnedTurns = e.st; } });
-    playerStunnedTurns = s.ps; turn = s.turn;
-    positionSelector(); updateEnemyPositions(); updateTurnDisplay();
+    if (!undoLastMove()) { hcPrint(hk('hack.noUndo'), 'err'); }
   },
   optimal: async () => {
     const sol = await fetchSolve();
@@ -2206,7 +2277,7 @@ async function init() {
     // Avatar de la partida (fijo, elegido en la selección de personaje)
     try {
       const r = await fetch(BASE + '/api/savegame');
-      if (r.ok) { const d = await r.json(); playerData = d.player || null; renderBoardTexts(); updateHintBadge(); }
+      if (r.ok) { const d = await r.json(); playerData = d.player || null; renderBoardTexts(); updateItemBadges(); }
     } catch {}
     if (playerData && typeof playerData.avatarIndex === 'number') {
       avatarIdx = playerData.avatarIndex;
@@ -2252,7 +2323,7 @@ async function init() {
     // práctica: se viste como modo real pero no hay level-complete.
     try {
       const r = await fetch(BASE + '/api/savegame');
-      if (r.ok) { const d = await r.json(); playerData = d.player || null; renderBoardTexts(); updateHintBadge(); }
+      if (r.ok) { const d = await r.json(); playerData = d.player || null; renderBoardTexts(); updateItemBadges(); }
     } catch {}
     if (playerData && typeof playerData.avatarIndex === 'number') {
       avatarIdx = playerData.avatarIndex;

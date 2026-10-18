@@ -268,7 +268,7 @@
         var items = (catalog && catalog.items) || [];
         var item = items.find(function (i) { return i.id === itemId; });
         if (!item) return json({ ok: false, error: "unknown-item" }, 404);
-        var result = DB.buyItem(item.id, item.price, item.uses || 1);
+        var result = DB.buyItem(item.id, item.price, item.uses || 1, item.max || 1);
         return json(result, result.ok ? 200 : 409);
       });
     }

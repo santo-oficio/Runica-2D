@@ -342,10 +342,22 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   `POST /api/buy-item {itemId}` (precio validado en servidor, nunca del
   cliente), `POST /api/consume-item {itemId}`. `web/api-shim.js` los mapea en
   TV/Android y `web/webdb.js` tiene `buyItem`/`consumeItem` equivalentes.
-- `PlayerState.inventory` — `{itemId: usos}` persistente.
-- Ítem `pista`: en `game.html` (modo real) la tecla **H** consume un uso,
-  llama a `/api/hint` y dibuja una flecha con la dirección óptima sobre la
-  casilla del jugador; el badge inferior-derecho muestra el contador.
+- `PlayerState.inventory` — `{itemId: usos}` persistente. **Máximo 1 por
+  tipo** (`"max": 1` en `items.json`): el servidor y `webdb` rechazan la
+  compra si ya lo llevas, y en `shop.html` el cofre sale `.disabled`
+  (apagado) con `shop.already` en vez del contador.
+- Ítems (catálogo en `assets/tienda/items.json`, precio en servidor):
+  - `pista` (60) — tecla **H** o badge: `/api/hint` dibuja la flecha del
+    movimiento óptimo.
+  - `deshacer` (40) — tecla **U** o badge: rebobina el último turno
+    (`undoStack`: jugador, enemigos, aturdimientos y contador).
+  - `midas` (50) — tecla **M** o badge: se ARMA en la pantalla y duplica
+    `winGoldEarned` al ganarla; si pierdes o reinicias, se pierde.
+  Los badges apilados (`#item-badges`, inf-der) muestran contador; el de
+  midas brilla con `×2` mientras está armado. El tendero rota un
+  agradecimiento (`shop.thanks.0..2`) tras cada compra.
+- Iconos `assets/tienda/iconos/*.webp` — orbe dorado generado con PIL
+  (`.tmp_chk/mk-icons.py`).
 - `tools/shop_gen.py island <MUNDO>` — compone la isla tienda en el
   `.pano.webp` con inpainting SD en las coords de `shop.json`;
   `interior <MUNDO>` genera el fondo `tienda.webp`.

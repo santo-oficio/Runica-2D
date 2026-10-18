@@ -216,5 +216,13 @@
   "shop.owned": "所持: {0}",
   "shop.item.pista.name": "古代のヒント",
   "shop.item.pista.desc": "盤面の最善手を教えてくれる（Hキー）。",
-  "shop.leave": "出る"
+  "shop.leave": "出る",
+  "shop.item.deshacer.name": "巻き戻しのルーン",
+  "shop.item.deshacer.desc": "直前の移動を取り消す（Uキー）。",
+  "shop.item.midas.name": "ミダスの手",
+  "shop.item.midas.desc": "勝利時にこの面のゴールドを2倍にする（Mキー）。",
+  "shop.already": "もうひとつ持ってるよ、旅人。",
+  "shop.thanks.0": "取引成立だ！いつでも来いよ。",
+  "shop.thanks.1": "その宝が命を救うぞ、ハッ！",
+  "shop.thanks.2": "いい選択だ、旅人。海がお前に微笑んでいる。"
 }

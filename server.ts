@@ -467,14 +467,14 @@ const server = http.createServer((req, res) => {
         const itemId = String(JSON.parse(body || "{}")?.itemId ?? "");
         const catalog = JSON.parse(
           readFileSync(join(ROOT, "assets", "tienda", "items.json"), "utf-8"),
-        ) as { items: Array<{ id: string; price: number; uses?: number }> };
+        ) as { items: Array<{ id: string; price: number; uses?: number; max?: number }> };
         const item = catalog.items.find(i => i.id === itemId);
         if (!item) {
           res.writeHead(404, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: false, error: "unknown-item" }));
           return;
         }
-        const result = buyItem(item.id, item.price, item.uses ?? 1);
+        const result = buyItem(item.id, item.price, item.uses ?? 1, item.max ?? 1);
         res.writeHead(result.ok ? 200 : 409, { "Content-Type": "application/json" });
         res.end(JSON.stringify(result));
       } catch (e) {

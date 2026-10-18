@@ -216,5 +216,13 @@
   "shop.owned": "Besitzt: {0}",
   "shop.item.pista.name": "Uralter Hinweis",
   "shop.item.pista.desc": "Zeigt den besten Zug auf dem Brett (Taste H).",
-  "shop.leave": "Verlassen"
+  "shop.leave": "Verlassen",
+  "shop.item.deshacer.name": "Rückkehr-Rune",
+  "shop.item.deshacer.desc": "Macht deinen letzten Zug rückgängig (Taste U).",
+  "shop.item.midas.name": "Midas-Hand",
+  "shop.item.midas.desc": "Verdoppelt das Gold dieses Levels beim Sieg (Taste M).",
+  "shop.already": "Du hast schon eines dabei, Reisender.",
+  "shop.thanks.0": "Abgemacht! Komm jederzeit wieder.",
+  "shop.thanks.1": "Dieser Schatz wird dir das Leben retten, ha!",
+  "shop.thanks.2": "Gute Wahl, Reisender. Die Meere lächeln dir zu."
 }

@@ -234,8 +234,11 @@
     return c.length >= MAP_LEVELS_PER_WORLD;
   }
 
-  /** Compra un ítem: descuenta oro y suma `uses` al inventario. */
-  function buyItem(itemId, price, uses) {
+  /** Compra un ítem: descuenta oro y suma `uses` al inventario.
+   *  Falla sin oro o si ya se lleva el máximo (`max` por tipo). */
+  function buyItem(itemId, price, uses, max) {
+    var inv0 = player.inventory || {};
+    if ((inv0[itemId] || 0) >= (max || 1)) return { ok: false, player: getPlayer() };
     if ((player.gold || 0) < price) return { ok: false, player: getPlayer() };
     player.gold = (player.gold || 0) - price;
     var inv = Object.assign({}, player.inventory || {});

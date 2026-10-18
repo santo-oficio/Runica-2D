@@ -216,5 +216,13 @@
   "shop.owned": "Sende: {0}",
   "shop.item.pista.name": "Kadim ipucu",
   "shop.item.pista.desc": "Tahtadaki en iyi hamleyi gösterir (H tuşu).",
-  "shop.leave": "Çık"
+  "shop.leave": "Çık",
+  "shop.item.deshacer.name": "Geri alma rünü",
+  "shop.item.deshacer.desc": "Son hamleni geri alır (U tuşu).",
+  "shop.item.midas.name": "Midas'ın eli",
+  "shop.item.midas.desc": "Kazanınca bu bölümün altınını ikiye katlar (M tuşu).",
+  "shop.already": "Zaten bir tane taşıyorsun, yolcu.",
+  "shop.thanks.0": "Anlaştık! Ne zaman istersen gel.",
+  "shop.thanks.1": "O hazine hayatını kurtarır, ha!",
+  "shop.thanks.2": "İyi seçim, yolcu. Denizler sana gülümsüyor."
 }

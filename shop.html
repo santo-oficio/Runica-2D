@@ -115,6 +115,9 @@
   }
   .item-slot.bought { animation: boughtFlash 0.5s ease; }
   .item-slot.denied { animation: deniedShake 0.35s ease; }
+  /* Ya tienes el máximo (1 por tipo): apagado, sin brillo */
+  .item-slot.disabled { filter: grayscale(0.85) brightness(0.6); }
+  .item-slot.disabled .item-owned { color: #d09070; }
   @keyframes boughtFlash {
     0% { background: rgba(120, 160, 60, 0.7); }
     100% { background: rgba(60, 40, 14, 0.35); }
@@ -232,7 +235,8 @@
   }
 
   async function loadPlayer() {
-    if (DEMO) { player = { gold: 500, inventory: { pista: 2 } }; return; }
+    // Una pista ya comprada para ver el estado deshabilitado
+    if (DEMO) { player = { gold: 500, inventory: { pista: 1 } }; return; }
     try {
       const r = await fetch('/api/savegame');
       if (r.ok) { const d = await r.json(); player = d.player || null; }
@@ -426,7 +430,9 @@
 
       const owned = document.createElement('div');
       owned.className = 'item-owned';
-      owned.textContent = format('shop.owned', ownedCount(item.id));
+      const hasMax = ownedCount(item.id) >= (item.max || 1);
+      if (hasMax) slot.classList.add('disabled');
+      owned.textContent = hasMax ? t('shop.already') : format('shop.owned', ownedCount(item.id));
       text.appendChild(owned);
 
       slot.appendChild(text);
@@ -469,6 +475,13 @@
   async function buySelected() {
     if (buying || !catalog[selectedItem]) return;
     const item = catalog[selectedItem];
+    // Máximo 1 por tipo: ya lo llevas
+    if (ownedCount(item.id) >= (item.max || 1)) {
+      AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.5);
+      flashRow(item.id, 'denied');
+      setSpeech('shop.already');
+      return;
+    }
     buying = true;
     try {
       let d;
@@ -491,7 +504,7 @@
         player = d.player;
         AssetsCache.playSound('/assets/sounds/comun/moneda.wav', 0.8);
         flashRow(item.id, 'bought');
-        setSpeech('shop.bought');
+        setSpeech('shop.thanks.' + Math.floor(Math.random() * 3));
       } else {
         AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.5);
         flashRow(item.id, 'denied');

@@ -216,5 +216,13 @@
   "shop.owned": "Possédés : {0}",
   "shop.item.pista.name": "Indice ancestral",
   "shop.item.pista.desc": "Révèle le meilleur coup sur le plateau (touche H).",
-  "shop.leave": "Sortir"
+  "shop.leave": "Sortir",
+  "shop.item.deshacer.name": "Rune de retour",
+  "shop.item.deshacer.desc": "Annule ton dernier mouvement (touche U).",
+  "shop.item.midas.name": "Main de Midas",
+  "shop.item.midas.desc": "Double l'or de ce niveau en cas de victoire (touche M).",
+  "shop.already": "Tu en portes déjà un, voyageur.",
+  "shop.thanks.0": "Marché conclu ! Reviens quand tu veux.",
+  "shop.thanks.1": "Ce trésor te sauvera la vie, ha !",
+  "shop.thanks.2": "Excellent choix, voyageur. Les mers te sourient."
 }

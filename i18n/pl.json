@@ -216,5 +216,13 @@
   "shop.owned": "Masz: {0}",
   "shop.item.pista.name": "Starożytna wskazówka",
   "shop.item.pista.desc": "Pokazuje najlepszy ruch na planszy (klawisz H).",
-  "shop.leave": "Wyjdź"
+  "shop.leave": "Wyjdź",
+  "shop.item.deshacer.name": "Runa cofania",
+  "shop.item.deshacer.desc": "Cofa twój ostatni ruch (klawisz U).",
+  "shop.item.midas.name": "Dotyk Midasa",
+  "shop.item.midas.desc": "Podwaja złoto z tego poziomu po zwycięstwie (klawisz M).",
+  "shop.already": "Masz już jeden przy sobie, podróżniku.",
+  "shop.thanks.0": "Interes zrobiony! Wracaj kiedy chcesz.",
+  "shop.thanks.1": "Ten skarb uratuje ci życie, ha!",
+  "shop.thanks.2": "Świetny wybór, podróżniku. Morza ci sprzyjają."
 }

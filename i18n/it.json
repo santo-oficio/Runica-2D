@@ -216,5 +216,13 @@
   "shop.owned": "Posseduti: {0}",
   "shop.item.pista.name": "Suggerimento antico",
   "shop.item.pista.desc": "Rivela la mossa migliore sulla plancia (tasto H).",
-  "shop.leave": "Esci"
+  "shop.leave": "Esci",
+  "shop.item.deshacer.name": "Runa del ritorno",
+  "shop.item.deshacer.desc": "Annulla la tua ultima mossa (tasto U).",
+  "shop.item.midas.name": "Tocco di Mida",
+  "shop.item.midas.desc": "Raddoppia l'oro di questo livello alla vittoria (tasto M).",
+  "shop.already": "Ne porti già uno, viaggiatore.",
+  "shop.thanks.0": "Affare fatto! Torna quando vuoi.",
+  "shop.thanks.1": "Quel tesoro ti salverà la vita, ah!",
+  "shop.thanks.2": "Ottima scelta, viaggiatore. I mari ti sorridono."
 }

@@ -490,8 +490,11 @@ export function isWorldComplete(world: string): boolean {
 // Tienda (isla extra por submundo)
 // ---------------------------------------------------------------------------
 
-/** Compra un ítem: descuenta el oro y suma `uses` al inventario. Falla sin oro. */
-export function buyItem(itemId: string, price: number, uses = 1): { ok: boolean; player: PlayerState } {
+/** Compra un ítem: descuenta el oro y suma `uses` al inventario.
+ *  Falla sin oro o si ya se lleva el máximo (`max` unidades por tipo). */
+export function buyItem(itemId: string, price: number, uses = 1, max = 1): { ok: boolean; player: PlayerState } {
+  const inv0 = player.inventory ?? {};
+  if ((inv0[itemId] ?? 0) >= max) return { ok: false, player: { ...player } };
   if ((player.gold ?? 0) < price) return { ok: false, player: { ...player } };
   player.gold = (player.gold ?? 0) - price;
   const inv = { ...(player.inventory ?? {}) };

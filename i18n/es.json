@@ -216,5 +216,13 @@
   "shop.owned": "Tienes: {0}",
   "shop.item.pista.name": "Pista ancestral",
   "shop.item.pista.desc": "Revela el mejor movimiento en el tablero (tecla H).",
-  "shop.leave": "Salir"
+  "shop.leave": "Salir",
+  "shop.item.deshacer.name": "Runa del retorno",
+  "shop.item.deshacer.desc": "Deshace tu último movimiento (tecla U).",
+  "shop.item.midas.name": "Toque de Midas",
+  "shop.item.midas.desc": "Duplica el oro de esta pantalla al ganarla (tecla M).",
+  "shop.already": "Ya llevas uno encima, viajero.",
+  "shop.thanks.0": "¡Trato hecho! Vuelve cuando quieras.",
+  "shop.thanks.1": "¡Ese tesoro te salvará la vida, ja!",
+  "shop.thanks.2": "Excelente elección, viajero. Los mares te sonríen."
 }
