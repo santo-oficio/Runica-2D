@@ -362,7 +362,7 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   midas brilla con `×2` mientras está armado. El tendero rota un
   agradecimiento (`shop.thanks.0..2`) tras cada compra.
 - Iconos `assets/tienda/iconos/*.webp` — orbe dorado generado con PIL
-  (`.tmp_chk/mk-icons.py`).
+  (`tools/mk-shop-icons.py`).
 - `tools/shop_gen.py island <MUNDO>` — compone la isla tienda en el
   `.pano.webp` con inpainting SD en las coords de `shop.json`;
   `interior <MUNDO>` genera el fondo `tienda.webp`.

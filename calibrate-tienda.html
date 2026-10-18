@@ -9,7 +9,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px 'Courier New',monospace}
 #stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}#image{width:100%;height:100%;object-fit:contain;display:block}
-#overlay{position:absolute;inset:0;pointer-events:none}.area{position:absolute;border:3px solid #fc4;background:rgba(255,190,40,.12);pointer-events:none}.area.active{border-color:#0ff;box-shadow:0 0 18px #0ff;background:rgba(0,220,255,.12)}.area label{position:absolute;top:-22px;left:0;padding:2px 6px;background:#fc4;color:#000;white-space:nowrap;font-size:11px}.area.active label{background:#0ff}
+#overlay{position:absolute;inset:0;pointer-events:none}.area{position:absolute;border:2px solid rgba(255,204,68,.55);background:rgba(255,190,40,.05);pointer-events:none}.area.active{border-width:3px;border-color:#0ff;box-shadow:0 0 18px #0ff;background:rgba(0,220,255,.12)}.area label{position:absolute;top:-22px;left:0;padding:2px 6px;background:#fc4;color:#000;white-space:nowrap;font-size:11px}.area.active label{background:#0ff}
 .preview{position:absolute;display:flex;align-items:center;justify-content:center;font-family:'ChelseaMarket','Trebuchet MS',sans-serif;text-align:center;white-space:nowrap;overflow:hidden;pointer-events:none}
 .preview.title{color:#ffd76a;letter-spacing:1px;text-shadow:2px 2px 4px rgba(0,0,0,.9),0 0 18px rgba(255,190,60,.3)}
 .preview.gold{color:#ffe9a8;text-shadow:2px 2px 4px rgba(0,0,0,.95);background:rgba(20,12,6,.45);border-radius:8px}
@@ -70,9 +70,9 @@ function render(){const w=WORLD_ORDER[worldIndex];overlay.innerHTML='';svg.setAt
   for(const k of KINDS){const a=areas[w][k],active=k===kind;
   if(isPoly(k)){
     if(a.polygon&&a.polygon.length>=3){const el=document.createElementNS(NS,'polygon');el.setAttribute('points',a.polygon.map(pxPt).map(p=>p.join(',')).join(' '));el.setAttribute('class','poly'+(active?' active':''));svg.appendChild(el);
-      const lab=document.createElementNS(NS,'text'),lp=pxPt(a.polygon[0]);lab.setAttribute('x',lp[0]);lab.setAttribute('y',+lp[1]-8);lab.textContent=LABELS[k];svg.appendChild(lab)}
+      if(active){const lab=document.createElementNS(NS,'text'),lp=pxPt(a.polygon[0]);lab.setAttribute('x',lp[0]);lab.setAttribute('y',+lp[1]-8);lab.textContent=LABELS[k];svg.appendChild(lab)}}
     continue}
-  const p=px(a);const box=document.createElement('div');box.className='area'+(active?' active':'');box.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;const label=document.createElement('label');label.textContent=LABELS[k];box.appendChild(label);overlay.appendChild(box);const fs=a.fontScale||1;
+  const p=px(a);const box=document.createElement('div');box.className='area'+(active?' active':'');box.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;if(active){const label=document.createElement('label');label.textContent=LABELS[k];box.appendChild(label)}overlay.appendChild(box);const fs=a.fontScale||1;
   if(k.endsWith('icon')){overlay.insertAdjacentHTML('beforeend',iconHtml(p));continue}
   if(k.endsWith('text')){overlay.insertAdjacentHTML('beforeend',textHtml(p,fs));continue}
   const pv=document.createElement('div');pv.className='preview '+k;let fsPx;
