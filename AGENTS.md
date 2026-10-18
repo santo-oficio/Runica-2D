@@ -228,7 +228,7 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-modal.html` | `assets/comunes/modal-areas.json` (`title` = polígono sobre el arco del cartel + `content`/`buttonLeft`/`buttonRight` rectángulos) |
 | `calibrate-config.html` | `assets/configuracion/config-areas.json` (textos/casillas sonido+música rectángulos; flechas idioma y atrás = polígonos) |
 | `calibrate-fin.html` | `assets/comunes/fin-areas.json` — fin del juego: **círculos** `{cx,cy,r}` por mundo (el aura irregular la genera `AssetsCache.auraPoints` de forma determinista) + rectángulos `hero`/`boss` del tablero final |
-| `calibrate-tienda.html` | `assets/tienda/<M>/areas.json` — zonas del interior: `title`/`gold`/`bubble`/`slotNicon`/`slotNtext`/`slotNsel` (N=1..3; `sel` = **polígono**) |
+| `calibrate-tienda.html` | `assets/tienda/<M>/areas.json` — zonas del interior: `title`/`gold`/`bubble`/`slotNicon`/`slotNname`/`slotNprice`/`slotNsel` (N=1..4; `sel` = **polígono**) |
 
 ### `calibrate-board-sprites.html` — sprites + áreas
 
@@ -318,16 +318,19 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   El overlay se posiciona en coordenadas de IMAGEN (`HUD` + `imgRect()`):
   título sobre el cartelón, oro dentro de la placa (SOLO el número — la
   moneda ya viene pintada; fondo fallback si el mundo no la trae, p. ej.
-  VIENTO) y en cada cofre el icono y el texto del ítem en zonas separadas
-  (`slotNicon` / `slotNtext`; el `.item-slot` cubre la unión de ambas).
+  VIENTO) y en cada cofre el icono, el nombre y el precio del ítem en
+  zonas separadas (`slotNicon`/`slotNname`/`slotNprice`; el `.item-slot`
+  cubre la unión de las tres). Ítem 4+: `slot4*` flotante sobre el
+  mostrador (no hay cuarto cofre pintado). Máx. 1 por tipo: si ya se
+  tiene, el slot sale `disabled` (gris) sin texto extra.
   Bocadillo del tendero con el nombre como cabecera dentro de la misma
   caja (`shop.keeper.<MUNDO>`, `shop.welcome`). Teclas: ←→ elegir,
   Enter comprar, Esc volver.
   `?demo=1` = oro/inventario falsos sin tocar la bbdd.
 - `calibrate-tienda.html` — calibra por mundo las zonas del arte: `title`
   (cartelón), `gold` (placa de oro, número sin icono), `bubble`
-  (bocadillo), `slotNicon`/`slotNtext` N=1..3 (icono y texto de cada
-  cofre por separado) y `slotNsel` (**polígono** — marco dorado de
+  (bocadillo), `slotNicon`/`slotNname`/`slotNprice` N=1..4 (icono,
+  nombre y precio de cada ítem por separado) y `slotNsel` (**polígono** — marco dorado de
   selección que abraza el trapecio del cofre; también es su hit area
   táctil, punto-en-polígono en `shop.html`; dibujar con clic×N + doble
   clic, `Z` quita punto, `Esc` cancela). Mismo set de teclas que el

@@ -117,7 +117,6 @@
   .item-slot.denied { animation: deniedShake 0.35s ease; }
   /* Ya tienes el máximo (1 por tipo): apagado, sin brillo */
   .item-slot.disabled { filter: grayscale(0.85) brightness(0.6); }
-  .item-slot.disabled .item-owned { color: #d09070; }
   @keyframes boughtFlash {
     0% { background: rgba(120, 160, 60, 0.7); }
     100% { background: rgba(60, 40, 14, 0.35); }
@@ -146,25 +145,21 @@
     filter: drop-shadow(0 0 8px rgba(0,0,0,0.8));
     pointer-events: none;
   }
-  .item-text {
-    position: absolute;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 0.15vh;
-    pointer-events: none;
-  }
-  /* --fs: escala de texto calibrada por zona (calibrate-tienda.html) */
+  /* --fs: escala de texto calibrada por zona (calibrate-tienda.html).
+     Nombre y precio son zonas calibrables independientes (slotNname /
+     slotNprice en areas.json). */
   .item-name {
+    position: absolute; pointer-events: none;
     color: #f2e0b8; font-size: calc(1.9vh * var(--fs, 1)); text-align: center;
     text-shadow: 1px 1px 3px rgba(0,0,0,0.95);
   }
   .item-price {
-    display: flex; align-items: center; gap: 0.35em;
+    position: absolute; pointer-events: none;
+    display: flex; align-items: center; justify-content: center; gap: 0.35em;
     color: #ffd76a; font-size: calc(1.8vh * var(--fs, 1));
     text-shadow: 1px 1px 3px rgba(0,0,0,0.95);
   }
   .item-price img { height: 1em; }
-  .item-owned { color: #8fd0a0; font-size: calc(1.4vh * var(--fs, 1));
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.95); }
   #slots { position: absolute; inset: 0; z-index: 11; pointer-events: auto; }
 
   /* ── Pie: controles ─────────────────────────────────────────── */
@@ -296,11 +291,23 @@
     return a ? { ...def, ...a } : def;
   }
 
-  // Zonas de un ítem: icono + texto + polígono de selección (slotNsel).
-  // La fila 2+ repite el patrón desplazado hacia abajo.
+  // Nombre y precio son zonas separadas (slotNname / slotNprice). Si un
+  // mundo solo tiene el formato antiguo slotNtext, se reparte: nombre =
+  // 55% superior, precio = 45% inferior.
+  function textZone(n, part) {
+    const c = hudAreas && hudAreas['slot' + n + part];
+    if (c) return { x: 0, y: 0, w: 0, h: 0, ...c };
+    const t = zone('slot' + n + 'text');
+    return part === 'name'
+      ? { ...t, h: t.h * 0.55 }
+      : { ...t, y: t.y + t.h * 0.55, h: t.h * 0.45 };
+  }
+
+  // Zonas de un ítem: icono + nombre + precio + polígono de selección
+  // (slotNsel). La fila 2+ repite el patrón desplazado hacia abajo.
   function slotAreas(i) {
     const n = (i % 3) + 1;
-    let ia = zone('slot' + n + 'icon'), ta = zone('slot' + n + 'text');
+    let ia = zone('slot' + n + 'icon'), na = textZone(n, 'name'), pa = textZone(n, 'price');
     const s = hudAreas && hudAreas['slot' + n + 'sel'];
     let poly = (s && s.polygon && s.polygon.length >= 3)
       ? s.polygon.map(p => [...p])
@@ -308,25 +315,33 @@
     if (i >= 3) {
       // Ítem 4+ sin cofre pintado: si el mundo tiene slot4* calibrado lo
       // usa; si no, flota sobre el mostrador a la izquierda.
-      const c4i = hudAreas && hudAreas['slot' + i + 'icon'];
-      const c4t = hudAreas && hudAreas['slot' + i + 'text'];
-      const c4s = hudAreas && hudAreas['slot' + i + 'sel'];
-      if (c4i || c4t || c4s) {
+      const c4i = hudAreas && hudAreas['slot' + (i + 1) + 'icon'];
+      const c4n = hudAreas && hudAreas['slot' + (i + 1) + 'name'];
+      const c4p = hudAreas && hudAreas['slot' + (i + 1) + 'price'];
+      const c4t = hudAreas && hudAreas['slot' + (i + 1) + 'text']; // formato antiguo
+      const c4s = hudAreas && hudAreas['slot' + (i + 1) + 'sel'];
+      if (c4i || c4n || c4p || c4t || c4s) {
         if (c4i) ia = { ...ia, ...c4i };
-        if (c4t) ta = { ...ta, ...c4t };
+        const t4 = c4n || c4p ? null : c4t;
+        if (c4n) na = { x: 0, y: 0, w: 0, h: 0, ...c4n };
+        else if (t4) na = { ...t4, h: t4.h * 0.55 };
+        if (c4p) pa = { x: 0, y: 0, w: 0, h: 0, ...c4p };
+        else if (t4) pa = { ...t4, y: t4.y + t4.h * 0.55, h: t4.h * 0.45 };
         if (c4s && c4s.polygon && c4s.polygon.length >= 3) poly = c4s.polygon.map(p => [...p]);
       } else {
         const k = i - 3, ox = 0.055 + k * 0.17, oy = 0.57;
         ia = { ...ia, x: ox, y: oy };
-        ta = { ...ta, x: ox - 0.025, y: oy + ia.h + 0.01 };
+        na = { ...na, x: ox - 0.025, y: oy + ia.h + 0.01, w: ia.w + 0.05 };
+        pa = { ...pa, x: na.x, y: na.y + na.h, w: na.w };
         poly = [[ox - 0.008, oy - 0.005], [ox + ia.w + 0.008, oy - 0.005],
-                [ox + ia.w + 0.018, ta.y + ta.h + 0.005], [ox - 0.028, ta.y + ta.h + 0.005]];
+                [ox + ia.w + 0.018, pa.y + pa.h + 0.005], [ox - 0.028, pa.y + pa.h + 0.005]];
       }
     }
-    const u = { x: Math.min(ia.x, ta.x), y: Math.min(ia.y, ta.y) };
-    u.w = Math.max(ia.x + ia.w, ta.x + ta.w) - u.x;
-    u.h = Math.max(ia.y + ia.h, ta.y + ta.h) - u.y;
-    return { icon: ia, text: ta, poly, union: u };
+    const rs = [ia, na, pa];
+    const u = { x: Math.min(...rs.map(q => q.x)), y: Math.min(...rs.map(q => q.y)) };
+    u.w = Math.max(...rs.map(q => q.x + q.w)) - u.x;
+    u.h = Math.max(...rs.map(q => q.y + q.h)) - u.y;
+    return { icon: ia, name: na, price: pa, poly, union: u };
   }
 
   function imgRect() {
@@ -359,18 +374,22 @@
     bEl.style.minHeight = ((bubble.h || 0) * r.h) + 'px';
     bEl.style.fontSize = (2 * (bubble.fontScale || 1)) + 'vh';
     document.querySelectorAll('.item-slot').forEach((slot, i) => {
-      const { icon: ia, text: ta, union: u } = slotAreas(i);
+      const { icon: ia, name: na, price: pa, union: u } = slotAreas(i);
       place(slot, u, r);
-      const ic = slot.querySelector('.item-icon'), tx = slot.querySelector('.item-text');
+      const ic = slot.querySelector('.item-icon'),
+            nm = slot.querySelector('.item-name'),
+            pr = slot.querySelector('.item-price');
       ic.style.left = ((ia.x - u.x) * r.w) + 'px';
       ic.style.top = ((ia.y - u.y) * r.h) + 'px';
       ic.style.width = (ia.w * r.w) + 'px';
       ic.style.height = (ia.h * r.h) + 'px';
-      tx.style.left = ((ta.x - u.x) * r.w) + 'px';
-      tx.style.top = ((ta.y - u.y) * r.h) + 'px';
-      tx.style.width = (ta.w * r.w) + 'px';
-      tx.style.height = (ta.h * r.h) + 'px';
-      tx.style.setProperty('--fs', ta.fontScale || 1);
+      for (const [el, a] of [[nm, na], [pr, pa]]) {
+        el.style.left = ((a.x - u.x) * r.w) + 'px';
+        el.style.top = ((a.y - u.y) * r.h) + 'px';
+        el.style.width = (a.w * r.w) + 'px';
+        el.style.height = (a.h * r.h) + 'px';
+        el.style.setProperty('--fs', a.fontScale || 1);
+      }
     });
     // Marco de selección poligonal sobre el cofre elegido
     const svg = document.getElementById('seldraw');
@@ -427,28 +446,19 @@
       icon.onerror = () => { icon.src = '/assets/comunes/monedas.webp'; };
       slot.appendChild(icon);
 
-      const text = document.createElement('div');
-      text.className = 'item-text';
-
       const name = document.createElement('div');
       name.className = 'item-name';
       name.textContent = t('shop.item.' + item.id + '.name');
-      text.appendChild(name);
+      slot.appendChild(name);
 
       const price = document.createElement('div');
       price.className = 'item-price';
       price.innerHTML = '<img src="/assets/comunes/monedas.webp" alt="">';
       price.appendChild(document.createTextNode(String(item.price)));
-      text.appendChild(price);
+      slot.appendChild(price);
 
-      const owned = document.createElement('div');
-      owned.className = 'item-owned';
-      const hasMax = ownedCount(item.id) >= (item.max || 1);
-      if (hasMax) slot.classList.add('disabled');
-      owned.textContent = hasMax ? t('shop.already') : format('shop.owned', ownedCount(item.id));
-      text.appendChild(owned);
-
-      slot.appendChild(text);
+      // Deshabilitado = ya lo tienes (máx. 1 por tipo); no hace falta texto
+      if (ownedCount(item.id) >= (item.max || 1)) slot.classList.add('disabled');
 
       panel.appendChild(slot);
     });
