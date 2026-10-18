@@ -351,6 +351,10 @@
     color: #ffd76a; text-shadow: 0 0 14px rgba(255,190,60,.95), 0 0 4px #000;
     animation: hintArrow 1.6s ease-out forwards;
   }
+  /* Posición sin salvación: el orbe muestra una cruz roja (no consume) */
+  .hint-arrow.dead {
+    color: #ff6a5a; text-shadow: 0 0 14px rgba(255,90,60,.95), 0 0 4px #000;
+  }
   @keyframes hintArrow {
     0% { opacity: 0; transform: scale(.5); }
     15% { opacity: 1; transform: scale(1.15); }
@@ -2010,20 +2014,10 @@ async function useHintItem() {
     const q = `id=${encodeURIComponent(currentScreenId)}&p=${player.c},${player.r}` +
       `&e=${enemies.map(e => `${e.c},${e.r}`).join(';')}` +
       `&ps=${playerStunnedTurns}&es=${enemies.map(e => e.stunnedTurns).join(',')}`;
-    const [rCons, rHint] = await Promise.all([
-      fetch(`${BASE}/api/consume-item`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: 'pista' }),
-      }),
-      fetch(`${BASE}/api/hint?${q}`),
-    ]);
-    const dCons = await rCons.json();
+    // La pista se consulta ANTES de consumir: si la posición no tiene
+    // salvación, el orbe muestra ✕ y el ítem NO se gasta.
+    const rHint = await fetch(`${BASE}/api/hint?${q}`);
     const dHint = await rHint.json();
-    if (!dCons.ok || !dHint.ok) { deny(); return; }
-    if (dCons.player) playerData = dCons.player;
-    updateItemBadges();
-    AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.55);
-    const [dc, dr] = dHint.move;
     const cell = cellPos(player.c, player.r, true);
     const el = document.createElement('div');
     el.className = 'hint-arrow';
@@ -2032,6 +2026,24 @@ async function useHintItem() {
     el.style.width = cell.w + 'px';
     el.style.height = cell.h + 'px';
     el.style.fontSize = Math.round(cell.h * 0.9) + 'px';
+    if (!dHint.ok) {
+      el.classList.add('dead');
+      el.textContent = '✕';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1650);
+      AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.5);
+      return;
+    }
+    const rCons = await fetch(`${BASE}/api/consume-item`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId: 'pista' }),
+    });
+    const dCons = await rCons.json();
+    if (!dCons.ok) { el.remove(); deny(); return; }
+    if (dCons.player) playerData = dCons.player;
+    updateItemBadges();
+    AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.55);
+    const [dc, dr] = dHint.move;
     el.textContent = dc === 1 ? '→' : dc === -1 ? '←' : dr === -1 ? '↑' : dr === 1 ? '↓' : '·';
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 1650);

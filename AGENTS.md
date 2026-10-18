@@ -354,7 +354,9 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   (bonus final `2500 + tier*250`) y los precios se calibraron para que
   comprar vacíe las arcas (≈4-6 pantallas por ítem):
   - `pista` (400) — tecla **H** o badge: `/api/hint` dibuja la flecha del
-    movimiento óptimo.
+    movimiento óptimo. Se consulta ANTES de consumir: si la posición no
+    tiene salvación (solver → 404), el orbe dibuja una `✕` roja y el
+    ítem NO se gasta.
   - `deshacer` (500) — tecla **U** o badge: rebobina el último turno
     (`undoStack`: jugador, enemigos, aturdimientos y contador).
   - `midas` (600) — tecla **M** o badge: se ARMA en la pantalla y duplica
