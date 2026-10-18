@@ -14,6 +14,7 @@
 .preview.title{color:#ffd76a;letter-spacing:1px;text-shadow:2px 2px 4px rgba(0,0,0,.9),0 0 18px rgba(255,190,60,.3)}
 .preview.gold{color:#ffe9a8;text-shadow:2px 2px 4px rgba(0,0,0,.95);background:rgba(20,12,6,.45);border-radius:8px}
 .preview.bubble{flex-direction:column;color:#f2e0b8;font-size:12px;line-height:1.35;white-space:normal;text-align:left;align-items:flex-start;justify-content:flex-start;padding:.5em;background:rgba(24,16,8,.85);border:2px solid rgba(210,170,90,.75);border-radius:10px}
+.preview.desc{color:#f2e0b8;white-space:normal;background:rgba(20,12,6,.5);border-radius:10px;text-shadow:1px 1px 3px rgba(0,0,0,.95);padding:0 .4em}
 .preview.bubble b{color:#ffd76a;display:block;margin-bottom:.2em}
 .icpv{position:absolute;object-fit:contain;filter:drop-shadow(0 0 8px rgba(0,0,0,.8));pointer-events:none}
 .txtpv{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;text-align:center;font-family:'ChelseaMarket','Trebuchet MS',sans-serif;pointer-events:none}
@@ -45,12 +46,12 @@ Zona: <select id="kind"></select><br>
 <script>
 const WORLD_ORDER=['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
 const IMG=w=>'/assets/tienda/'+w+'/tienda.webp';
-const KINDS=['title','gold','bubble','slot1icon','slot1name','slot1price','slot1sel','slot2icon','slot2name','slot2price','slot2sel','slot3icon','slot3name','slot3price','slot3sel'];
-const LABELS={title:'TÍTULO',gold:'ORO',bubble:'BOCADILLO',slot1icon:'COFRE 1 · ICONO',slot1name:'COFRE 1 · NOMBRE',slot1price:'COFRE 1 · PRECIO',slot1sel:'COFRE 1 · SELECCIÓN',slot2icon:'COFRE 2 · ICONO',slot2name:'COFRE 2 · NOMBRE',slot2price:'COFRE 2 · PRECIO',slot2sel:'COFRE 2 · SELECCIÓN',slot3icon:'COFRE 3 · ICONO',slot3name:'COFRE 3 · NOMBRE',slot3price:'COFRE 3 · PRECIO',slot3sel:'COFRE 3 · SELECCIÓN'};
+const KINDS=['title','gold','bubble','desc','slot1icon','slot1name','slot1price','slot1sel','slot2icon','slot2name','slot2price','slot2sel','slot3icon','slot3name','slot3price','slot3sel'];
+const LABELS={title:'TÍTULO',gold:'ORO',bubble:'BOCADILLO',desc:'DESCRIPCIÓN ÍTEM',slot1icon:'COFRE 1 · ICONO',slot1name:'COFRE 1 · NOMBRE',slot1price:'COFRE 1 · PRECIO',slot1sel:'COFRE 1 · SELECCIÓN',slot2icon:'COFRE 2 · ICONO',slot2name:'COFRE 2 · NOMBRE',slot2price:'COFRE 2 · PRECIO',slot2sel:'COFRE 2 · SELECCIÓN',slot3icon:'COFRE 3 · ICONO',slot3name:'COFRE 3 · NOMBRE',slot3price:'COFRE 3 · PRECIO',slot3sel:'COFRE 3 · SELECCIÓN'};
 const isPoly=k=>k.endsWith('sel');
 // Defaults = constantes actuales de shop.html (sel = trapecio sobre el
 // cofre pintado de cada ítem)
-const DEFS={title:{x:.20,y:.035,w:.40,h:.105},gold:{x:.815,y:.045,w:.115,h:.08},bubble:{x:.04,y:.20,w:.24,h:.12},slot1icon:{x:.305,y:.630,w:.120,h:.135},slot1name:{x:.290,y:.775,w:.150,h:.047},slot1price:{x:.290,y:.822,w:.150,h:.038},slot1sel:{polygon:[[.297,.632],[.433,.632],[.448,.863],[.282,.863]]},slot2icon:{x:.470,y:.630,w:.120,h:.135},slot2name:{x:.455,y:.775,w:.150,h:.047},slot2price:{x:.455,y:.822,w:.150,h:.038},slot2sel:{polygon:[[.462,.632],[.598,.632],[.613,.863],[.447,.863]]},slot3icon:{x:.640,y:.630,w:.120,h:.135},slot3name:{x:.625,y:.775,w:.150,h:.047},slot3price:{x:.625,y:.822,w:.150,h:.038},slot3sel:{polygon:[[.632,.632],[.768,.632],[.783,.863],[.617,.863]]}};
+const DEFS={title:{x:.20,y:.035,w:.40,h:.105},gold:{x:.815,y:.045,w:.115,h:.08},bubble:{x:.04,y:.20,w:.24,h:.12},desc:{x:.20,y:.865,w:.60,h:.065},slot1icon:{x:.305,y:.630,w:.120,h:.135},slot1name:{x:.290,y:.775,w:.150,h:.047},slot1price:{x:.290,y:.822,w:.150,h:.038},slot1sel:{polygon:[[.297,.632],[.433,.632],[.448,.863],[.282,.863]]},slot2icon:{x:.470,y:.630,w:.120,h:.135},slot2name:{x:.455,y:.775,w:.150,h:.047},slot2price:{x:.455,y:.822,w:.150,h:.038},slot2sel:{polygon:[[.462,.632],[.598,.632],[.613,.863],[.447,.863]]},slot3icon:{x:.640,y:.630,w:.120,h:.135},slot3name:{x:.625,y:.775,w:.150,h:.047},slot3price:{x:.625,y:.822,w:.150,h:.038},slot3sel:{polygon:[[.632,.632],[.768,.632],[.783,.863],[.617,.863]]}};
 const NS='http://www.w3.org/2000/svg';
 const img=document.getElementById('image'),overlay=document.getElementById('overlay'),svg=document.getElementById('draw'),drag=document.getElementById('drag'),worldSelect=document.getElementById('world'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status');
 let worldIndex=0,kind='title',areas={},dragging=false,start=null,current=null,drawing=[];
@@ -81,7 +82,8 @@ function render(){const w=WORLD_ORDER[worldIndex];overlay.innerHTML='';svg.setAt
   if(k.endsWith('name')){overlay.insertAdjacentHTML('beforeend',nameHtml(p,fs,k));continue}
   if(k.endsWith('price')){overlay.insertAdjacentHTML('beforeend',priceHtml(p,fs,k));continue}
   const pv=document.createElement('div');pv.className='preview '+k;let fsPx;
-  if(k==='title'){pv.textContent=(tt('shop.title')||'Tienda')+' — '+(tt('worlds.'+w)||w);fsPx=p.h*.62*fs}
+  if(k==='desc'){const it=slotItem(kind);pv.textContent=tt('shop.item.'+it.id+'.desc')||it.id;fsPx=Math.max(9,p.h*.42*fs)}
+  else if(k==='title'){pv.textContent=(tt('shop.title')||'Tienda')+' — '+(tt('worlds.'+w)||w);fsPx=p.h*.62*fs}
   else if(k==='gold'){pv.textContent='88';fsPx=p.h*.55*fs}
   else{pv.innerHTML=`<b>${tt('shop.keeper.'+w)||'Tendero'}</b>${tt('shop.welcome')||'Bienvenido'}`;fsPx=Math.max(10,p.h*.16*fs)}
   pv.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px;font-size:${fsPx}px`;overlay.appendChild(pv)}
