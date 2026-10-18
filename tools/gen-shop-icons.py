@@ -12,8 +12,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 from shop_gen import pipe, chroma_key  # noqa: E402
 
 STYLE = ("single object centered on plain solid white background, "
-         "cartoon game item icon, flat colors, bold shapes, painterly, "
-         "video game asset")
+         "low poly 3d style, flat shaded faceted geometry, bold angular "
+         "shapes, cartoon game item icon, video game asset")
 NEG = ("text, watermark, signature, blurry, distorted, ugly, low quality, "
        "photorealistic, photo, people, hands, crowd, ui, interface, "
        "frame, border, card, ornate frame, pattern, background details, "
