@@ -12,17 +12,19 @@ sys.path.insert(0, str(Path(__file__).parent))
 from shop_gen import pipe, chroma_key  # noqa: E402
 
 STYLE = ("single object centered on plain solid white background, "
-         "low poly 3d style, flat shaded faceted geometry, bold angular "
-         "shapes, cartoon game item icon, video game asset")
+         "minimalist low poly icon, simple flat geometric shapes, very few "
+         "large polygon facets, solid flat colors, clean silhouette, "
+         "minimal detail, no gradients, vector-like game icon")
 NEG = ("text, watermark, signature, blurry, distorted, ugly, low quality, "
        "photorealistic, photo, people, hands, crowd, ui, interface, "
        "frame, border, card, ornate frame, pattern, background details, "
-       "skull, face, particles, sparkles")
+       "skull, face, particles, sparkles, intricate, detailed, ornate, "
+       "engraving, filigree, gradients, shading, 3d render")
 
 ITEMS = {
-    "pista": "antique brass compass, glowing golden needle, " + STYLE,
-    "deshacer": "golden hourglass, sand timer with glowing blue sand, " + STYLE,
-    "midas": "golden king crown with red gems, " + STYLE,
+    "pista": "simple flat compass icon, low poly gold star needle in flat circle, " + STYLE,
+    "deshacer": "simple flat hourglass icon, low poly gold frame with flat blue sand, " + STYLE,
+    "midas": "simple flat crown icon, low poly golden crown with one red diamond gem, " + STYLE,
 }
 
 
