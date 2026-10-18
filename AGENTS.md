@@ -349,13 +349,17 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   tipo** (`"max": 1` en `items.json`): el servidor y `webdb` rechazan la
   compra si ya lo llevas, y en `shop.html` el cofre sale `.disabled`
   (apagado) con `shop.already` en vez del contador.
-- Ítems (catálogo en `assets/tienda/items.json`, precio en servidor):
-  - `pista` (60) — tecla **H** o badge: `/api/hint` dibuja la flecha del
+- Ítems (catálogo en `assets/tienda/items.json`, precio en servidor).
+  **Economía ×5**: el oro de las pantallas es `50 + tier*25` × mult
+  (bonus final `2500 + tier*250`) y los precios se calibraron para que
+  comprar vacíe las arcas (≈4-6 pantallas por ítem):
+  - `pista` (400) — tecla **H** o badge: `/api/hint` dibuja la flecha del
     movimiento óptimo.
-  - `deshacer` (40) — tecla **U** o badge: rebobina el último turno
+  - `deshacer` (500) — tecla **U** o badge: rebobina el último turno
     (`undoStack`: jugador, enemigos, aturdimientos y contador).
-  - `midas` (50) — tecla **M** o badge: se ARMA en la pantalla y duplica
-    `winGoldEarned` al ganarla; si pierdes o reinicias, se pierde.
+  - `midas` (600) — tecla **M** o badge: se ARMA en la pantalla y duplica
+    `winGoldEarned` al ganarla; si pierdes o reinicias, se pierde. Solo
+    rentable en pantallas grandes/boss — es una inversión.
   Los badges apilados (`#item-badges`, inf-der) muestran contador; el de
   midas brilla con `×2` mientras está armado. El tendero rota un
   agradecimiento (`shop.thanks.0..2`) tras cada compra.

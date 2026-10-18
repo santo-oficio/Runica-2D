@@ -231,7 +231,7 @@
 
   async function loadPlayer() {
     // Una pista ya comprada para ver el estado deshabilitado
-    if (DEMO) { player = { gold: 500, inventory: { pista: 1 } }; return; }
+    if (DEMO) { player = { gold: 5000, inventory: { pista: 1 } }; return; }
     try {
       const r = await fetch('/api/savegame');
       if (r.ok) { const d = await r.json(); player = d.player || null; }
@@ -612,7 +612,10 @@
       + ' · ' + k('Esc') + ' ' + t('shop.leave');
     renderItems();
 
-    if (sessionStorage.getItem('runika-session') === 'active') {
+    if (sessionStorage.getItem('runika-session') === 'active' || DEMO) {
+      // Demo/sesión activa: sin precarga del manifiesto — la tienda solo
+      // necesita su fondo e iconos (8 iframes del mosaico no deben
+      // descargar ~300 MB cada una).
       AssetsCache.unlockAudio();
       AssetsCache.hideLoading();
       setTimeout(() => AssetsCache.transitionIn(), 100);

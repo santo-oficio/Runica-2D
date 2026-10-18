@@ -1690,14 +1690,14 @@ function winGame() {
     const isReplay = (playerData?.worldProgress?.[REAL_WORLD]?.completed ?? []).includes(REAL_LEVEL);
     const par = Math.max(1, currentMinMoves);
     const goldTier = lastScreen?.level ?? (REAL_MODE ? gameLevel : currentTier);
-    const goldBase = 10 + goldTier * 5;
+    const goldBase = 50 + goldTier * 25;
     const goldMult = Math.min(2, Math.max(0.3, 2 * par / Math.max(turn, par)));
     winGoldEarned = isReplay ? 0 : Math.round(goldBase * goldMult * (isBossWin ? 2 : 1) * (midasActive ? 2 : 1));
     winGoldBefore = playerData?.gold ?? 0;
     const isFinalWin = (REAL_MODE && REAL_WORLD === FINAL_WORLD) || DEMO_FINAL;
     // Botín del guardián final: el tesoro que despierta en la batalla se
     // suma de verdad al oro — premio cuantioso que crece con la dificultad
-    winFinalBonus = (isFinalWin && !isReplay) ? 500 + goldTier * 50 : 0;
+    winFinalBonus = (isFinalWin && !isReplay) ? 2500 + goldTier * 250 : 0;
     winBodyText = isBossWin
         ? tt('game.bossBody', bossWorldOf, turn)
         : tt('game.levelDone', REAL_LEVEL + 1, turn);
