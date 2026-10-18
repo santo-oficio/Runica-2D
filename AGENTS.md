@@ -313,8 +313,8 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
 - `assets/tienda/items.json` — catálogo `{items:[{id,price,icon,uses}]}`.
 - `shop.html` — interior estilo recreativa 90s: fondo
   `assets/tienda/<MUNDO>/tienda.webp` (master PNG en `old/tienda-src.png`).
-  El arte lleva todo pintado: tendero único (mismo pirata "Barbarroja el
-  Errante" en los 8 mundos), cartelón, placa de oro y 3 cofres vacíos.
+  El arte lleva todo pintado: tendero único (mismo "Pirata Secora"
+  en los 8 mundos), cartelón, placa de oro y 3 cofres vacíos.
   El overlay se posiciona en coordenadas de IMAGEN (`HUD` + `imgRect()`):
   título sobre el cartelón, oro dentro de la placa (SOLO el número — la
   moneda ya viene pintada; fondo fallback si el mundo no la trae, p. ej.
