@@ -45,11 +45,12 @@ Zona: <select id="kind"></select><br>
 <script>
 const WORLD_ORDER=['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
 const IMG=w=>'/assets/tienda/'+w+'/tienda.webp';
-const KINDS=['title','gold','bubble','slot1icon','slot1text','slot1sel','slot2icon','slot2text','slot2sel','slot3icon','slot3text','slot3sel'];
-const LABELS={title:'TÍTULO',gold:'ORO',bubble:'BOCADILLO',slot1icon:'COFRE 1 · ICONO',slot1text:'COFRE 1 · TEXTO',slot1sel:'COFRE 1 · SELECCIÓN',slot2icon:'COFRE 2 · ICONO',slot2text:'COFRE 2 · TEXTO',slot2sel:'COFRE 2 · SELECCIÓN',slot3icon:'COFRE 3 · ICONO',slot3text:'COFRE 3 · TEXTO',slot3sel:'COFRE 3 · SELECCIÓN'};
+const KINDS=['title','gold','bubble','slot1icon','slot1text','slot1sel','slot2icon','slot2text','slot2sel','slot3icon','slot3text','slot3sel','slot4icon','slot4text','slot4sel'];
+const LABELS={title:'TÍTULO',gold:'ORO',bubble:'BOCADILLO',slot1icon:'COFRE 1 · ICONO',slot1text:'COFRE 1 · TEXTO',slot1sel:'COFRE 1 · SELECCIÓN',slot2icon:'COFRE 2 · ICONO',slot2text:'COFRE 2 · TEXTO',slot2sel:'COFRE 2 · SELECCIÓN',slot3icon:'COFRE 3 · ICONO',slot3text:'COFRE 3 · TEXTO',slot3sel:'COFRE 3 · SELECCIÓN',slot4icon:'ÍTEM 4 · ICONO',slot4text:'ÍTEM 4 · TEXTO',slot4sel:'ÍTEM 4 · SELECCIÓN'};
 const isPoly=k=>k.endsWith('sel');
-// Defaults = constantes actuales de shop.html (sel = trapecio sobre el cofre)
-const DEFS={title:{x:.20,y:.035,w:.40,h:.105},gold:{x:.815,y:.045,w:.115,h:.08},bubble:{x:.04,y:.20,w:.24,h:.12},slot1icon:{x:.305,y:.630,w:.120,h:.135},slot1text:{x:.290,y:.775,w:.150,h:.085},slot1sel:{polygon:[[.297,.632],[.433,.632],[.448,.863],[.282,.863]]},slot2icon:{x:.470,y:.630,w:.120,h:.135},slot2text:{x:.455,y:.775,w:.150,h:.085},slot2sel:{polygon:[[.462,.632],[.598,.632],[.613,.863],[.447,.863]]},slot3icon:{x:.640,y:.630,w:.120,h:.135},slot3text:{x:.625,y:.775,w:.150,h:.085},slot3sel:{polygon:[[.632,.632],[.768,.632],[.783,.863],[.617,.863]]}};
+// Defaults = constantes actuales de shop.html (sel = trapecio sobre el
+// cofre; el ítem 4 flota sobre el mostrador, no tiene cofre pintado)
+const DEFS={title:{x:.20,y:.035,w:.40,h:.105},gold:{x:.815,y:.045,w:.115,h:.08},bubble:{x:.04,y:.20,w:.24,h:.12},slot1icon:{x:.305,y:.630,w:.120,h:.135},slot1text:{x:.290,y:.775,w:.150,h:.085},slot1sel:{polygon:[[.297,.632],[.433,.632],[.448,.863],[.282,.863]]},slot2icon:{x:.470,y:.630,w:.120,h:.135},slot2text:{x:.455,y:.775,w:.150,h:.085},slot2sel:{polygon:[[.462,.632],[.598,.632],[.613,.863],[.447,.863]]},slot3icon:{x:.640,y:.630,w:.120,h:.135},slot3text:{x:.625,y:.775,w:.150,h:.085},slot3sel:{polygon:[[.632,.632],[.768,.632],[.783,.863],[.617,.863]]},slot4icon:{x:.055,y:.57,w:.12,h:.135},slot4text:{x:.03,y:.715,w:.15,h:.085},slot4sel:{polygon:[[.047,.565],[.183,.565],[.193,.803],[.027,.803]]}};
 const NS='http://www.w3.org/2000/svg';
 const img=document.getElementById('image'),overlay=document.getElementById('overlay'),svg=document.getElementById('draw'),drag=document.getElementById('drag'),worldSelect=document.getElementById('world'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status');
 let worldIndex=0,kind='title',areas={},dragging=false,start=null,current=null,drawing=[];

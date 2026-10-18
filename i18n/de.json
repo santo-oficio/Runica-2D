@@ -221,6 +221,8 @@
   "shop.item.deshacer.desc": "Macht deinen letzten Zug rückgängig (Taste U).",
   "shop.item.midas.name": "Midas-Hand",
   "shop.item.midas.desc": "Verdoppelt das Gold dieses Levels beim Sieg (Taste M).",
+  "shop.item.escarcha.name": "Ewiger Reif",
+  "shop.item.escarcha.desc": "Friert alle Gegner 3 Züge lang ein (Taste C).",
   "shop.already": "Du hast schon eines dabei, Reisender.",
   "shop.thanks.0": "Abgemacht! Komm jederzeit wieder.",
   "shop.thanks.1": "Dieser Schatz wird dir das Leben retten, ha!",

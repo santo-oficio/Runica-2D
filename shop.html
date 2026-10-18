@@ -306,9 +306,22 @@
       ? s.polygon.map(p => [...p])
       : HUD.sels[n - 1].map(p => [...p]);
     if (i >= 3) {
-      const dy = ia.h + ta.h + 0.05;
-      ia = { ...ia, y: ia.y + dy }; ta = { ...ta, y: ta.y + dy };
-      poly = poly.map(p => [p[0], p[1] + dy]);
+      // Ítem 4+ sin cofre pintado: si el mundo tiene slot4* calibrado lo
+      // usa; si no, flota sobre el mostrador a la izquierda.
+      const c4i = hudAreas && hudAreas['slot' + i + 'icon'];
+      const c4t = hudAreas && hudAreas['slot' + i + 'text'];
+      const c4s = hudAreas && hudAreas['slot' + i + 'sel'];
+      if (c4i || c4t || c4s) {
+        if (c4i) ia = { ...ia, ...c4i };
+        if (c4t) ta = { ...ta, ...c4t };
+        if (c4s && c4s.polygon && c4s.polygon.length >= 3) poly = c4s.polygon.map(p => [...p]);
+      } else {
+        const k = i - 3, ox = 0.055 + k * 0.17, oy = 0.57;
+        ia = { ...ia, x: ox, y: oy };
+        ta = { ...ta, x: ox - 0.025, y: oy + ia.h + 0.01 };
+        poly = [[ox - 0.008, oy - 0.005], [ox + ia.w + 0.008, oy - 0.005],
+                [ox + ia.w + 0.018, ta.y + ta.h + 0.005], [ox - 0.028, ta.y + ta.h + 0.005]];
+      }
     }
     const u = { x: Math.min(ia.x, ta.x), y: Math.min(ia.y, ta.y) };
     u.w = Math.max(ia.x + ia.w, ta.x + ta.w) - u.x;

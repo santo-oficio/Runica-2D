@@ -221,6 +221,8 @@
   "shop.item.deshacer.desc": "Son hamleni geri alır (U tuşu).",
   "shop.item.midas.name": "Midas'ın eli",
   "shop.item.midas.desc": "Kazanınca bu bölümün altınını ikiye katlar (M tuşu).",
+  "shop.item.escarcha.name": "Ebedi kırağı",
+  "shop.item.escarcha.desc": "Tüm düşmanları 3 tur dondurur (C tuşu).",
   "shop.already": "Zaten bir tane taşıyorsun, yolcu.",
   "shop.thanks.0": "Anlaştık! Ne zaman istersen gel.",
   "shop.thanks.1": "O hazine hayatını kurtarır, ha!",
