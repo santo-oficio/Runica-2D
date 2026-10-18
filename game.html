@@ -369,10 +369,6 @@
       <img src="/assets/tienda/iconos/midas.webp" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
       <span id="midas-count">0</span><span class="on">×2</span>
     </div>
-    <div class="item-badge" id="badge-frost" style="display:none">
-      <img src="/assets/tienda/iconos/escarcha.webp" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
-      <span id="frost-count">0</span>
-    </div>
     <div class="item-badge" id="badge-undo" style="display:none">
       <img src="/assets/tienda/iconos/deshacer.webp" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
       <span id="undo-count">0</span>
@@ -1898,7 +1894,7 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'h' || e.key === 'H') { e.preventDefault(); useHintItem(); return; }
     if (e.key === 'u' || e.key === 'U') { e.preventDefault(); useUndoItem(); return; }
     if (e.key === 'm' || e.key === 'M') { e.preventDefault(); useMidasItem(); return; }
-    if (e.key === 'c' || e.key === 'C') { e.preventDefault(); useFrostItem(); return; }
+
     const dirs = {
       'ArrowUp': [0, -1], 'ArrowDown': [0, 1],
       'ArrowLeft': [-1, 0], 'ArrowRight': [1, 0],
@@ -1951,11 +1947,9 @@ function updateItemBadges() {
   };
   show('hint-badge', inv.pista || 0);
   show('badge-undo', inv.deshacer || 0);
-  show('badge-frost', inv.escarcha || 0);
   show('badge-midas', inv.midas || 0, midasActive);
   document.getElementById('hint-count').textContent = String(inv.pista || 0);
   document.getElementById('undo-count').textContent = String(inv.deshacer || 0);
-  document.getElementById('frost-count').textContent = String(inv.escarcha || 0);
   document.getElementById('midas-count').textContent = String(inv.midas || 0);
 }
 function denyBadge(id) {
@@ -2006,22 +2000,7 @@ async function useMidasItem() {
     AssetsCache.playSound('/assets/sounds/comun/moneda.wav', 0.7);
   } catch { denyBadge('badge-midas'); }
 }
-// Escarcha: aturde a TODOS los enemigos 3 turnos — la misma regla que
-// la trampa sobre ellos. Útil para abrir una ventana de timing.
-async function useFrostItem() {
-  if (!REAL_MODE || gameOver || countingDown || modalOpen) return;
-  if (!((playerData?.inventory?.escarcha) > 0)) { denyBadge('badge-frost'); return; }
-  try {
-    if (!(await consumeShopItem('escarcha'))) { denyBadge('badge-frost'); return; }
-    enemies.forEach((e, i) => {
-      e.stunnedTurns = Math.max(e.stunnedTurns || 0, 3);
-      enemyTrapFx(i);
-    });
-    updateEnemyPositions();
-    updateItemBadges();
-    AssetsCache.playSound('/assets/sounds/comun/trampa.wav', 0.7);
-  } catch { denyBadge('badge-frost'); }
-}
+
 async function useHintItem() {
   if (!REAL_MODE || gameOver || countingDown || modalOpen) return;
   const badge = document.getElementById('hint-badge');
@@ -2067,9 +2046,7 @@ document.getElementById('badge-undo').addEventListener('pointerdown', e => {
 document.getElementById('badge-midas').addEventListener('pointerdown', e => {
   e.preventDefault(); e.stopPropagation(); useMidasItem();
 });
-document.getElementById('badge-frost').addEventListener('pointerdown', e => {
-  e.preventDefault(); e.stopPropagation(); useFrostItem();
-});
+
 
 // === Puente táctil (web/tizen.js, Android) ===
 // Un tap sobre el tablero mueve un paso en la dirección dominante desde la

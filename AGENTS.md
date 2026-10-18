@@ -320,8 +320,8 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
   moneda ya viene pintada; fondo fallback si el mundo no la trae, p. ej.
   VIENTO) y en cada cofre el icono, el nombre y el precio del ítem en
   zonas separadas (`slotNicon`/`slotNname`/`slotNprice`; el `.item-slot`
-  cubre la unión de las tres). Ítem 4+: `slot4*` flotante sobre el
-  mostrador (no hay cuarto cofre pintado). Máx. 1 por tipo: si ya se
+  cubre la unión de las tres). `slotAreas(i)` soporta ítems extra
+  (`slot4*` en `areas.json` o flotante a la izquierda). Máx. 1 por tipo: si ya se
   tiene, el slot sale `disabled` (gris) sin texto extra.
   Bocadillo del tendero con el nombre como cabecera dentro de la misma
   caja (`shop.keeper.<MUNDO>`, `shop.welcome`). Teclas: ←→ elegir,
@@ -356,11 +356,6 @@ serpiente 4×3 que cuelga de una isla normal y no cuenta como nivel.
     (`undoStack`: jugador, enemigos, aturdimientos y contador).
   - `midas` (50) — tecla **M** o badge: se ARMA en la pantalla y duplica
     `winGoldEarned` al ganarla; si pierdes o reinicias, se pierde.
-  - `escarcha` (80) — tecla **C** o badge: aturde a TODOS los enemigos 3
-    turnos (`stunnedTurns=3`, la regla de la trampa sobre ellos).
-  El ítem 4º no tiene cofre pintado: flota sobre el mostrador a la
-  izquierda salvo que el mundo tenga `slot4icon`/`slot4text`/`slot4sel`
-  calibrados en su `areas.json` (el calibrador los incluye).
   Los badges apilados (`#item-badges`, inf-der) muestran contador; el de
   midas brilla con `×2` mientras está armado. El tendero rota un
   agradecimiento (`shop.thanks.0..2`) tras cada compra.

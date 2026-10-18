@@ -1,8 +1,13 @@
-# Iconos de tienda al estilo de pista.webp: orbe dorado con glifo oscuro.
+# Iconos de tienda: orbe dorado con glifo oscuro, uno por item.
+#   pista    = ojo (revela el movimiento optimo)
+#   deshacer = flecha circular (rebobina el turno)
+#   midas    = corona del rey Midas (dobla el oro de la pantalla)
 from PIL import Image, ImageDraw, ImageFilter
 import math
 
 DARK = (52, 30, 12, 255)
+CREAM = (255, 236, 190, 255)
+
 
 def base():
     im = Image.new('RGBA', (512, 512), (0, 0, 0, 0))
@@ -29,6 +34,28 @@ def base():
         d.line([x0, y0, x1, y1], fill=(235, 175, 70, 255), width=16)
     return im, ImageDraw.Draw(im)
 
+
+def pista():
+    im, d = base()
+    cx, cy = 256, 256
+    # almendra del ojo: interseccion de dos circulos (centros arriba/abajo)
+    R, c = 172, 122
+    half_w = math.sqrt(R * R - c * c)
+    pts = []
+    for i in range(41):  # arco inferior del circulo superior (45..135 deg)
+        a = math.radians(45 + i * (90 / 40))
+        pts.append((cx + R * math.cos(a), cy - c + R * math.sin(a)))
+    for i in range(41):  # arco superior del circulo inferior (225..315 deg)
+        a = math.radians(225 + i * (90 / 40))
+        pts.append((cx + R * math.cos(a), cy + c + R * math.sin(a)))
+    d.polygon(pts, fill=DARK)
+    # iris y pupila (crema sobre glifo oscuro)
+    d.ellipse([cx - 46, cy - 46, cx + 46, cy + 46], fill=CREAM)
+    d.ellipse([cx - 20, cy - 20, cx + 20, cy + 20], fill=DARK)
+    d.ellipse([cx - 34, cy - 34, cx - 22, cy - 22], fill=CREAM)
+    return im
+
+
 def arc_arrow():
     im, d = base()
     # arco casi completo (flecha antihoraria), punta al inicio
@@ -45,43 +72,25 @@ def arc_arrow():
     d.arc([155, 155, 357, 357], start=300, end=350, fill=DARK, width=26)
     return im
 
+
 def midas():
     im, d = base()
-    # estrella de 4 puntas (brillo de oro)
-    cx, cy, L, S = 256, 256, 118, 34
-    pts = []
-    for k in range(4):
-        a = math.radians(k * 90 - 90)
-        pts.append((cx + math.cos(a) * L, cy + math.sin(a) * L))
-        a2 = a + math.radians(45)
-        pts.append((cx + math.cos(a2) * S, cy + math.sin(a2) * S))
-    d.polygon(pts, fill=DARK)
-    d.ellipse([cx - 20, cy - 20, cx + 20, cy + 20], fill=(255, 236, 190, 255))
-    # destellos pequenos
-    for a in (35, 145, 235, 315):
-        r = math.radians(a)
-        sx, sy = cx + math.cos(r) * 150, cy + math.sin(r) * 150
-        d.ellipse([sx - 9, sy - 9, sx + 9, sy + 9], fill=DARK)
+    cx, cy = 256, 262
+    # corona: banda + tres puntas en zigzag
+    d.rectangle([cx - 95, cy + 35, cx + 95, cy + 78], fill=DARK)
+    d.polygon([(cx - 95, cy + 35), (cx - 80, cy - 38), (cx - 48, cy + 2),
+               (cx, cy - 50), (cx + 48, cy + 2), (cx + 80, cy - 38),
+               (cx + 95, cy + 35)], fill=DARK)
+    # joyas en las puntas y en la banda
+    for jx, jy, jr in [(cx - 80, cy - 44, 11), (cx, cy - 56, 12), (cx + 80, cy - 44, 11)]:
+        d.ellipse([jx - jr, jy - jr, jx + jr, jy + jr], fill=DARK)
+        d.ellipse([jx - jr + 4, jy - jr + 4, jx + jr - 4, jy + jr - 4], fill=CREAM)
+    for jx in (cx - 48, cx, cx + 48):
+        d.ellipse([jx - 10, cy + 46, jx + 10, cy + 66], fill=CREAM)
     return im
 
+
+pista().save('assets/tienda/iconos/pista.webp', quality=90)
 arc_arrow().save('assets/tienda/iconos/deshacer.webp', quality=90)
 midas().save('assets/tienda/iconos/midas.webp', quality=90)
 print('iconos ok')
-
-def escarcha():
-    im, d = base()
-    cx, cy = 256, 256
-    # copo de nieve: 6 brazos con puntas en V
-    for k in range(6):
-        a = math.radians(k * 60 - 90)
-        x1, y1 = cx + math.cos(a) * 115, cy + math.sin(a) * 115
-        d.line([cx, cy, x1, y1], fill=DARK, width=22)
-        for sgn in (-1, 1):
-            ta = a + sgn * math.radians(38)
-            bx, by = cx + math.cos(a) * 78, cy + math.sin(a) * 78
-            d.line([bx, by, bx + math.cos(ta) * 30, by + math.sin(ta) * 30], fill=DARK, width=14)
-    d.ellipse([cx - 22, cy - 22, cx + 22, cy + 22], fill=(255, 236, 190, 255))
-    return im
-
-escarcha().save('assets/tienda/iconos/escarcha.webp', quality=90)
-print('escarcha ok')
