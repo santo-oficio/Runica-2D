@@ -172,17 +172,18 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
   El usuario rechazó el quilt+bruma (costuras, motas magenta, bordes
   difuminados): el espejo usa solo píxeles reales, nítido.
 - **Submundos → `.ext.webp` 2.35:1** (12032×5120), generados por
-  `tools/sub_extend.py` con config por mundo en `tools/sub-ext.json`:
-  el master 3:2 queda intacto en el centro (núcleo 7680px) y cada lado se
-  extiende 2176px con **atmósfera continua del propio arte** — base de
-  color por fila tomada del borde del núcleo + detalle de baja frecuencia
-  (modo `flat`) o tesela difuminada del parche de cielo, más "shards"
-  (rocas/aletas lejanas reales recortadas del arte y resiembradas con
-  escala/volteo/bruma) y bandas inferiores (`bands`, p.ej. la cordillera
-  de FUEGO). El usuario rechazó el `.169` espejo en submundos porque
-  repetía islas reconocibles; el `.ext` nunca repite objetos. A 16:9
+  `tools/quilt_extend.py --ratio 2.35` sobre el master de `old/`: el
+  master 3:2 queda intacto en el centro (núcleo 7680px) y cada lado se
+  extiende 2176px con **quilting Efros-Freeman min-cut** — parches de
+  zonas suaves del propio arte (cielo/océano/caverna) elegidos por bordes
+  que casan, costuras por camino de error mínimo (nítidas, sin mezcla
+  alfa), rebase tonal de baja frecuencia y rampa de ~32px en la unión.
+  Es la misma técnica de los lados del pano 10/10, sin el squeeze.
+  El usuario rechazó el `.169` espejo (repetía islas reconocibles) y la
+  atmósfera sintética `flat` de `tools/sub_extend.py` (niebla
+  artificial); el `.ext` quilt nunca repite objetos reconocibles. A 16:9
   `cover` muestra el núcleo entero sin recortar arriba/abajo; lo que
-  desborda por los lados es atmósfera generada, sacrificable.
+  desborda por los lados es arte sintetizado, sacrificable.
 - **Coordenadas de submundo en espacio `.ext`**: x remapeada
   `(x*7680+2176)/12032`, y sin tocar (mismo desplazamiento de núcleo que
   el `.169`; remap `.tmp_chk/remap-169-to-ext.py`, UNA sola ejecución).
