@@ -54,10 +54,9 @@
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
   }
-  /* Los submundos son 3:2: cover llena la pantalla con el arte real.
-     Anclada arriba (object-position top): la barra decorativa del HUD
-     (calavera + monedas) queda intacta y el recorte cae en las puntas
-     de roca de las islas inferiores, que salen del plano */
+  /* El lienzo .ext conserva el squeeze content-aware 16:9 del mapa
+     valorado: a 16:9 se ve el núcleo original completo; solo en pantallas
+     más anchas aparecen las extensiones laterales quilted. */
   #bg {
     width: 100%; height: 100%;
     object-fit: cover; object-position: 50% 0%;
@@ -246,14 +245,14 @@
   const ROWS = 3;
 
   const WORLD_IMAGES = {
-    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.ext.webp?v=x2',
-    AGUA: '/assets/submundos/AGUA/submundo agua.ext.webp?v=x2',
-    TIERRA: '/assets/submundos/TIERRA/submundo tierra.ext.webp?v=x2',
-    FUEGO: '/assets/submundos/FUEGO/submundo fuego.ext.webp?v=x2',
-    HIELO: '/assets/submundos/HIELO/submundo hielo.ext.webp?v=x2',
-    VIENTO: '/assets/submundos/VIENTO/submundo viento.ext.webp?v=x2',
-    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.ext.webp?v=x2',
-    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.ext.webp?v=x2',
+    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.ext.webp?v=x3',
+    AGUA: '/assets/submundos/AGUA/submundo agua.ext.webp?v=x3',
+    TIERRA: '/assets/submundos/TIERRA/submundo tierra.ext.webp?v=x3',
+    FUEGO: '/assets/submundos/FUEGO/submundo fuego.ext.webp?v=x3',
+    HIELO: '/assets/submundos/HIELO/submundo hielo.ext.webp?v=x3',
+    VIENTO: '/assets/submundos/VIENTO/submundo viento.ext.webp?v=x3',
+    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.ext.webp?v=x3',
+    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.ext.webp?v=x3',
   };
 
   // Grid 4x3 con numeracion en serpiente:
@@ -362,7 +361,7 @@
       completedLevels.has((node.unlockAfter ?? 1) - 1);
   }
 
-  // La isla pintada en el pano no se puede borrar: se cubre con una copia
+  // La isla pintada en el fondo no se puede borrar: se cubre con una copia
   // muy difuminada de su propia zona — la isla se deshace en una nube que
   // se funde con el cielo y "desaparece" del mapa. Devuelve los gradientes
   // de la mancha para la mascara combinada (un solo div para todas).
@@ -430,10 +429,8 @@
   const avatarEl = document.getElementById('avatar');
   const avatarImg = avatarEl.querySelector('img');
 
-  // Rect de la imagen dibujada con object-fit: cover + object-position top —
-  // la imagen cubre el viewport y desborda solo por abajo (3:2 en 16:9).
-  // Las coordenadas calibradas siguen en espacio de imagen (0-1 sobre el
-  // bitmap 3:2).
+  // Rect visible de la imagen .ext con object-fit: cover. Coordenadas y
+  // tamaños calibrados están normalizados al lienzo (0-1 sobre el bitmap).
   function getImgRect() {
     const er = bg.getBoundingClientRect();
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
@@ -497,7 +494,7 @@
     overlay.innerHTML = '';
 
     // Las manchas de islas bloqueadas van en UN solo div con la lista de
-    // gradientes como mascara: N divs con background-image del pano 10K +
+    // gradientes como máscara: N divs con background-image del mapa 10K +
     // filter disparaban la presion de memoria y Chrome rasterizaba toda la
     // pagina (incluido #bg) a baja resolucion — se veia todo borroso.
     const g = (x, y, rad, s, f) =>
@@ -535,7 +532,7 @@
     // Islas tienda: misma máscara oscura que las islas bloqueadas hasta
     // completar `unlockAfter`; sin marcador de nivel (no son jugables).
     // Las pasadas de largo (shopGone) se disuelven en el cielo.
-    // Nodos con `painted:false` aún no tienen isla dibujada en el pano —
+    // Nodos con `painted:false` aún no tienen isla dibujada en el mapa —
     // no se pinta ninguna mancha (el nodo sigue siendo navegable).
     shopNodes.forEach((node, ni) => {
       if (atShop === ni) {

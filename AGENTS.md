@@ -171,26 +171,26 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
   lado del master se reflejan hacia fuera (7680×5120 → 9102×5120 = 16:9).
   El usuario rechazó el quilt+bruma (costuras, motas magenta, bordes
   difuminados): el espejo usa solo píxeles reales, nítido.
-- **Submundos → `.ext.webp` 2.35:1** (12032×5120), generados por
-  `tools/quilt_extend.py --ratio 2.35` sobre el master de `old/`: el
-  master 3:2 queda intacto en el centro (núcleo 7680px) y cada lado se
-  extiende 2176px con **quilting Efros-Freeman min-cut** — parches de
-  zonas suaves del propio arte (cielo/océano/caverna) elegidos por bordes
-  que casan, costuras por camino de error mínimo (nítidas, sin mezcla
-  alfa), rebase tonal de baja frecuencia y rampa de ~32px en la unión.
-  Es la misma técnica de los lados del pano 10/10, sin el squeeze.
-  El usuario rechazó el `.169` espejo (repetía islas reconocibles) y la
-  atmósfera sintética `flat` de `tools/sub_extend.py` (niebla
-  artificial); el `.ext` quilt nunca repite objetos reconocibles. A 16:9
-  `cover` muestra el núcleo entero sin recortar arriba/abajo; lo que
-  desborda por los lados es arte sintetizado, sacrificable.
-- **Coordenadas de submundo en espacio `.ext`**: x remapeada
-  `(x*7680+2176)/12032`, y sin tocar (mismo desplazamiento de núcleo que
-  el `.169`; remap `.tmp_chk/remap-169-to-ext.py`, UNA sola ejecución).
-  El pipeline pano (`pano_build.py`, `quilt_extend.py`,
-  `remap-coords-squeeze.py`) quedó DESCARTADO y borrado; los
-  `.pano.webp` y `.169.webp` de submundos se eliminaron; el arte original
-  vive en `assets/submundos/<M>/old/`.
+- **Submundos → `.ext.webp` 2.35:1** (10152×4320), generados por
+  `tools/subworld_extend.py --batch` desde los masters de `old/`. Reproduce
+  la composición que recibió 10/10: primero aplica el mismo squeeze
+  content-aware del master 7680×5120 a 7680×4320 (HUD protegido; el cielo
+  vacío se comprime más que las islas) y luego añade 1236px por lado con
+  `tools/quilt_extend.py --ratio 2.35 --excl-top 0.18` (**Efros-Freeman
+  min-cut**, parches de arte real elegidos por coincidencia de bordes,
+  tono emparejado y unión a tope). A 16:9 `cover` enseña el núcleo completo
+  y no muestra el quilt; solo ratios más anchos revelan las extensiones.
+  No usar `.169` en submundos: repite islas; tampoco el antiguo lienzo
+  12032×5120: dejaba demasiado quilt a la vista y se percibía pixelado.
+- **Coordenadas de submundo**: están en el lienzo `.ext` 10152×4320.
+  Partiendo del lienzo anterior 12032×5120: `x' =
+  ((x*12032-2176)+1236)/10152`; `y' = pos(y*5120)/4320`, donde `pos` es
+  el mapa de filas del squeeze. Áreas de texto transforman ambos bordes
+  verticales para recalcular `h`; `anchorX` sigue siendo relativo al
+  viewport. Tamaños de avatar y anchos de áreas escalan por `12032/10152`.
+  Las coordenadas se remapearon una sola vez; no repetir la conversión.
+  No se usan ni se generan archivos `.pano.webp`; los masters originales
+  viven en `assets/submundos/<M>/old/`.
 - **Textos del submundo — `anchorX`**: en `text-areas.json` un área puede
   llevar `"anchorX": "viewLeft"|"viewRight"`: entonces `x` y `w` pasan a ser
   fracciones del **ancho visible del viewport** (no de la imagen) y `x` mide
@@ -385,10 +385,10 @@ mancha sobre el cielo (el usuario pondrá las imágenes y recalibraremos
   agradecimiento (`shop.thanks.0..2`) tras cada compra.
 - Iconos `assets/tienda/iconos/*.webp` — orbe dorado generado con PIL
   (`tools/mk-shop-icons.py`).
-- `tools/shop_gen.py` — histórico: componía la isla tienda en el
-  `.pano.webp` con inpainting SD (pipeline pano descartado); el interior
-  `tienda.webp` sí se conserva. Las islas tienda del mapa las pintará el
-  usuario; recalibrar `pos`/`art` en `shop.json` y poner `painted:true`.
+- El antiguo generador de isla tienda componía arte con inpainting SD y fue
+  retirado. El interior `tienda.webp` sí se conserva. Las islas tienda del
+  mapa las pintará el usuario; recalibrar `pos`/`art` en `shop.json` y poner
+  `painted:true`.
 
 ## Flujo del menú y partida guardada (bbdd)
 
