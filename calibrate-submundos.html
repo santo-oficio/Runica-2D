@@ -47,11 +47,26 @@
     overflow: visible;
     transition: transform 0.15s ease, filter 0.15s ease;
   }
+  .phase-avatar::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    left: 22%;
+    width: 56%;
+    height: 13%;
+    bottom: calc(var(--avatar-pad, 0) * 100%);
+    transform: translateY(50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(12, 9, 6, 0.68), rgba(12, 9, 6, 0.38) 48%, transparent 80%);
+    filter: blur(1.5px);
+  }
   .phase-avatar img {
     width: 100%; height: 100%; object-fit: contain;
     opacity: 0.9;
     image-rendering: auto;
     filter: drop-shadow(2px 2px 8px rgba(0,0,0,0.85));
+    position: relative;
+    z-index: 1;
   }
   .phase-avatar.selected {
     z-index: 2;
@@ -68,6 +83,7 @@
   }
   #hud b { color: #0ff; }
   #hud .key { color: #fc4; }
+  #hud[hidden] { display: none; }
   select {
     background: #1a1a2e; color: #e0e0e0;
     border: 1px solid #555; border-radius: 3px;
@@ -117,8 +133,9 @@
   const overlay = document.getElementById('overlay');
   const avatarPreviews = document.getElementById('avatar-previews');
   const coordsEl = document.getElementById('coords');
-  const statusEl = document.getElementById('status');
-  const worldSelect = document.getElementById('world-select');
+const statusEl = document.getElementById('status');
+const hudEl = document.getElementById('hud');
+const worldSelect = document.getElementById('world-select');
   const avatarSelect = document.getElementById('avatar-select');
   const levelSelect = document.getElementById('level-select');
 
@@ -127,31 +144,59 @@
   const NUM_AVATARS = 8;
 
   const WORLD_IMAGES = {
-    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.ext.webp?v=x3',
-    AGUA: '/assets/submundos/AGUA/submundo agua.ext.webp?v=x3',
-    TIERRA: '/assets/submundos/TIERRA/submundo tierra.ext.webp?v=x3',
-    FUEGO: '/assets/submundos/FUEGO/submundo fuego.ext.webp?v=x3',
-    HIELO: '/assets/submundos/HIELO/submundo hielo.ext.webp?v=x3',
-    VIENTO: '/assets/submundos/VIENTO/submundo viento.ext.webp?v=x3',
-    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.ext.webp?v=x3',
-    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.ext.webp?v=x3',
+    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.16x9.webp?v=f1',
+    AGUA: '/assets/submundos/AGUA/submundo agua.16x9.webp?v=f1',
+    TIERRA: '/assets/submundos/TIERRA/submundo tierra.16x9.webp?v=f1',
+    FUEGO: '/assets/submundos/FUEGO/submundo fuego.16x9.webp?v=f1',
+    HIELO: '/assets/submundos/HIELO/submundo hielo.16x9.webp?v=f1',
+    VIENTO: '/assets/submundos/VIENTO/submundo viento.16x9.webp?v=f1',
+    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.16x9.webp?v=f1',
+    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.16x9.webp?v=f1',
   };
 
-  const AVATAR_SRC = i => '/assets/avatars/thumbs/avatar_' + String(i + 1).padStart(2, '0') + '.webp?v=avatars-11';
+  const AVATAR_SRC = i => '/assets/avatars/display/avatar_' + String(i + 1).padStart(2, '0') + '.webp';
 
-  // positions[world][level] = { x, y }  (celdas, compartidas entre avatares)
-  // avatars[world][avatarIdx] = { size } (tamano por avatar)
+  // positions[world][level] is the shared fallback; avatars can override a
+  // level when their sprite needs a different landing point.
   let positions = {};
   let avatars = {};
   let avatarSize = 0.06; // legacy / fallback
+  const avatarPads = Array(NUM_AVATARS).fill(0);
   let selectedWorld = 0;
   let selectedAvatar = 0;
   let selectedLevel = 0;
 
+  async function loadAvatarPads() {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return;
+    // Match the runtime's vertical offset for transparent sprite padding.
+    for (let i = 0; i < NUM_AVATARS; i++) {
+      try {
+        const source = new Image();
+        source.src = AVATAR_SRC(i);
+        await source.decode();
+        canvas.width = source.naturalWidth;
+        canvas.height = source.naturalHeight;
+        context.drawImage(source, 0, 0);
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        let transparentRows = 0;
+        scan: for (let y = canvas.height - 1; y >= 0; y--) {
+          for (let x = 0; x < canvas.width; x++) {
+            if (pixels[(y * canvas.width + x) * 4 + 3] > 24) break scan;
+          }
+          transparentRows++;
+        }
+        avatarPads[i] = transparentRows / canvas.height;
+      } catch {}
+    }
+    render();
+  }
+
   // Inicializar
   WORLD_ORDER.forEach(w => {
     positions[w] = {};
-    avatars[w] = Array.from({ length: NUM_AVATARS }, () => ({ size: 0.06 }));
+    avatars[w] = Array.from({ length: NUM_AVATARS }, () => ({ size: 0.06, positions: {} }));
     for (let i = 0; i < NUM_LEVELS; i++) {
       positions[w][i] = { x: 0.5, y: 0.5 };
     }
@@ -178,6 +223,17 @@
     const world = WORLD_ORDER[selectedWorld];
     const e = avatars[world][selectedAvatar];
     return (e && e.size != null) ? e.size : avatarSize;
+  }
+
+  function positionFor(world, level, avatarIndex = selectedAvatar) {
+    return avatars[world][avatarIndex]?.positions?.[level] || positions[world][level];
+  }
+
+  function editablePosition(world, level) {
+    const avatar = avatars[world][selectedAvatar];
+    avatar.positions ||= {};
+    avatar.positions[level] ||= { ...positions[world][level] };
+    return avatar.positions[level];
   }
 
   worldSelect.addEventListener('change', (e) => {
@@ -217,7 +273,7 @@
 
     // Marcadores de todos los niveles del submundo actual
     for (let i = 0; i < NUM_LEVELS; i++) {
-      const pos = positions[world][i];
+      const pos = positionFor(world, i);
       const div = document.createElement('div');
       div.className = 'marker' + (i === selectedLevel ? ' active' : '');
       div.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
@@ -234,11 +290,14 @@
     // Avatar seleccionado en cada una de las 12 celdas
     avatarPreviews.innerHTML = '';
     for (let i = 0; i < NUM_LEVELS; i++) {
-      const pos = positions[world][i];
+      const pos = positionFor(world, i);
       const preview = document.createElement('div');
       preview.className = 'phase-avatar' + (i === selectedLevel ? ' selected' : '');
       preview.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
-      preview.style.top = (r.top + pos.y * r.height - sz / 2) + 'px';
+      const pad = avatarPads[selectedAvatar] || 0;
+      preview.style.setProperty('--avatar-pad', String(pad));
+      const top = r.top + pos.y * r.height - sz / 2 + pad * sz;
+      preview.style.top = Math.min(top, window.innerHeight - 2 - sz * (1 - pad)) + 'px';
       preview.style.width = sz + 'px';
       preview.style.height = sz + 'px';
       const avatarImg = document.createElement('img');
@@ -251,7 +310,7 @@
 
   function updateCoords() {
     const world = WORLD_ORDER[selectedWorld];
-    const pos = positions[world][selectedLevel];
+    const pos = positionFor(world, selectedLevel);
     coordsEl.textContent = world + ' / Avatar ' + (selectedAvatar + 1) + ' / N' + (selectedLevel + 1) +
       ': x=' + pos.x.toFixed(4) + ' y=' + pos.y.toFixed(4) + ' sz=' + currentSize().toFixed(3);
   }
@@ -264,13 +323,19 @@
     const x = (e.clientX - r.left) / r.width;
     const y = (e.clientY - r.top) / r.height;
     const world = WORLD_ORDER[selectedWorld];
-    positions[world][selectedLevel] = { x, y };
+    avatars[world][selectedAvatar].positions ||= {};
+    avatars[world][selectedAvatar].positions[selectedLevel] = { x, y };
     render(); updateCoords();
     statusEl.innerHTML = '<span class="ok">' + world + ' N' + (selectedLevel + 1) + ' = x=' + x.toFixed(3) + ' y=' + y.toFixed(3) + '</span>';
   });
 
   // Teclado
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'q' || e.key === 'Q') {
+      e.preventDefault();
+      hudEl.hidden = !hudEl.hidden;
+      return;
+    }
     if (e.target.tagName === 'SELECT') return;
     const step = e.ctrlKey ? 0.0002 : e.shiftKey ? 0.001 : 0.01;
     const world = WORLD_ORDER[selectedWorld];
@@ -302,7 +367,7 @@
       render(); updateCoords(); return;
     }
 
-    const pos = positions[world][selectedLevel];
+    const pos = editablePosition(world, selectedLevel);
     let changed = false;
     switch (e.key) {
       case 'ArrowLeft': pos.x = Math.max(0, pos.x - step); changed = true; break;
@@ -358,7 +423,10 @@
       if (data.avatarSize) avatarSize = data.avatarSize;
       avatars[world] = Array.from({ length: NUM_AVATARS }, (_, i) => {
         const e = (data.avatars && data.avatars[i]) || null;
-        return { size: (e && e.size != null) ? e.size : (data.avatarSize ?? avatarSize) };
+        return {
+          size: (e && e.size != null) ? e.size : (data.avatarSize ?? avatarSize),
+          positions: e?.positions && typeof e.positions === 'object' ? e.positions : {},
+        };
       });
       render(); updateCoords();
       statusEl.innerHTML = '<span class="ok">Cargado: ' + world + '</span>';
@@ -378,7 +446,10 @@
           if (data.avatarSize) avatarSize = data.avatarSize;
           avatars[w] = Array.from({ length: NUM_AVATARS }, (_, i) => {
             const e = (data.avatars && data.avatars[i]) || null;
-            return { size: (e && e.size != null) ? e.size : (data.avatarSize ?? avatarSize) };
+            return {
+              size: (e && e.size != null) ? e.size : (data.avatarSize ?? avatarSize),
+              positions: e?.positions && typeof e.positions === 'object' ? e.positions : {},
+            };
           });
         }
       } catch {}
@@ -398,6 +469,7 @@
     img.src = WORLD_IMAGES[WORLD_ORDER[selectedWorld]];
     await loadAll();
     render(); updateCoords();
+    await loadAvatarPads();
   })();
 
   window.addEventListener('resize', render);

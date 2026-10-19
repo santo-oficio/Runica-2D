@@ -70,6 +70,7 @@
   #hud b { color: #0ff; }
   #hud .key { color: #fc4; }
   #hud .new { color: #0f0; }
+  #hud[hidden], #status[hidden] { display: none; }
   #status {
     position: absolute; bottom: 12px; left: 50%;
     transform: translateX(-50%); z-index: 20;
@@ -89,7 +90,7 @@
 <body>
 
 <div id="stage">
-  <img id="image" src="/assets/mapamundi/mapamundi.169.webp" />
+  <img id="image" src="/assets/mapamundi/mapamundi.16x9.webp?v=mm16-1" />
   <div id="overlay"></div>
   <div id="avatar-previews"></div>
 </div>
@@ -121,12 +122,13 @@
   const avatarPreviews = document.getElementById('avatar-previews');
   const coordsEl = document.getElementById('coords');
   const statusEl = document.getElementById('status');
+  const hudEl = document.getElementById('hud');
   const worldSelect = document.getElementById('world-select');
   const avatarSelect = document.getElementById('avatar-select');
   const modeLabel = document.getElementById('mode-label');
 
   const WORLD_ORDER = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
-  const AVATAR_SRC = i => '/assets/avatars/thumbs/avatar_' + String(i + 1).padStart(2, '0') + '.webp?v=avatars-11';
+  const AVATAR_SRC = i => '/assets/avatars/display/avatar_' + String(i + 1).padStart(2, '0') + '.webp';
 
   // Ancla de cada isla (posiciones[w]) + matriz de avatares (avatars[w][i])
   let positions = {};
@@ -239,6 +241,12 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'q' || e.key === 'Q') {
+      e.preventDefault();
+      hudEl.hidden = !hudEl.hidden;
+      statusEl.hidden = hudEl.hidden;
+      return;
+    }
     if (e.target.tagName === 'SELECT') return;
     const step = e.ctrlKey ? 0.0002 : e.shiftKey ? 0.001 : 0.01;
 

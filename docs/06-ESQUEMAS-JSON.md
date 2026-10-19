@@ -219,9 +219,10 @@ del área (centro fijo); `+`/`-` siguen cambiando ambos.
 Por mundo, en `assets/submundos/<MUNDO>/`:
 
 - `avatar-positions.json` (`calibrate-submundos.html`):
-  `{ world, positions:{"0".."11"}:{x,y}, avatarSize, avatars[8]:{size} }` —
-  posición del avatar en cada nivel (rejilla serpiente 4×3) y tamaño
-  independiente por cada uno de los 8 avatares.
+  `{ world, positions:{"0".."11"}:{x,y}, avatarSize,
+  avatars[8]:{size, positions?:{"0".."11":{x,y}}} }` — posiciones base por
+  nivel (rejilla serpiente 4×3), con overrides por avatar cuando se necesiten,
+  y tamaño independiente para cada uno de los 8 avatares.
 - `text-areas.json` (`calibrate-submundos-text.html`):
   `{ world, areas:{ worldName:{x,y,w,h}, level:{x,y,w,h}, gold:{x,y,w,h} } }`
   — nombre del mundo (`submundo.title`), `Nivel X/12` (`submundo.level`) y
@@ -260,7 +261,7 @@ En `assets/mapamundi/text-areas.json`, editado con
 }
 ```
 
-`gold` es el texto en color oro sobre `mapamundi.webp` (ej. contador de
+`gold` es el texto en color oro sobre `mapamundi.16x9.webp` (ej. contador de
 tesoros). La fuente se auto-ajusta al área para no cortar letras.
 
 ## 11. Calibración de créditos (`creditos-areas.json`)

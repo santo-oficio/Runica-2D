@@ -54,9 +54,8 @@
     width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
   }
-  /* El lienzo .ext conserva el squeeze content-aware 16:9 del mapa
-     valorado: a 16:9 se ve el núcleo original completo; solo en pantallas
-     más anchas aparecen las extensiones laterales quilted. */
+  /* Los mapas actuales son 16:9 y encajan completos en esa proporción.
+     En ventanas más panorámicas, cover puede recortar algo arriba/abajo. */
   #bg {
     width: 100%; height: 100%;
     object-fit: cover; object-position: 50% 0%;
@@ -134,7 +133,7 @@
     object-fit: contain;
     filter: drop-shadow(2px 2px 8px rgba(0,0,0,0.8));
     position: relative;
-    z-index: 2;
+    z-index: 3;
   }
   #avatar::before {
     content: '';
@@ -149,6 +148,20 @@
       0 0 40px 15px rgba(232, 160, 60, 0.2),
       0 0 60px 25px rgba(200, 120, 30, 0.1);
     animation: auraPulse 1.8s ease-in-out infinite;
+  }
+  #avatar::after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    left: 16%;
+    width: 68%;
+    height: 18%;
+    bottom: calc(var(--avatar-pad, 0) * 100%);
+    transform: translateY(50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(12, 9, 6, 0.78), rgba(12, 9, 6, 0.46) 52%, transparent 82%);
+    filter: blur(2px);
+    pointer-events: none;
   }
   @keyframes auraPulse {
     0%, 100% {
@@ -245,14 +258,14 @@
   const ROWS = 3;
 
   const WORLD_IMAGES = {
-    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.ext.webp?v=x3',
-    AGUA: '/assets/submundos/AGUA/submundo agua.ext.webp?v=x3',
-    TIERRA: '/assets/submundos/TIERRA/submundo tierra.ext.webp?v=x3',
-    FUEGO: '/assets/submundos/FUEGO/submundo fuego.ext.webp?v=x3',
-    HIELO: '/assets/submundos/HIELO/submundo hielo.ext.webp?v=x3',
-    VIENTO: '/assets/submundos/VIENTO/submundo viento.ext.webp?v=x3',
-    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.ext.webp?v=x3',
-    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.ext.webp?v=x3',
+    ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.16x9.webp?v=f1',
+    AGUA: '/assets/submundos/AGUA/submundo agua.16x9.webp?v=f1',
+    TIERRA: '/assets/submundos/TIERRA/submundo tierra.16x9.webp?v=f1',
+    FUEGO: '/assets/submundos/FUEGO/submundo fuego.16x9.webp?v=f1',
+    HIELO: '/assets/submundos/HIELO/submundo hielo.16x9.webp?v=f1',
+    VIENTO: '/assets/submundos/VIENTO/submundo viento.16x9.webp?v=f1',
+    INFRAMUNDO: '/assets/submundos/INFRAMUNDO/submundo inframundo.16x9.webp?v=f1',
+    MAZMORRA: '/assets/submundos/MAZMORRA/submundo mazmorra.16x9.webp?v=f1',
   };
 
   // Grid 4x3 con numeracion en serpiente:
@@ -324,7 +337,7 @@
           const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
           if (i === idx && avatarEl.style.display === 'block') {
             const r = getImgRect();
-            const pos = positions[currentLevel];
+            const pos = currentAvatarPosition();
             if (pos) avatarEl.style.top = avatarBaseTop(pos, resolvedAvatarSize() * r.width, r) + 'px';
           }
         } catch (e) {}
@@ -339,6 +352,7 @@
   function avatarBaseTop(pos, sz, r) {
     const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
     const pad = avatarPad[idx] || 0;
+    avatarEl.style.setProperty('--avatar-pad', String(pad));
     const base = r.top + pos.y * r.height - sz / 2 + pad * sz;
     return Math.min(base, window.innerHeight - 2 - sz * (1 - pad));
   }
@@ -382,6 +396,7 @@
   };
   let avatarSize = 0.06;       // fallback legacy
   let avatarSizes = {};        // avatarSizes[world] = [size0..size7]
+  let avatarPositionOverrides = {}; // sparse [world][avatar][level] landing overrides
   let currentWorld = 'ESPACIO';
   let currentLevel = 0; // Siempre empieza en el nivel 1 (indice 0)
   let isMoving = false;
@@ -392,6 +407,17 @@
     const i = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
     if (arr && arr[i] != null) return arr[i];
     return avatarSize;
+  }
+
+  function resolvedLevelPosition(level) {
+    const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
+    return avatarPositionOverrides[currentWorld]?.[idx]?.[level] || positions[level];
+  }
+
+  function currentAvatarPosition() {
+    return atShop >= 0 && shopNodes[atShop]
+      ? shopNodes[atShop].pos
+      : resolvedLevelPosition(currentLevel);
   }
 
   // El nivel inicial = última isla jugada en este mundo (bbdd); 0 si no hay
@@ -449,6 +475,10 @@
         if (data.avatarSize) avatarSize = data.avatarSize;
         if (data.avatars) {
           avatarSizes[world] = data.avatars.map(e => (e && e.size != null) ? e.size : avatarSize);
+          avatarPositionOverrides[world] = data.avatars.map(e =>
+            e && e.positions && typeof e.positions === 'object' ? e.positions : {});
+        } else {
+          avatarPositionOverrides[world] = [];
         }
       }
     } catch {}
@@ -583,14 +613,15 @@
     }
 
     // Avatar en la casilla actual (o en la tienda)
-    const pos = atShop >= 0 && shopNodes[atShop] ? shopNodes[atShop].pos : positions[currentLevel];
+    const pos = currentAvatarPosition();
     if (pos) {
       const avatarSrc = playerAvatarSrc();
       avatarImg.src = AssetsCache.getCachedImageUrl(avatarSrc);
       avatarImg.alt = currentWorld;
+      const top = avatarBaseTop(pos, sz, r);
       avatarEl.style.display = 'block';
       avatarEl.style.left = (r.left + pos.x * r.width - sz / 2) + 'px';
-      avatarEl.style.top = avatarBaseTop(pos, sz, r) + 'px';
+      avatarEl.style.top = top + 'px';
       avatarEl.style.width = sz + 'px';
       avatarEl.style.height = sz + 'px';
     }
@@ -674,7 +705,7 @@
       if (dir !== INV[shopNode.dir]) { bounceAvatar(dir); return; }
       atShop = -1;
       AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
-      animateAvatarTo(positions[currentLevel]);
+      animateAvatarTo(resolvedLevelPosition(currentLevel));
       document.getElementById('pos-info').textContent =
         format('submundo.level', currentLevel + 1, NUM_LEVELS);
       render();
@@ -712,7 +743,7 @@
 
     currentLevel = newLevel;
     AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
-    animateAvatarTo(positions[currentLevel]);
+    animateAvatarTo(resolvedLevelPosition(currentLevel));
     document.getElementById('pos-info').textContent = format('submundo.level', currentLevel + 1, NUM_LEVELS);
   }
 
@@ -743,7 +774,7 @@
     const [dx, dy] = offsets[dir];
     const r = getImgRect();
     const sz = resolvedAvatarSize() * r.width;
-    const pos = atShop >= 0 && shopNodes[atShop] ? shopNodes[atShop].pos : positions[currentLevel];
+    const pos = currentAvatarPosition();
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;
     const baseY = avatarBaseTop(pos, sz, r);
@@ -812,16 +843,16 @@
     if (atShop >= 0 && shopNodes[atShop]) {
       const nd = shopNodes[atShop];
       if (hit(nd.pos)) { enterCurrent(); return; }
-      if (hit(positions[nd.from])) { moveByCell(INV[nd.dir]); return; }
+      if (hit(resolvedLevelPosition(nd.from))) { moveByCell(INV[nd.dir]); return; }
       return;
     }
-    if (hit(positions[currentLevel])) { enterCurrent(); return; }
+    if (hit(resolvedLevelPosition(currentLevel))) { enterCurrent(); return; }
     const tapShop = shopNodes.find(n => currentLevel === n.from && hit(n.pos));
     if (tapShop) { moveByCell(tapShop.dir); return; }
-    if (currentLevel < NUM_LEVELS - 1 && hit(positions[currentLevel + 1])) {
+    if (currentLevel < NUM_LEVELS - 1 && hit(resolvedLevelPosition(currentLevel + 1))) {
       moveByCell(NEXT_DIR[currentLevel]); return;
     }
-    if (currentLevel > 0 && hit(positions[currentLevel - 1])) {
+    if (currentLevel > 0 && hit(resolvedLevelPosition(currentLevel - 1))) {
       moveByCell(PREV_DIR[currentLevel]);
     }
   };

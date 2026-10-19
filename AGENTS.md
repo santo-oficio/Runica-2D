@@ -166,30 +166,35 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
 
 **Pantallas 3:2 a ratio ancho — dos estrategias**:
 
-- **Menú, selección, configuración y mapamundi → `.169.webp` espejo**
+- **Menú, selección y configuración → `.169.webp` espejo**
   generada por `tools/edge_extend_16x9.py`: los 711px exteriores de cada
   lado del master se reflejan hacia fuera (7680×5120 → 9102×5120 = 16:9).
   El usuario rechazó el quilt+bruma (costuras, motas magenta, bordes
   difuminados): el espejo usa solo píxeles reales, nítido.
-- **Submundos → `.ext.webp` 2.35:1** (10152×4320), generados por
-  `tools/subworld_extend.py --batch` desde los masters de `old/`. Reproduce
-  la composición que recibió 10/10: primero aplica el mismo squeeze
-  content-aware del master 7680×5120 a 7680×4320 (HUD protegido; el cielo
-  vacío se comprime más que las islas) y luego añade 1236px por lado con
-  `tools/quilt_extend.py --ratio 2.35 --excl-top 0.18` (**Efros-Freeman
-  min-cut**, parches de arte real elegidos por coincidencia de bordes,
-  tono emparejado y unión a tope). A 16:9 `cover` enseña el núcleo completo
-  y no muestra el quilt; solo ratios más anchos revelan las extensiones.
-  No usar `.169` en submundos: repite islas; tampoco el antiguo lienzo
-  12032×5120: dejaba demasiado quilt a la vista y se percibía pixelado.
-- **Coordenadas de submundo**: están en el lienzo `.ext` 10152×4320.
-  Partiendo del lienzo anterior 12032×5120: `x' =
-  ((x*12032-2176)+1236)/10152`; `y' = pos(y*5120)/4320`, donde `pos` es
-  el mapa de filas del squeeze. Áreas de texto transforman ambos bordes
-  verticales para recalcular `h`; `anchorX` sigue siendo relativo al
-  viewport. Tamaños de avatar y anchos de áreas escalan por `12032/10152`.
-  Las coordenadas se remapearon una sola vez; no repetir la conversión.
-  No se usan ni se generan archivos `.pano.webp`; los masters originales
+- **Mapamundi → `assets/mapamundi/mapamundi.16x9.webp`** (1672×940),
+  mapa panorámico nuevo proporcionado por el usuario y convertido desde
+  `Downloads/mapamundi.png`. `mapamundi.html`, caché y calibrador usan esta
+  misma imagen; `mapamundi.169.webp` queda como respaldo no consumido.
+  Coordenadas de islas y avatares se recalibran en el espacio nativo 0–1
+  con `assets/mapamundi/avatar-positions.json`.
+- **Los ocho submundos usan mapas `.16x9.webp`** (1672×940/941), convertidos
+  a WebP desde los PNG proporcionados por el usuario: AGUA = mapa tropical
+  pirata; ESPACIO = mapa galáctico; FUEGO = islas volcánicas; HIELO = reino
+  helado; TIERRA = islas tropicales/jungla; VIENTO = islas flotantes de cielo;
+  INFRAMUNDO = islas pirata verdosas/infernales; MAZMORRA = fortalezas
+  volcánicas oscuras. Son fondos nativos 16:9 sin repetición ni extensión;
+  `object-fit: cover` muestra la imagen completa a 16:9. Variantes
+  históricas `.ext.webp` y el generador de quilting se conservan como
+  respaldo, pero ya no se cargan en el runtime.
+- **Coordenadas de los mapas `.16x9`**: normalizadas al bitmap propio.
+  Las 12 posiciones respetan la serpiente 4×3: centros horizontales
+  `.09, .35, .60, .86`, filas `.32, .52, .76`; cada fondo fue comprobado
+  visualmente; las islas asimétricas admiten ajustes locales (p.ej. AGUA,
+  niveles 1–3: `(.12,.78)`, `(.345,.78)`, `(.64,.82)`). El texto `worldName` se centra en la placa de cabecera
+  (centro normalizado `x=.12`, `y=.084`). El calibrador compensa el padding
+  transparente inferior del sprite igual que el runtime para que las vistas
+  previas coincidan. Los calibradores usan las mismas rutas.
+  No hay referencias runtime a `.pano.webp`; los masters 3:2 originales
   viven en `assets/submundos/<M>/old/`.
 - **Textos del submundo — `anchorX`**: en `text-areas.json` un área puede
   llevar `"anchorX": "viewLeft"|"viewRight"`: entonces `x` y `w` pasan a ser
@@ -200,9 +205,10 @@ detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
   `worldName` se calibra centrado bajo la calavera de su arco decorativo.
 - Los masters 3:2 viven en `assets/**/old/` (excluidos del manifest,
   webdist y el instalador Electron).
-- `tools/remap-coords-16x9.py` — el remapeo x'=(x*W0+side)/W1 se aplicó UNA
-  vez a los JSON de esas 4 pantallas + `assets/comunes/fin-areas.json`
-  (auras sobre el mapamundi). NO re-ejecutar: duplicaría el desplazamiento.
+- `tools/remap-coords-16x9.py` — histórico: remapeó una vez los JSON de menú,
+  selección, configuración y el mapamundi anterior, además de
+  `assets/comunes/fin-areas.json`. El JSON de mapamundi actual se recalibró
+  para `mapamundi.16x9.webp`; no volver a correr el remapper.
 - Créditos, instrucciones y fondos de tablero ya son 16:9 nativos; los modales
   (`modal.webp`, `modal-reintentar.webp`) viven en un marco 3:2 — no tocar.
 - Descartado: outpainting con SD (laterales que desentonan con el arte) y
@@ -221,6 +227,7 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-board-texts.html` | `assets/backgrounds/<M>/text-areas.json` |
 | `calibrate-submundos.html` | `assets/submundos/<M>/avatar-positions.json` |
 | `calibrate-submundos-text.html` | `assets/submundos/<M>/text-areas.json` |
+| `calibrate-mapamundi.html` | `assets/mapamundi/avatar-positions.json` (anclas de mundo + avatar por mundo/avatar) |
 | `calibrate-instructions.html` | `assets/instrucciones/instructions-areas.json` |
 | `calibrate-creditos.html` | `assets/creditos/creditos-areas.json` (título + créditos + botón atrás circular) |
 | `calibrate-mapamundi-text.html` | `assets/mapamundi/text-areas.json` |
@@ -263,11 +270,20 @@ cada área `{x,y,w,h}` normalizada. Los textos son **dinámicos desde i18n**
 ### `calibrate-submundos.html` — avatar por nivel
 
 `avatar-positions.json` = `{ world, positions:{"0".."11"}:{x,y}, avatarSize,
-avatars[8]:{size} }` — posición del avatar en cada uno de los 12 niveles
-(rejilla serpiente 4×3) y tamaño independiente por cada uno de los 8 avatares.
+avatars[8]:{size, positions?:{"0".."11":{x,y}}} }` — puntos base de los 12
+niveles (rejilla serpiente 4×3), con overrides dispersos de posición y tamaño
+por avatar. Si no existe un override, el avatar usa `positions[level]`.
 
 - API: `/api/save-subworld-positions`, `/api/load-subworld-positions`.
 - Al guardar avanza nivel → avatar → mundo automáticamente.
+- Calibrador desktop fullscreen: `npm run calibrate:subworlds:desktop`
+  (selector de mundo/avatar/nivel; click o flechas mueve ese avatar, `Q`
+  muestra/oculta el panel de ayuda y `G` guarda).
+  Textos: `npm run calibrate:subworld-text:desktop`.
+- Coordenadas 0–1 relativas al mapa; Electron, Android y Tizen consumen los
+  mismos JSON. Tras calibrar en desktop, `npm run wgt` y
+  `npm run build:android` distribuyen esos datos a TV y Android; no se
+  reescala por resolución.
 
 ### `calibrate-submundos-text.html` — textos de submundo
 
@@ -279,7 +295,7 @@ avatars[8]:{size} }` — posición del avatar en cada uno de los 12 niveles
 ### `calibrate-mapamundi-text.html` — textos del mapamundi
 
 `assets/mapamundi/text-areas.json` = `{ areas:{ gold:{x,y,w,h} } }` — texto en
-oro sobre `mapamundi.webp` (ej. contador de tesoros). Una sola imagen, sin
+oro sobre `mapamundi.16x9.webp` (ej. contador de tesoros). Una sola imagen, sin
 selector de mundo. La fuente se auto-ajusta al área para no cortar letras.
 
 - API: `/api/save-mapamundi-text-areas`, `/api/load-mapamundi-text-areas`.
@@ -492,6 +508,14 @@ mancha sobre el cielo (el usuario pondrá las imágenes y recalibraremos
   7 mundos.
   Posición/tamaño del avatar por mundo: `avatars[M][avatarIndex]` de
   `assets/mapamundi/avatar-positions.json` (indexado por avatar del jugador).
+  El calibrador desktop es `npm run calibrate:mapamundi:desktop`: mundo/avatar
+  seleccionables, `M` alterna avatar/ancla de isla, `Q` oculta el panel y `G`
+  guarda el JSON de calibración.
+  El mapa se calibra en desktop con `npm run calibrate:mapamundi:desktop`:
+  selector de mundo/avatar, `M` alterna avatar/ancla de isla, `Q` oculta
+  panel/estado para despejar el mapa, flechas/clic ajustan y `G` guarda.
+  Después regenerar `webdist`/`android-app/www` para propagar el JSON a TV
+  y Android.
   `mapamundi.html?demo=<MUNDO>` finge ese mundo conquistado (B/N + avatar
   encima, sin escribir nada) — lo usa `demo-mapa-victoria.html`, que también
   muestra `game.html?demo=win` (victoria real: monedas + modal, sin bbdd) y

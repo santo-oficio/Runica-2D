@@ -14,8 +14,14 @@ Servidor: `npx tsx server.ts` → base `http://localhost:3000`
 
 | URL | Qué calibra | Datos |
 |---|---|---|
-| http://localhost:3000/calibrate-submundos.html | Posición del avatar en los 12 niveles + tamaño por cada uno de los 8 avatares | `assets/submundos/<M>/avatar-positions.json` |
+| http://localhost:3000/calibrate-submundos.html | Posición base de los 12 niveles + overrides por mundo/avatar y tamaño por avatar | `assets/submundos/<M>/avatar-positions.json` |
 | http://localhost:3000/calibrate-submundos-text.html | 3 textos del submundo: nombre del mundo, "Nivel X/12" y oro (dinámicos i18n) | `assets/submundos/<M>/text-areas.json` |
+
+Desktop fullscreen: `npm run calibrate:subworlds:desktop` o
+`npm run calibrate:subworld-text:desktop`. Guarda los mismos JSON normalizados
+que consumen desktop, Android y Tizen; tras guardar, regenerar `webdist` y
+`android-app/www` para propagar las calibraciones. En el calibrador de avatares,
+`Q` oculta/muestra el panel superior para despejar la zona de calibración.
 
 ## Instrucciones
 
@@ -59,9 +65,13 @@ Servidor: `npx tsx server.ts` → base `http://localhost:3000`
 
 | URL | Qué calibra | Datos |
 |---|---|---|
-| http://localhost:3000/calibrate-mapamundi.html | Áreas/botones del mapamundi | `assets/mapamundi/menu-buttons.json`, `menu-texto.json` |
+| http://localhost:3000/calibrate-mapamundi.html | Anclas de las 8 islas y posición/tamaño de avatar por mundo/avatar | `assets/mapamundi/avatar-positions.json` |
 | http://localhost:3000/calibrate-paths.html | Caminos entre mundos | `assets/mapamundi/world-paths.json` |
 | http://localhost:3000/calibrate-mapamundi-text.html | Textos del mapamundi: oro (preview dorado, fuente auto-ajustada) | `assets/mapamundi/text-areas.json` |
+
+Desktop fullscreen: `npm run calibrate:mapamundi:desktop`. En el calibrador,
+selecciona mundo/avatar; `M` alterna avatar/ancla de isla, `Q` oculta/abre el
+panel, flechas/clic ajustan, `G` guarda y `C` recarga.
 
 ## Losas / rejilla (antiguos)
 

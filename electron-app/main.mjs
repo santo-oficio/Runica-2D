@@ -12,6 +12,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.join(__dirname, '..');
+const CALIBRATOR_PAGES = new Set([
+  'calibrate-submundos.html',
+  'calibrate-submundos-text.html',
+  'calibrate-mapamundi.html',
+]);
+const START_PAGE = CALIBRATOR_PAGES.has(process.env.RUNIKA_START_PAGE)
+  ? process.env.RUNIKA_START_PAGE
+  : '';
 
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -25,6 +33,7 @@ function freePort() {
 }
 
 let URL = '';
+let mainWindow = null;
 
 function waitForServer(url, timeoutMs = 20000) {
   const t0 = Date.now();
@@ -41,7 +50,7 @@ function waitForServer(url, timeoutMs = 20000) {
 }
 
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     fullscreen: true,
     autoHideMenuBar: true,
     backgroundColor: '#000000',
@@ -50,10 +59,12 @@ function createWindow() {
       contextIsolation: true,
     },
   });
-  win.loadURL(URL);
-  win.webContents.on('did-fail-load', () => {
-    setTimeout(() => win.loadURL(URL), 1000);
+  const startUrl = URL + START_PAGE;
+  mainWindow.loadURL(startUrl);
+  mainWindow.webContents.on('did-fail-load', () => {
+    setTimeout(() => mainWindow?.loadURL(startUrl), 1000);
   });
+  mainWindow.on('closed', () => { mainWindow = null; });
 }
 
 async function start() {
