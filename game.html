@@ -7,7 +7,7 @@
 <script src="/web/tizen.js"></script>
 <meta charset="UTF-8">
 <meta name="google" content="notranslate">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Runika 2D</title>
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
@@ -1930,7 +1930,7 @@ debugTierEl.style.cssText = 'position:fixed;left:8px;top:8px;z-index:300;display
   'border-radius:4px;pointer-events:none;';
 document.body.appendChild(debugTierEl);
 function updateDebugTier() {
-  // gameLevel ya es el tier real de la pantalla cargada (incl. tier 15
+  // gameLevel ya es el tier real de la pantalla cargada (incl. tier 18
   // del boss final y el tier elegido en la demo bossrun)
   debugTierEl.textContent = tt('game.tier') + ' ' + (REAL_MODE ? gameLevel : currentTier);
 }
@@ -2005,7 +2005,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key === ']' || e.key === '+' || e.key === '=') {
     e.preventDefault();
-    currentTier = Math.min(15, currentTier + 1);
+    currentTier = Math.min(18, currentTier + 1);
     loadScreen();
     return;
   }

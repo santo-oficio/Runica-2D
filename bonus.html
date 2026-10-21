@@ -7,7 +7,7 @@
 <script src="/web/tizen.js"></script>
 <meta charset="UTF-8">
 <meta name="google" content="notranslate">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Runika 2D</title>
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
@@ -265,7 +265,7 @@
   let playing = false, ended = false, timeLeft = ROUND_SECONDS, elapsed = 0;
   let items = [], sparks = [], spawnAcc = 0, lastT = 0;
   let dirKey = 0, pointerX = null, sessionGold = 0, endSel = 1;
-  // Dificultad 0..1 derivada del tier de la partida (6..15): más caída,
+  // Dificultad 0..1 derivada del tier de la partida (6..18): más caída,
   // más spawn y más proporción de ítems negativos cuanto más avanza el juego.
   let DIFF = 0, NEG_SCALE = 1;
   // Nodo de la casa (0 = primer bonus del mundo, 1 = el avanzado). En el
@@ -293,10 +293,10 @@
     // ?avatar=N (1-8): override de pruebas (avatar=2 = loro)
     const av = parseInt(PARAMS.get('avatar') || '', 10);
     if (av >= 1 && av <= 8) player = { ...player, avatarIndex: av - 1 };
-    // Dificultad = tier de la partida (6..15); ?diff=N fuerza un tier (pruebas)
+    // Dificultad = tier de la partida (6..18); ?diff=N fuerza un tier (pruebas)
     const dv = parseInt(PARAMS.get('diff') || '', 10);
     const tier = !isNaN(dv) ? dv : (player.gameLevel ?? 6);
-    DIFF = Math.max(0, Math.min(1, (tier - 6) / 9));
+    DIFF = Math.max(0, Math.min(1, (tier - 6) / 12));
     NEG_SCALE = 1 + DIFF * 0.9; // a tier alto caen ~el doble de trampas
   }
 

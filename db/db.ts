@@ -2,9 +2,9 @@
  * Base de datos local con lazy-loading por tier + persistencia JSON.
  *
  * Estructura de archivos:
- *  - db/screens-tier-1.json .. db/screens-tier-15.json: banco de pantallas
- *    generadas y validadas (50.000 por tier 1-9, 5.000 por tier 10-15).
- *    El tier 15 es exclusivo del boss final (ultima isla de MAZMORRA).
+ *  - db/screens-tier-6.json .. db/screens-tier-18.json: banco de pantallas
+ *    generadas y validadas (25.000 por tier). La curva jugable es 6..18;
+ *    el tier 18 coincide con el boss final (ultima isla de MAZMORRA).
  *  - db/player.json: estado del jugador + asignaciones sticky por (mundo, tier).
  *
  * Lazy-loading: solo se carga en memoria el archivo del tier actual.
@@ -38,7 +38,7 @@ export type Pattern = "CHASE";
 
 export interface Screen {
   id: string;
-  level: number; // tier 1..15
+  level: number; // tier 6..18
   world: string;
   grid: string[];
   player: [number, number];
@@ -115,9 +115,9 @@ export const WORLDS = [
 ] as const;
 export const SUBLEVELS_PER_WORLD = 12;
 export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
-export const TOTAL_TIERS = 15;
+export const TOTAL_TIERS = 18;
 /** Tier del boss final (ultima isla de MAZMORRA): coincide con el techo de la curva. */
-export const FINAL_TIER = 15;
+export const FINAL_TIER = 18;
 /** Tier de dificultad inicial: la partida siempre empieza en el nivel 6. */
 export const FIRST_TIER = 6;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
@@ -133,10 +133,10 @@ export function stageFor(world: number, subLevel: number): number {
 }
 
 /**
- * Tier de dificultad (6..15) según el Nº DE PANTALLAS SUPERADAS, no la
+ * Tier de dificultad (6..18) según el Nº DE PANTALLAS SUPERADAS, no la
  * posición en el mapa (los mundos se juegan en orden libre). La partida
  * siempre empieza en el tier 6 y los 96 escenarios se reparten de forma
- * uniforme entre los 10 tiers (~9-10 islas por tier).
+ * uniforme entre los 13 tiers (~7-8 islas por tier).
  */
 export function tierForCompleted(completed: number): number {
   const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
@@ -227,15 +227,15 @@ function findScreenById(id: string): Screen | null {
   const tiers = (() => {
     const m = /^l(\d+)-/.exec(id);
     const t = m ? Number(m[1]) : 0;
-    return t >= 1 && t <= FINAL_TIER
+    return t >= FIRST_TIER && t <= FINAL_TIER
       ? [t]
-      : Array.from({ length: FINAL_TIER }, (_, i) => i + 1);
+      : Array.from({ length: FINAL_TIER - FIRST_TIER + 1 }, (_, i) => FIRST_TIER + i);
   })();
   for (const t of tiers) {
     try {
       const s = ensureTierLoaded(t).find((sc) => sc.id === id);
       if (s) return s;
-    } catch { /* tier sin banco (p.ej. tiers archivados 1-4) */ }
+    } catch { /* tier sin banco */ }
   }
   return null;
 }
@@ -377,7 +377,7 @@ export function failScreen(_screenId: string): void {
 /**
  * Tier de dificultad de la pantalla que toca jugar: por pantallas superadas
  * (los mundos se juegan en orden libre, el nivel no depende de la isla).
- * Excepcion: la ultima isla de MAZMORRA (boss final) usa el tier 15,
+ * Excepcion: la ultima isla de MAZMORRA (boss final) usa el tier 18,
  * exclusivo — no forma parte de la curva de progresion.
  */
 export function mapTierFor(world: string, level: number): number {

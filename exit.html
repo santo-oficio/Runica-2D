@@ -26,6 +26,8 @@
 <body>
 <div id="closed"></div>
 <script>
+  // En TV/Android: cerrar la app nativa directamente
+  try { if (window.runikaExit) window.runikaExit(); } catch {}
   // Intentar cerrar la ventana
   try { window.close(); } catch {}
   // Si no se cerro, la pagina se queda en negro

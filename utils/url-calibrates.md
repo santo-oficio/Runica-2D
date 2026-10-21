@@ -85,7 +85,7 @@ panel, flechas/clic ajustan, `G` guarda y `C` recarga.
 
 | URL | Qué hace |
 |---|---|
-| http://localhost:3000/game.html | Modo práctica: pantalla al azar del tier 1. Con `?world=X&level=N` = modo real (isla del submundo, guarda progreso/oro en bbdd) |
+| http://localhost:3000/game.html | Modo práctica: pantalla al azar del tier 6 (rango 6-18). Con `?world=X&level=N` = modo real (isla del submundo, guarda progreso/oro en bbdd) |
 | http://localhost:3000/menu.html | Menú principal |
 | http://localhost:3000/seleccion-personaje.html | Selección de personaje |
 | http://localhost:3000/instructions.html | Pantalla de instrucciones (usa el área calibrada) |

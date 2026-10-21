@@ -15,7 +15,7 @@ Play.Works (Connected TV). Contacto de ellos: `contact@play.works`
 | **Sesión típica** | niveles cortos de 1–3 min, progresión persistente |
 | **Controles** | Flechas + Enter/Escape — **compatible nativamente con mando de TV** |
 | **Idiomas** | **10 completos**: español, inglés, francés, alemán, italiano, japonés, chino, ruso, turco y polaco — todo el texto visible es i18n |
-| **Puzles** | **~259.000 pantallas únicas** repartidas en 15 niveles de dificultad (de 258 en el tier inicial a ~25.000 por tier alto) — **cada partida juega tableros distintos** |
+| **Puzles** | **~325.000 pantallas únicas** repartidas en 13 niveles de dificultad (6–18; hasta ~25.000 por tier) — **cada partida juega tableros distintos** |
 | **Motor** | HTML5 + TypeScript puro (sin dependencias de motor) |
 | **Plataformas ya empaquetadas** | **Samsung Tizen `.wgt` autónomo** · Android `.apk` (Cordova) · Windows (instalador NSIS/Electron) |
 | **Salida de vídeo** | 16:9 nativo, arte 8K/4K escalado, `object-fit` con letterbox cinematográfico |
@@ -34,7 +34,7 @@ Play.Works (Connected TV). Contacto de ellos: `contact@play.works`
   óptimo visible; el oro que gana el jugador depende de acercarse al óptimo.
   Rejugar para mejorar la puntuación es el motor de retención.
 - **Cada partida es distinta**: los tableros se extraen de bancos de
-  **~259.000 pantallas únicas** en 15 niveles de dificultad (hasta ~25.000
+  **~325.000 pantallas únicas** en 13 niveles de dificultad (hasta ~25.000
   por tier). Dos partidas nuevas no repiten el mismo recorrido — rejugar o
   empezar de cero siempre ofrece puzles que el jugador no ha visto.
 - **Multiidioma de serie**: los 10 idiomas (ES, EN, FR, DE, IT, JA, ZH,
@@ -52,7 +52,7 @@ Play.Works (Connected TV). Contacto de ellos: `contact@play.works`
 
 - **8 mundos temáticos** (Espacio, Agua, Tierra, Fuego, Hielo, Viento,
   Inframundo, Mazmorra) con arte propio 16:9.
-- **~259.000 puzles únicos** en 15 niveles de dificultad creciente: cada
+- **~325.000 puzles únicos** en 13 niveles de dificultad creciente: cada
   nivel sortea su tablero del banco correspondiente, así que **ninguna
   partida repite la ruta de otra** — contenido para cientos de horas.
 - **96 niveles** + fases bonus (recoger botín en nube, ítems
@@ -112,7 +112,7 @@ Play.Works (Connected TV). Contacto de ellos: `contact@play.works`
 > - **Content-complete**: 8 themed worlds × 12 islands, shop and bonus
 >   stages every 3 levels, a boss at each world's end, final cinematic.
 > - **Every playthrough is different**: boards are drawn from banks of
->   **~259,000 unique puzzles across 15 difficulty tiers** (up to ~25,000
+>   **~325,000 unique puzzles across 13 difficulty tiers** (up to ~25,000
 >   per tier) — no two runs share the same route, and replaying never
 >   repeats a board the player has already solved.
 > - **Fully localized in 10 languages**: English, Spanish, French,

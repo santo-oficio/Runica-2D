@@ -201,7 +201,7 @@
         .catch(function (e) { return json({ ok: false, error: String(e) }, 500); });
     }
     if (path === "/api/practice-screen") {
-      var tier = Math.max(DB.FIRST_TIER, Number(u.searchParams.get("tier") || DB.FIRST_TIER) || DB.FIRST_TIER);
+      var tier = Math.min(DB.FINAL_TIER, Math.max(DB.FIRST_TIER, Number(u.searchParams.get("tier") || DB.FIRST_TIER) || DB.FIRST_TIER));
       return DB.getRandomScreenByTier(tier).then(function (s) {
         return s ? json({ ok: true, screen: s, tier: tier }) : json({ ok: false, error: "Tier sin pantallas" }, 404);
       });

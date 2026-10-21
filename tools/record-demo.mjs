@@ -42,7 +42,7 @@ const SEED = {
     // completed [0,1] + last 2 → getStartLevel entra en la isla 2 (la
     // pendiente); ganarla desbloquea la 3 y el nodo de tienda (unlockAfter 3)
     worldProgress: { INFRAMUNDO: { completed: [0, 1], last: 2, shopGone: [], shopVisited: [] } },
-    gameLevel: 3, started: true, playerName: 'SABELA', avatarIndex: 3,
+    gameLevel: 6, started: true, playerName: 'SABELA', avatarIndex: 3,
   },
   assignments: {
     'map:INFRAMUNDO:0': { current: null, completed: ['l3-s1'] },

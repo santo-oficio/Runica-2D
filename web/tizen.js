@@ -52,6 +52,9 @@
     if (navigator.app && navigator.app.exitApp) { navigator.app.exitApp(); return; }
     window.close();
   }
+  // Expuesto para que las páginas (menú → Salir) cierren la app nativa
+  // directamente, sin pasar por exit.html ni texto de "cerrar la ventana".
+  window.runikaExit = exitApp;
 
   function onBack() {
     var page = location.pathname.split("/").pop() || "menu.html";

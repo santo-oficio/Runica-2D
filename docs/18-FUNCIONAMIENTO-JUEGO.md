@@ -46,7 +46,7 @@
 | `lastWorld` | último mundo seleccionado en el mapamundi |
 | `worldProgress.<M>.last` | última isla jugada del mundo (completada o no) |
 | `worldProgress.<M>.completed` | islas completadas del mundo |
-| `gameLevel` | nivel de juego actual = **tier 6..15** por pantallas superadas (`tierForCompleted`); la última isla de MAZMORRA usa el **tier 15** (`FINAL_TIER`) |
+| `gameLevel` | nivel de juego actual = **tier 6..18** por pantallas superadas (`tierForCompleted`); la última isla de MAZMORRA usa el **tier 18** (`FINAL_TIER`) |
 | `currentWorld`, `currentSubLevel`, `totalStagesCompleted` | modelo lineal legacy (1..15) |
 
 APIs de progreso: `/api/map-position`, `/api/level-position`,
@@ -75,12 +75,16 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
 
 - `GET /api/level-screen?world&level` → pantalla **sticky** del tier
   correspondiente (`mapTierFor`: misma pantalla hasta completar la isla;
-  excepción — `world=MAZMORRA&level=11` siempre usa el **tier 15**, el banco
-  exclusivo del boss final `db/screens-tier-15.json`).
-- El **nivel de juego** mostrado es el **tier por progreso** (6..15; la
-  partida empieza en el 6 y sube hasta el 15, que también usa el boss final):
-  `min(15, 6 + floor(c × 10 / 96))`, ~9-10 islas por tier — depende
+  excepción — `world=MAZMORRA&level=11` siempre usa el **tier 18**, el banco
+  exclusivo del boss final `db/screens-tier-18.json`).
+- El **nivel de juego** mostrado es el **tier por progreso** (6..18; la
+  partida empieza en el 6 y sube hasta el 18, que también usa el boss final):
+  `min(18, 6 + floor(c × 13 / 96))`, ~7-8 islas por tier — depende
   del contador global, no de la isla/mundo (los mundos se juegan libremente).
+- **Regla a fuego — separación avatar↔salida**: en toda pantalla generada,
+  `|col(avatar) − col(salida)| ≥ 6` (`MIN_PLAYER_EXIT_COLDIST` en el
+  generador): la salida nunca está cerca del avatar — solo quedan las
+  parejas de columnas 0↔6/7 y 1↔7.
 - Textos en áreas calibradas (`text-areas.json` del mundo): `turn`/`nTurn`
   (turno actual), `optimal`/`nOptimal` (movimientos mínimos del solver),
   `info` = `board.level` "Nivel X", `gold` = oro (moneda + número,
@@ -92,7 +96,7 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
   (`min(2, max(0.3, 2×par/turnos))` → ×2 si se resuelve en el mínimo,
   decae hacia ×1 con turnos de más, suelo ×0.3; boss de mundo ×2).
   **Boss final (MAZMORRA)**: además del oro de la isla, el botín del
-  guardián suma `500 + tier×50` (≈1.000+ en tier 15) — el montón de oro
+  guardián suma `500 + tier×50` (≈1.400 en tier 18) — el montón de oro
   de la cinemática vuela al contador durante la batalla y el total de la
   coronación lo incluye (`fin.bonus`, `goldBonus`/`goldTotal` en
   `FinalBattle.run`). Solo la primera victoria (replay → 0).

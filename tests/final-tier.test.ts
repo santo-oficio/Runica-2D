@@ -1,7 +1,7 @@
 /**
- * El boss final (última isla de MAZMORRA) usa el tier 15, que coincide
- * con el techo de la curva de progresión (tiers 6-15) y tiene su propio
- * banco (db/screens-tier-15.json).
+ * El boss final (última isla de MAZMORRA) usa el tier 18, que coincide
+ * con el techo de la curva de progresión (tiers 6-18) y tiene su propio
+ * banco (db/screens-tier-18.json).
  */
 
 import { describe, it, expect } from "vitest";
@@ -16,13 +16,13 @@ import {
   FIRST_TIER,
 } from "../db/db.js";
 
-describe("Tier 15 — boss final de MAZMORRA", () => {
-  it("el tier final es 15, el techo de la curva (6..15)", () => {
-    expect(FINAL_TIER).toBe(15);
+describe("Tier 18 — boss final de MAZMORRA", () => {
+  it("el tier final es 18, el techo de la curva (6..18)", () => {
+    expect(FINAL_TIER).toBe(18);
     expect(FINAL_TIER).toBe(TOTAL_TIERS);
   });
 
-  it("la última isla de MAZMORRA usa el tier 15", () => {
+  it("la última isla de MAZMORRA usa el tier 18", () => {
     expect(mapTierFor(FINAL_WORLD, BOSS_LEVEL_IDX)).toBe(FINAL_TIER);
   });
 
@@ -40,9 +40,9 @@ describe("Tier 15 — boss final de MAZMORRA", () => {
     expect(BOSS_LEVEL_IDX).toBe(MAP_LEVELS_PER_WORLD - 1);
   });
 
-  it("la curva va del tier 6 al 15 (techo = tier del boss final)", () => {
+  it("la curva va del tier 6 al 18 (techo = tier del boss final)", () => {
     expect(tierForCompleted(0)).toBe(FIRST_TIER);
     expect(tierForCompleted(10_000)).toBe(TOTAL_TIERS);
-    expect(tierForCompleted(95)).toBe(15);
+    expect(tierForCompleted(95)).toBe(18);
   });
 });

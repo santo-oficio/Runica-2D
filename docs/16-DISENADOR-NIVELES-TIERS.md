@@ -1,4 +1,4 @@
-# Diseñador de Niveles — 15 Tiers de Dificultad
+# Diseñador de Niveles — Tiers 6-18 de Dificultad
 
 > Documento de referencia del sistema de generación de pantallas.
 > Rediseño completo (pipeline: candidato → solver BFS → pruning estricto
@@ -9,14 +9,32 @@
 ## 1. Visión general
 
 - Tablero fijo **8×6** (48 casillas).
-- Objetivo: **100.000 puzzles únicos por tier** en `db/screens-tier-N.json`.
+- Objetivo: **25.000 puzzles únicos por tier** en `db/screens-tier-N.json`.
   En tiers donde el espacio válido es menor se generan todos los que
   existen y se informa del número real — nunca se rellena con duplicados.
 - La partida empieza en el **tier 6** (`FIRST_TIER` en `db/db.ts`) y la
-  curva llega progresivamente hasta el **15**, pero
-  se generan bancos para todos los tiers 1-15.
-- El tier 15 coincide con el techo de la curva y también es el del boss
+  curva llega progresivamente hasta el **18**. Solo existen bancos para
+  los tiers 6-18 — los tiers 1-5 se eliminaron: con la regla de las 6
+  columnas, un solo cazador 2× deja el espacio prácticamente vacío
+  (insoluble o decorativo; medido: 0 válidos exhaustivos).
+- El tier 18 coincide con el techo de la curva y también es el del boss
   final (última isla de MAZMORRA, `mapTierFor`).
+- **REGLA A FUEGO — separación avatar↔salida** (`MIN_PLAYER_EXIT_COLDIST`):
+  `|col(jugador) − col(salida)| ≥ 6`. En un tablero de 8 columnas solo
+  quedan las parejas 0↔6/7 y 1↔7 (y su espejo): la salida siempre está
+  en el lado opuesto. Se exige al generar el candidato (`distPool`) y se
+  re-verifica en `validateCandidate` (`exit_too_close`). Consecuencia:
+  el mínimo real es ≥7 y el par ≥8 en cualquier pantalla.
+- **REGLA A FUEGO #2 — ruta limpia, sin "adelante y atrás"**
+  (`MAX_PATH_REVISITS`, `findCleanSolution`): toda pantalla debe admitir
+  **alguna solución de ≤ par turnos** que re-entre en como mucho **3
+  casillas** ya visitadas. Volver a pisar una casilla es el "voy adelante
+  y atrás" para cebar/esquivar al cazador 2×; un rodeo estratégico no
+  revisita nada y pisar una trampa espera 3 turnos sin moverse. Se exige
+  en `validateCandidate` (`no_clean_route`) tras fijar el par. Medido:
+  sin la regla, la ruta óptima del BFS revisitaba hasta ~15 casillas en
+  tier 18 (¡la mitad del camino!); la regla es de *existencia* — el BFS
+  puede devolver una ruta bailona aunque haya una limpia de igual par.
 
 ## 2. Conteo de turnos y "jugada óptima" (par)
 
@@ -34,28 +52,26 @@
 
 ### Longitud de solución por tier
 
-- Escala progresiva por debajo del 7: par 4–6 (T1), 5–7 (T2), 6–8 (T3),
-  7–9 (T4), 8–10 (T5), 10–14 (T6).
-- **Desde el tier 7, el par mínimo es 12** (rango 12–16 y creciente).
+- La curva jugable arranca en el tier 6 (par 10–14) y crece hasta el 18
+  (par 22–30). **Desde el tier 7, el par mínimo es 12** (ver tabla).
 - Ningún puzzle se resuelve por el **camino directo** (mínimo real =
   distancia BFS del tablero vacío) ni en **un único movimiento**.
 
 ### Enemigos
 
-- **Máximo 2 enemigos** por pantalla en todo el juego (el 3 solo está
-  permitido en bosses desde dificultad ~10-11 si fuese imprescindible;
-  actualmente no se usa — el boss final va con 2).
-- Con 2 enemigos: distancia Manhattan **≥ 4** entre ellos, colocados para
-  cubrir tramos distintos del camino (bias táctico hacia el tramo final
-  / guardia de la salida — un enemigo lejos de la ruta atrapa casi
-  siempre porque es 2× más rápido y produce ruido irresoluble).
+- **2 enemigos** por pantalla hasta el tier 16; **3 enemigos desde el
+  tier 17** (máximo absoluto: 3).
+- Con ≥2 enemigos: distancia Manhattan **≥ 4** entre todos, colocados
+  para cubrir tramos distintos del camino (bias táctico hacia el tramo
+  final / guardia de la salida — un enemigo lejos de la ruta atrapa
+  casi siempre porque es 2× más rápido y produce ruido irresoluble).
 
 ### Elementos (obstáculos, trampas, llaves…)
 
 - **Todo elemento es imprescindible**: al quitarlo, el puzzle deja de ser
   resoluble o cambia su mínimo real. El pruning lo verifica elemento a
   elemento; la validación lo re-verifica al final.
-- **Mínimo 2 obstáculos desde el tier 4** — y también deben ser
+- **Mínimo 2 obstáculos en todos los tiers** — y también deben ser
   necesarios (los mínimos se completan en `ensureElements` probando
   celdas sueltas y parejas; una pareja puede ser necesaria aunque cada
   celda sola no lo sea).
@@ -87,23 +103,21 @@
 
 | Tier | Enemigos | Obstáculos | Trampas | Par (óptimo) | Dist. E–P | Dist. E–E |
 |------|----------|------------|---------|--------------|-----------|-----------|
-| 1    | 1        | 0–2        | 0       | 4–7          | 2         | —         |
-| 2    | 1        | 0–2        | 0–1     | 5–7          | 3         | —         |
-| 3    | 1        | 1–2        | 0–1     | 6–8          | 4         | —         |
-| 4    | 1        | 2–3        | 0–1     | 7–9          | 4         | —         |
-| 5    | 1        | 2–3        | 1       | 8–10         | 4         | —         |
 | 6    | 2        | 2–4        | 1–2     | 10–14        | 4         | 4         |
-| 7    | 2        | 4–8        | 2–4     | 12–16        | 3         | 4         |
-| 8    | 2        | 4–9        | 2–4     | 13–18        | 3         | 4         |
-| 9    | 2        | 5–9        | 2–5     | 14–19        | 3         | 4         |
-| 10   | 2        | 5–10       | 2–5     | 15–20        | 3         | 4         |
-| 11   | 2        | 5–10       | 3–6     | 16–21        | 3         | 4         |
-| 12   | 2        | 5–11       | 3–6     | 17–22        | 3         | 4         |
-| 13   | 2        | 5–11       | 3–7     | 18–24        | 3         | 4         |
-| 14   | 2        | 5–12       | 3–7     | 19–25        | 3         | 4         |
-| 15 * | 2        | 5–8        | 4–6     | 18–26        | 3         | 4         |
+| 7    | 2        | 4–8        | 2–4     | 12–18        | 3         | 4         |
+| 8    | 2        | 4–9        | 2–4     | 13–19        | 3         | 4         |
+| 9    | 2        | 5–9        | 2–5     | 14–20        | 3         | 4         |
+| 10   | 2        | 5–10       | 2–5     | 15–21        | 3         | 4         |
+| 11   | 2        | 5–10       | 3–6     | 16–22        | 3         | 4         |
+| 12   | 2        | 5–11       | 3–6     | 17–23        | 3         | 4         |
+| 13   | 2        | 5–11       | 3–7     | 18–25        | 3         | 4         |
+| 14   | 2        | 5–12       | 3–7     | 19–26        | 3         | 4         |
+| 15   | 2        | 5–12       | 4–7     | 20–27        | 3         | 4         |
+| 16   | 2        | 6–13       | 4–8     | 21–28        | 3         | 4         |
+| 17   | 3        | 6–13       | 4–8     | 22–30        | 3         | 4         |
+| 18 * | 3        | 5–9        | 5–8     | 22–30        | 3         | 4         |
 
-\* Tier 15 = boss final. Los máximos de obstáculos/trampas en tiers ≥7
+\* Tier 18 = boss final. Los máximos de obstáculos/trampas en tiers ≥7
 son altos a propósito: son el techo que `lengthenTo` puede usar para
 construir los pars largos; solo sobreviven los elementos necesarios.
 
@@ -123,11 +137,11 @@ construir los pars largos; solo sobreviven los elementos necesarios.
 ## 5. Generación
 
 ```bash
-# Banco completo (100k/tier donde exista)
+# Banco completo (25k/tier donde exista)
 npx tsx generator/generate-screens.ts
 
 # Un tier concreto
-npx tsx generator/generate-screens.ts --tier=7 --count=100000
+npx tsx generator/generate-screens.ts --tier=7 --count=25000
 
 # Paralelo por workers (seeds disjuntas + dedupe global en el merge)
 npx tsx generator/generate-screens.ts --workers=8
@@ -136,18 +150,13 @@ npx tsx generator/generate-screens.ts --workers=8
 npx tsx generator/generate-screens.ts --test --count=150
 ```
 
-- El **tier 1 se enumera exhaustivamente** (~9,5M combinaciones, jugador
-  a distancia ≤ parMax−1 × enemigo × subconjuntos de obstáculos en el
-  corredor jugador↔salida): su espacio válido completo es de
-  **~258 puzzles únicos** (dato medido; los de par ≤5 no existen porque
-  un enemigo necesario ya fuerza mínimos más largos).
-- Estadísticas del lote de prueba (12000 intentos/tier): éxito ~0,1–1%
-  según tier; el mayor descarte es `unprunable` (candidatos
-  irresolubles: el enemigo es 2× más rápido y atrapa en tablero
-  abierto) seguido de `min_elements_unreachable` (no se puede
-  re-insertar un elemento necesario).
-- Estimación: ~250–700ms por pantalla aceptada según tier →
-  100k/tier ≈ 7–20h con 1 worker, ~1–2,5h con 8 workers.
+- Estadísticas del lote de prueba con la regla de las 6 columnas
+  (24000 intentos/tier): éxito ~0,4–0,7% según tier; el mayor descarte
+  es `candidate_null` (~70%: salidas sin pareja válida a ≥6 columnas
+  o sin hueco para enemigos útiles) seguido de
+  `par_out_of_range` / `min_elements_unreachable`.
+- Estimación: ~0,3–1,2s por pantalla aceptada según tier →
+  25k/tier ≈ 2–8h con 1 worker, ~15–45min con 11 workers.
 
 ## 6. Consola de hacks (`game.html`)
 

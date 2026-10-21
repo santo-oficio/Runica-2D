@@ -12,8 +12,8 @@
   var WORLDS = ["ESPACIO", "AGUA", "TIERRA", "FUEGO", "HIELO", "VIENTO", "INFRAMUNDO", "MAZMORRA"];
   var SUBLEVELS_PER_WORLD = 12;
   var TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
-  var TOTAL_TIERS = 15;
-  var FINAL_TIER = 15;
+  var TOTAL_TIERS = 18;
+  var FINAL_TIER = 18;
   var FIRST_TIER = 6;
   var MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
   var FINAL_WORLD = "MAZMORRA";
@@ -88,9 +88,9 @@
 
   function findScreenById(id) {
     var m = /^l(\d+)-/.exec(id || "");
-    var tiers = m && Number(m[1]) >= 1 && Number(m[1]) <= FINAL_TIER
+    var tiers = m && Number(m[1]) >= FIRST_TIER && Number(m[1]) <= FINAL_TIER
       ? [Number(m[1])]
-      : Array.from({ length: FINAL_TIER }, function (_, i) { return i + 1; });
+      : Array.from({ length: FINAL_TIER - FIRST_TIER + 1 }, function (_, i) { return FIRST_TIER + i; });
     var chain = Promise.resolve(null);
     var _loop = function (i) {
       if (i >= tiers.length) return null;

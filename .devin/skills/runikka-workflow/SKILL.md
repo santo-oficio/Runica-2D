@@ -18,14 +18,14 @@ npx tsx server.ts  # juego y calibradores en http://localhost:3000
 ## Pantallas
 
 - `calibrate-areas.html` — calibración manual de tableros (arrastrar ratón, `G` guardar).
-- `game.html` — modo práctica: pantalla al azar del tier 1 (`/api/practice-screen?tier=1`),
+- `game.html` — modo práctica: pantalla al azar del tier 6 (`/api/practice-screen?tier=N`, rango 6-18),
   mundo al azar, sin persistencia. Controles: `Flechas/WASD` mover, `R` otra
   pantalla, `Espacio` cambiar mundo, `Enter` cambiar avatar.
 
 ## Arquitectura
 
 - `engine/` — motor de reglas determinista (`playTurn`, `isLevelSolved`, etc.).
-- `generator/` — generación procedural por seed (15 tiers de dificultad; el 15 es exclusivo del boss final).
+- `generator/` — generación procedural por seed (tiers 6-18 de dificultad; el 18 es exclusivo del boss final).
 - `solver/` — validador (32 tests) + BFS solver que reutiliza el motor.
 - `worlds/` — WorldConfigs, banco de niveles, renderizado ASCII.
 - `background/` — detección de tableros con MobileSAM (`sam-detect.py`).
@@ -42,7 +42,7 @@ ESPACIO, AGUA, TIERRA, FUEGO, HIELO, VIENTO, INFRAMUNDO, MAZMORRA.
 - El solver reutiliza LITERALMENTE el motor de reglas (no hay lógica duplicada).
 - Añadir un mundo = solo datos (WorldConfig + BackgroundTemplates).
 - Tablero fijo **8×6** (8 columnas × 6 filas); `allowedBoardSizes` = `[[8,6]]`.
-- **15 niveles de dificultad** (el 15 exclusivo del boss final); **32 tests** de validación; máximo **3 enemigos** por pantalla.
+- **13 niveles de dificultad (6-18)** (el 18 exclusivo del boss final); **32 tests** de validación; máximo **3 enemigos** por pantalla.
 - ESM imports usan `.js` en TypeScript source.
 
 ## Reglas "a fuego"
@@ -62,6 +62,8 @@ ESPACIO, AGUA, TIERRA, FUEGO, HIELO, VIENTO, INFRAMUNDO, MAZMORRA.
 - **Obstáculos visuales por mundo**: la imagen de cada obstáculo se elige al azar
   de `assets/obstaculos/<MUNDO>/` sin repetir mientras sea posible. Mapeo especial:
   `VIENTO`→`AIRE/`, `MAZMORRA`→`MAZMORRA/`.
-- **Curva de dificultad**: 8 mundos × 12 islas = 96 pantallas, tiers 4–14 según
-  pantallas superadas; el **tier 15 es exclusivo del boss final** (última isla
-  de MAZMORRA) y no forma parte de la curva (`mapTierFor` en `db/db.ts`).
+- **Curva de dificultad** (a fuego): 8 mundos × 12 islas = 96 pantallas,
+  tiers **6–18** según pantallas superadas (`min(18, 6 + floor(c×13/96))`);
+  el **tier 18 coincide con el boss final** (última isla de MAZMORRA).
+- **Separación avatar↔salida ≥ 6 columnas** (a fuego,
+  `MIN_PLAYER_EXIT_COLDIST`): la salida nunca queda cerca del avatar.

@@ -7,7 +7,7 @@
 <script src="/web/tizen.js"></script>
 <meta charset="UTF-8">
 <meta name="google" content="notranslate">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Runika 2D</title>
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 <style>
@@ -564,7 +564,13 @@
     if (i === 2) AssetsCache.transitionTo('/instructions.html');
     if (i === 3) AssetsCache.transitionTo('/ajustes.html');
     if (i === 4) AssetsCache.transitionTo('/creditos.html');
-    if (i === 5) AssetsCache.transitionTo('/exit.html');
+    if (i === 5) {
+      // En TV/Android salir = cerrar la app nativa directamente (sin
+      // pasar por exit.html ni mostrar "cierra esta pestaña"). En un
+      // navegador Android normal (sin cordova) se usa exit.html igual.
+      if ((window.cordova || window.tizen) && window.runikaExit) { window.runikaExit(); return; }
+      AssetsCache.transitionTo('/exit.html');
+    }
   }
 
   // --- Ajustes de glow ---

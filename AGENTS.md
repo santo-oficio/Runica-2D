@@ -758,7 +758,7 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
 ## Arquitectura
 
 - `engine/` — motor de reglas determinista (playTurn, isLevelSolved, etc.).
-- `generator/` — generación procedural de niveles por seed (15 tiers de dificultad; el 15 es exclusivo del boss final).
+- `generator/` — generación procedural de niveles por seed (tiers 6-18 de dificultad; el 18 es exclusivo del boss final).
 - `solver/` — validador (32 tests) + BFS solver que reutiliza el motor.
 - `worlds/` — WorldConfigs, banco de niveles, renderizado ASCII.
 - `background/` — detección de tableros con SAM (Python).
@@ -797,22 +797,39 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   - Si un mundo no tiene carpeta de obstáculos, se usa una imagen de marcador (placeholder) y se documenta el faltante.
   - Mapeo de carpetas especiales: `VIENTO` → `assets/obstaculos/AIRE/`.
 - **Progresión de dificultad** (A FUEGO — decisión del usuario): 8 mundos ×
-  12 islas = 96 pantallas, repartidas en los tiers **6..15** (la partida
+  12 islas = 96 pantallas, repartidas en los tiers **6..18** (la partida
   siempre empieza en el nivel **6** y se complica progresivamente hasta el
-  15) según el **nº de pantallas superadas** —
-  `min(15, 6 + floor(c × 10 / 96))`, ~9-10 islas por tier. NO depende de la
+  18) según el **nº de pantallas superadas** —
+  `min(18, 6 + floor(c × 13 / 96))`, ~7-8 islas por tier. NO depende de la
   isla/mundo (los mundos se juegan en orden libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
   **Boss final**: la última isla de MAZMORRA (`level=11`) usa el
-  **tier 15** (`mapTierFor` en `db/db.ts`), que coincide con el techo de la
-  curva. Su banco es `db/screens-tier-15.json`.
+  **tier 18** (`mapTierFor` en `db/db.ts`), que coincide con el techo de la
+  curva. Su banco es `db/screens-tier-18.json`.
+- **A fuego — separación avatar↔salida** (decisión del usuario): en toda
+  pantalla, `|col(avatar) − col(salida)| ≥ 6` (`MIN_PLAYER_EXIT_COLDIST`
+  en `generator/generate-screens.ts`). En el tablero de 8 columnas la
+  salida siempre queda en el lado opuesto (parejas 0↔6/7, 1↔7). Se exige
+  al generar y al validar; los bancos `db/screens-tier-*.json` solo
+  contienen pantallas que la cumplen.
+- **A fuego — ruta limpia, sin "adelante y atrás"** (decisión del
+  usuario): ninguna pantalla puede exigir bailoteo para esquivar a los
+  cazadores. Debe existir **alguna solución de ≤ par turnos** que
+  re-entre en ≤3 casillas ya visitadas (`MAX_PATH_REVISITS`,
+  `findCleanSolution` — DFS que poda por revisitas). Un rodeo estratégico
+  no revisita casillas; pisar una trampa espera 3 turnos sin moverse.
+  Se exige en `validateCandidate` (`no_clean_route`), en tests
+  (`tests/level-redesign.test.ts`) y por muestreo en
+  `tools/verify-banks.ts`. Ojo: el camino óptimo que devuelve el BFS
+  puede bailar aunque exista alternativa limpia — la regla es de
+  existencia, no sobre el camino almacenado.
 - **Generador de niveles** (`generator/generate-screens.ts`): rediseñado —
-  máx. 2 enemigos (separación Manhattan ≥4 entre ellos, colocación táctica
+  máx. 3 enemigos (2 hasta el tier 16, 3 desde el 17; separación Manhattan
+  ≥4 entre ellos, colocación táctica
   en el tramo final del camino), todo elemento imprescindible (quitarlo
   rompe o cambia el óptimo), "jugada óptima" = par = mínimo real +1/+2
   (bateable), par ≥12 desde tier 7, uso de tablero ≥35% desde tier 7,
-  mín. 2 obstáculos desde tier 4, sin camino directo, dedupe por
+  mín. 2 obstáculos en todos los tiers, sin camino directo, dedupe por
   simetrías (espejo H/V + 180°), conteo de soluciones par/par−1/par−2.
-  El tier 1 se enumera exhaustivamente (espacio completo ≈ 32 puzzles).
   Reglas completas: `docs/16-DISENADOR-NIVELES-TIERS.md`.
 - **Consola de hacks** (`game.html`): `Tab` abre/cierra panel inferior
   semitransparente; comandos `help level complete next prev seed restart

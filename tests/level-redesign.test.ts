@@ -8,7 +8,10 @@ import {
   canonicalKey,
   screenToLevelData,
   generateTierBatch,
-  generateTier1Exhaustive,
+  findCleanSolution,
+  makeSimulator,
+  MIN_PLAYER_EXIT_COLDIST,
+  MAX_PATH_REVISITS,
   BOARD_USE_FROM_TIER,
   type LevelData,
 } from "../generator/generate-screens.js";
@@ -29,19 +32,24 @@ describe("rediseño — progresión", () => {
     expect(FIRST_TIER).toBe(6);
     expect(tierForCompleted(0)).toBe(6);
   });
-  it("los 96 escenarios se reparten 6..15 (~9-10 por tier)", () => {
+  it("los 96 escenarios se reparten 6..18 (~7-8 por tier)", () => {
     expect(tierForCompleted(0)).toBe(6);
-    expect(tierForCompleted(95)).toBe(15);
-    // ~9-10 islas por tier: isla 10 → tier 7
+    expect(tierForCompleted(95)).toBe(18);
+    // ~7-8 islas por tier: isla 10 → tier 7
     expect(tierForCompleted(10)).toBe(7);
+  });
+  it("la tabla de tiers cubre exactamente 6..18", () => {
+    expect(TIERS.map((t) => t.level)).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
   });
 });
 
 describe("rediseño — tabla de tiers", () => {
-  it("máximo 2 enemigos en todos los tiers", () => {
-    for (const t of TIERS) expect(t.numEnemies).toBeLessThanOrEqual(2);
+  it("máximo 3 enemigos en todos los tiers (3 solo desde el 17)", () => {
+    for (const t of TIERS) expect(t.numEnemies).toBeLessThanOrEqual(3);
+    for (const t of TIERS.filter((t) => t.level < 17)) expect(t.numEnemies).toBeLessThanOrEqual(2);
+    for (const t of TIERS.filter((t) => t.level >= 17)) expect(t.numEnemies).toBe(3);
   });
-  it("separación enemigo-enemigo ≥4 cuando hay 2", () => {
+  it("separación enemigo-enemigo ≥4 cuando hay 2 o más", () => {
     for (const t of TIERS.filter((t) => t.numEnemies >= 2)) {
       expect(t.minEnemyEnemyDist).toBeGreaterThanOrEqual(4);
     }
@@ -51,37 +59,51 @@ describe("rediseño — tabla de tiers", () => {
       expect(t.minSolutionLen[0]).toBeGreaterThanOrEqual(12);
     }
   });
-  it("mínimo 2 obstáculos desde el tier 4", () => {
-    for (const t of TIERS.filter((t) => t.level >= 4)) {
+  it("mínimo 2 obstáculos en todos los tiers", () => {
+    for (const t of TIERS) {
       expect(t.numObstacles[0]).toBeGreaterThanOrEqual(2);
+    }
+  });
+  it("par mínimo ≥8 en todos los tiers (consecuencia del gap ≥6 columnas)", () => {
+    for (const t of TIERS) {
+      expect(t.minSolutionLen[0]).toBeGreaterThanOrEqual(8);
     }
   });
 });
 
 describe("rediseño — reglas de validación", () => {
-  // Puzzle con solución directa: sin nada que la estorbe.
-  const direct = lv({ player: idx(0, 0), exit: idx(4, 0), enemies: [idx(7, 5)] });
+  const t6 = TIERS.find((t) => t.level === 6)!;
+  // Puzzle con solución directa: enemigos enjaulados en las esquinas →
+  // tablero resoluble por el camino geométrico directo.
+  const direct = lv({
+    player: idx(0, 0), exit: idx(6, 0), enemies: [idx(7, 5), idx(0, 5)],
+    obstacles: new Set([idx(7, 4), idx(6, 5), idx(0, 4), idx(1, 5)]),
+  });
   it("rechaza camino directo (óptimo = distancia del tablero vacío)", () => {
-    const t3 = TIERS.find((t) => t.level === 3)!;
-    const v = validateCandidate(direct, t3);
+    const v = validateCandidate(direct, t6);
     expect(v.ok).toBe(false);
-    // el enemigo a (7,5) no afecta: la razón será camino directo o enemigo decorativo
-    expect(["direct_path", "decorative_enemy"]).toContain(v.reason.split("(")[0]);
+    expect(v.reason.split("(")[0]).toBe("direct_path");
+  });
+  it("REGLA A FUEGO: rechaza salida a menos de 6 columnas del avatar", () => {
+    const v = validateCandidate(
+      lv({ player: idx(0, 0), exit: idx(4, 0), enemies: [idx(7, 5), idx(0, 5)] }),
+      t6,
+    );
+    expect(v.ok).toBe(false);
+    expect(v.reason.split("(")[0]).toBe("exit_too_close");
   });
   it("un enemigo que no condiciona nada es decorativo", () => {
-    const t3 = TIERS.find((t) => t.level === 3)!;
     // obstáculo lejos de todo: no cambia nada
     const v = validateCandidate(
-      lv({ player: idx(0, 0), exit: idx(4, 0), enemies: [idx(7, 5)], obstacles: new Set([idx(0, 5)]) }),
-      t3,
+      lv({ player: idx(0, 0), exit: idx(6, 0), enemies: [idx(7, 5), idx(0, 5)], obstacles: new Set([idx(3, 3)]) }),
+      t6,
     );
     expect(v.ok).toBe(false);
   });
   it("el par es mínimo real +1 o +2 y debe ser bateable", () => {
     // Cualquier pantalla aceptada por generateTierBatch cumple:
     // par ∈ [minLen[0], minLen[1]] y par - trueMin ∈ {1, 2}
-    const t5 = TIERS.find((t) => t.level === 5)!;
-    const { screens } = generateTierBatch(t5, 3, 12345, 4000);
+    const { screens } = generateTierBatch(t6, 3, 12345, 4000);
     for (const s of screens) {
       const data = screenToLevelData(s);
       const T = solve(data).length!;
@@ -97,6 +119,80 @@ describe("rediseño — reglas de validación", () => {
       expect(s.sols![0]).toBeGreaterThan(0);
     }
   });
+});
+
+describe("rediseño — regla anti-bailoteo (ruta limpia)", () => {
+  const t10 = TIERS.find((t) => t.level === 10)!;
+  // Puzzle real capturado durante el desarrollo: resoluble (trueMin 13)
+  // pero TODA solución ≤ par exige >3 casillas revisitadas (bailoteo).
+  const dancey = lv({
+    player: 0, exit: 30, enemies: [35, 4],
+    obstacles: new Set([3, 22, 14, 6, 2]),
+    traps: new Set([28, 8, 13, 10, 37]),
+  });
+  it("rechaza pantallas que solo se resuelven yendo adelante y atrás", () => {
+    const v = validateCandidate(dancey, t10);
+    expect(v.ok).toBe(false);
+    expect(v.reason.split("(")[0]).toBe("no_clean_route");
+  });
+  it("findCleanSolution devuelve ruta limpia en tablero abierto", () => {
+    const open = lv({ player: idx(0, 0), exit: idx(7, 5), enemies: [] });
+    const path = findCleanSolution(open, 20);
+    expect(path).not.toBeNull();
+    expect(path![0]).toBe(open.player);
+    expect(path![path!.length - 1]).toBe(open.exit);
+  });
+
+  /** Reproduce un camino de celdas con el simulador real y mide sus
+   *  revisita­s/turnos. Falla el test si no llega a la salida o atrapan. */
+  function replay(d: LevelData, path: number[]) {
+    const { blocked, trap, goalIdx, moveEnemies } = makeSimulator(d);
+    let e = d.enemies.slice();
+    let s = d.enemies.map(() => 0);
+    const seen = new Set<number>([path[0]!]);
+    let rv = 0, turns = 0;
+    expect(path[0]).toBe(d.player);
+    for (let i = 1; i < path.length; i++) {
+      const p = path[i - 1]!, np = path[i]!;
+      turns++;
+      // adyacente, libre y sin enemigo encima
+      const dc = Math.abs((np % 8) - (p % 8));
+      const dr = Math.abs(Math.floor(np / 8) - Math.floor(p / 8));
+      expect(dc + dr).toBe(1);
+      expect(blocked[np]).toBeFalsy();
+      expect(e.includes(np)).toBe(false);
+      if (seen.has(np)) rv++;
+      seen.add(np);
+      if (np === goalIdx) return { rv, turns, reached: true };
+      const newPs = trap[np] ? 3 : 0;
+      const res = moveEnemies(e, s, np);
+      expect(res.captured).toBe(false);
+      e = res.e; s = res.s;
+      // el aturdimiento quema turnos sin mover (no añade celdas al path)
+      for (let st = newPs; st > 0; st--) {
+        turns++;
+        const r = moveEnemies(e, s, np);
+        expect(r.captured).toBe(false);
+        e = r.e; s = r.s;
+      }
+    }
+    return { rv, turns, reached: false };
+  }
+
+  it("las rutas limpias aceptadas son soluciones reales ≤ par", () => {
+    const t6 = TIERS.find((t) => t.level === 6)!;
+    const { screens } = generateTierBatch(t6, 10, 31337, 20000);
+    expect(screens.length).toBeGreaterThan(0);
+    for (const s of screens) {
+      const d = screenToLevelData(s);
+      const path = findCleanSolution(d, s.minMoves);
+      expect(path, `${s.id} sin ruta limpia`).not.toBeNull();
+      const r = replay(d, path!);
+      expect(r.reached).toBe(true);
+      expect(r.turns).toBeLessThanOrEqual(s.minMoves);
+      expect(r.rv).toBeLessThanOrEqual(MAX_PATH_REVISITS);
+    }
+  }, 120_000);
 });
 
 describe("rediseño — simetrías y uso del tablero", () => {
@@ -120,13 +216,19 @@ describe("rediseño — simetrías y uso del tablero", () => {
   });
 });
 
-describe("rediseño — tier 1 exhaustivo", () => {
-  it("el espacio completo del tier 1 es pequeño pero no vacío", () => {
-    const t1 = TIERS.find((t) => t.level === 1)!;
-    const { screens } = generateTier1Exhaustive(t1);
-    // Espacio medido: ~258 puzzles únicos (sin duplicados ni simetrías)
-    expect(screens.length).toBeGreaterThan(100);
-    expect(screens.length).toBeLessThan(2000);
-    for (const s of screens) expect(s.minMoves).toBeGreaterThanOrEqual(4);
-  }, 300_000);
+describe("rediseño — muestreo del tier 6", () => {
+  it("todo lote generado cumple la regla de las 6 columnas y es resoluble", () => {
+    const t6 = TIERS.find((t) => t.level === 6)!;
+    const { screens } = generateTierBatch(t6, 10, 777, 20000);
+    expect(screens.length).toBeGreaterThan(0);
+    for (const s of screens) {
+      const data = screenToLevelData(s);
+      // REGLA A FUEGO: |col(jugador) − col(salida)| ≥ 6
+      expect(Math.abs((data.player % 8) - (data.exit % 8))).toBeGreaterThanOrEqual(MIN_PLAYER_EXIT_COLDIST);
+      // resoluble y no directo
+      const T = solve(data).length!;
+      expect(T).toBeGreaterThan(0);
+      expect(s.minMoves).toBeGreaterThan(T);
+    }
+  }, 120_000);
 });

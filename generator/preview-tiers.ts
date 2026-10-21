@@ -30,7 +30,7 @@ function renderAscii(lv: LevelData): string {
 
 function main() {
   console.log("═".repeat(60));
-  console.log("  RUNIKKA — 14 niveles representativos (uno por tier)");
+  console.log("  RUNIKKA — 13 niveles representativos (uno por tier 6-18)");
   console.log("═".repeat(60));
   console.log();
 
@@ -81,7 +81,7 @@ function main() {
   console.log("  Tier  Sol.  Enem.  Obs.  Trampas  Rango esperado");
   console.log("  ────  ────  ─────  ───  ───────  ──────────────");
   for (const r of results) {
-    const tier = TIERS[r.tier - 1]!;
+    const tier = TIERS.find((t) => t.level === r.tier)!;
     console.log(
       `  ${String(r.tier).padStart(3, " ")}   ${String(r.len).padStart(3, " ")}   ${r.enemies}      ${r.obstacles}    ${r.traps}        ${tier.minSolutionLen[0]}-${tier.minSolutionLen[1]}`,
     );

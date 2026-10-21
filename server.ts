@@ -35,6 +35,7 @@ import {
   markShopGone,
   markShopVisited,
   FIRST_TIER,
+  TOTAL_TIERS,
 } from "./db/db.js";
 import {
   screenToLevelData,
@@ -1291,10 +1292,10 @@ const server = http.createServer((req, res) => {
   }
 
   // API práctica: pantalla aleatoria de un tier, sin guardar nada en la bbdd
-  // GET /api/practice-screen?tier=1
+  // GET /api/practice-screen?tier=6
   if (url.startsWith("/api/practice-screen")) {
     const u = new URL(url, `http://localhost:${PORT}`);
-    const tier = Math.max(FIRST_TIER, Number(u.searchParams.get("tier") ?? String(FIRST_TIER)) || FIRST_TIER);
+    const tier = Math.min(TOTAL_TIERS, Math.max(FIRST_TIER, Number(u.searchParams.get("tier") ?? String(FIRST_TIER)) || FIRST_TIER));
     const screen = getRandomScreenByTier(tier);
     res.writeHead(screen ? 200 : 404, { "Content-Type": "application/json" });
     res.end(JSON.stringify(screen ? { ok: true, screen, tier } : { ok: false, error: "Tier sin pantallas" }));
