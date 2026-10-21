@@ -56,6 +56,17 @@
   // directamente, sin pasar por exit.html ni texto de "cerrar la ventana".
   window.runikaExit = exitApp;
 
+  // ── GPU débil (móvil/TV): quitar el blur(45px) del fillbg. Repintar un
+  // bitmap enorme difuminado en cada frame/keypress es el lag típico; en
+  // nativo el relleno de letterbox va solo oscurecido.
+  try {
+    var lite = document.createElement("style");
+    lite.textContent =
+      "#fillbg{filter:brightness(.4) saturate(1.15)!important;transform:scale(1.02)!important}";
+    document.head.appendChild(lite);
+    document.documentElement.classList.add("runika-native");
+  } catch (e) {}
+
   function onBack() {
     var page = location.pathname.split("/").pop() || "menu.html";
     if (page === "menu.html" || page === "index.html" || page === "") { exitApp(); return; }

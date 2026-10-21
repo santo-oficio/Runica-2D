@@ -124,8 +124,30 @@ async function fetchManifest() {
   } catch {}
 }
 
+// En nativo (Cordova/Tizen/file) los assets ya son locales: precargar el
+// manifiesto completo (~300 MB de imágenes 8K + sonidos, retenidos como
+// blobs y bitmaps decodificados) agota la RAM del WebView → pantalla
+// negra / renderer muerto. En su lugar solo se calientan las <img> que
+// la página ya tiene en el DOM y los sonidos quedan para lazy-load
+// (playSound cachea al primer uso). Mismo contrato: progreso → reveal
+// cuando lo visible está listo.
+const IS_NATIVE = typeof window !== 'undefined' && (
+  typeof window.cordova !== 'undefined' ||
+  typeof window.tizen !== 'undefined' ||
+  (typeof location !== 'undefined' && location.protocol === 'file:') ||
+  (typeof localStorage !== 'undefined' && localStorage.getItem('runika.tizen') === '1'));
+
 async function preloadAll(onProgress) {
   await fetchManifest();
+  if (IS_NATIVE) {
+    const urls = [...document.querySelectorAll('img')]
+      .map(im => im.currentSrc || im.src || '')
+      .filter(src => src.includes('/assets/') && !src.startsWith('blob:') && !src.startsWith('data:'))
+      .map(src => { const u = new URL(src, location.href); return u.pathname + u.search; });
+    total = urls.length; loaded = 0;
+    await Promise.all(urls.map(u => preloadImage(u).then(() => onProgress(loaded, total))));
+    return;
+  }
   total = ASSETS.images.length + ASSETS.sounds.length;
   loaded = 0;
 

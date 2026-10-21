@@ -55,12 +55,22 @@
     display: flex; align-items: center; justify-content: center;
   }
   /* Los mapas actuales son 16:9 y encajan completos en esa proporción.
-     En ventanas más panorámicas, cover puede recortar algo arriba/abajo. */
+     En ventanas más panorámicas, cover puede recortar algo arriba/abajo.
+     En nativo (móvil 19-21:9) se fuerza contain — ver getImgRect. */
   #bg {
     width: 100%; height: 100%;
     object-fit: cover; object-position: 50% 0%;
     display: block;
     position: relative; z-index: 1;
+  }
+  /* Relleno de las bandas laterales cuando #bg pasa a contain (móvil). */
+  #fillbg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: blur(45px) brightness(0.42) saturate(1.25);
+    transform: scale(1.15);
+    z-index: 0;
   }
   #overlay {
     position: absolute; top: 0; left: 0;
@@ -299,6 +309,7 @@
 <div id="transition-overlay"></div>
 
 <div id="stage">
+  <img id="fillbg" src="" alt="" />
   <img id="bg" src="" />
   <div id="overlay"></div>
   <div id="dynamic-text"></div>
@@ -325,6 +336,19 @@
   const NUM_LEVELS = 12;
   const COLS = 4;
   const ROWS = 3;
+
+  // En nativo (móvil 19-21:9 / TV) el mapa se muestra entero con contain;
+  // en desktop sigue cover (pantalla 16:9 — sin diferencia visible).
+  const IS_NATIVE = document.documentElement.classList.contains('runika-native') ||
+    typeof window.cordova !== 'undefined' || typeof window.tizen !== 'undefined';
+  function setBg(src) {
+    if (IS_NATIVE) {
+      bg.style.objectFit = 'contain';
+      const fill = document.getElementById('fillbg');
+      if (fill && !fill.src) fill.src = src;
+    }
+    bg.src = src;
+  }
 
   const WORLD_IMAGES = {
     ESPACIO: '/assets/submundos/ESPACIO/submundo-espacio.16x9.webp?v=f1',
@@ -938,14 +962,20 @@
   const avatarEl = document.getElementById('avatar');
   const avatarImg = avatarEl.querySelector('img');
 
-  // Rect visible de la imagen .ext con object-fit: cover. Coordenadas y
-  // tamaños calibrados están normalizados al lienzo (0-1 sobre el bitmap).
+  // Rect visible de la imagen del mapa. Desktop: object-fit cover con
+  // object-position 50% 0% (recorta abajo en ventanas panorámicas).
+  // Nativo (móvil/TV): contain — el mapa entero cabe y ninguna isla queda
+  // recortada; las bandas laterales las rellena #fillbg.
   function getImgRect() {
     const er = bg.getBoundingClientRect();
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
-    const s = Math.max(er.width / iw, er.height / ih);
+    const contain = getComputedStyle(bg).objectFit === 'contain';
+    const s = contain
+      ? Math.min(er.width / iw, er.height / ih)
+      : Math.max(er.width / iw, er.height / ih);
     const w = iw * s, h = ih * s;
-    const left = er.left + (er.width - w) / 2, top = er.top;
+    const left = er.left + (er.width - w) / 2;
+    const top = contain ? er.top + (er.height - h) / 2 : er.top;
     return { left, top, width: w, height: h, right: left + w, bottom: top + h };
   }
 
@@ -1649,7 +1679,7 @@
         ...Array.from({ length: 8 }, (_, i) => `/assets/avatars/display/avatar_0${i + 1}.webp`),
       ];
       await Promise.all(warm.map(warmImage));
-      bg.src = WORLD_IMAGES[currentWorld];
+      setBg(WORLD_IMAGES[currentWorld]);
       await loadPositions(currentWorld);
       await loadTextAreas(currentWorld);
       await loadShop(currentWorld);
@@ -1670,7 +1700,7 @@
       loadingText.textContent = t('loading.text') + ' ' + pct + '%';
     });
 
-    bg.src = WORLD_IMAGES[currentWorld];
+    setBg(WORLD_IMAGES[currentWorld]);
     await loadPositions(currentWorld);
     await loadTextAreas(currentWorld);
     await loadShop(currentWorld);

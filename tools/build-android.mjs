@@ -46,4 +46,63 @@ for (const f of ["icon.png", "icon-foreground.png", "icon-background.png"]) {
   if (existsSync(src)) copyFileSync(src, join(resDir, f));
 }
 
+// 5. Móvil: reescalar imágenes pesadas dentro de www. Los masters son
+// 8-10K (bg 7680x4320, menús 9102x5120, monedas.webp 7680² para un icono
+// de 30px): cada bitmap decodificado son ~130-235 MB y el WebView mata el
+// renderer por OOM → pantalla negra al entrar al tablero. Las coordenadas
+// calibradas son normalizadas (0-1), así que reducir el bitmap no rompe
+// nada. Límites por clase:
+//   - escenas/fondos/menús/modales: 2560px máx (sobra para 1440p móvil)
+//   - sprites/variantes display:    1536px máx (ocupan 1-2 casillas)
+//   - iconos puros (monedas…):      768px máx
+const { default: sharp } = await import("sharp");
+const IMG_RE = /\.(webp|png|jpe?g)$/i;
+const ICON_CAP = new Map([
+  ["assets/comunes/monedas.webp", 768],
+  ["assets/comunes/calavera.webp", 768],
+]);
+const isSpritePath = (rel) =>
+  /assets[\\/](avatars|enemys|bosses|obstaculos|salida|trampas|bonus)[\\/]/i.test(rel) ||
+  /[\\/]display[\\/]/i.test(rel);
+
+async function* walk(dir) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) yield* walk(p);
+    else if (IMG_RE.test(e.name)) yield p;
+  }
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+let shrunk = 0, kept = 0, failed = 0;
+for await (const abs of walk(join(WWW, "assets"))) {
+  const rel = abs.slice(WWW.length + 1);
+  const cap = ICON_CAP.get(rel.replaceAll("\\", "/")) ?? (isSpritePath(rel) ? 1536 : 2560);
+  // sharp(abs) mantiene el archivo mapeado en Windows y luego no deja
+  // sobrescribirlo — se lee a buffer primero para que no quede handle.
+  let done = false;
+  for (let attempt = 0; attempt < 4 && !done; attempt++) {
+    try {
+      const input = readFileSync(abs);
+      const meta = await sharp(input).metadata();
+      const m = Math.max(meta.width, meta.height);
+      if (m <= cap) { kept++; done = true; break; }
+      const scale = cap / m;
+      const w = Math.round(meta.width * scale), h = Math.round(meta.height * scale);
+      const buf = await sharp(input).resize(w, h).toBuffer();
+      writeFileSync(abs, buf);
+      shrunk++;
+      console.log(`  ↓ ${rel} ${meta.width}x${meta.height} → ${w}x${h}`);
+      done = true;
+    } catch (e) {
+      if (attempt === 3) {
+        failed++;
+        console.warn(`  ⚠ no se pudo reescalar ${rel}: ${e.message}`);
+      } else await sleep(300 * (attempt + 1));
+    }
+  }
+}
+if (failed) console.warn(`⚠ ${failed} imágenes no se pudieron reescalar`);
+console.log(`imágenes www: ${shrunk} reescaladas, ${kept} ya cabían`);
+
 console.log("android-app/www listo — siguiente: npx cordova platform add android && npx cordova build android");
