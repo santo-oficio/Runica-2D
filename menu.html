@@ -112,7 +112,7 @@
   #transition-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 90; background: #000;
-    opacity: 0; pointer-events: none; display: none;
+    opacity: 1; pointer-events: auto; /* nace en negro: cero destello al entrar */
   }
   #stage {
     position: absolute; top: 0; left: 0;
@@ -314,6 +314,8 @@
   // "Continuar" (indice 1) solo activo si hay partida empezada en la bbdd
   let hasSave = false;
   const CONTINUE_IDX = 1;
+  // ?auto=1 — autopiloto de grabación (tools/record-demo.mjs)
+  const AUTO_MODE = new URLSearchParams(location.search).get('auto') === '1';
 
   async function refreshSaveState() {
     try {
@@ -557,8 +559,8 @@
 
   function activate(i) {
     if (i === CONTINUE_IDX && !hasSave) return;
-    if (i === 0) AssetsCache.transitionTo('/seleccion-personaje.html');
-    if (i === 1) AssetsCache.transitionTo('/mapamundi.html');
+    if (i === 0) AssetsCache.transitionTo('/seleccion-personaje.html' + (AUTO_MODE ? '?auto=1' : ''));
+    if (i === 1) AssetsCache.transitionTo('/mapamundi.html' + (AUTO_MODE ? '?auto=1' : ''));
     if (i === 2) AssetsCache.transitionTo('/instructions.html');
     if (i === 3) AssetsCache.transitionTo('/ajustes.html');
     if (i === 4) AssetsCache.transitionTo('/creditos.html');
@@ -629,8 +631,7 @@
       AssetsCache.unlockAudio();
       await refreshSaveState();
       render();
-      AssetsCache.hideLoading();
-      setTimeout(() => AssetsCache.transitionIn(), 100);
+      AssetsCache.revealPage();
       return;
     }
 
@@ -703,8 +704,7 @@
       unlockAudio();
       AssetsCache.startMusic(AssetsCache.MUSIC.main);
       sessionStorage.setItem('runika-session', 'active');
-      AssetsCache.hideLoading();
-      setTimeout(() => AssetsCache.transitionIn(), 500);
+      AssetsCache.revealPage();
     };
     loadingScreen.addEventListener('click', enterGame, { once: true });
     document.addEventListener('keydown', enterGame, { once: true });
@@ -714,6 +714,20 @@
   fetch('/api/version').then(r => r.json()).then(d => {
     if (d && d.version) document.getElementById('version-tag').textContent = 'v' + d.version;
   }).catch(() => {});
+
+  // === Autopiloto ?auto=1: salta "pulsa para empezar" (click sobre la
+  // pantalla de carga, no Enter — así no se activa el botón 0) y entra en
+  // Continuar/Nueva partida para encadenar la toma ===
+  if (AUTO_MODE) (async () => {
+    const t0 = Date.now();
+    while (document.getElementById('start-hint').style.display !== 'block' && Date.now() - t0 < 30000)
+      await new Promise(r => setTimeout(r, 300));
+    document.getElementById('loading-screen').click();
+    await new Promise(r => setTimeout(r, 2200));
+    // La toma empieza en "Nueva partida": la selección de personaje es
+    // parte del show (carrusel + máquina de escribir)
+    activate(0);
+  })();
 
   bg.addEventListener('load', render);
   window.addEventListener('resize', render);

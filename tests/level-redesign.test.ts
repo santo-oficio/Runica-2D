@@ -25,15 +25,15 @@ const lv = (o: Partial<LevelData>): LevelData => ({
 const idx = (c: number, r: number) => r * 8 + c;
 
 describe("rediseño — progresión", () => {
-  it("la partida empieza en el tier 3", () => {
-    expect(FIRST_TIER).toBe(3);
-    expect(tierForCompleted(0)).toBe(3);
+  it("la partida empieza en el tier 6", () => {
+    expect(FIRST_TIER).toBe(6);
+    expect(tierForCompleted(0)).toBe(6);
   });
-  it("los 96 escenarios se reparten 3..14 (8 por tier)", () => {
-    expect(tierForCompleted(0)).toBe(3);
-    expect(tierForCompleted(95)).toBe(14);
-    // 8 islas por tier: isla 8 → tier 4
-    expect(tierForCompleted(8)).toBe(4);
+  it("los 96 escenarios se reparten 6..15 (~9-10 por tier)", () => {
+    expect(tierForCompleted(0)).toBe(6);
+    expect(tierForCompleted(95)).toBe(15);
+    // ~9-10 islas por tier: isla 10 → tier 7
+    expect(tierForCompleted(10)).toBe(7);
   });
 });
 

@@ -97,7 +97,7 @@ function renderModal(){
 }
 function openModal(mode='confirm'){modalMode=mode;document.getElementById('modal-img').src=mode==='invalid'?MODAL_RETRY_IMG:MODAL_IMG;modalOpen=true;modalSel=1;modalOverlay.classList.add('show');requestAnimationFrame(()=>requestAnimationFrame(()=>modalOverlay.classList.add('visible')));renderModal()}
 function closeModal(){modalOpen=false;modalOverlay.classList.remove('visible');setTimeout(()=>modalOverlay.classList.remove('show'),320)}
-async function doConfirm(){if(selected===null||!typed.trim())return;const avatar=selected;const name=typed.trim();try{await fetch('/api/new-game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,avatar})})}catch{}const poly=borderPolygons?.[avatar]??avatarPolygons?.[avatar];if(poly?.length>=3){const r=contentRect();confirm.style.setProperty('--fx',(r.left+poly.reduce((s,p)=>s+p[0],0)/poly.length*r.width)+'px');confirm.style.setProperty('--fy',(r.top+poly.reduce((s,p)=>s+p[1],0)/poly.length*r.height)+'px')}confirm.classList.add('show');setTimeout(()=>{window.location.href='/mapamundi.html'},650)}
+async function doConfirm(){if(selected===null||!typed.trim())return;const avatar=selected;const name=typed.trim();try{const AUTO=new URLSearchParams(location.search).get('auto')==='1';if(!AUTO)await fetch('/api/new-game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,avatar})})}catch{}const poly=borderPolygons?.[avatar]??avatarPolygons?.[avatar];if(poly?.length>=3){const r=contentRect();confirm.style.setProperty('--fx',(r.left+poly.reduce((s,p)=>s+p[0],0)/poly.length*r.width)+'px');confirm.style.setProperty('--fy',(r.top+poly.reduce((s,p)=>s+p[1],0)/poly.length*r.height)+'px')}confirm.classList.add('show');setTimeout(()=>{window.location.href='/mapamundi.html'+(new URLSearchParams(location.search).get('auto')==='1'?'?auto=1':'')},650)}
 const FRAMES=[{x:.324,y:.283,w:.081,h:.107},{x:.421,y:.281,w:.081,h:.108},{x:.513,y:.279,w:.076,h:.108},{x:.605,y:.279,w:.078,h:.109},{x:.325,y:.403,w:.080,h:.111},{x:.420,y:.403,w:.080,h:.112},{x:.513,y:.401,w:.076,h:.112},{x:.603,y:.401,w:.078,h:.112}];
 const KEY_ROWS=[
  [['A',.321,.661,.035,.068],['B',.360,.661,.035,.068],['C',.399,.661,.035,.068],['D',.438,.661,.035,.068],['E',.477,.661,.035,.068],['F',.516,.661,.035,.068],['G',.555,.661,.035,.068],['H',.594,.661,.035,.068],['I',.633,.661,.035,.068],['J',.672,.661,.035,.068]],
@@ -156,6 +156,28 @@ modalOverlay.addEventListener('pointerdown',e=>{if(e.target===modalOverlay)close
 window.addEventListener('resize',()=>{if(modalOpen)renderModal()});
 window.addEventListener('keydown',handleKey);bg.addEventListener('load',render);window.addEventListener('resize',render);window.addEventListener('pointermove',e=>{pointerX=e.clientX;pointerY=e.clientY;const el=document.elementFromPoint(pointerX,pointerY);const idx=el?.classList?.contains('hotspot')&&el.dataset.type==='avatar'?+el.dataset.index:-1;if(idx!==hoveredAvatarIndex){hoveredAvatarIndex=idx;render()}});document.addEventListener('pointerleave',()=>{pointerX=-1;pointerY=-1;if(hoveredAvatarIndex!==-1){hoveredAvatarIndex=-1;render()}});
 async function boot(){try{await loadI18n();document.title=tt('selection.title');document.getElementById('loading-title').textContent=tt('selection.loadingTitle');const dataPromise=Promise.all([fetch('/api/load-selection-buttons').then(r=>r.ok?r.json():null),fetch('/api/load-character-positions',{cache:'no-store'}).then(r=>r.ok?r.json():null),fetch('/api/load-selection-name').then(r=>r.ok?r.json():null),fetch('/api/load-modal-areas').then(r=>r.ok?r.json():null),fetch('/api/load-modal-areas?which=reintentar').then(r=>r.ok?r.json():null).then(d=>{modalLoseAreas=d?.areas||null})]);setLoading(tt('selection.loadingPortraits'),5);await preload([bg.src,...AVATAR_SRCS,MODAL_IMG,MODAL_RETRY_IMG],(done,total)=>setLoading(tt('selection.loadingPortraits'),5+Math.round(done/total*25)));setLoading(tt('selection.loadingBodies'),30);await preloadFullBodies((done,total)=>setLoading(tt('selection.loadingBodies'),30+Math.round(done/total*45)));setLoading(tt('selection.loadingSounds'),75);await preloadAudios((done,total)=>setLoading(tt('selection.loadingSounds'),75+Math.round(done/total*15)));setLoading(tt('selection.loadingCalib'),92);const[buttonData,avatarData,nameData,modalData]=await dataPromise;modalAreas=modalData?.areas||null;buttonPolygons=buttonData?.buttons?.map(b=>b.polygon||null)||null;avatarPolygons=avatarData?.polygons||null;avatarTransforms=avatarData?.avatarTransforms||null;borderPolygons=avatarData?.borderPolygons||null;fullBodyArea=avatarData?.fullBodyArea?.w>0?avatarData.fullBodyArea:null;fullBodyAreas=Array.isArray(avatarData?.fullBodyAreas)?avatarData.fullBodyAreas:null;avatarSlotData=avatarData?.slots||(avatarPolygons?.map(p=>p?.length>=3?{x:Math.min(...p.map(q=>q[0])),y:Math.min(...p.map(q=>q[1])),w:Math.max(...p.map(q=>q[0]))-Math.min(...p.map(q=>q[0])),h:Math.max(...p.map(q=>q[1]))-Math.min(...p.map(q=>q[1]))}:null))||null;legacyButtons=Boolean(buttonData&&!buttonData.coordinateSpace);legacyAvatars=Boolean(avatarData&&!avatarData.coordinateSpace);if(nameData?.w>0&&nameData?.h>0){nameArea=nameData;legacyName=!nameData.coordinateSpace}setLoading(tt('selection.loadingReady'),100);render();document.body.classList.add('ready')}catch(error){setLoading(tt('selection.loadingError'),100);render();document.body.classList.add('ready')}}
+// === Autopiloto ?auto=1 (grabación): barre el carrusel de avatares,
+// elige uno, teclea el nombre con la máquina de escribir real y confirma
+// → encadena a mapamundi?auto=1 ===
+if (new URLSearchParams(location.search).get('auto') === '1') (async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  while (!document.body.classList.contains('ready')) await sleep(300);
+  await sleep(1400);
+  for (let i = 0; i < 8; i++) { setFocus('avatar', i); playSound(moveSound, .5); await sleep(430); }
+  setFocus('avatar', 3); await sleep(1100); activate();   // el avatar de la partida real
+  await sleep(700);
+  for (const ch of 'SABELA') {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: ch }));
+    await sleep(220);
+  }
+  await sleep(900);
+  setFocus('button', KEY_ROWS.flat().length + 1);         // flecha derecha = confirmar
+  await sleep(800);
+  activate();                                            // abre el modal de confirmación
+  await sleep(1500);
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); // modalSel=1 → doConfirm
+})();
+
 boot();
 function preloadFullBodies(onProgress=()=>{}){let done=0;return Promise.all(FULL_SRCS.map((src,index)=>new Promise(resolve=>{const im=new Image();const finish=()=>{fullLoaded.add(index);fullImgs.set(index,im);done++;onProgress(done,FULL_SRCS.length);resolve()};im.onload=()=>{(im.decode?im.decode().catch(()=>{}):Promise.resolve()).finally(finish)};im.onerror=finish;im.src=src})))}
 document.body.focus();

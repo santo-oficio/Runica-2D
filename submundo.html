@@ -47,7 +47,7 @@
   #transition-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 90; background: #000;
-    opacity: 0; pointer-events: none; display: none;
+    opacity: 1; pointer-events: auto; /* nace en negro: cero destello al entrar */
   }
   #stage {
     position: absolute; top: 0; left: 0;
@@ -110,7 +110,9 @@
     filter: grayscale(1) brightness(0.55);
   }
   .island-fx.locked {
-    filter: grayscale(0.6) brightness(0.35);
+    /* oscuro pronunciado: sobre los mapas ya oscuros (INFRAMUNDO,
+       MAZMORRA, FUEGO) un dim suave no se percibe como "bloqueada" */
+    filter: grayscale(0.8) brightness(0.22) contrast(1.05);
   }
   /* Isla tienda desaparecida: la misma zona muy difuminada — sus propios
      colores se deshacen en una nube que se funde con el cielo vecino. */
@@ -121,6 +123,73 @@
   @keyframes shopGoneFade {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+  .shop-ladder-path {
+    position: absolute;
+    z-index: 11;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .shop-ladder-path img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: block;
+    object-fit: fill;
+  }
+  .shop-ladder-path .shaft-clip {
+    position: absolute;
+    overflow: hidden;
+  }
+  .shop-ladder-path .shaft-clip.flip { transform: scaleX(-1); }
+  .shop-ladder-path .shaft-clip .shaft-tiles {
+    position: absolute; top: 0; left: 0; width: 100%;
+    background-repeat: repeat-y;
+    background-position: top center;
+  }
+  .shop-ladder-path .shaft-clip.grow {
+    animation: shopShaftGrow 1.6s cubic-bezier(0.3, 0.55, 0.3, 1) 0.4s both;
+  }
+  .shop-ladder-path .shaft-clip.shrink {
+    animation: shopShaftShrink 0.7s ease-in both;
+  }
+  .shop-ladder-path .sign-pop {
+    transform-origin: 46.9% 76.1%;
+    animation: shopSignPop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+  .shop-ladder-path.inviting .sign-anim {
+    transform-origin: 50% 100%;
+    animation: shopInvite 1.1s ease-in-out infinite;
+  }
+  .shop-ladder-path .shop-name {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    font-family: 'ChelseaMarket', cursive;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    color: #33200c;
+    text-shadow: 1px 1px 0 rgba(255, 214, 160, 0.4),
+                 -1px -1px 0 rgba(30, 16, 4, 0.35);
+    pointer-events: none;
+  }
+  @keyframes shopShaftGrow {
+    from { clip-path: inset(0 0 100.5% 0); }
+    to { clip-path: inset(0 0 -1% 0); }
+  }
+  @keyframes shopShaftShrink {
+    from { clip-path: inset(0 0 -1% 0); }
+    to { clip-path: inset(0 0 100.5% 0); }
+  }
+  @keyframes shopSignPop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes shopInvite {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-7px) rotate(1.6deg); }
   }
   #avatar {
     position: absolute;
@@ -307,6 +376,10 @@
       const r = await fetch('/api/savegame');
       if (r.ok) { const d = await r.json(); player = d.player || null; }
     } catch {}
+    // ?avatar=N (1-8): override de pruebas — fuerza el sprite elegido
+    // sin tocar la bbdd (p.ej. avatar=2 = loro para testear el bonus).
+    const av = parseInt(new URLSearchParams(location.search).get('avatar') || '', 10);
+    if (av >= 1 && av <= 8 && player) player = { ...player, avatarIndex: av - 1 };
   }
   // Isla desbloqueada: la primera siempre; las demás solo si la anterior
   // está completada (no se puede saltar islas)
@@ -367,8 +440,22 @@
   // Tienda 1 tras el nivel 3; tienda 2 tras el nivel 9.
   let shopNodes = [];
   let atShop = -1; // índice del nodo donde está el avatar (-1 = en una isla)
+  let atLadder = -1; // índice del camino en cuyo pie (punto medio) para el avatar
   // Cada tienda desaparece por separado si se pasa de largo sin entrar.
   let shopGone = new Set();
+  // Tiendas ya visitadas: también están en shopGone pero no dejan mancha
+  // (la casa se marcha volando, no se disuelve).
+  let shopVisited = new Set();
+  let shopPathSeen = new Set();
+  let shopDescending = new Set(); // caminos renderizados ocultos (bajada desde tienda)
+  let pendingShopDescent = -1;   // nodo que bajará al cargar (from=shop)
+  const params = new URLSearchParams(window.location.search);
+  // ?auto=1 — autopiloto de grabación (tools/record-demo.mjs): entra en la
+  // isla actual solo; al volver (from=level/from=shop) sube al bonus si la
+  // casa está posada o regresa al mapamundi para cerrar la toma.
+  const AUTO_RUN = params.get('auto') === '1';
+  let shopClimbing = new Set();
+  let shopLadderRects = {}; // índice nodo -> rect px del camino (para taps)
   const DEMO_SHOP = new URLSearchParams(window.location.search).get('demo') || '';
   function isShopUnlocked(node) {
     return !!node && !shopGone.has(shopNodes.indexOf(node)) &&
@@ -380,7 +467,7 @@
   // se funde con el cielo y "desaparece" del mapa. Devuelve los gradientes
   // de la mancha para la mascara combinada (un solo div para todas).
   function shopGoneMasks(r, sz, node) {
-    const pos = node.pos;
+    const pos = shopDoorPos(node);
     const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.45;
     const g = (x, y, rad, s, f) =>
       `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
@@ -390,6 +477,399 @@
       g(px + rr * 0.4, py + rr * 0.3, rr * 0.5, 28, 65),
     ];
   }
+  const SHOP_SIGN_SRC = '/assets/tienda/camino-tienda-house.webp';
+  const SHOP_RUNG_SRC = '/assets/tienda/camino-tienda-rung.webp';
+  const SHOP_FOOT_SRC = '/assets/tienda/camino-tienda-foot.webp';
+  const SHOP_PLANK_X = 0.4977; // centro de la puerta dentro de la casa
+  const SHOP_PLANK_Y = 0.961;  // suelo del porche = pies del avatar
+  const SHOP_SIGN_ASPECT = 640 / 864;
+  // El tramo se compone de tiles de UN periodo (120×50) + la punta natural
+  // (120×177). Todos son recortes del master 864×2688 al mismo scale, así
+  // los peldaños continúan exactos bajo la casa sin desencaje.
+  const SHOP_SRC_W = 864;
+  const SHOP_SHAFT_SRC_W = 120;
+  const SHOP_TILE_SRC_H = 50;
+  const SHOP_FOOT_SRC_H = 177;
+  const SHOP_SHAFT_DX = 0; // la escalera cuelga justo bajo la puerta
+  // Área del nombre sobre el cartel (normalizada a la casa, 0-1; rotate en
+  // grados). Calibrable con calibrate-tienda-nombre.html; la tienda 2 va
+  // espejada y el texto se contra-espeja para seguir legible.
+  let shopNameArea = null;
+  let fitTextProbe = null;
+  async function loadShopNameArea() {
+    try {
+      const r = await fetch('/api/shop-name-area');
+      if (r.ok) {
+        const d = await r.json();
+        if (d && typeof d.x === 'number' && typeof d.w === 'number') shopNameArea = d;
+      }
+    } catch {}
+  }
+
+  // Pie de la escalera: el centro del puente pintado entre la isla `from`
+  // y la siguiente (calibrable con `mid` en shop.json; sin él, la media de
+  // las posiciones de avatar). Ahí para el avatar al pasar entre ambas y
+  // decide izquierda/derecha/subir.
+  function shopMid(node) {
+    if (node.mid) return node.mid;
+    const a = resolvedLevelPosition(node.from), b = resolvedLevelPosition(node.from + 1);
+    if (!a || !b) return null;
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+
+  // Puerta de la casa: cuelga exactamente sobre el punto medio RESUELTO
+  // (donde para el avatar), para que la trepa sea una línea recta pie→puerta.
+  // pos.x del JSON queda como fallback cuando aún no hay posiciones cargadas.
+  function shopDoorPos(node) {
+    const mid = shopMid(node);
+    return { x: mid ? mid.x : node.pos.x, y: node.pos.y };
+  }
+
+  function shopLadderLayout(r, node) {
+    const mid = shopMid(node);
+    if (!mid) return null;
+    const signW = 0.15 * r.width;
+    const signH = signW * SHOP_SIGN_ASPECT;
+    const k = signW / SHOP_SRC_W; // px de pantalla por px del master
+    const shaftW = SHOP_SHAFT_SRC_W * k;
+    const tileH = SHOP_TILE_SRC_H * k;
+    const footH = SHOP_FOOT_SRC_H * k;
+    const mirror = node.mirror ? -1 : 1;
+    const plankX = r.left + mid.x * r.width;
+    const plankY = r.top + node.pos.y * r.height;
+    const top = plankY - SHOP_PLANK_Y * signH;
+    const seamTop = top + signH; // borde inferior del cartel (master y=645)
+    const footY = r.top + mid.y * r.height;
+    // Tiles enteros entre la costura y la punta: la punta se coloca en un
+    // borde de periodo (su primer píxel es fase 645+35·47 del master), así
+    // los peldaños nunca se rompen ni en la unión ni en el pie.
+    const tilesN = Math.max(0, Math.round((footY - seamTop - footH) / tileH));
+    const tilesH = tilesN * tileH;
+    const shaftCX = plankX + mirror * SHOP_SHAFT_DX * signW;
+    return {
+      top,
+      height: Math.max(0, seamTop + tilesH + footH - top),
+      mirror,
+      sign: { left: plankX - SHOP_PLANK_X * signW, top: 0, w: signW, h: signH },
+      shaft: {
+        left: shaftCX - shaftW / 2,
+        top: seamTop - top, w: shaftW, tilesN, tilesH, tileH, footH,
+      },
+    };
+  }
+
+  function renderShopLadders(r, sz) {
+    shopNodes.forEach((node, index) => {
+      if (shopGone.has(index) || !isShopUnlocked(node)) { delete shopLadderRects[index]; return; }
+      const layout = shopLadderLayout(r, node);
+      if (!layout) return;
+      shopLadderRects[index] = {
+        left: Math.min(layout.sign.left, layout.shaft.left),
+        right: Math.max(layout.sign.left + layout.sign.w, layout.shaft.left + layout.shaft.w),
+        top: layout.top,
+        bottom: layout.top + layout.height,
+      };
+
+      // Casa en vuelo/creciendo: re-anexar el elemento vivo con su
+      // animación intacta en vez de reconstruirlo ya posado.
+      const keep = preservedShopPaths.get(index);
+      if (keep) {
+        keep.classList.toggle('inviting', atLadder === index);
+        overlay.appendChild(keep);
+        return;
+      }
+
+      const path = document.createElement('div');
+      path.className = 'shop-ladder-path';
+      path.dataset.shopPath = String(index);
+      path.style.left = '0px';
+      path.style.top = layout.top + 'px';
+      path.style.width = '100%';
+      path.style.height = layout.height + 'px';
+      if (atLadder === index) path.classList.add('inviting');
+
+      const mirror = document.createElement('div');
+      mirror.style.cssText = `position:absolute;left:${layout.sign.left}px;top:${layout.sign.top}px;` +
+        `width:${layout.sign.w}px;height:${layout.sign.h}px` +
+        (layout.mirror < 0 ? ';transform:scaleX(-1)' : '');
+      const signAnim = document.createElement('div');
+      signAnim.className = 'sign-anim';
+      signAnim.style.cssText = 'position:absolute;inset:0;transform-origin:50% 100%';
+      const sign = document.createElement('img');
+      sign.src = AssetsCache.getCachedImageUrl(SHOP_SIGN_SRC);
+      sign.alt = '';
+      sign.style.width = '100%';
+      sign.style.height = '100%';
+      signAnim.appendChild(sign);
+      // Nombre del tendero sobre el cartel: va DENTRO de sign-anim (hereda
+      // el vaivén) y fuera del <img>; con casa espejada el texto se
+      // contra-espeja (scaleX + rotación inversa) para no salir al revés.
+      if (shopNameArea) {
+        const na = shopNameArea;
+        const nm = document.createElement('div');
+        nm.className = 'shop-name';
+        nm.textContent = t('shop.sign');
+        nm.style.left = (na.x * 100) + '%';
+        nm.style.top = (na.y * 100) + '%';
+        nm.style.width = (na.w * 100) + '%';
+        nm.style.height = (na.h * 100) + '%';
+        // El mirror padre ya voltea la posición; el scaleX propio devuelve
+        // el texto legible y la rotación se invierte con el espejado.
+        nm.style.transform = layout.mirror < 0
+          ? `scaleX(-1) rotate(${-(na.rotate || 0)}deg)`
+          : `rotate(${na.rotate || 0}deg)`;
+        // El path aún no está en el DOM: scrollWidth daría 0. Se mide el
+        // texto con un canvas 2D y se reduce la fuente si desborda el área.
+        let fs = Math.max(8,
+          na.h * layout.sign.h * 0.62 * (na.fontScale || 1));
+        const probe = (fitTextProbe ||= document.createElement('canvas').getContext('2d'));
+        probe.font = `bold ${fs}px ChelseaMarket, "Trebuchet MS", sans-serif`;
+        const tw = probe.measureText(nm.textContent).width;
+        const maxW = na.w * layout.sign.w;
+        if (tw > maxW) fs = Math.max(8, Math.floor(fs * maxW / tw));
+        nm.style.fontSize = fs + 'px';
+        signAnim.appendChild(nm);
+      }
+      mirror.appendChild(signAnim);
+      path.appendChild(mirror);
+
+      const shaftClip = document.createElement('div');
+      shaftClip.className = 'shaft-clip' + (layout.mirror < 0 ? ' flip' : '');
+      shaftClip.style.left = layout.shaft.left + 'px';
+      shaftClip.style.top = layout.shaft.top + 'px';
+      shaftClip.style.width = layout.shaft.w + 'px';
+      shaftClip.style.height = (layout.shaft.tilesH + layout.shaft.footH) + 'px';
+      const tiles = document.createElement('div');
+      tiles.className = 'shaft-tiles';
+      tiles.style.height = layout.shaft.tilesH + 'px';
+      tiles.style.backgroundImage =
+        `url("${AssetsCache.getCachedImageUrl(SHOP_RUNG_SRC)}")`;
+      tiles.style.backgroundSize = `100% ${layout.shaft.tileH}px`;
+      shaftClip.appendChild(tiles);
+      const foot = document.createElement('img');
+      foot.src = AssetsCache.getCachedImageUrl(SHOP_FOOT_SRC);
+      foot.alt = '';
+      foot.style.width = '100%';
+      foot.style.height = layout.shaft.footH + 'px';
+      foot.style.top = layout.shaft.tilesH + 'px';
+      shaftClip.appendChild(foot);
+      path.appendChild(shaftClip);
+
+      if (!shopClimbing.has(index) && !shopPathSeen.has(index)) {
+        if (shopDescending.has(index)) {
+          // Vuelta de la tienda: tramo oculto hasta que arranca la bajada
+          shaftClip.style.clipPath = 'inset(0 0 100.5% 0)';
+        } else {
+          // La casa entra volando desde una esquina; la escalera sale luego
+          flyShopHouseIn(path, shaftClip, layout, index);
+        }
+        shopPathSeen.add(index);
+      }
+      overlay.appendChild(path);
+    });
+  }
+
+  // Entrada de la tienda: la casa (con la escalera recogida) aparece desde
+  // la esquina superior IZQUIERDA y revolotea de lado a lado como un
+  // pájaro hasta posarse en su sitio; solo entonces despliega la escalera.
+  let shopFlying = new Set(); // nodos cuya casa aún está en vuelo/crecida
+  let shopFlyHold = false;   // true: retener el despegue hasta el reveal
+  let pendingFlyStart = null; // callback que arranca el vuelo al revelar
+  let preservedShopPaths = new Map(); // paths en vuelo que sobreviven al re-render
+  function flyShopHouseIn(path, clip, layout, index) {
+    shopFlying.add(index);
+    clip.style.clipPath = 'inset(0 0 100.5% 0)';
+    const vw = window.innerWidth, vh = window.innerHeight;
+    // Salida real desde la esquina superior izquierda: layout.sign da la
+    // posición de la casa en pantalla (el path no se puede medir: aún no
+    // está en el DOM). Se traduce hasta la esquina y zigzaguea hasta posarse.
+    const sx = vw * 0.01 - layout.sign.left;
+    const sy = vh * 0.01 - layout.top - layout.sign.top;
+    const anim = path.animate([
+      { transform: `translate(${sx}px, ${sy}px) rotate(14deg)`, offset: 0 },
+      { transform: `translate(${sx * 0.7 + vw * 0.05}px, ${sy * 0.7 - vh * 0.09}px) rotate(-10deg)`, offset: 0.26 },
+      { transform: `translate(${sx * 0.48}px, ${sy * 0.48 + vh * 0.07}px) rotate(9deg)`, offset: 0.5 },
+      { transform: `translate(${sx * 0.26 - vw * 0.05}px, ${sy * 0.26 - vh * 0.05}px) rotate(-8deg)`, offset: 0.74 },
+      { transform: `translate(${vw * 0.015}px, ${vh * 0.015}px) rotate(3deg)`, offset: 0.88 },
+      { transform: 'translate(0px, 0px) rotate(0deg)', offset: 1 },
+    ], { duration: 6000, easing: 'ease-in-out', fill: 'both' });
+    // Si el mundo aún se está revelando, el despegue espera a que el
+    // fundido termine — si no, la casa aparece a mitad de vuelo.
+    const startFlight = () => {
+      anim.play();
+      AssetsCache.playSound('/assets/sounds/comun/casa-vuela.wav', 0.8);
+    };
+    if (shopFlyHold) {
+      anim.pause();
+      shopFlyHold = false;
+      pendingFlyStart = startFlight;
+    } else {
+      startFlight();
+    }
+    // Si el path quedó huerfano (nunca con preservación, pero por si
+    // acaso), no desplegar la escalera ni sonar sobre un DOM muerto.
+    anim.onfinish = () => {
+      if (path.isConnected) deployShopLadder(clip, layout, index);
+      else shopFlying.delete(index);
+    };
+    // Un re-render (movimiento a mitad de vuelo) ya NO destruye el
+    // elemento: render() preserva los paths en vuelo vía preservedShopPaths.
+    anim.oncancel = () => shopFlying.delete(index);
+  }
+
+  // Despliegue de la escalera: un salto de clip-path por periodo de
+  // peldaño, duración proporcional al largo de la escalera.
+  function deployShopLadder(clip, layout, index) {
+    clip.style.clipPath = '';
+    clip.style.animationDelay = '0s';
+    const dur = 0.7 + layout.shaft.tilesN * 0.1;
+    clip.style.animationTimingFunction =
+      `steps(${Math.max(2, layout.shaft.tilesN + 1)})`;
+    clip.style.animationDuration = dur + 's';
+    clip.classList.add('grow');
+    AssetsCache.playSound('/assets/sounds/comun/escalera-crece.wav', 0.6);
+    setTimeout(() => AssetsCache.playSound('/assets/sounds/comun/escalera-crece.wav', 0.5), dur * 550);
+    setTimeout(() => shopFlying.delete(index), dur * 1000 + 100);
+  }
+
+  // Tienda ya visitada: la escalera se recoge y la casa se marcha volando
+  // a una esquina. Queda persistida como visitada: no reaparece aunque se
+  // repita el nivel (salvo en demo=shop, para poder probarla siempre).
+  function retireShopHouse(index) {
+    const path = overlay.querySelector(`[data-shop-path="${index}"]`);
+    const clip = path && path.querySelector('.shaft-clip');
+    const node = shopNodes[index];
+    const finish = () => {
+      shopGone.add(index);
+      shopVisited.add(index);
+      atLadder = -1;
+      isMoving = false;
+      fetch('/api/shop-visit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ world: currentWorld, index }),
+      }).catch(() => {});
+      render();
+    };
+    if (!path || !node || !clip) { finish(); return; }
+    isMoving = true;
+    clip.classList.add('shrink');
+    AssetsCache.playSound('/assets/sounds/comun/escalera-encoge.wav', 0.6);
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const r = getImgRect();
+    const layout = shopLadderLayout(r, node);
+    // Salida por la esquina superior izquierda (por donde entró): la casa
+    // termina totalmente fuera de pantalla arriba a la izquierda.
+    const tx = layout ? -layout.sign.left - layout.sign.w - vw * 0.05 : -vw;
+    const ty = layout ? -layout.top - layout.sign.h - vh * 0.05 : -vh;
+    setTimeout(() => {
+      path.animate([
+        { transform: 'translate(0px, 0px) rotate(0deg)', offset: 0 },
+        { transform: `translate(${tx * 0.15}px, ${-vh * 0.07}px) rotate(-6deg)`, offset: 0.3 },
+        { transform: `translate(${tx}px, ${ty}px) rotate(-14deg)`, offset: 1 },
+      ], { duration: 1600, easing: 'ease-in', fill: 'forwards' });
+      setTimeout(finish, 1600);
+    }, 750);
+  }
+
+  function retractShopLadder(index) {
+    const clip = overlay.querySelector(`[data-shop-path="${index}"] .shaft-clip`);
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      shopClimbing.delete(index);
+      if (atShop === index) enterCurrent();
+    };
+    if (!clip) { finish(); return; }
+    clip.classList.add('shrink');
+    AssetsCache.playSound('/assets/sounds/comun/escalera-encoge.wav', 0.6);
+    clip.addEventListener('animationend', finish, { once: true });
+    setTimeout(finish, 750);
+  }
+
+  // Subida por la escala: el avatar trepa en línea recta por el eje de la
+  // escalera (un salto por tramo) y el último salto aterriza en el tablón;
+  // luego la escalera se encoge y se entra en la tienda.
+  function startLadderClimb(index) {
+    const node = shopNodes[index];
+    if (!node || !isShopUnlocked(node) || shopFlying.has(index)) { bounceAvatar('down'); return; }
+    const mid = shopMid(node);
+    if (!mid) return;
+    const r = getImgRect();
+    const layout = shopLadderLayout(r, node);
+    const axisX = layout
+      ? (layout.shaft.left + layout.shaft.w / 2 - r.left) / r.width
+      : mid.x;
+    atLadder = -1;
+    atShop = index;
+    shopClimbing.add(index);
+    AssetsCache.playSound('/assets/sounds/comun/escalera-sube.wav', 0.7);
+    setTimeout(() => AssetsCache.playSound('/assets/sounds/comun/escalera-sube.wav', 0.5), 800);
+    document.getElementById('pos-info').textContent = t('shop.sign');
+    isMoving = true;
+    const total = 9;
+    let s = 0;
+    const step = () => {
+      s++;
+      const sz = resolvedAvatarSize() * r.width;
+      const x = axisX;
+      const y = mid.y + (node.pos.y - mid.y) * (s / total);
+      avatarEl.style.transition = 'left .17s ease-out, top .17s ease-out';
+      avatarEl.style.left = (r.left + x * r.width - sz / 2) + 'px';
+      avatarEl.style.top = avatarBaseTop({ x, y }, sz, r) + 'px';
+      if (s < total) { setTimeout(step, 170); return; }
+      isMoving = false;
+      render();
+      retractShopLadder(index);
+    };
+    render();
+    step();
+  }
+
+  // Vuelta de la tienda: la escalera se despliega poco a poco mientras el
+  // avatar baja con su punta hasta el pie (punto medio entre islas).
+  function descendWithShopLadder(index) {
+    const node = shopNodes[index];
+    const mid = node && shopMid(node);
+    if (!mid) { atShop = -1; atLadder = index; render(); return; }
+    shopDescending.delete(index);
+    const r = getImgRect();
+    const layout = shopLadderLayout(r, node);
+    const dur = 0.7 + (layout ? layout.shaft.tilesN : 8) * 0.1;
+    const clip = overlay.querySelector(`[data-shop-path="${index}"] .shaft-clip`);
+    if (clip && layout) {
+      clip.style.clipPath = '';
+      clip.style.animationDelay = '0s';
+      clip.style.animationTimingFunction =
+        `steps(${Math.max(2, layout.shaft.tilesN + 1)})`;
+      clip.style.animationDuration = dur + 's';
+      clip.classList.add('grow');
+    }
+    AssetsCache.playSound('/assets/sounds/comun/escalera-crece.wav', 0.6);
+    setTimeout(() => AssetsCache.playSound('/assets/sounds/comun/escalera-crece.wav', 0.5), dur * 550);
+    isMoving = true;
+    const sz = resolvedAvatarSize() * r.width;
+    avatarEl.style.transition = `left ${dur}s linear, top ${dur}s linear`;
+    avatarEl.style.left = (r.left + mid.x * r.width - sz / 2) + 'px';
+    avatarEl.style.top = avatarBaseTop(mid, sz, r) + 'px';
+    setTimeout(() => {
+      isMoving = false;
+      atShop = -1;
+      atLadder = -1;
+      // Baja a la isla de la que partió (`from`): el tablón desaparece con
+      // la casa, así que el avatar no puede quedarse en el pie. Paso corto
+      // mientras la escalera se recoge; la isla nueva (from+1) queda a un
+      // movimiento del jugador.
+      currentLevel = node.from;
+      document.getElementById('pos-info').textContent =
+        format('submundo.level', currentLevel + 1, NUM_LEVELS);
+      render();
+      // La tienda ya usada se marcha volando y no vuelve (en demo queda)
+      if (!DEMO_SHOP) retireShopHouse(index);
+      animateAvatarTo(resolvedLevelPosition(currentLevel));
+    }, dur * 1000 + 80);
+  }
+
   let textAreas = {
     worldName: { x: 0.35, y: 0.08, w: 0.3, h: 0.08 },
     level: { x: 0.4, y: 0.18, w: 0.2, h: 0.07 },
@@ -397,6 +877,9 @@
   let avatarSize = 0.06;       // fallback legacy
   let avatarSizes = {};        // avatarSizes[world] = [size0..size7]
   let avatarPositionOverrides = {}; // sparse [world][avatar][level] landing overrides
+  let maskOverrides = {};      // masks[world][level] = {x,y,r} mancha bloqueo calibrada
+  let unlockIsland = -1;       // isla recién desbloqueada (from=level) pendiente de revelar
+  let unlockStage = 0;         // 0 = oscura, 1 = despejando, 2 = revelada
   let currentWorld = 'ESPACIO';
   let currentLevel = 0; // Siempre empieza en el nivel 1 (indice 0)
   let isMoving = false;
@@ -415,9 +898,9 @@
   }
 
   function currentAvatarPosition() {
-    return atShop >= 0 && shopNodes[atShop]
-      ? shopNodes[atShop].pos
-      : resolvedLevelPosition(currentLevel);
+    if (atShop >= 0 && shopNodes[atShop]) return shopDoorPos(shopNodes[atShop]);
+    if (atLadder >= 0 && shopNodes[atLadder]) return shopMid(shopNodes[atLadder]);
+    return resolvedLevelPosition(currentLevel);
   }
 
   // El nivel inicial = última isla jugada en este mundo (bbdd); 0 si no hay
@@ -473,6 +956,7 @@
         const data = await r.json();
         if (data.positions) positions = data.positions;
         if (data.avatarSize) avatarSize = data.avatarSize;
+        if (data.masks) maskOverrides[world] = data.masks;
         if (data.avatars) {
           avatarSizes[world] = data.avatars.map(e => (e && e.size != null) ? e.size : avatarSize);
           avatarPositionOverrides[world] = data.avatars.map(e =>
@@ -498,8 +982,26 @@
     } catch {}
   }
 
+  // from=shop en la URL: el jugador vuelve de la tienda — el avatar empieza
+  // en el tablón y bajará con la escalera desplegándose (ver descendWithShopLadder)
+  function armShopDescent() {
+    if (params.get('from') !== 'shop' || pendingShopDescent >= 0) return;
+    // Solo puede volverse de la tienda visible: desbloqueada y aún no
+    // consumida (shopGone). Sin el check de gone, con nivel ≥4 completado
+    // siempre elegiría el nodo 0 aunque se volviera de la tienda 2.
+    const idx = shopNodes.findIndex((n, i) => isShopUnlocked(n) && !shopGone.has(i));
+    if (idx < 0) return;
+    atShop = idx;
+    atLadder = -1;
+    currentLevel = shopNodes[idx].from;
+    shopDescending.add(idx);
+    pendingShopDescent = idx;
+  }
+
   async function loadShop(world) {
     shopNodes = [];
+    shopPathSeen = new Set();
+    shopClimbing = new Set();
     try {
       const r = await fetch('/api/load-shop?world=' + encodeURIComponent(world));
       if (r.ok) {
@@ -521,6 +1023,14 @@
   function render() {
     const r = getImgRect();
     const sz = resolvedAvatarSize() * r.width;
+    // Una casa en vuelo (o desplegando su escalera) no se reconstruye:
+    // recrear su path mataría la animación WAAPI y la casa aparecería
+    // ya posada — y el sonido del despliegue sonaría después, suelto.
+    preservedShopPaths = new Map();
+    for (const idx of shopFlying) {
+      const p = overlay.querySelector(`[data-shop-path="${idx}"]`);
+      if (p) preservedShopPaths.set(idx, p);
+    }
     overlay.innerHTML = '';
 
     // Las manchas de islas bloqueadas van en UN solo div con la lista de
@@ -530,6 +1040,7 @@
     const g = (x, y, rad, s, f) =>
       `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
     const lockedMasks = [];
+    const unlockMasks = []; // isla recién abierta: mancha propia (se despeja)
     const goneMasks = [];
 
     // Marcadores de casillas
@@ -546,17 +1057,35 @@
       overlay.appendChild(div);
 
       // Máscara visual sobre la isla: completada (B/N) o bloqueada (oscura)
-      if (i !== currentLevel && !isLevelUnlocked(i)) {
-        // Mancha organica: nucleo suave + 3 blobs desplazados de forma
-        // determinista por isla (nunca un circulo perfecto)
-        const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.15;
-        const a = i * 2.399963; // angulo dorado: dispersa los blobs por isla
-        lockedMasks.push(
-          g(px, py, rr, 58, 88),
-          g(px + Math.cos(a) * rr * 0.55, py + Math.sin(a) * rr * 0.55, rr * 0.6, 42, 80),
-          g(px + Math.cos(a + 2.1) * rr * 0.6, py + Math.sin(a + 2.1) * rr * 0.6, rr * 0.55, 42, 80),
-          g(px + Math.cos(a + 4.2) * rr * 0.5, py + Math.sin(a + 4.2) * rr * 0.5, rr * 0.5, 42, 80),
-        );
+      const unlocking = (i === unlockIsland && unlockStage < 2);
+      if ((i !== currentLevel && !isLevelUnlocked(i)) || unlocking) {
+        // Mancha: por isla puede venir calibrada en avatar-positions.json
+        // (masks[i] = [{x,y,r}, ...] generado por tools/sam-island-masks.py
+        // con la silueta real de la isla). Sin calibrar, mancha organica por
+        // defecto: nucleo bajo el pie + 3 blobs desplazados de forma
+        // determinista (nunca un circulo perfecto).
+        const mo = maskOverrides[currentWorld]?.[i];
+        const bucket = unlocking ? unlockMasks : lockedMasks;
+        if (mo) {
+          for (const b of (Array.isArray(mo) ? mo : [mo])) {
+            const px = (b.x ?? pos.x) * r.width;
+            const py = (b.y ?? pos.y) * r.height;
+            const rpx = (b.r ?? 0.12) * r.width;
+            const rpy = (b.ry != null) ? b.ry * r.height : rpx;
+            bucket.push(`radial-gradient(ellipse ${rpx.toFixed(1)}px ${rpy.toFixed(1)}px at ${px.toFixed(1)}px ${py.toFixed(1)}px, #000 55%, transparent 86%)`);
+          }
+        } else {
+          const rr = sz * 1.5;
+          const px = pos.x * r.width;
+          const py = pos.y * r.height + rr * 0.35;
+          const a = i * 2.399963; // angulo dorado: dispersa los blobs por isla
+          bucket.push(
+            g(px, py, rr, 58, 88),
+            g(px + Math.cos(a) * rr * 0.55, py + Math.sin(a) * rr * 0.55, rr * 0.6, 42, 80),
+            g(px + Math.cos(a + 2.1) * rr * 0.6, py + Math.sin(a + 2.1) * rr * 0.6, rr * 0.55, 42, 80),
+            g(px + Math.cos(a + 4.2) * rr * 0.5, py + Math.sin(a + 4.2) * rr * 0.5, rr * 0.5, 42, 80),
+          );
+        }
       }
     }
     // Islas tienda: misma máscara oscura que las islas bloqueadas hasta
@@ -565,20 +1094,24 @@
     // Nodos con `painted:false` aún no tienen isla dibujada en el mapa —
     // no se pinta ninguna mancha (el nodo sigue siendo navegable).
     shopNodes.forEach((node, ni) => {
-      if (atShop === ni) {
-        const div = document.createElement('div');
-        div.className = 'cell-marker selected';
-        div.style.left = (r.left + node.pos.x * r.width - sz / 2) + 'px';
-        div.style.top = (r.top + node.pos.y * r.height - sz / 2) + 'px';
-        div.style.width = sz + 'px';
-        div.style.height = sz + 'px';
-        overlay.appendChild(div);
+      if (atShop === ni || atLadder === ni) {
+        const mp = atLadder === ni ? shopMid(node) : shopDoorPos(node);
+        if (mp) {
+          const div = document.createElement('div');
+          div.className = 'cell-marker selected';
+          div.style.left = (r.left + mp.x * r.width - sz / 2) + 'px';
+          div.style.top = (r.top + mp.y * r.height - sz / 2) + 'px';
+          div.style.width = sz + 'px';
+          div.style.height = sz + 'px';
+          overlay.appendChild(div);
+        }
       }
       if (node.painted === false) return;
-      if (shopGone.has(ni)) {
+      if (shopGone.has(ni) && !shopVisited.has(ni)) {
         goneMasks.push(...shopGoneMasks(r, sz, node));
       } else if (!isShopUnlocked(node)) {
-        const px = node.pos.x * r.width, py = node.pos.y * r.height, rr = sz * 1.3;
+        const dp = shopDoorPos(node);
+        const px = dp.x * r.width, py = dp.y * r.height, rr = sz * 1.3;
         lockedMasks.push(
           g(px, py, rr, 58, 88),
           g(px + rr * 0.5, py - rr * 0.3, rr * 0.6, 42, 80),
@@ -600,6 +1133,19 @@
       fx.style.webkitMaskImage = fx.style.maskImage = lockedMasks.join(',');
       overlay.appendChild(fx);
     }
+    // Mancha de la isla recién desbloqueada: idéntica a las bloqueadas pero
+    // en su propio div — se desvanece con el efecto de "se despeja".
+    if (unlockMasks.length) {
+      const fx = document.createElement('div');
+      fx.className = 'island-fx locked unlocking';
+      fx.style.left = r.left + 'px';
+      fx.style.top = r.top + 'px';
+      fx.style.width = r.width + 'px';
+      fx.style.height = r.height + 'px';
+      fx.style.backgroundImage = `url("${bg.src}")`;
+      fx.style.webkitMaskImage = fx.style.maskImage = unlockMasks.join(',');
+      overlay.appendChild(fx);
+    }
     if (goneMasks.length) {
       const fx = document.createElement('div');
       fx.className = 'island-fx shopgone';
@@ -611,6 +1157,7 @@
       fx.style.webkitMaskImage = fx.style.maskImage = goneMasks.join(',');
       overlay.appendChild(fx);
     }
+    renderShopLadders(r, sz);
 
     // Avatar en la casilla actual (o en la tienda)
     const pos = currentAvatarPosition();
@@ -639,7 +1186,7 @@
     };
     const dynamicValues = {
       worldName: t('worlds.' + currentWorld),
-      level: atShop >= 0 ? t('shop.title') : format('submundo.level', currentLevel + 1, NUM_LEVELS),
+      level: atShop >= 0 ? t('shop.sign') : format('submundo.level', currentLevel + 1, NUM_LEVELS),
     };
     for (const type of ['worldName', 'level']) {
       const area = textAreas[type];
@@ -652,8 +1199,17 @@
       text.style.top = (r.top + area.y * r.height) + 'px';
       text.style.width = ax.w + 'px';
       text.style.height = (area.h * r.height) + 'px';
-      text.style.fontSize = Math.max(14, area.h * r.height * 0.62 * (area.fontScale || 1)) + 'px';
+      const fs = Math.max(14, area.h * r.height * 0.62 * (area.fontScale || 1));
+      text.style.fontSize = fs + 'px';
       dynamicText.appendChild(text);
+      // Nombres de mundo largos (p.ej. "Szmaragdowe Morze"): encoger la
+      // fuente hasta que quepa en la placa en vez de recortarlo.
+      // OJO: con justify-content:center, scrollWidth no refleja el
+      // desbordamiento — se mide temporalmente alineado a la izquierda.
+      text.style.justifyContent = 'flex-start';
+      const over = text.scrollWidth / Math.max(1, text.clientWidth);
+      text.style.justifyContent = '';
+      if (over > 1) text.style.fontSize = Math.max(12, Math.floor(fs / over)) + 'px';
     }
     // Oro: alineado a la derecha con el icono de monedas a la izquierda
     const goldArea = textAreas.gold;
@@ -679,7 +1235,7 @@
     }
 
     document.getElementById('pos-info').textContent = atShop >= 0
-      ? t('shop.title')
+      ? t('shop.sign')
       : format('submundo.level', currentLevel + 1, NUM_LEVELS);
     document.getElementById('world-name').textContent = t('worlds.' + currentWorld);
   }
@@ -699,28 +1255,42 @@
   function moveByCell(dir) {
     if (isMoving) return;
 
-    // En la tienda solo se puede volver a la isla de la que cuelga
+    // En el tablón (tras trepar): solo se puede bajar al pie de la escalera
     const shopNode = shopNodes[atShop];
     if (shopNode) {
       if (dir !== INV[shopNode.dir]) { bounceAvatar(dir); return; }
       atShop = -1;
+      atLadder = shopNodes.indexOf(shopNode);
       AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
-      animateAvatarTo(resolvedLevelPosition(currentLevel));
+      animateAvatarTo(shopMid(shopNode));
       document.getElementById('pos-info').textContent =
         format('submundo.level', currentLevel + 1, NUM_LEVELS);
       render();
       return;
     }
 
-    // Desde la isla `from`, la dirección `dir` lleva a su tienda si está
-    // desbloqueada (nivel unlockAfter completado)
-    const toShop = shopNodes.findIndex(n => currentLevel === n.from && dir === n.dir);
-    if (toShop >= 0) {
-      if (!isShopUnlocked(shopNodes[toShop])) { bounceAvatar(dir); return; }
-      atShop = toShop;
+    // En el pie de la escalera (punto medio entre islas): un lado u otro
+    // lleva a cada isla; `dir` del nodo (up) trepa hasta el tablón
+    const ladderNode = shopNodes[atLadder];
+    if (ladderNode) {
+      const mid = shopMid(ladderNode);
+      if (dir === ladderNode.dir) {
+        if (!isShopUnlocked(ladderNode)) { bounceAvatar(dir); return; }
+        startLadderClimb(atLadder);
+        return;
+      }
+      const fromPos = resolvedLevelPosition(ladderNode.from);
+      const toFrom = mid && fromPos.x <= mid.x ? 'left' : 'right';
+      let target = null;
+      if (dir === toFrom) target = ladderNode.from;
+      else if (dir === INV[toFrom]) target = ladderNode.from + 1;
+      if (target === null || !isLevelUnlocked(target)) { bounceAvatar(dir); return; }
+      atLadder = -1;
+      currentLevel = target;
       AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
-      animateAvatarTo(shopNodes[toShop].pos);
-      document.getElementById('pos-info').textContent = t('shop.title');
+      animateAvatarTo(resolvedLevelPosition(currentLevel));
+      document.getElementById('pos-info').textContent =
+        format('submundo.level', currentLevel + 1, NUM_LEVELS);
       render();
       return;
     }
@@ -735,9 +1305,40 @@
       newLevel = currentLevel - 1;
     }
 
-    if (newLevel < 0 || !isLevelUnlocked(newLevel)) {
+    // Ir al pie de la escalera también con un movimiento DELIBERADO hacia
+    // ella: estando en una isla flanqueante (from / from+1), pulsar la
+    // dirección del nodo lleva al punto medio (desde ahí, otro `dir` trepa).
+    if (newLevel < 0) {
+      const ni = shopNodes.findIndex(n =>
+        isShopUnlocked(n) && n.dir === dir &&
+        (currentLevel === n.from || currentLevel === n.from + 1));
+      if (ni >= 0) {
+        atLadder = ni;
+        AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
+        animateAvatarTo(shopMid(shopNodes[ni]));
+        render();
+        return;
+      }
+      bounceAvatar(dir);
+      return;
+    }
+    if (!isLevelUnlocked(newLevel)) {
       // Sin pasar a la siguiente isla si la actual no está completada
       bounceAvatar(dir);
+      return;
+    }
+
+    // Si el salto entre islas cruza el pie de una escalera activa, el avatar
+    // para en el medio: ahí decide si seguir a un lado, al otro o subir
+    const cross = shopNodes.findIndex(n =>
+      ((currentLevel === n.from && newLevel === n.from + 1) ||
+       (currentLevel === n.from + 1 && newLevel === n.from)) &&
+      isShopUnlocked(n));
+    if (cross >= 0) {
+      atLadder = cross;
+      AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
+      animateAvatarTo(shopMid(shopNodes[cross]));
+      render();
       return;
     }
 
@@ -750,7 +1351,7 @@
   // Vuelo del avatar hasta una posición (isla o tienda) con duración
   // proporcional a la distancia.
   function animateAvatarTo(pos) {
-    if (!pos) return;
+    if (!pos) return 0;
     isMoving = true;
     const r = getImgRect();
     const sz = resolvedAvatarSize() * r.width;
@@ -767,6 +1368,7 @@
     avatarEl.style.top = newY + 'px';
 
     setTimeout(() => { isMoving = false; }, duration * 1000);
+    return duration;
   }
 
   function bounceAvatar(dir) {
@@ -813,10 +1415,20 @@
 
   // Entrar en la isla (o tienda) donde está el avatar — Enter o tap táctil.
   function enterCurrent() {
+    if (isMoving) return;
+    if (atLadder >= 0 && shopNodes[atLadder]) { startLadderClimb(atLadder); return; }
     if (atShop >= 0 && shopNodes[atShop]) {
       if (!isShopUnlocked(shopNodes[atShop])) { bounceAvatar('down'); return; }
       AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
-      AssetsCache.transitionTo('/shop.html?world=' + encodeURIComponent(currentWorld));
+      // La casa voladora ahora lleva a la pantalla BONUS (minijuego de
+      // cestas); demo=shop/shop2 sigue abriendo la tienda para probarla.
+      const shopDemo = DEMO_SHOP === 'shop' || DEMO_SHOP === 'shop2';
+      const avParam = new URLSearchParams(location.search).get('avatar');
+      AssetsCache.transitionTo('/' + (shopDemo ? 'shop' : 'bonus') + '.html?world=' + encodeURIComponent(currentWorld) +
+        '&node=' + atShop +
+        (DEMO_SHOP ? '&demo=' + encodeURIComponent(DEMO_SHOP) : '') +
+        (AUTO_RUN ? '&auto=1' : '') +
+        (avParam ? '&avatar=' + encodeURIComponent(avParam) : ''));
       return;
     }
     if (!isLevelUnlocked(currentLevel)) { bounceAvatar('down'); return; }
@@ -827,7 +1439,8 @@
       keepalive: true, // la petición sobrevive a la navegación
       body: JSON.stringify({ world: currentWorld, level: currentLevel }),
     }).catch(() => {});
-    AssetsCache.transitionTo('/game.html?world=' + encodeURIComponent(currentWorld) + '&level=' + currentLevel);
+    AssetsCache.transitionTo('/game.html?world=' + encodeURIComponent(currentWorld) + '&level=' + currentLevel +
+      (AUTO_RUN ? '&auto=1' : ''));
   }
 
   // Puente táctil (web/tizen.js, Android): tap sobre la isla donde está el
@@ -842,13 +1455,37 @@
       Math.abs(y - (r.top + pos.y * r.height)) < sz * 0.9;
     if (atShop >= 0 && shopNodes[atShop]) {
       const nd = shopNodes[atShop];
-      if (hit(nd.pos)) { enterCurrent(); return; }
-      if (hit(resolvedLevelPosition(nd.from))) { moveByCell(INV[nd.dir]); return; }
+      if (hit(shopDoorPos(nd))) { enterCurrent(); return; }
+      if (hit(resolvedLevelPosition(nd.from)) || hit(shopMid(nd))) { moveByCell(INV[nd.dir]); return; }
+      return;
+    }
+    if (atLadder >= 0 && shopNodes[atLadder]) {
+      const nd = shopNodes[atLadder];
+      const mid = shopMid(nd);
+      const rc = shopLadderRects[atLadder];
+      if (hit(shopDoorPos(nd)) || (rc && x >= rc.left && x <= rc.right && y >= rc.top && y <= rc.bottom)) {
+        startLadderClimb(atLadder); return;
+      }
+      const toFrom = mid && resolvedLevelPosition(nd.from).x <= mid.x ? 'left' : 'right';
+      if (hit(resolvedLevelPosition(nd.from))) { moveByCell(toFrom); return; }
+      if (hit(resolvedLevelPosition(nd.from + 1))) { moveByCell(INV[toFrom]); return; }
       return;
     }
     if (hit(resolvedLevelPosition(currentLevel))) { enterCurrent(); return; }
-    const tapShop = shopNodes.find(n => currentLevel === n.from && hit(n.pos));
-    if (tapShop) { moveByCell(tapShop.dir); return; }
+    const tapShop = shopNodes.findIndex((n, ni) => {
+      if ((currentLevel !== n.from && currentLevel !== n.from + 1) || !isShopUnlocked(n)) return false;
+      const mid = shopMid(n);
+      if (mid && hit(mid)) return true;
+      const rc = shopLadderRects[ni];
+      return !!rc && x >= rc.left && x <= rc.right && y >= rc.top && y <= rc.bottom;
+    });
+    if (tapShop >= 0) {
+      atLadder = tapShop;
+      AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
+      animateAvatarTo(shopMid(shopNodes[tapShop]));
+      render();
+      return;
+    }
     if (currentLevel < NUM_LEVELS - 1 && hit(resolvedLevelPosition(currentLevel + 1))) {
       moveByCell(NEXT_DIR[currentLevel]); return;
     }
@@ -867,7 +1504,6 @@
 
   (async () => {
     // Obtener mundo de la URL
-    const params = new URLSearchParams(window.location.search);
     if (params.has('debug')) document.getElementById('hud').classList.add('debug');
     currentWorld = params.get('world') || 'ESPACIO';
     if (!WORLD_ORDER.includes(currentWorld)) currentWorld = 'ESPACIO';
@@ -880,17 +1516,32 @@
     // "nivel from+1 completado", derivado en loadShop).
     const sg = player?.worldProgress?.[currentWorld]?.shopGone;
     shopGone = new Set(sg === true ? [0] : (Array.isArray(sg) ? sg : []));
-    // demo=shop / demo=shop2: tienda 1 o 2 desbloqueada sin tocar la bbdd
-    if (params.get('demo') === 'shop') {
+    const sv = player?.worldProgress?.[currentWorld]?.shopVisited;
+    shopVisited = new Set(Array.isArray(sv) ? sv : []);
+    // demo=shop / demo=shop2: tienda 1 o 2 desbloqueada sin tocar la bbdd;
+    // demo=bonus: igual que shop pero la casa lleva a la pantalla bonus
+    if (params.get('demo') === 'shop' || params.get('demo') === 'bonus') {
       completedLevels = new Set([0, 1, 2]);
       shopGone = new Set();
+      shopVisited = new Set();
       currentLevel = 2; // isla 3: a un ↑ de la tienda 1
     } else if (params.get('demo') === 'shop2') {
       completedLevels = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8]);
       shopGone = new Set([0]); // la 1ª oportunidad ya la dejaste pasar
+      shopVisited = new Set();
       currentLevel = 8; // isla 9: a un ↑ de la tienda 2
     } else {
       currentLevel = getStartLevel(currentWorld);
+    }
+
+    // from=level (vuelta tras ganar una isla): la primera isla incompleta
+    // se acaba de desbloquear — arranca tapada y se despeja tras el reveal.
+    // El input queda bloqueado desde YA hasta que termine la animación.
+    if (params.get('from') === 'level') {
+      for (let i = 0; i < NUM_LEVELS; i++) {
+        if (!completedLevels.has(i)) { unlockIsland = isLevelUnlocked(i) ? i : -1; break; }
+      }
+      if (unlockIsland >= 0) isMoving = true;
     }
 
     // El fondo decide cuándo quitar la carga, pero NUNCA puede colgarla:
@@ -900,10 +1551,78 @@
     const onBgReady = (delay) => {
       if (bgDone) return;
       bgDone = true;
+      // El vuelo de la casa arranca cuando el fundido ya casi ha revelado
+      // el mundo — si empieza en render() se ve a mitad de vuelo.
+      shopFlyHold = true;
       render();
-      AssetsCache.hideLoading();
-      setTimeout(() => AssetsCache.transitionIn(), delay);
+      // La pantalla de carga sigue visible mientras se decodifican las
+      // imágenes nuevas del render (casa, escalera, avatar) — si se funde
+      // antes que el overlay negro aparece un latigazo de negro puro.
+      // decodificadas ANTES de revelar: al volver de la tienda/bonus no hay
+      // pantalla de carga y sin esto aparecen tarde (pop-in).
+      const imgs = [...document.querySelectorAll('#overlay img, #avatar img')];
+      const imgWait = Promise.all(imgs.map(im =>
+        (im.complete && im.naturalWidth) ? Promise.resolve()
+          : new Promise(res => {
+            im.addEventListener('load', res, { once: true });
+            im.addEventListener('error', res, { once: true });
+          })));
+      // Nunca bloquear: como mucho 800ms de espera extra
+      Promise.race([imgWait, new Promise(r => setTimeout(r, 800))])
+        .then(() => new Promise(r => setTimeout(r, delay)))
+        .then(() => {
+          AssetsCache.revealPage();
+          // La casa despega a mitad del fundido: se ve entrar volando
+          // desde la esquina justo al aparecer el mundo
+          setTimeout(() => { pendingFlyStart && pendingFlyStart(); }, 300);
+          // Vuelta de la tienda: tras la transición, la escalera se
+          // despliega y el avatar baja con su punta hasta el punto medio
+          kickShopDescent(450);
+          // Isla recién completada: la siguiente se despeja tras el reveal
+          setTimeout(kickUnlockFx, 400);
+        });
     };
+
+    // Calienta una imagen: decode() la deja en la caché de bitmap del
+    // navegador para que cualquier <img> con la misma URL pinte al instante.
+    function warmImage(url) {
+      return new Promise(res => {
+        const im = new Image();
+        im.onload = () => (im.decode ? im.decode() : Promise.resolve()).then(res, res);
+        im.onerror = res;
+        im.src = url;
+      });
+    }
+
+    // Isla recién desbloqueada (from=level): la mancha se despeja poco a
+    // poco con un sonido misterioso; mientras tanto el input queda bloqueado.
+    function kickUnlockFx() {
+      if (unlockIsland < 0 || unlockStage !== 0) return;
+      unlockStage = 1;
+      isMoving = true;
+      setTimeout(() => {
+        const fx = overlay.querySelector('.island-fx.unlocking');
+        AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.85);
+        if (fx) {
+          fx.style.transition = 'opacity 1.8s ease-in-out';
+          fx.style.opacity = '0';
+        }
+        setTimeout(() => {
+          unlockStage = 2;
+          isMoving = false;
+          render();
+        }, 1900);
+      }, 900);
+    }
+
+    // Dispara la bajada pendiente (una sola vez). Se llama tanto desde
+    // onBgReady como tras armShopDescent cuando el fondo ya estaba listo.
+    function kickShopDescent(delayMs) {
+      if (pendingShopDescent < 0) return;
+      const idx = pendingShopDescent;
+      pendingShopDescent = -1;
+      setTimeout(() => descendWithShopLadder(idx), delayMs);
+    }
     bg.addEventListener('load', () => onBgReady(100), { once: true });
     bg.addEventListener('error', () => onBgReady(100), { once: true });
     setTimeout(() => onBgReady(100), 8000);
@@ -918,11 +1637,25 @@
 
     if (sessionStorage.getItem('runika-session') === 'active') {
       AssetsCache.unlockAudio();
+      // La caché de AssetsCache es por página y se pierde al navegar: al
+      // volver del juego/tienda/bonus todo lo que pinta el mapa debe estar
+      // DECODIFICADO antes de revelar, o el mundo parpadea (pop-in). Se
+      // calienta tras la pantalla de carga — tarde lo que tarde.
+      AssetsCache.showLoading();
+      const warm = [
+        WORLD_IMAGES[currentWorld],
+        SHOP_SIGN_SRC, SHOP_RUNG_SRC, SHOP_FOOT_SRC,
+        '/assets/comunes/monedas.webp',
+        ...Array.from({ length: 8 }, (_, i) => `/assets/avatars/display/avatar_0${i + 1}.webp`),
+      ];
+      await Promise.all(warm.map(warmImage));
       bg.src = WORLD_IMAGES[currentWorld];
       await loadPositions(currentWorld);
       await loadTextAreas(currentWorld);
       await loadShop(currentWorld);
-      if (bgDone) render();  // el fondo pudo pintarse antes de los JSON — repintar
+      await loadShopNameArea();
+      armShopDescent();
+      if (bgDone) { render(); kickShopDescent(600); }
       else if (bg.complete && bg.naturalWidth) onBgReady(100);
       return;
     }
@@ -941,8 +1674,41 @@
     await loadPositions(currentWorld);
     await loadTextAreas(currentWorld);
     await loadShop(currentWorld);
-    if (bgDone) render();  // el fondo pudo pintarse antes de los JSON — repintar
+    await loadShopNameArea();
+    armShopDescent();
+    if (bgDone) { render(); kickShopDescent(600); }
     else if (bg.complete && bg.naturalWidth) onBgReady(500);
+  })();
+
+  // === Autopiloto ?auto=1: entra en la isla actual; al volver de un nivel
+  // (from=level) espera la animación de desbloqueo + vuelo de la casa y
+  // sube al bonus si hay tienda posada; si no, regresa al mapamundi para
+  // que el grabador cierre la toma (window.__autoDone) ===
+  if (AUTO_RUN) (async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const idle = () => new Promise(res => {
+      const t = setInterval(() => { if (!isMoving) { clearInterval(t); res(); } }, 220);
+    });
+    while (!positions) await sleep(300);
+    await sleep(1800); await idle(); await sleep(1400);
+    const from = params.get('from');
+    if (from === 'level' || from === 'shop') {
+      // Llegar al pie de la escalera como un jugador: moverse hacia el
+      // punto medio — el cruce entre las islas flanqueantes para en el pie.
+      for (let i = 0; i < 3 && atLadder < 0 && atShop < 0; i++) {
+        const ni = shopNodes.findIndex((n, k) => isShopUnlocked(n) && !shopGone.has(k));
+        if (ni < 0) break;
+        const mid = shopMid(shopNodes[ni]), here = resolvedLevelPosition(currentLevel);
+        if (!mid || !here) break;
+        moveByCell(here.x > mid.x ? 'left' : 'right');
+        await idle(); await sleep(500);
+      }
+      if (atLadder >= 0 || atShop >= 0) { enterCurrent(); return; }
+      sessionStorage.setItem('runika-auto-done', '1');
+      AssetsCache.transitionTo('/mapamundi.html?auto=1');
+      return;
+    }
+    enterCurrent();
   })();
 
   window.addEventListener('resize', () => {

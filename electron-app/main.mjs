@@ -12,13 +12,28 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = path.join(__dirname, '..');
-const CALIBRATOR_PAGES = new Set([
+const ALLOWED_START_PAGES = new Set([
   'calibrate-submundos.html',
   'calibrate-submundos-text.html',
   'calibrate-mapamundi.html',
+  'calibrate-tienda-nombre.html',
+  'calibrate-pedestal.html',
+  'calibrate-creditos.html',
+  'calibrate-config.html',
+  'calibrate-instructions.html',
+  // páginas de juego para demos de prueba en desktop (p.ej. demo=bonus)
+  'submundo.html',
+  'bonus.html',
+  'shop.html',
+  // demos de flujo completo (boss de mundo → mapamundi, boss final)
+  'demo-boss-run.html',
+  'demo-ultimo-boss.html',
+  'demo-boss-final.html',
 ]);
-const START_PAGE = CALIBRATOR_PAGES.has(process.env.RUNIKA_START_PAGE)
-  ? process.env.RUNIKA_START_PAGE
+// RUNIKA_START_PAGE puede llevar query: "submundo.html?world=AGUA&demo=bonus"
+const startPageName = (process.env.RUNIKA_START_PAGE ?? '').split('?')[0];
+const START_PAGE = ALLOWED_START_PAGES.has(startPageName)
+  ? (process.env.RUNIKA_START_PAGE ?? '')
   : '';
 
 function freePort() {

@@ -48,7 +48,7 @@
   #transition-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 90; background: #000;
-    opacity: 0; pointer-events: none; display: none;
+    opacity: 1; pointer-events: auto; /* nace en negro: cero destello al entrar */
   }
   #stage {
     position: absolute; top: 0; left: 0;
@@ -329,9 +329,9 @@
   // Fallback por si no hay calibracion guardada; el valor real viene de
   // assets/instrucciones/instructions-areas.json (calibrate-instructions.html)
   let TEXT_AREA = { x: 0.365625, y: 0.391877, w: 0.272396, h: 0.357849 };
-  // Boton atras redondo: centro normalizado + radio en fraccion del ancho.
-  // El fallback apunta aproximadamente a la brujula pintada abajo-izquierda.
-  let BACK_BUTTON = { cx: 0.293, cy: 0.905, r: 0.046 };
+  // Boton atras eliptico: centro normalizado + radios (rx del ancho, ry del
+  // alto). Fallback legacy: circulo {r}.
+  let BACK_BUTTON = { cx: 0.293, cy: 0.905, rx: 0.046, ry: 0.08 };
 
   // Foco: 'scroll' (pergamino) o 'button' (boton volver)
   let focus = 'scroll';
@@ -380,13 +380,14 @@
     ta.style.top = (r.top + TEXT_AREA.y * r.height) + 'px';
     ta.style.width = (TEXT_AREA.w * r.width) + 'px';
     ta.style.height = (TEXT_AREA.h * r.height) + 'px';
-    // Boton atras redondo sobre el circulo calibrado
+    // Boton atras eliptico sobre la elipse calibrada (o circulo legacy {r})
     const btn = document.getElementById('btn-back');
-    const d = 2 * BACK_BUTTON.r * r.width;
-    btn.style.left = (r.left + BACK_BUTTON.cx * r.width - d / 2) + 'px';
-    btn.style.top = (r.top + BACK_BUTTON.cy * r.height - d / 2) + 'px';
-    btn.style.width = d + 'px';
-    btn.style.height = d + 'px';
+    const bw = 2 * (BACK_BUTTON.rx ?? BACK_BUTTON.r ?? 0.046) * r.width;
+    const bh = BACK_BUTTON.ry != null ? 2 * BACK_BUTTON.ry * r.height : bw;
+    btn.style.left = (r.left + BACK_BUTTON.cx * r.width - bw / 2) + 'px';
+    btn.style.top = (r.top + BACK_BUTTON.cy * r.height - bh / 2) + 'px';
+    btn.style.width = bw + 'px';
+    btn.style.height = bh + 'px';
   }
 
   function updateFocus() {
@@ -532,8 +533,7 @@
       // Ya en sesion, ir directo
       focus = 'scroll';
       updateFocus();
-      AssetsCache.hideLoading();
-      setTimeout(() => AssetsCache.transitionIn(), 100);
+      AssetsCache.revealPage();
       return;
     }
 
@@ -551,8 +551,7 @@
     focus = 'scroll';
     updateFocus();
 
-    AssetsCache.hideLoading();
-    setTimeout(() => AssetsCache.transitionIn(), 500);
+    AssetsCache.revealPage();
   })();
 
   document.getElementById('bg').addEventListener('load', positionTextArea);

@@ -4,14 +4,16 @@
     "currentWorld": 1,
     "currentSubLevel": 1,
     "totalStagesCompleted": 0,
-    "updatedAt": 1791550357495,
+    "updatedAt": 1792604420457,
     "gold": 0,
-    "lastWorld": "AGUA",
+    "lastWorld": "ESPACIO",
     "worldProgress": {},
-    "gameLevel": 4,
-    "started": true,
-    "playerName": "Capitán Hueso Rojo",
-    "avatarIndex": 0
+    "gameLevel": 3
   },
-  "assignments": {}
+  "assignments": {
+    "map:ESPACIO:0": {
+      "current": "l3-s1",
+      "completed": []
+    }
+  }
 }

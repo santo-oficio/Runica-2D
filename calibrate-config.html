@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Calibrar configuración</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px Arial,sans-serif}#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}#image{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block}#overlay{position:absolute;inset:0;pointer-events:none;z-index:2}#draw{position:absolute;inset:0;pointer-events:none;z-index:3}#hud{position:absolute;z-index:5;top:10px;left:10px;padding:12px;background:rgba(0,0,0,.88);border:1px solid #789;border-radius:6px;max-width:330px}#hud .key{color:#ffd54f}#hud select,#hud button{width:100%;margin:3px 0;padding:7px;background:#17212b;color:#fff;border:1px solid #789;border-radius:4px;cursor:pointer}#hud button:hover{border-color:#0ff}#status{position:absolute;z-index:5;bottom:12px;left:50%;transform:translateX(-50%);padding:7px 14px;background:rgba(0,0,0,.88);border-radius:4px;color:#9de}.ok{color:#7f7}.area{position:absolute;border:2px dashed #4af;background:rgba(0,120,255,.08)}.area.active{border-color:#0ff;background:rgba(0,255,255,.12)}.area label{position:absolute;top:-18px;left:0;font-size:11px;color:#4af;background:rgba(0,0,0,.7);padding:0 4px}.area.active label{color:#0ff}.preview{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'ChelseaMarket',cursive;color:#3a2810;text-align:center;line-height:1.25;pointer-events:none}.preview.check{color:#4a2d10;font-size:200%}.preview.active{outline:1px dotted #0ff}#draw polygon.poly{fill:rgba(255,210,60,.1);stroke:#ffd54f;stroke-width:3}#draw polygon.selected{fill:rgba(0,220,255,.16);stroke:#0ff;stroke-width:4}#draw polyline{fill:rgba(0,220,255,.12);stroke:#0ff;stroke-width:4;stroke-dasharray:8 5}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px Arial,sans-serif}#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}#image{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;display:block}#overlay{position:absolute;inset:0;pointer-events:none;z-index:2}#draw{position:absolute;inset:0;pointer-events:none;z-index:3}#hud{position:absolute;z-index:5;top:10px;left:10px;padding:12px;background:rgba(0,0,0,.88);border:1px solid #789;border-radius:6px;max-width:330px}#hud .key{color:#ffd54f}#hud select,#hud button{width:100%;margin:3px 0;padding:7px;background:#17212b;color:#fff;border:1px solid #789;border-radius:4px;cursor:pointer}#hud button:hover{border-color:#0ff}#status{position:absolute;z-index:5;bottom:12px;left:50%;transform:translateX(-50%);padding:7px 14px;background:rgba(0,0,0,.88);border-radius:4px;color:#9de}.ok{color:#7f7}.area{position:absolute;border:2px dashed #4af;background:rgba(0,120,255,.08)}.area.active{border-color:#0ff;background:rgba(0,255,255,.12)}.area label{position:absolute;top:-18px;left:0;font-size:11px;color:#4af;background:rgba(0,0,0,.7);padding:0 4px}.area.active label{color:#0ff}.preview{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:'ChelseaMarket',cursive;color:#3a2810;text-align:center;line-height:1.25;pointer-events:none}.preview.check{color:#4a2d10;font-size:200%}.preview.active{outline:1px dotted #0ff}#draw polygon.poly{fill:rgba(255,210,60,.1);stroke:#ffd54f;stroke-width:3}#draw polygon.selected{fill:rgba(0,220,255,.16);stroke:#0ff;stroke-width:4}#draw polyline{fill:rgba(0,220,255,.12);stroke:#0ff;stroke-width:4;stroke-dasharray:8 5}#draw ellipse.poly{fill:rgba(255,210,60,.1);stroke:#ffd54f;stroke-width:3}#draw ellipse.selected{fill:rgba(0,220,255,.16);stroke:#0ff;stroke-width:4}
 </style>
 <link rel="stylesheet" href="/assets/fonts/fonts.css">
 </head>
@@ -25,17 +25,19 @@ Campo: <select id="kind"></select><br>
 <span class="key">G</span> guardar · <span class="key">C</span> cargar<br>
 <button id="save-btn">Guardar</button><button id="load-btn">Cargar</button><br>
 <span id="coords" style="color:#0f0"></span></div>
-<div id="status">Textos y casillas son áreas; las flechas de idioma y el botón atrás son polígonos</div>
+<div id="status">Textos y casillas son áreas; las flechas de idioma son polígonos; el botón atrás es una elipse (arrastra)</div>
 <script>
 const NS='http://www.w3.org/2000/svg';
 const KINDS=['soundText','soundCheck','musicText','musicCheck','langLabel','langText','langLeft','langRight','back'];
-const POLY_KINDS=['langLeft','langRight','back'];
+const POLY_KINDS=['langLeft','langRight'];
+const ELLIPSE_KINDS=['back'];
 const isPoly=k=>POLY_KINDS.includes(k);
+const isEllipse=k=>ELLIPSE_KINDS.includes(k);
 const LABELS={soundText:'TEXTO SONIDO',soundCheck:'CASILLA SONIDO',musicText:'TEXTO MÚSICA',musicCheck:'CASILLA MÚSICA',langLabel:'ETIQUETA IDIOMA',langText:'IDIOMA ELEGIDO',langLeft:'FLECHA ◀',langRight:'FLECHA ▶',back:'ATRÁS'};
 const SELECT_LABELS={soundText:'Texto sonido',soundCheck:'Casilla sonido',musicText:'Texto música',musicCheck:'Casilla música',langLabel:'Etiqueta "Idioma"',langText:'Idioma elegido',langLeft:'Flecha idioma izq',langRight:'Flecha idioma der',back:'Botón atrás'};
 const img=document.getElementById('image'),overlay=document.getElementById('overlay'),svg=document.getElementById('draw'),kindSelect=document.getElementById('kind'),coords=document.getElementById('coords'),status=document.getElementById('status'),saveBtn=document.getElementById('save-btn'),loadBtn=document.getElementById('load-btn');
 let kind='soundText';
-let areas={};KINDS.forEach(k=>areas[k]=isPoly(k)?{polygon:[],fontScale:1}:{x:.3,y:.3,w:.4,h:.15,fontScale:1});
+let areas={};KINDS.forEach(k=>areas[k]=isPoly(k)?{polygon:[],fontScale:1}:isEllipse(k)?{ellipse:{cx:.5,cy:.885,rx:.03,ry:.05},fontScale:1}:{x:.3,y:.3,w:.4,h:.15,fontScale:1});
 let drawing=[],dragging=false,start=null,current=null,dragEl=null;
 let T={};function tt(key){return T[key]??key}
 async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
@@ -56,6 +58,16 @@ function render(){
       }
       continue;
     }
+    if(isEllipse(k)){
+      const e=a.ellipse;
+      if(e&&e.rx>0&&e.ry>0){
+        const el=document.createElementNS(NS,'ellipse');
+        el.setAttribute('cx',(r.left+e.cx*r.width).toFixed(2));el.setAttribute('cy',(r.top+e.cy*r.height).toFixed(2));
+        el.setAttribute('rx',(e.rx*r.width).toFixed(2));el.setAttribute('ry',(e.ry*r.height).toFixed(2));
+        el.setAttribute('class',active?'selected':'poly');svg.appendChild(el);
+      }
+      continue;
+    }
     const p=px(a);
     const box=document.createElement('div');box.className='area'+(active?' active':'');box.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;const label=document.createElement('label');label.textContent=LABELS[k];box.appendChild(label);overlay.appendChild(box);
     const preview=document.createElement('div');preview.className='preview'+(active?' active':'')+(k.endsWith('Check')?' check':'');preview.textContent=textFor(k);preview.style.cssText=`left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px`;overlay.appendChild(preview);
@@ -64,16 +76,16 @@ function render(){
   if(drawing.length){const line=document.createElementNS(NS,'polyline');line.setAttribute('points',drawing.map(pxPt).map(p=>p.join(',')).join(' '));svg.appendChild(line)}
   updateCoords();
 }
-function updateCoords(){const a=areas[kind];if(isPoly(kind)){coords.textContent=`CONFIG · ${LABELS[kind]} · ${a.polygon.length} puntos · texto:×${(a.fontScale||1).toFixed(2)}`}else{coords.textContent=`CONFIG · ${LABELS[kind]} x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)} · texto:×${(a.fontScale||1).toFixed(2)}`}}
+function updateCoords(){const a=areas[kind];if(isPoly(kind)){coords.textContent=`CONFIG · ${LABELS[kind]} · ${a.polygon.length} puntos · texto:×${(a.fontScale||1).toFixed(2)}`}else if(isEllipse(kind)){const e=a.ellipse;coords.textContent=e?`CONFIG · ${LABELS[kind]} cx:${e.cx.toFixed(4)} cy:${e.cy.toFixed(4)} rx:${e.rx.toFixed(4)} ry:${e.ry.toFixed(4)}`:`CONFIG · ${LABELS[kind]} · arrastra un rectángulo sobre el botón`}else{coords.textContent=`CONFIG · ${LABELS[kind]} x:${a.x.toFixed(4)} y:${a.y.toFixed(4)} w:${a.w.toFixed(4)} h:${a.h.toFixed(4)} · texto:×${(a.fontScale||1).toFixed(2)}`}}
 kindSelect.onchange=(e)=>{kind=e.target.value;e.target.blur();drawing=[];render()};
 document.addEventListener('mousedown',e=>{const r=imageRect();if(e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;if(isPoly(kind))return;dragging=true;start=norm(e.clientX,e.clientY);current={x:start.x,y:start.y,w:0,h:0};dragEl=document.createElement('div');dragEl.className='area active';overlay.appendChild(dragEl);e.preventDefault()});
 document.addEventListener('mousemove',e=>{if(!dragging)return;const p=norm(e.clientX,e.clientY);current={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};if(dragEl){const q=px(current);dragEl.style.cssText=`left:${q.x}px;top:${q.y}px;width:${q.w}px;height:${q.h}px`}});
-document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;if(current&&current.w>0.002&&current.h>0.002)areas[kind]={...current,fontScale:areas[kind].fontScale||1};current=null;dragEl=null;render()});
+document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;if(current&&current.w>0.002&&current.h>0.002){if(isEllipse(kind))areas[kind].ellipse={cx:current.x+current.w/2,cy:current.y+current.h/2,rx:current.w/2,ry:current.h/2};else areas[kind]={...current,fontScale:areas[kind].fontScale||1}}current=null;dragEl=null;render()});
 document.addEventListener('click',e=>{const r=imageRect();if(!isPoly(kind)||e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;const p=norm(e.clientX,e.clientY);if(drawing.length>=3&&Math.hypot(p.x-drawing[0][0],p.y-drawing[0][1])<.018){close();return}drawing.push([p.x,p.y]);render()});
 document.addEventListener('dblclick',e=>{e.preventDefault();if(isPoly(kind)&&drawing.length>=3)close()});
 function close(){if(drawing.length<3)return;areas[kind].polygon=drawing.map(p=>[...p]);drawing=[];render();status.innerHTML='<span class="ok">Polígono cerrado. G para guardar.</span>'}
-function moveField(dx,dy,step){const a=areas[kind];if(isPoly(kind)&&a.polygon.length){a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,p[0]+dx*step)),Math.max(0,Math.min(1,p[1]+dy*step))])}else if(!isPoly(kind)){a.x=Math.max(0,Math.min(1-a.w,a.x+dx*step));a.y=Math.max(0,Math.min(1-a.h,a.y+dy*step))}render()}
-function resizeField(dw,dh){const a=areas[kind];if(isPoly(kind)&&a.polygon.length){const cx=a.polygon.reduce((s,p)=>s+p[0],0)/a.polygon.length,cy=a.polygon.reduce((s,p)=>s+p[1],0)/a.polygon.length;a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,cx+(p[0]-cx)*(1+dw))),Math.max(0,Math.min(1,cy+(p[1]-cy)*(1+dh)))])}else if(!isPoly(kind)){const cx=a.x+a.w/2,cy=a.y+a.h/2;a.w=Math.max(.01,Math.min(1,a.w+dw));a.h=Math.max(.005,Math.min(1,a.h+dh));a.x=Math.max(0,Math.min(1-a.w,cx-a.w/2));a.y=Math.max(0,Math.min(1-a.h,cy-a.h/2))}render()}
+function moveField(dx,dy,step){const a=areas[kind];if(isPoly(kind)&&a.polygon.length){a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,p[0]+dx*step)),Math.max(0,Math.min(1,p[1]+dy*step))])}else if(isEllipse(kind)&&a.ellipse){const e=a.ellipse;e.cx=Math.max(e.rx,Math.min(1-e.rx,e.cx+dx*step));e.cy=Math.max(e.ry,Math.min(1-e.ry,e.cy+dy*step))}else if(!isPoly(kind)&&!isEllipse(kind)){a.x=Math.max(0,Math.min(1-a.w,a.x+dx*step));a.y=Math.max(0,Math.min(1-a.h,a.y+dy*step))}render()}
+function resizeField(dw,dh){const a=areas[kind];if(isPoly(kind)&&a.polygon.length){const cx=a.polygon.reduce((s,p)=>s+p[0],0)/a.polygon.length,cy=a.polygon.reduce((s,p)=>s+p[1],0)/a.polygon.length;a.polygon=a.polygon.map(p=>[Math.max(0,Math.min(1,cx+(p[0]-cx)*(1+dw))),Math.max(0,Math.min(1,cy+(p[1]-cy)*(1+dh)))])}else if(isEllipse(kind)&&a.ellipse){const e=a.ellipse;e.rx=Math.max(.002,Math.min(.5,e.rx+dw));e.ry=Math.max(.002,Math.min(.5,e.ry+dh))}else if(!isPoly(kind)&&!isEllipse(kind)){const cx=a.x+a.w/2,cy=a.y+a.h/2;a.w=Math.max(.01,Math.min(1,a.w+dw));a.h=Math.max(.005,Math.min(1,a.h+dh));a.x=Math.max(0,Math.min(1-a.w,cx-a.w/2));a.y=Math.max(0,Math.min(1-a.h,cy-a.h/2))}render()}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){drawing=[];render();return}
   if((e.key==='z'||e.key==='Z')&&!e.ctrlKey&&!e.shiftKey&&drawing.length){drawing.pop();render();return}
@@ -99,7 +111,7 @@ document.addEventListener('keydown',e=>{
   }
 });
 async function save(){try{const r=await fetch('/api/save-config-areas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({coordinateSpace:'image-content',areas},null,2)});if(!r.ok)throw new Error('HTTP '+r.status);status.innerHTML='<span class="ok">Guardado</span>'}catch(err){status.textContent='Error al guardar: '+err.message}}
-async function load(){try{const r=await fetch('/api/load-config-areas');if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(d.areas){KINDS.forEach(k=>{const s=d.areas[k];if(!s)return;if(isPoly(k)&&!s.polygon&&s.w>0){areas[k].polygon=[[s.x,s.y],[s.x+s.w,s.y],[s.x+s.w,s.y+s.h],[s.x,s.y+s.h]];areas[k].fontScale=s.fontScale||1}else areas[k]={...areas[k],...s}})}drawing=[];render();status.innerHTML='<span class="ok">Cargado</span>'}catch(err){status.textContent='No hay calibración guardada'}}
+async function load(){try{const r=await fetch('/api/load-config-areas');if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(d.areas){KINDS.forEach(k=>{const s=d.areas[k];if(!s)return;if(isPoly(k)&&!s.polygon&&s.w>0){areas[k].polygon=[[s.x,s.y],[s.x+s.w,s.y],[s.x+s.w,s.y+s.h],[s.x,s.y+s.h]];areas[k].fontScale=s.fontScale||1}else if(isEllipse(k)&&!s.ellipse){if(s.polygon&&s.polygon.length>=3){const xs=s.polygon.map(p=>p[0]),ys=s.polygon.map(p=>p[1]);areas[k].ellipse={cx:(Math.min(...xs)+Math.max(...xs))/2,cy:(Math.min(...ys)+Math.max(...ys))/2,rx:(Math.max(...xs)-Math.min(...xs))/2,ry:(Math.max(...ys)-Math.min(...ys))/2}}else if(s.w>0){areas[k].ellipse={cx:s.x+s.w/2,cy:s.y+s.h/2,rx:s.w/2,ry:s.h/2}}areas[k].fontScale=s.fontScale||1}else areas[k]={...areas[k],...s}})}drawing=[];render();status.innerHTML='<span class="ok">Cargado</span>'}catch(err){status.textContent='No hay calibración guardada'}}
 saveBtn.onclick=save;loadBtn.onclick=load;
 window.addEventListener('resize',render);
 loadI18n().then(()=>{load().catch(()=>{});render()});

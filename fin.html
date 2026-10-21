@@ -294,6 +294,9 @@
     78%{opacity:1}
     100%{transform:translate(-50%,-56%) scale(.95);opacity:0}
   }
+  /* Fundido entre pantallas: nace en negro y transitionIn() lo revela
+     cuando la escena está lista — cero destello de contenido a medias */
+  #transition-overlay{position:fixed;inset:0;z-index:200;background:#000;opacity:1;pointer-events:auto}
 </style>
 </head>
 <body>
@@ -323,6 +326,7 @@
 <div id="flash"></div>
 <canvas id="fx-canvas"></canvas>
 <div class="big-text" id="big-text"></div>
+<div id="transition-overlay"></div>
 <div class="sub-text" id="sub-text"></div>
 <div id="continue-hint"></div>
 
@@ -994,6 +998,15 @@ function begin() {
     if (r.ok) FIN_AREAS = await r.json();
   } catch {}
   WORLD_ORDER.forEach(w => { if (!WORLD_POSITIONS[w]) WORLD_POSITIONS[w] = { x: 0.5, y: 0.5 }; });
+  // Revela solo cuando la primera escena tiene sus imágenes decodificadas —
+  // la página nace tras un fundido negro (transition-overlay). Solo cuentan
+  // las que ya tienen src: hero-img se asigna dentro de sceneBoard() y sin
+  // AUTO_START esperar por él ocultaría el gate de "pulsa para empezar".
+  const firstImgs = [...document.querySelectorAll('#scene-board img')].filter(im => im.getAttribute('src'));
+  Promise.all(firstImgs.map(im =>
+    (im.complete && im.naturalWidth) ? Promise.resolve()
+      : new Promise(res => { im.addEventListener('load', res, { once: true }); im.addEventListener('error', res, { once: true }); })
+  )).then(() => AssetsCache.transitionIn());
   if (AUTO_START) begin();
   else document.getElementById('press-start').textContent = tt('loading.pressStart');
 })();

@@ -105,9 +105,13 @@
     // Gestos: swipe → flecha, pulsación larga → Escape (salvo que empiece
     // sobre un control), tap → el control bajo el dedo o, si la página lo
     // define, window.touchTapMove(x, y).
+    // Si la página declara window.touchNative=true, gestiona ella el tacto
+    // con eventos pointer reales (p.ej. bonus.html: arrastre del avatar) —
+    // el puente no interpone swipes ni pulsaciones largas.
     var t0 = 0, x0 = 0, y0 = 0, longTimer = null, startEl = null;
     var SWIPE = 48, TAP_MS = 300, LONG_MS = 700;
     window.addEventListener("touchstart", function (e) {
+      if (window.touchNative === true) return;
       var t = e.touches[0];
       t0 = Date.now(); x0 = t.clientX; y0 = t.clientY;
       startEl = document.elementFromPoint(x0, y0);
@@ -117,6 +121,7 @@
       }, LONG_MS);
     }, { passive: true });
     window.addEventListener("touchend", function (e) {
+      if (window.touchNative === true) return;
       if (longTimer) { clearTimeout(longTimer); longTimer = null; }
       var t = e.changedTouches[0];
       var dx = t.clientX - x0, dy = t.clientY - y0;

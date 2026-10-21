@@ -208,6 +208,9 @@
   .entity.defeated.spotlight{opacity:.8!important;filter:grayscale(1) brightness(.75)!important}
   /* Modal de victoria (calibrado en calibrate-modal.html): rojo=reiniciar, verde=continuar */
   #modal-overlay{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
+  /* Fundido entre pantallas: nace en negro y transitionIn() lo revela
+     cuando la pantalla está montada — cero destello de contenido a medias */
+  #transition-overlay{position:fixed;inset:0;z-index:200;background:#000;opacity:1;pointer-events:auto}
   #modal-overlay.show{display:flex}#modal-overlay.visible{opacity:1}
   #modal-box{position:relative;width:min(80vh,64vw);aspect-ratio:3/2}
   #modal-img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
@@ -321,25 +324,39 @@
   @keyframes hitFlash {
     0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; }
   }
-  /* Badges de ítems comprados en la tienda (modo real, esquina inf-der) */
-  #item-badges {
-    position: fixed; right: 1.6vw; bottom: 2.4vh; z-index: 40;
-    display: flex; flex-direction: column; gap: .8vh;
-  }
-  .item-badge {
-    display: flex; align-items: center; gap: .45em;
-    background: rgba(16,10,5,.78);
-    border: 2px solid rgba(210,170,90,.65); border-radius: 12px;
-    padding: .5vh .9vw;
-    color: #ffe9a8; font-size: 2.4vh;
-    text-shadow: 1px 1px 3px rgba(0,0,0,.9);
+  /* Pedestal de reliquias (modo real, esquina inf-der del tablero): las
+     reliquias compradas se sientan sobre el pedestal temático del mundo.
+     pos = fracción del fondo 16:9; slots = fracciones de pedestal.webp. */
+  #pedestal { position: fixed; z-index: 39; pointer-events: none; display: none; }
+  #ped-img { width: 100%; display: block; }
+  .ped-relic {
+    position: absolute; display: none; justify-content: center;
     pointer-events: auto; cursor: pointer;
   }
-  .item-badge img { height: 1.5em; }
-  .item-badge.denied { animation: hintShake .35s ease; border-color: rgba(255,90,70,.9); }
-  .item-badge .on { display: none; color: #7fe08f; font-weight: bold; }
-  .item-badge.active { border-color: rgba(127,224,143,.9); box-shadow: 0 0 12px rgba(127,224,143,.35); }
-  .item-badge.active .on { display: inline; }
+  .ped-relic > img {
+    display: block; width: 100%; height: 100%; object-fit: contain;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.65));
+  }
+  .ped-relic .cnt {
+    position: absolute; right: -0.35em; top: -0.3em; z-index: 2;
+    min-width: 1.15em; padding: 0 .25em; text-align: center;
+    background: rgba(16,10,5,.85); border: 1.5px solid rgba(210,170,90,.8);
+    border-radius: 1em; color: #ffe9a8; font-size: 1.7vh; line-height: 1.25;
+    text-shadow: 1px 1px 2px #000;
+  }
+  .ped-relic.denied { animation: hintShake .35s ease; }
+  .ped-relic.denied > img {
+    filter: drop-shadow(0 0 8px rgba(255,90,70,.9)) drop-shadow(0 3px 5px rgba(0,0,0,.65));
+  }
+  .ped-relic .on {
+    display: none; position: absolute; right: -0.5em; bottom: -0.2em;
+    color: #7fe08f; font-weight: bold; font-size: 1.9vh;
+    text-shadow: 1px 1px 3px #000;
+  }
+  .ped-relic.active > img {
+    filter: drop-shadow(0 0 12px rgba(127,224,143,.85)) drop-shadow(0 3px 5px rgba(0,0,0,.65));
+  }
+  .ped-relic.active .on { display: block; }
   @keyframes hintShake {
     0%,100% { transform: translateX(0); }
     25% { transform: translateX(-7px); } 75% { transform: translateX(7px); }
@@ -368,18 +385,19 @@
   <div id="selector"><img id="avatar" alt="avatar"></div>
   <div id="entities"></div>
   <div id="boardtexts"></div>
-  <div id="item-badges">
-    <div class="item-badge" id="badge-midas" style="display:none">
-      <img src="/assets/tienda/iconos/midas.webp?v=p8" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
-      <span id="midas-count">0</span><span class="on">×2</span>
+  <div id="pedestal">
+    <img id="ped-img" alt="">
+    <div class="ped-relic" id="hint-badge" style="display:none">
+      <img src="/assets/tienda/iconos/pista.webp?v=p9" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
+      <span class="cnt" id="hint-count">0</span>
     </div>
-    <div class="item-badge" id="badge-undo" style="display:none">
-      <img src="/assets/tienda/iconos/deshacer.webp?v=p8" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
-      <span id="undo-count">0</span>
+    <div class="ped-relic" id="badge-undo" style="display:none">
+      <img src="/assets/tienda/iconos/deshacer.webp?v=p9" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
+      <span class="cnt" id="undo-count">0</span>
     </div>
-    <div class="item-badge" id="hint-badge" style="display:none">
-      <img src="/assets/tienda/iconos/pista.webp?v=p8" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
-      <span id="hint-count">0</span>
+    <div class="ped-relic" id="badge-midas" style="display:none">
+      <img src="/assets/tienda/iconos/midas.webp?v=p9" alt="" onerror="this.src='/assets/comunes/calavera.webp'">
+      <span class="cnt" id="midas-count">0</span><span class="on">×2</span>
     </div>
   </div>
   <div id="countdown"></div>
@@ -406,6 +424,7 @@
 
   <div id="modal-overlay"><div id="modal-box"><img id="modal-img" src="/assets/comunes/modal.webp" alt=""><svg id="modal-svg"></svg><div id="modal-content"></div><div id="modal-gold"><img src="/assets/comunes/monedas.webp" alt=""><span id="modal-gold-n"></span></div><div id="modal-btn-l" class="modal-btn"></div><div id="modal-btn-r" class="modal-btn"></div></div></div>
 
+  <div id="transition-overlay"></div>
 <script src="/assets-cache.js"></script>
 <script src="/final-battle.js"></script>
 <script>
@@ -426,7 +445,7 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlaySubtitle = document.getElementById('overlay-subtitle');
 
 // === Práctica: tier seleccionable, pantalla al azar en cada recarga ===
-let currentTier = 3; // la partida siempre empieza en el tier 3
+let currentTier = 6; // la partida siempre empieza en el tier 6
 const COLS = 8, ROWS = 6;
 
 // === Modo real: ?world=X&level=N → la isla N del submundo X (progreso bbdd) ===
@@ -447,9 +466,13 @@ const DEMO_RUN = PARAMS.get('demo') === 'bossrun';
 // &autowin=1 (solo con bossrun): tras la cuenta atrás el héroe aparece en el
 // tesoro y se gana sola — para revisar la batalla final sin jugar el puzle
 const AUTO_WIN = DEMO_RUN && PARAMS.get('autowin') === '1';
+// ?auto=1 — autopiloto de grabación: el solver juega el nivel real y se
+// encadena menú→mapa→nivel→victoria→vuelta. Lo usa tools/record-demo.mjs.
+const AUTOPLAY = PARAMS.get('auto') === '1';
+const AUTO_Q = AUTOPLAY ? '&auto=1' : '';
 let playerData = null;
 let T = {};
-let currentMinMoves = 0;
+let currentMinMoves = 0, currentTrueMin = 0;
 function tt(k, ...a) { return (T[k] ?? k).replace(/\{(\d+)\}/g, (m, i) => String(a[+i] ?? m)); }
 async function loadI18n() {
   try { const r = await fetch(BASE + '/api/i18n'); if (r.ok) T = await r.json(); } catch {}
@@ -468,7 +491,7 @@ function applyPracticeTexts() {
 const FINAL_ISLAND_IDX = 11;
 const FINAL_WORLD = 'MAZMORRA';
 function backToSubmundo() {
-  location.href = '/submundo.html?world=' + encodeURIComponent(REAL_WORLD);
+  location.href = '/submundo.html?world=' + encodeURIComponent(REAL_WORLD) + AUTO_Q;
 }
 // Tras ganar: isla final (boss) -> mapamundi (el mundo queda completado y
 // se desactiva); cualquier otra isla -> submundo donde estabas
@@ -478,9 +501,11 @@ function afterVictory() {
     if (REAL_WORLD === FINAL_WORLD) { AssetsCache.transitionTo('/creditos.html'); return; }
     // El mapamundi celebra la conquista del mundo (animación + B/N)
     sessionStorage.setItem('runika-world-done', REAL_WORLD);
-    location.href = '/mapamundi.html';
+    location.href = '/mapamundi.html' + (AUTOPLAY ? '?auto=1' : '');
   }
-  else backToSubmundo();
+  // Isla normal completada: vuelve al submundo con from=level para que la
+  // siguiente isla se desbloquee con su animación (no al instante)
+  else location.href = '/submundo.html?world=' + encodeURIComponent(REAL_WORLD) + '&from=level' + AUTO_Q;
 }
 
 // Avatares ligeros (display webp 2048px) — regla a fuego: nada de masters 8K en el hot path
@@ -527,6 +552,46 @@ function layout() {
     w: avatarBa.width * rect.width,
     h: avatarBa.height * rect.height,
   };
+  layoutPedestal();
+}
+
+// Pedestal de reliquias por mundo (assets/backgrounds/<M>/pedestal.webp +
+// pedestal.json): pos normalizada al fondo; slots a la imagen del pedestal.
+// Cada reliquia se apoya con su base centrada en el hueco correspondiente.
+// OCULTO hasta nuevo aviso: ni el mueble ni las insignias se muestran.
+const PEDESTAL_ENABLED = false;
+let pedestalCalib = null;
+const PED_RELICS = ['hint-badge', 'badge-undo', 'badge-midas']; // huecos 0,1,2
+function layoutPedestal() {
+  const el = document.getElementById('pedestal');
+  const im = document.getElementById('ped-img');
+  if (!el || !PEDESTAL_ENABLED || !pedestalCalib || !REAL_MODE || !im.naturalWidth) {
+    if (el) el.style.display = 'none';
+    return;
+  }
+  const rect = visibleImageRect();
+  const pos = pedestalCalib.pos || { x: 0.75, y: 0.78, w: 0.23 };
+  const pw = pos.w * rect.width;
+  const ph = pw * im.naturalHeight / im.naturalWidth;
+  el.style.left = (rect.left + pos.x * rect.width) + 'px';
+  el.style.top = (rect.top + pos.y * rect.height) + 'px';
+  el.style.width = pw + 'px';
+  el.style.height = ph + 'px';
+  el.style.display = 'block';
+  const slots = pedestalCalib.slots || [];
+  PED_RELICS.forEach((id, i) => {
+    const s = slots[i], r = document.getElementById(id);
+    if (!s || !r) return;
+    const rim = r.querySelector('img');
+    const ar = rim && rim.naturalWidth ? rim.naturalHeight / rim.naturalWidth : 1;
+    const iw = s.w * pw * 1.18;
+    const cx = (s.x + s.w / 2) * pw;
+    const by = (s.y + s.h * 0.88) * ph;
+    r.style.width = iw + 'px';
+    r.style.height = (iw * ar) + 'px';
+    r.style.left = (cx - iw / 2) + 'px';
+    r.style.top = (by - iw * ar) + 'px';
+  });
 }
 
 // Posición de celda según el tipo de entidad
@@ -843,6 +908,7 @@ async function applyScreen(s, tier) {
   lastScreen = s;
   currentScreenId = s.id;
   currentMinMoves = s.minMoves || 0;
+  currentTrueMin = s.trueMin || 0; // 0 = servidor sin el campo → par mostrado
   if (REAL_MODE && (tier || s.level)) gameLevel = tier ?? s.level;
   if (debugTierEl.style.display !== 'none') updateDebugTier();
 
@@ -867,7 +933,6 @@ async function applyScreen(s, tier) {
   won = false;
   moving = false;
   undoStack.length = 0;
-  midasActive = false; // el Toque de Midas es por pantalla
   hackSolve = null; // la solución en caché deja de valer con otra pantalla
   selector.style.zIndex = '';
   overlay.classList.remove('show', 'win', 'lose');
@@ -1091,6 +1156,7 @@ function movePlayer(dc, dr) {
     return;
   }
   if (player.c === goal.c && player.r === goal.r) {
+    turn++; updateTurnDisplay();
     setTimeout(winGame, 300);
     return;
   }
@@ -1098,7 +1164,7 @@ function movePlayer(dc, dr) {
   setTimeout(() => {
     moveEnemiesAnimated().then(captured => {
       if (captured) { setTimeout(loseGame, 600); return; }
-      if (player.c === goal.c && player.r === goal.r) { winGame(); return; }
+      if (player.c === goal.c && player.r === goal.r) { turn++; updateTurnDisplay(); winGame(); return; }
       turn++; updateTurnDisplay();
       moving = false;
     });
@@ -1684,25 +1750,34 @@ function winGame() {
     const bossWorldOf = tt('worlds.of.' + bossWorld);
     winTitleText = isBossWin ? tt('game.bossTitle') : '';
     // Oro progresivo: la base crece con el nivel de dificultad (tier) y el
-    // multiplicador premia la eficiencia respecto al óptimo (par):
-    //   turnos = par        → ×2 (solución perfecta)
-    //   turnos entre par y 2·par → decae suave hacia ×1
-    //   muchos turnos de más → suelo ×0.3
+    // multiplicador premia la eficiencia respecto al MÍNIMO REAL del solver
+    // (trueMin). El "Óptimo" que ve el jugador lleva +1/+2 de holgura a
+    // propósito (par batible); medir el oro contra ese par inflado clavaba
+    // el ×2 para cualquier solución decente y el premio quedaba plano.
+    //   movimientos = trueMin → ×2 (solución perfecta)
+    //   movimientos = par mostrado → ~×1.5
+    //   cada movimiento extra baja el multiplicador, suelo ×0.3
+    // `turn` ya incluye el movimiento ganador (se cuenta al pisar la meta).
     // El boss de mundo duplica la recompensa.
     // Solo la PRIMERA vez: re-jugar una isla ya completada no da oro (el
     // servidor tampoco lo suma). Se confirma al pulsar Continuar (Reiniciar
     // lo revierte).
     const isReplay = (playerData?.worldProgress?.[REAL_WORLD]?.completed ?? []).includes(REAL_LEVEL);
-    const par = Math.max(1, currentMinMoves);
+    const par = Math.max(1, currentTrueMin || currentMinMoves);
     const goldTier = lastScreen?.level ?? (REAL_MODE ? gameLevel : currentTier);
     const goldBase = 50 + goldTier * 25;
     const goldMult = Math.min(2, Math.max(0.3, 2 * par / Math.max(turn, par)));
-    winGoldEarned = isReplay ? 0 : Math.round(goldBase * goldMult * (isBossWin ? 2 : 1) * (midasActive ? 2 : 1));
+    // Suelo +25: por muy lejos del óptimo que quede la solución, completar
+    // una isla nunca paga menos de eso (los ×2 de boss/Midas no lo doblan).
+    winGoldEarned = isReplay ? 0
+      : Math.max(25, Math.round(goldBase * goldMult * (isBossWin ? 2 : 1) * (midasOn() ? 2 : 1)));
     winGoldBefore = playerData?.gold ?? 0;
     const isFinalWin = (REAL_MODE && REAL_WORLD === FINAL_WORLD) || DEMO_FINAL;
     // Botín del guardián final: el tesoro que despierta en la batalla se
     // suma de verdad al oro — premio cuantioso que crece con la dificultad
-    winFinalBonus = (isFinalWin && !isReplay) ? 2500 + goldTier * 250 : 0;
+    // (también lo dobla el Toque de Midas si el mundo lo tiene activo).
+    winFinalBonus = (isFinalWin && !isReplay)
+      ? Math.round((2500 + goldTier * 250) * (midasOn() ? 2 : 1)) : 0;
     winBodyText = isBossWin
         ? tt('game.bossBody', bossWorldOf, turn)
         : tt('game.levelDone', REAL_LEVEL + 1, turn);
@@ -1822,6 +1897,15 @@ async function loadWorld(idx) {
     const r = await fetch(`${BASE}/api/load-board-sprites?world=${encodeURIComponent(detection.world)}`);
     spriteCalib = r.ok ? await r.json() : null;
   } catch { spriteCalib = null; }
+  if (PEDESTAL_ENABLED) {
+    try {
+      const r = await fetch(`${BASE}/api/load-pedestal?world=${encodeURIComponent(detection.world)}`);
+      pedestalCalib = r.ok ? await r.json() : null;
+    } catch { pedestalCalib = null; }
+    const pedImg = document.getElementById('ped-img');
+    pedImg.onload = () => layoutPedestal();
+    pedImg.src = `${BASE}/assets/backgrounds/${detection.world}/pedestal.webp`;
+  }
   if (spriteAssets) {
     const srcs = ['enemy', 'boss', 'trap', 'exit', 'obstacle']
       .flatMap(k => spriteAssets[k] || []).map(s => BASE + s);
@@ -1915,13 +1999,13 @@ document.addEventListener('keydown', (e) => {
   // Cambiar tier: [ ] o - / +
   if (e.key === '[' || e.key === '-') {
     e.preventDefault();
-    currentTier = Math.max(3, currentTier - 1); // el nivel más bajo es el 3
+    currentTier = Math.max(6, currentTier - 1); // el nivel más bajo es el 6
     loadScreen();
     return;
   }
   if (e.key === ']' || e.key === '+' || e.key === '=') {
     e.preventDefault();
-    currentTier = Math.min(14, currentTier + 1);
+    currentTier = Math.min(15, currentTier + 1);
     loadScreen();
     return;
   }
@@ -1939,8 +2023,17 @@ document.addEventListener('keydown', (e) => {
 
 // === Ítems de la tienda (modo real; badges táctiles abajo-derecha) ===
 // pista → flecha del movimiento óptimo (H) · deshacer → rebobina el último
-// turno (U) · midas → ×2 al oro de la pantalla al ganarla (M)
-let midasActive = false; // armado en esta pantalla: se cobra al ganar
+// turno (U) · midas → aplica al MUNDO entero (M): el oro de las islas
+// posteriores a la activación se duplica para siempre (wp.midasAt).
+// El nivel donde se activa NO se duplica: se aplica "del siguiente en
+// adelante" — activarlo en el nivel 3 dobla del 4 al 12.
+function midasAt() {
+  return playerData?.worldProgress?.[REAL_WORLD]?.midasAt;
+}
+function midasOn() {
+  const m = midasAt();
+  return m != null && REAL_LEVEL > m;
+}
 function updateItemBadges() {
   if (!REAL_MODE) return;
   const inv = playerData?.inventory || {};
@@ -1952,7 +2045,7 @@ function updateItemBadges() {
   };
   show('hint-badge', inv.pista || 0);
   show('badge-undo', inv.deshacer || 0);
-  show('badge-midas', inv.midas || 0, midasActive);
+  show('badge-midas', inv.midas || 0, midasAt() != null);
   document.getElementById('hint-count').textContent = String(inv.pista || 0);
   document.getElementById('undo-count').textContent = String(inv.deshacer || 0);
   document.getElementById('midas-count').textContent = String(inv.midas || 0);
@@ -1993,14 +2086,22 @@ async function useUndoItem() {
     AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.55);
   } catch { denyBadge('badge-undo'); }
 }
-// Midas: se activa durante la pantalla y duplica el oro AL GANARLA; si
-// pierdes o reinicias, el ítem se ha gastado igualmente (es una apuesta)
+// Midas: se aplica al mundo entero — el oro de las islas posteriores a la
+// activación queda duplicado para siempre (persistido en wp.midasAt). Si
+// el mundo ya lo tiene, no se consume (badge denegado).
 async function useMidasItem() {
-  if (!REAL_MODE || gameOver || countingDown || modalOpen || midasActive) return;
-  if (!((playerData?.inventory?.midas) > 0)) { denyBadge('badge-midas'); return; }
+  if (!REAL_MODE || gameOver || countingDown || modalOpen) return;
+  if (midasAt() != null || !((playerData?.inventory?.midas) > 0)) {
+    denyBadge('badge-midas'); return;
+  }
   try {
-    if (!(await consumeShopItem('midas'))) { denyBadge('badge-midas'); return; }
-    midasActive = true;
+    const r = await fetch(`${BASE}/api/midas-activate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ world: REAL_WORLD, level: REAL_LEVEL }),
+    });
+    const d = await r.json();
+    if (!d.ok) { denyBadge('badge-midas'); return; }
+    if (d.player) playerData = d.player;
     updateItemBadges();
     AssetsCache.playSound('/assets/sounds/comun/moneda.wav', 0.7);
   } catch { denyBadge('badge-midas'); }
@@ -2062,11 +2163,17 @@ document.getElementById('badge-midas').addEventListener('pointerdown', e => {
 
 
 // === Puente táctil (web/tizen.js, Android) ===
-// Un tap sobre el tablero mueve un paso en la dirección dominante desde la
-// casilla del avatar hacia el punto tocado. Sin este hook el tap no haría
-// nada (solo se mueve con flechas/WASD o gestos de swipe).
+// Un tap sobre una casilla adyacente mueve el avatar hasta ella; sobre el
+// resto del tablero, un paso en la dirección dominante hacia el punto
+// tocado. Sin este hook el tap no haría nada (solo se mueve con
+// flechas/WASD o gestos de swipe).
 window.touchTapMove = function (x, y) {
   if (!board.w || gameOver || won || modalOpen || countingDown || moving) return;
+  // Casilla objetivo del tap: adyacente ortogonal → entrar directo
+  const cw = avatarBoard.w / COLS, ch = avatarBoard.h / ROWS;
+  const dc = Math.floor((x - avatarBoard.left) / cw) - player.c;
+  const dr = Math.floor((y - avatarBoard.top) / ch) - player.r;
+  if (Math.abs(dc) + Math.abs(dr) === 1) { movePlayer(dc, dr); return; }
   const p = cellPos(player.c, player.r, true);
   const dx = x - (p.left + p.w / 2), dy = y - (p.top + p.h / 2);
   const adx = Math.abs(dx), ady = Math.abs(dy);
@@ -2281,6 +2388,22 @@ window.addEventListener('resize', () => {
 });
 
 // === Init ===
+// La pantalla nace tras un fundido negro: hay que revelarla solo cuando
+// las imágenes del primer render ya están decodificadas — sin esto el
+// fundido descubre un tablero a medias (flicker).
+function revealWhenReady() {
+  const imgs = [...document.querySelectorAll('#stage img, #entities img, #selector img, #pedestal img')];
+  const wait = Promise.all(imgs.map(im =>
+    (im.complete && im.naturalWidth) ? Promise.resolve()
+      : new Promise(res => {
+        im.addEventListener('load', res, { once: true });
+        im.addEventListener('error', res, { once: true });
+      })));
+  // sin tope duro: tarde lo que tarde, pero el watchdog de AssetsCache
+  // evita un negro eterno si algo se rompe de verdad
+  wait.then(() => AssetsCache.transitionIn());
+}
+
 async function init() {
   // De momento sin música dentro del tablero (solo SFX propios)
   const res = await fetch(`${BASE}/api/worlds?t=${Date.now()}`);
@@ -2325,6 +2448,7 @@ async function init() {
     document.getElementById('help').style.display = 'none';
     const idx = worlds.findIndex(w => w.world === REAL_WORLD);
     await loadWorld(idx >= 0 ? idx : 0);
+    revealWhenReady();
     return;
   }
 
@@ -2364,6 +2488,7 @@ async function init() {
     document.getElementById('practice-tag').style.display = 'none';
     document.getElementById('help').style.display = 'none';
     await loadWorld(wi);
+    revealWhenReady();
     setTimeout(winGame, 1200);
     return;
   }
@@ -2374,9 +2499,47 @@ async function init() {
   } catch {}
   decodeImg(BASE + '/assets/comunes/modal-reintentar.webp');
   await loadWorld(wi);
+  revealWhenReady();
 }
 
-init();
+// === Autopiloto (?auto=1) — grabación de demos: el solver juega el nivel
+// real con pausas legibles y confirma la victoria tras la fanfarria ===
+async function autoplay() {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const idle = () => new Promise(res => {
+    const t = setInterval(() => {
+      if ((!moving && !countingDown) || won || gameOver || modalOpen) { clearInterval(t); res(); }
+    }, 120);
+  });
+  await sleep(900);
+  while (true) {
+    await idle();
+    if (won || gameOver || modalOpen) break;
+    if (!currentScreenId) { await sleep(300); continue; }
+    let moves = [];
+    try {
+      const r = await fetch(`${BASE}/api/solve-screen?id=${encodeURIComponent(currentScreenId)}`);
+      const d = await r.json();
+      if (d.ok && d.moves) moves = d.moves;
+    } catch {}
+    if (!moves.length) { await sleep(1500); continue; }
+    for (const m of moves) {
+      await idle();
+      if (won || gameOver || modalOpen) break;
+      movePlayer(m[0], m[1]);
+      await sleep(260);
+    }
+    if (won || gameOver || modalOpen) break;
+    await sleep(900);
+  }
+  if (modalOpen && modalMode === 'lose') { await sleep(1800); retryLose(); return void setTimeout(autoplay, 1800); }
+  // El modal de victoria de boss llega ~7.4s tras la victoria (tras la
+  // fanfarria y el desquebrajado) — esperar a que abra, no a un plazo fijo
+  for (let t0 = Date.now(); !modalOpen && Date.now() - t0 < 15000;) await sleep(300);
+  if (modalOpen) { modalSel = 1; await sleep(400); confirmWin(); }
+}
+
+init().then(() => { if (AUTOPLAY && REAL_MODE && !DEMO_RUN) autoplay(); });
 </script>
 </body>
 </html>

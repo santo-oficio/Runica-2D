@@ -12,10 +12,11 @@
 - Objetivo: **100.000 puzzles únicos por tier** en `db/screens-tier-N.json`.
   En tiers donde el espacio válido es menor se generan todos los que
   existen y se informa del número real — nunca se rellena con duplicados.
-- La partida empieza en el **tier 3** (`FIRST_TIER` en `db/db.ts`), pero
+- La partida empieza en el **tier 6** (`FIRST_TIER` en `db/db.ts`) y la
+  curva llega progresivamente hasta el **15**, pero
   se generan bancos para todos los tiers 1-15.
-- El tier 15 es exclusivo del boss final (última isla de MAZMORRA), fuera
-  de la curva de progresión (`mapTierFor`).
+- El tier 15 coincide con el techo de la curva y también es el del boss
+  final (última isla de MAZMORRA, `mapTierFor`).
 
 ## 2. Conteo de turnos y "jugada óptima" (par)
 

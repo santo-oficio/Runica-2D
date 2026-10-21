@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar nombre de la tienda voladora</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px 'Courier New',monospace}
+#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#image{height:82%;display:block;transform-origin:50% 50%}
+#image.mirrored{transform:scaleX(-1)}
+#overlay{position:absolute;inset:0;pointer-events:none}
+.area{position:absolute;border:3px solid #0ff;background:rgba(0,220,255,.10);box-shadow:0 0 18px #0ff}
+.area label{position:absolute;top:-22px;left:0;padding:2px 6px;background:#0ff;color:#000;white-space:nowrap;font-size:11px}
+.preview{position:absolute;display:flex;align-items:center;justify-content:center;color:#33200c;font-family:'ChelseaMarket','Trebuchet MS',sans-serif;font-weight:bold;text-align:center;text-shadow:1px 1px 0 rgba(255,214,160,.4),-1px -1px 0 rgba(30,16,4,.35);white-space:nowrap;overflow:hidden}
+#drag{position:absolute;border:3px solid #fc4;background:rgba(255,190,40,.16);display:none;pointer-events:none}
+#hud{position:absolute;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.82);padding:12px 16px;line-height:1.7;border:1px solid #567;border-radius:4px}#hud b{color:#0ff}.key{color:#fc4}
+#status{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.82);padding:7px 15px}.ok{color:#0f0}.err{color:#f66}
+</style>
+</head>
+<body>
+<div id="stage"><img id="image" src="/assets/tienda/camino-tienda-house.webp" alt=""><div id="overlay"></div><div id="drag"></div></div>
+<div id="hud"><b>Calibrar nombre de la casa-tienda</b><br>
+<span class="key">Arrastrar</span> = crear área · <span class="key">Flechas</span> = mover (<span class="key">Shift</span> fino · <span class="key">Ctrl</span> ultra)<br>
+<span class="key">+ / -</span> = tamaño · <span class="key">, / .</span> = tamaño texto<br>
+<span class="key">R / F</span> = rotar texto · <span class="key">M</span> = vista espejo (tienda 2)<br>
+<span class="key">G</span> = guardar · <span class="key">C</span> = cargar<br>
+<button id="save-btn">Guardar</button> <button id="load-btn">Cargar</button><br>
+<span id="coords" style="color:#0f0"></span></div>
+<div id="status">Arrastra un área sobre el cartel</div>
+<script>
+const img=document.getElementById('image'),overlay=document.getElementById('overlay'),drag=document.getElementById('drag'),coords=document.getElementById('coords'),status=document.getElementById('status');
+let area={x:.598,y:.53,w:.285,h:.2,rotate:4.1,fontScale:1};
+let dragging=false,start=null,current=null,mirrored=false;
+let T={};function tt(k){return T[k]??k}
+async function loadI18n(){try{const r=await fetch('/api/i18n/es');if(r.ok)T=await r.json()}catch{}}
+function rect(){const e=img.getBoundingClientRect();return{left:e.left,top:e.top,width:e.width,height:e.height}}
+function norm(x,y){const r=rect();return{x:Math.max(0,Math.min(1,(x-r.left)/r.width)),y:Math.max(0,Math.min(1,(y-r.top)/r.height))}}
+function render(){
+  const r=rect();overlay.innerHTML='';
+  const px=mirrored?1-area.x-area.w:area.x;
+  const box=document.createElement('div');box.className='area';
+  box.style.cssText=`left:${r.left+px*r.width}px;top:${r.top+area.y*r.height}px;width:${area.w*r.width}px;height:${area.h*r.height}px`;
+  const label=document.createElement('label');label.textContent='NOMBRE';box.appendChild(label);
+  overlay.appendChild(box);
+  const p=document.createElement('div');p.className='preview';p.textContent=tt('shop.sign')||'Bonus';
+  p.style.cssText=`left:${r.left+px*r.width}px;top:${r.top+area.y*r.height}px;width:${area.w*r.width}px;height:${area.h*r.height}px`;
+  // La imagen espejada pone el cartel a la izquierda; el texto solo hereda
+  // la rotación invertida (en el juego el scaleX contra-espeja los glifos).
+  const rot=(area.rotate||0)*(mirrored?-1:1);
+  p.style.transform=`rotate(${rot}deg)`;
+  let fs=Math.max(8,area.h*r.height*.62*(area.fontScale||1));p.style.fontSize=fs+'px';
+  overlay.appendChild(p);
+  while(p.scrollWidth>area.w*r.width+1&&fs>6){fs--;p.style.fontSize=fs+'px'}
+  coords.textContent=`x:${area.x.toFixed(4)} y:${area.y.toFixed(4)} w:${area.w.toFixed(4)} h:${area.h.toFixed(4)} rot:${(area.rotate||0).toFixed(1)}° texto:×${(area.fontScale||1).toFixed(2)}${mirrored?' · ESPEJO':''}`;
+}
+document.addEventListener('mousedown',e=>{const r=rect();if(e.target.closest('#hud')||e.target.closest('#status')||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;dragging=true;start=norm(e.clientX,e.clientY);current={x:start.x,y:start.y,w:0,h:0};drag.style.display='block';e.preventDefault()});
+document.addEventListener('mousemove',e=>{if(!dragging)return;const p=norm(e.clientX,e.clientY);current={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};const r=rect();drag.style.cssText=`display:block;left:${r.left+current.x*r.width}px;top:${r.top+current.y*r.height}px;width:${current.w*r.width}px;height:${current.h*r.height}px`});
+document.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;drag.style.display='none';if(current.w>.005&&current.h>.005){area.x=current.x;area.y=current.y;area.w=current.w;area.h=current.h;status.innerHTML='<span class="ok">Área actualizada. Pulsa G para guardar.</span>';render()}current=null});
+document.addEventListener('keydown',e=>{
+  if(e.key==='g'||e.key==='G'){save();return}
+  if(e.key==='c'||e.key==='C'){load();return}
+  if(e.key==='m'||e.key==='M'){mirrored=!mirrored;img.classList.toggle('mirrored',mirrored);render();return}
+  const step=e.ctrlKey?.0002:e.shiftKey?.001:.01;
+  const rstep=e.ctrlKey?.1:e.shiftKey?.5:2;
+  if(e.key==='+'||e.key==='='){area.w=Math.min(1-area.x,area.w+step);area.h=Math.min(1-area.y,area.h+step);render();return}
+  if(e.key==='-'||e.key==='_'){area.w=Math.max(.01,area.w-step);area.h=Math.max(.01,area.h-step);render();return}
+  if(e.key===','){const f=e.ctrlKey?1.002:e.shiftKey?1.01:1.05;area.fontScale=Math.max(.2,Math.round((area.fontScale||1)/f*1e4)/1e4);render();return}
+  if(e.key==='.'){const f=e.ctrlKey?1.002:e.shiftKey?1.01:1.05;area.fontScale=Math.min(5,Math.round((area.fontScale||1)*f*1e4)/1e4);render();return}
+  if(e.key==='r'||e.key==='R'){area.rotate=(area.rotate||0)-rstep;render();return}
+  if(e.key==='f'||e.key==='F'){area.rotate=(area.rotate||0)+rstep;render();return}
+  if(e.key==='ArrowLeft'){area.x=Math.max(0,area.x-step);render();return}
+  if(e.key==='ArrowRight'){area.x=Math.min(1-area.w,area.x+step);render();return}
+  if(e.key==='ArrowUp'){area.y=Math.max(0,area.y-step);render();return}
+  if(e.key==='ArrowDown'){area.y=Math.min(1-area.h,area.y+step);render();return}
+});
+async function save(){try{const r=await fetch('/api/save-shop-name-area',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(area,null,2)});if(!r.ok)throw Error();status.innerHTML='<span class="ok">Guardado</span>'}catch{status.innerHTML='<span class="err">Error al guardar</span>'}}
+async function load(){try{const r=await fetch('/api/shop-name-area');if(!r.ok)throw Error();const d=await r.json();if(d&&typeof d.x==='number')area={fontScale:1,rotate:0,...d};status.innerHTML='<span class="ok">Cargado</span>'}catch{status.innerHTML='<span class="err">No hay guardado</span>'}render()}
+document.getElementById('save-btn').addEventListener('click',save);
+document.getElementById('load-btn').addEventListener('click',load);
+img.onload=render;img.onerror=()=>status.innerHTML='<span class="err">No se pudo cargar la casa</span>';
+window.addEventListener('resize',render);
+load();loadI18n().then(render);
+</script>
+</body></html>

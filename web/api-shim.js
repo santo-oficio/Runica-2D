@@ -67,6 +67,8 @@
       case "/api/load-subworld-text-areas": return "assets/submundos/" + w + "/text-areas.json";
       case "/api/load-shop": return "assets/submundos/" + w + "/shop.json";
       case "/api/shop-areas": return "assets/tienda/" + w + "/areas.json";
+      case "/api/shop-name-area": return "assets/tienda/camino-tienda-name.json";
+      case "/api/load-pedestal": return "assets/backgrounds/" + w + "/pedestal.json";
       case "/api/shop-items": return "assets/tienda/items.json";
       case "/api/load-world-paths": return "assets/mapamundi/world-paths.json";
       case "/api/load-avatar-positions": return "assets/mapamundi/avatar-positions.json";
@@ -158,6 +160,10 @@
       var ds = postBody(init);
       return json({ ok: true, player: DB.markShopGone(String(ds.world || ""), Number(ds.index) || 0) });
     }
+    if (path === "/api/shop-visit" && method === "POST") {
+      var dv = postBody(init);
+      return json({ ok: true, player: DB.markShopVisited(String(dv.world || ""), Number(dv.index) || 0) });
+    }
     if (path === "/api/level-complete" && method === "POST") {
       var dc = postBody(init);
       return json({
@@ -183,7 +189,14 @@
     if (path === "/api/level-screen") {
       return DB.getLevelScreen(u.searchParams.get("world") || "", Number(u.searchParams.get("level") || 0))
         .then(function (r) {
-          return json({ ok: true, screen: r.screen, tier: r.tier, world: u.searchParams.get("world"), level: Number(u.searchParams.get("level")) });
+          // trueMin = mínimo real del solver (sin la holgura del par
+          // mostrado): el oro premia la eficiencia de verdad.
+          var S = window.RunikaSolver, trueMin = null;
+          if (S && r.screen) {
+            try { var sol = S.solvePath(S.screenToLevelData(r.screen)); if (sol.solvable) trueMin = sol.length; } catch (e) {}
+          }
+          var screen = trueMin == null ? r.screen : Object.assign({}, r.screen, { trueMin: trueMin });
+          return json({ ok: true, screen: screen, tier: r.tier, world: u.searchParams.get("world"), level: Number(u.searchParams.get("level")) });
         })
         .catch(function (e) { return json({ ok: false, error: String(e) }, 500); });
     }
@@ -272,14 +285,23 @@
         var items = (catalog && catalog.items) || [];
         var item = items.find(function (i) { return i.id === itemId; });
         if (!item) return json({ ok: false, error: "unknown-item" }, 404);
-        var result = DB.buyItem(item.id, item.price, item.uses || 1, item.max || 1);
+        var result = DB.buyItem(item.id, item.price, item.uses || 1, item.max || 1, item.priceGrowth);
         return json(result, result.ok ? 200 : 409);
       });
+    }
+    if (path === "/api/midas-activate" && method === "POST") {
+      var mb = postBody(init);
+      var mres = DB.activateMidas(String(mb.world || ""), Number(mb.level) || 0);
+      return json(mres, mres.ok ? 200 : 409);
     }
     if (path === "/api/consume-item" && method === "POST") {
       var cid = String(postBody(init).itemId || "");
       var cres = DB.consumeItem(cid);
       return json(cres, cres.ok ? 200 : 409);
+    }
+    if (path === "/api/bonus-gold" && method === "POST") {
+      var bp = DB.addBonusGold(Number(postBody(init).delta) || 0);
+      return json({ ok: true, player: bp });
     }
 
     // ── Writes de calibración: no-op en TV ─────────────────────────────────

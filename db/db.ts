@@ -83,10 +83,15 @@ export interface PlayerState {
   /** Último mundo seleccionado en el mapamundi (posición del avatar al volver). */
   lastWorld?: string;
   /** Progreso por mundo: última isla jugada + islas completadas (0..MAP_LEVELS_PER_WORLD-1)
-   *  + `shopGone`: índices de tiendas que desaparecieron al pasar de largo. */
-  worldProgress?: Record<string, { last?: number; completed?: number[]; shopGone?: number[] }>;
+   *  + `shopGone`: índices de tiendas que desaparecieron al pasar de largo.
+   *  + `midasAt`: isla donde se aplicó el Toque de Midas — el oro de las islas
+   *    posteriores de ese mundo se duplica para siempre. */
+  worldProgress?: Record<string, { last?: number; completed?: number[]; shopGone?: number[]; shopVisited?: number[]; midasAt?: number }>;
   /** Inventario de la tienda: itemId -> usos restantes. */
   inventory?: Record<string, number>;
+  /** Compras acumuladas por ítem: solo crece en ítems con `priceGrowth`
+   *  (p. ej. midas: cada compra multiplica su precio por 1.8). */
+  itemPurchases?: Record<string, number>;
   /** Nivel de juego actual (tier 1..14 según la curva global; el 15 es solo del boss final). */
   gameLevel?: number;
 }
@@ -110,11 +115,11 @@ export const WORLDS = [
 ] as const;
 export const SUBLEVELS_PER_WORLD = 12;
 export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
-export const TOTAL_TIERS = 14;
-/** Tier exclusivo del boss final (ultima isla de MAZMORRA): fuera de la curva. */
+export const TOTAL_TIERS = 15;
+/** Tier del boss final (ultima isla de MAZMORRA): coincide con el techo de la curva. */
 export const FINAL_TIER = 15;
-/** Tier de dificultad inicial: la partida siempre empieza en el nivel 3. */
-export const FIRST_TIER = 3;
+/** Tier de dificultad inicial: la partida siempre empieza en el nivel 6. */
+export const FIRST_TIER = 6;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
 export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
@@ -128,10 +133,10 @@ export function stageFor(world: number, subLevel: number): number {
 }
 
 /**
- * Tier de dificultad (3..14) según el Nº DE PANTALLAS SUPERADAS, no la
+ * Tier de dificultad (6..15) según el Nº DE PANTALLAS SUPERADAS, no la
  * posición en el mapa (los mundos se juegan en orden libre). La partida
- * siempre empieza en el tier 3 y los 96 escenarios se reparten de forma
- * uniforme entre los 12 tiers (8 islas por tier).
+ * siempre empieza en el tier 6 y los 96 escenarios se reparten de forma
+ * uniforme entre los 10 tiers (~9-10 islas por tier).
  */
 export function tierForCompleted(completed: number): number {
   const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
@@ -166,7 +171,7 @@ function defaultPlayer(): PlayerState {
     totalStagesCompleted: 0,
     updatedAt: Date.now(),
     gold: 0,
-    lastWorld: "AGUA",
+    lastWorld: "ESPACIO",
     worldProgress: {},
     gameLevel: FIRST_TIER,
   };
@@ -276,7 +281,7 @@ export function currentTier(): number {
 
 /** Mundo de la etapa actual. */
 export function currentWorldName(): string {
-  return WORLDS[player.currentWorld - 1] ?? "AGUA";
+  return WORLDS[player.currentWorld - 1] ?? "ESPACIO";
 }
 
 /**
@@ -302,19 +307,20 @@ export function getNextScreen(): { screen: Screen; tier: number; world: string; 
     assign.current = null;
   }
 
-  // 2. Pantalla no completada
+  // 2. Pantalla no completada: sorteo AL AZAR entre las no jugadas — cada
+  // partida recorre puzles distintos. La asignación queda sticky en
+  // `assign.current`/`completed`: re-entrar a la misma isla repite.
   const pool = ensureTierLoaded(tier);
   const completedSet = new Set(assign.completed);
   const unused = pool.filter((s) => !completedSet.has(s.id));
 
   let chosen: Screen;
   if (unused.length > 0) {
-    // Determinista: primera no completada
-    chosen = unused[0]!;
+    chosen = unused[Math.floor(Math.random() * unused.length)]!;
   } else {
     // 3. Todas completadas → reset
     assign.completed = [];
-    chosen = pool[0]!;
+    chosen = pool[Math.floor(Math.random() * pool.length)]!;
   }
 
   assign.current = chosen.id;
@@ -443,7 +449,12 @@ export function getLevelScreen(world: string, level: number): { screen: Screen; 
 
   const pool = ensureTierLoaded(tier);
   const used = usedScreenIds();
-  const chosen = pool.find((s) => !used.has(s.id)) ?? pool[0]!;
+  // Primera visita a la isla: sorteo AL AZAR entre las pantallas aún no
+  // usadas en esta partida (el histórico las mantiene fijas después).
+  const free = pool.filter((s) => !used.has(s.id));
+  const chosen = free.length > 0
+    ? free[Math.floor(Math.random() * free.length)]!
+    : pool[Math.floor(Math.random() * pool.length)]!;
   assign.current = chosen.id;
   assignments.set(key, assign);
   persist();
@@ -499,6 +510,37 @@ export function markShopGone(world: string, index = 0): PlayerState {
   return { ...player };
 }
 
+/** La tienda `index` ya fue visitada una vez: se marcha volando y no
+ *  reaparece aunque el jugador repita el nivel (visita única por tienda).
+ *  Se marca también en `shopGone` para que deje de renderizarse, pero el
+ *  submundo no dibuja la mancha de "pasada de largo" en las visitadas. */
+export function markShopVisited(world: string, index = 0): PlayerState {
+  if (!(WORLDS as readonly string[]).includes(world)) return { ...player };
+  const wp = { ...(player.worldProgress ?? {}) };
+  const w = { ...(wp[world] ?? {}) };
+  const prev = w.shopGone as number[] | boolean | undefined;
+  const g = prev === true ? [0] : (Array.isArray(prev) ? [...prev] : []);
+  if (!g.includes(index)) g.push(index);
+  w.shopGone = g;
+  const v = Array.isArray(w.shopVisited) ? [...w.shopVisited] : [];
+  if (!v.includes(index)) v.push(index);
+  w.shopVisited = v;
+  wp[world] = w;
+  player.worldProgress = wp;
+  player.updatedAt = Date.now();
+  persist();
+  return { ...player };
+}
+
+/** Pantalla bonus: suma (o resta) el botín del minijuego al oro del
+ *  jugador. El total nunca baja de 0. */
+export function addBonusGold(delta: number): PlayerState {
+  player.gold = Math.max(0, (player.gold ?? 0) + Math.trunc(delta));
+  player.updatedAt = Date.now();
+  persist();
+  return { ...player };
+}
+
 /** Mundo completado: todas sus islas del mapa terminadas. */
 export function isWorldComplete(world: string): boolean {
   return (player.worldProgress?.[world]?.completed?.length ?? 0) >= MAP_LEVELS_PER_WORLD;
@@ -508,16 +550,31 @@ export function isWorldComplete(world: string): boolean {
 // Tienda (isla extra por submundo)
 // ---------------------------------------------------------------------------
 
+/** Precio efectivo de un ítem: si lleva `priceGrowth` (>1) cada compra
+ *  multiplica el precio base — p. ej. midas ×1.8 por compra, sin decimales. */
+export function itemPrice(itemId: string, price: number, priceGrowth?: number): number {
+  if (!(priceGrowth && priceGrowth > 1)) return price;
+  const n = player.itemPurchases?.[itemId] ?? 0;
+  return Math.round(price * Math.pow(priceGrowth, n));
+}
+
 /** Compra un ítem: descuenta el oro y suma `uses` al inventario.
- *  Falla sin oro o si ya se lleva el máximo (`max` unidades por tipo). */
-export function buyItem(itemId: string, price: number, uses = 1, max = 1): { ok: boolean; player: PlayerState } {
+ *  Falla sin oro o si ya se lleva el máximo (`max` unidades por tipo).
+ *  Con `priceGrowth` el precio crece por compra (ver `itemPrice`). */
+export function buyItem(itemId: string, price: number, uses = 1, max = 1, priceGrowth?: number): { ok: boolean; player: PlayerState } {
   const inv0 = player.inventory ?? {};
   if ((inv0[itemId] ?? 0) >= max) return { ok: false, player: { ...player } };
-  if ((player.gold ?? 0) < price) return { ok: false, player: { ...player } };
-  player.gold = (player.gold ?? 0) - price;
+  const effPrice = itemPrice(itemId, price, priceGrowth);
+  if ((player.gold ?? 0) < effPrice) return { ok: false, player: { ...player } };
+  player.gold = (player.gold ?? 0) - effPrice;
   const inv = { ...(player.inventory ?? {}) };
   inv[itemId] = (inv[itemId] ?? 0) + uses;
   player.inventory = inv;
+  if (priceGrowth && priceGrowth > 1) {
+    const p = { ...(player.itemPurchases ?? {}) };
+    p[itemId] = (p[itemId] ?? 0) + 1;
+    player.itemPurchases = p;
+  }
   player.updatedAt = Date.now();
   persist();
   return { ok: true, player: { ...player } };
@@ -529,6 +586,26 @@ export function consumeItem(itemId: string): { ok: boolean; player: PlayerState 
   if ((inv[itemId] ?? 0) <= 0) return { ok: false, player: { ...player } };
   inv[itemId] = (inv[itemId] ?? 0) - 1;
   player.inventory = inv;
+  player.updatedAt = Date.now();
+  persist();
+  return { ok: true, player: { ...player } };
+}
+
+/** Aplica el Toque de Midas al mundo `world` desde la isla `level` (0-based):
+ *  todo el oro que se gane en las islas posteriores de ESE mundo se duplica.
+ *  Consume un uso del inventario; falla si el mundo ya tiene el efecto. */
+export function activateMidas(world: string, level: number): { ok: boolean; player: PlayerState } {
+  if (!(WORLDS as readonly string[]).includes(world)) return { ok: false, player: { ...player } };
+  const wp = { ...(player.worldProgress ?? {}) };
+  const w = { ...(wp[world] ?? {}) };
+  if (w.midasAt != null) return { ok: false, player: { ...player } };
+  const inv = { ...(player.inventory ?? {}) };
+  if ((inv["midas"] ?? 0) <= 0) return { ok: false, player: { ...player } };
+  inv["midas"] = (inv["midas"] ?? 0) - 1;
+  player.inventory = inv;
+  w.midasAt = Math.max(0, Math.min(MAP_LEVELS_PER_WORLD - 1, Math.trunc(level)));
+  wp[world] = w;
+  player.worldProgress = wp;
   player.updatedAt = Date.now();
   persist();
   return { ok: true, player: { ...player } };

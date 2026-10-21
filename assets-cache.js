@@ -5,11 +5,13 @@
 const ASSETS = {
   images: [
     '/assets/menu principal/menu principal.169.webp?v=menu8k-4',
-    '/assets/menu principal/opciones del juego e instrucciones.webp',
     '/assets/menu principal/seleccion_personaje.169.webp?v=sel8k-4',
     '/assets/mapamundi/mapamundi.16x9.webp?v=mm16-1',
     '/assets/configuracion/configuracion.169.webp?v=cfgq-1',
     '/assets/comunes/modal.webp',
+    '/assets/tienda/camino-tienda-house.webp',
+    '/assets/tienda/camino-tienda-rung.webp',
+    '/assets/tienda/camino-tienda-foot.webp',
     '/assets/avatars/display/avatar_01.webp',
     '/assets/avatars/display/avatar_02.webp',
     '/assets/avatars/display/avatar_03.webp',
@@ -35,6 +37,10 @@ const ASSETS = {
     '/assets/sounds/comun/pulsacion maquina escribir.mp3',
     '/assets/sounds/comun/victoria.wav',
     '/assets/sounds/comun/derrota.wav',
+    '/assets/sounds/comun/escalera-crece.wav',
+    '/assets/sounds/comun/casa-vuela.wav',
+    '/assets/sounds/comun/escalera-encoge.wav',
+    '/assets/sounds/comun/escalera-sube.wav',
   ],
 };
 
@@ -437,6 +443,22 @@ function transitionIn() {
   }, 450);
 }
 
+// Revelado de página: funde la pantalla de carga y el overlay A LA VEZ.
+// Si el loading se funde antes y el overlay sigue opaco debajo, aparece
+// un latigazo de negro puro entre ambos — las dos capas deben caer juntas.
+function revealPage() {
+  transitionIn();
+  hideLoading();
+}
+
+// Watchdog: las páginas nacen con el overlay en negro (cero destello entre
+// navegaciones). Si por un error/hang nadie llamó a transitionIn, liberar la
+// pantalla pasado un margen generoso — negro eterno es peor que revelar.
+setTimeout(() => {
+  const overlay = document.getElementById('transition-overlay');
+  if (overlay && parseFloat(getComputedStyle(overlay).opacity) > 0.5) transitionIn();
+}, 25000);
+
 // --- Pantalla de carga ---
 function showLoading() {
   const loader = document.getElementById('loading-screen');
@@ -454,7 +476,7 @@ function hideLoading() {
 
 window.AssetsCache = {
   preloadAll, preloadSounds, getCachedImage, getCachedImageUrl, getCachedSound, playSound, auraPoints,
-  transitionTo, transitionIn, showLoading, hideLoading,
+  transitionTo, transitionIn, revealPage, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,
   startMusic, stopMusic, setMusicTrack, playMusicSting, endMusicSting, MUSIC, musicForWorld, currentMusicTrack,

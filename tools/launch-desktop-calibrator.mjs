@@ -7,10 +7,25 @@ const allowedPages = new Set([
   'calibrate-submundos.html',
   'calibrate-submundos-text.html',
   'calibrate-mapamundi.html',
+  'calibrate-tienda-nombre.html',
+  'calibrate-pedestal.html',
+  'calibrate-creditos.html',
+  'calibrate-config.html',
+  'calibrate-instructions.html',
+  // páginas de juego para demos de prueba en desktop (p.ej. demo=bonus)
+  'submundo.html',
+  'bonus.html',
+  'shop.html',
+  // demos de flujo completo (boss de mundo → mapamundi, boss final)
+  'demo-boss-run.html',
+  'demo-ultimo-boss.html',
+  'demo-boss-final.html',
 ]);
-const page = process.argv[2];
-if (!allowedPages.has(page)) {
-  console.error('Choose a supported subworld calibrator page.');
+const page = process.argv[2] ?? '';
+// el argumento puede llevar query: "submundo.html?world=AGUA&demo=bonus"
+const pageName = page.split('?')[0];
+if (!allowedPages.has(pageName)) {
+  console.error('Choose a supported calibrator/demo page.');
   process.exit(2);
 }
 

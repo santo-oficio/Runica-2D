@@ -30,7 +30,10 @@ import {
   tierSize,
   buyItem,
   consumeItem,
+  activateMidas,
+  addBonusGold,
   markShopGone,
+  markShopVisited,
   FIRST_TIER,
 } from "./db/db.js";
 import {
@@ -84,6 +87,19 @@ const detections = MUNDOS
 
 if (detections.length === 0) {
   throw new Error("No hay detecciones SAM disponibles");
+}
+
+// Mínimo REAL de movimientos de una pantalla (sin la holgura +1/+2 del par
+// mostrado). Cache por id: el BFS corre una sola vez por pantalla servida.
+const trueMinCache = new Map<string, number>();
+function trueMinOf(screen: { id: string; minMoves?: number } & Parameters<typeof screenToLevelData>[0]): number {
+  let v = trueMinCache.get(screen.id);
+  if (v === undefined) {
+    try { v = solvePath(screenToLevelData(screen)).length ?? screen.minMoves ?? 0; }
+    catch { v = screen.minMoves ?? 0; }
+    trueMinCache.set(screen.id, v);
+  }
+  return v;
 }
 
 const MIME: Record<string, string> = {
@@ -407,6 +423,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: nombre calibrado sobre el cartel de la casa-tienda voladora
+  // (GET /api/shop-name-area). Global: el arte de la casa es compartido.
+  if (url.startsWith("/api/shop-name-area") && req.method !== "POST") {
+    const loadPath = join(ROOT, "assets", "tienda", "camino-tienda-name.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
+    return;
+  }
+
+  // API: guardar nombre calibrado (POST /api/save-shop-name-area)
+  if (url.startsWith("/api/save-shop-name-area") && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        writeFileSync(join(ROOT, "assets", "tienda", "camino-tienda-name.json"), body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
   // API: zonas calibradas del interior de tienda (GET /api/shop-areas?world=XXX)
   // OJO: la ruta no puede llamarse /api/load-shop-areas porque empezaría por
   // /api/load-shop y colisionaría con el handler de shop.json.
@@ -468,14 +515,34 @@ const server = http.createServer((req, res) => {
         const itemId = String(JSON.parse(body || "{}")?.itemId ?? "");
         const catalog = JSON.parse(
           readFileSync(join(ROOT, "assets", "tienda", "items.json"), "utf-8"),
-        ) as { items: Array<{ id: string; price: number; uses?: number; max?: number }> };
+        ) as { items: Array<{ id: string; price: number; uses?: number; max?: number; priceGrowth?: number }> };
         const item = catalog.items.find(i => i.id === itemId);
         if (!item) {
           res.writeHead(404, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: false, error: "unknown-item" }));
           return;
         }
-        const result = buyItem(item.id, item.price, item.uses ?? 1, item.max ?? 1);
+        const result = buyItem(item.id, item.price, item.uses ?? 1, item.max ?? 1, item.priceGrowth);
+        res.writeHead(result.ok ? 200 : 409, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(result));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
+  // API: aplicar el Toque de Midas al mundo (POST /api/midas-activate
+  // {world, level}) — consume un uso y duplica el oro de las islas
+  // posteriores de ese mundo para siempre.
+  if (url === "/api/midas-activate" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const b = JSON.parse(body || "{}");
+        const result = activateMidas(String(b?.world ?? ""), Number(b?.level ?? 0));
         res.writeHead(result.ok ? 200 : 409, { "Content-Type": "application/json" });
         res.end(JSON.stringify(result));
       } catch (e) {
@@ -1087,6 +1154,25 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: botín de la pantalla bonus (POST {world, delta}) — suma/resta
+  // el oro del minijuego de la casa voladora. El total nunca baja de 0.
+  if (url === "/api/bonus-gold" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body);
+        const player = addBonusGold(Number(data.delta) || 0);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, player }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
   // API: la isla tienda desaparece al pasar de largo (POST {world})
   if (url === "/api/shop-skip" && req.method === "POST") {
     let body = "";
@@ -1105,6 +1191,24 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API: tienda ya visitada una vez — se marcha y no reaparece (POST {world,index})
+  if (url === "/api/shop-visit" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const data = JSON.parse(body);
+        const player = markShopVisited(String(data.world ?? ""), Number(data.index) || 0);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, player }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+
   // API: pantalla asignada a una isla del mapa (GET /api/level-screen?world=X&level=N)
   if (url.startsWith("/api/level-screen")) {
     const u = new URL(url, `http://localhost:${PORT}`);
@@ -1113,7 +1217,7 @@ const server = http.createServer((req, res) => {
     try {
       const { screen, tier } = getLevelScreen(world, level);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true, screen, tier, world, level }));
+      res.end(JSON.stringify({ ok: true, screen: { ...screen, trueMin: trueMinOf(screen) }, tier, world, level }));
     } catch (e) {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: false, error: String(e) }));
@@ -1391,6 +1495,41 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ ok: false, error: String(e) }));
       }
     });
+    return;
+  }
+
+  // API: pedestal de reliquias por mundo — pedestal.webp + pedestal.json
+  // ({pos:{x,y,w} normalizado al fondo 16:9, slots:[{x,y,w,h}]×3 normalizados
+  // a la imagen del pedestal: huecos donde se sientan las reliquias).
+  if (url.startsWith("/api/save-pedestal") && req.method === "POST") {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const world = u.searchParams.get("world") ?? "";
+    let body = "";
+    req.on("data", (chunk: Buffer | string) => { body += chunk; });
+    req.on("end", () => {
+      try {
+        const savePath = join(ROOT, "assets", "backgrounds", world, "pedestal.json");
+        writeFileSync(savePath, body, "utf-8");
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: String(e) }));
+      }
+    });
+    return;
+  }
+  if (url.startsWith("/api/load-pedestal")) {
+    const u = new URL(url, `http://localhost:${PORT}`);
+    const world = u.searchParams.get("world") ?? "";
+    const loadPath = join(ROOT, "assets", "backgrounds", world, "pedestal.json");
+    if (!existsSync(loadPath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(readFileSync(loadPath, "utf-8"));
     return;
   }
 

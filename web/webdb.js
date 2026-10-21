@@ -12,9 +12,9 @@
   var WORLDS = ["ESPACIO", "AGUA", "TIERRA", "FUEGO", "HIELO", "VIENTO", "INFRAMUNDO", "MAZMORRA"];
   var SUBLEVELS_PER_WORLD = 12;
   var TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
-  var TOTAL_TIERS = 14;
+  var TOTAL_TIERS = 15;
   var FINAL_TIER = 15;
-  var FIRST_TIER = 3;
+  var FIRST_TIER = 6;
   var MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
   var FINAL_WORLD = "MAZMORRA";
   var BOSS_LEVEL_IDX = MAP_LEVELS_PER_WORLD - 1;
@@ -33,7 +33,7 @@
       currentSubLevel: 1,
       totalStagesCompleted: 0,
       gold: 0,
-      lastWorld: "AGUA",
+      lastWorld: "ESPACIO",
       worldProgress: {},
       gameLevel: FIRST_TIER,
     };
@@ -121,7 +121,7 @@
 
   function currentStage() { return stageFor(player.currentWorld, player.currentSubLevel); }
   function currentTier() { return tierForCompleted(player.totalStagesCompleted); }
-  function currentWorldName() { return WORLDS[player.currentWorld - 1] || "AGUA"; }
+  function currentWorldName() { return WORLDS[player.currentWorld - 1] || "ESPACIO"; }
 
   function mapTierFor(world, level) {
     if (world === FINAL_WORLD && level === BOSS_LEVEL_IDX) return FINAL_TIER;
@@ -181,7 +181,11 @@
       var after = function () {
         return ensureTierLoaded(tier).then(function (pool) {
           var used = usedScreenIds();
-          var chosen = pool.find(function (s) { return !used[s.id]; }) || pool[0];
+          // Primera visita: sorteo al azar entre las no usadas (misma
+          // regla que db.ts — el histórico la deja fija después).
+          var free = pool.filter(function (s) { return !used[s.id]; });
+          var src = free.length ? free : pool;
+          var chosen = src[Math.floor(Math.random() * src.length)];
           assign.current = chosen.id;
           assignments[key] = assign;
           persist();
@@ -251,16 +255,50 @@
     return getPlayer();
   }
 
+  /** Tienda ya visitada: no reaparece (visita única por tienda). */
+  function markShopVisited(world, index) {
+    if (WORLDS.indexOf(world) < 0) return getPlayer();
+    index = index || 0;
+    var wp = Object.assign({}, player.worldProgress || {});
+    var w = Object.assign({}, wp[world] || {});
+    var prev = w.shopGone;
+    var g = prev === true ? [0] : (Array.isArray(prev) ? prev.slice() : []);
+    if (g.indexOf(index) < 0) g.push(index);
+    w.shopGone = g;
+    var v = Array.isArray(w.shopVisited) ? w.shopVisited.slice() : [];
+    if (v.indexOf(index) < 0) v.push(index);
+    w.shopVisited = v;
+    wp[world] = w;
+    player.worldProgress = wp;
+    player.updatedAt = Date.now();
+    persist();
+    return getPlayer();
+  }
+
+  /** Precio efectivo: con `priceGrowth` (>1) cada compra multiplica la
+   *  base — p. ej. midas ×1.8 por compra, sin decimales. */
+  function itemPrice(itemId, price, priceGrowth) {
+    if (!(priceGrowth > 1)) return price;
+    var n = (player.itemPurchases || {})[itemId] || 0;
+    return Math.round(price * Math.pow(priceGrowth, n));
+  }
+
   /** Compra un ítem: descuenta oro y suma `uses` al inventario.
    *  Falla sin oro o si ya se lleva el máximo (`max` por tipo). */
-  function buyItem(itemId, price, uses, max) {
+  function buyItem(itemId, price, uses, max, priceGrowth) {
     var inv0 = player.inventory || {};
     if ((inv0[itemId] || 0) >= (max || 1)) return { ok: false, player: getPlayer() };
-    if ((player.gold || 0) < price) return { ok: false, player: getPlayer() };
-    player.gold = (player.gold || 0) - price;
+    var effPrice = itemPrice(itemId, price, priceGrowth);
+    if ((player.gold || 0) < effPrice) return { ok: false, player: getPlayer() };
+    player.gold = (player.gold || 0) - effPrice;
     var inv = Object.assign({}, player.inventory || {});
     inv[itemId] = (inv[itemId] || 0) + (uses || 1);
     player.inventory = inv;
+    if (priceGrowth > 1) {
+      var p = Object.assign({}, player.itemPurchases || {});
+      p[itemId] = (p[itemId] || 0) + 1;
+      player.itemPurchases = p;
+    }
     player.updatedAt = Date.now();
     persist();
     return { ok: true, player: getPlayer() };
@@ -275,6 +313,33 @@
     player.updatedAt = Date.now();
     persist();
     return { ok: true, player: getPlayer() };
+  }
+
+  /** Toque de Midas: todo el oro de las islas posteriores de `world` se
+   *  duplica. Consume un uso; falla si el mundo ya tiene el efecto. */
+  function activateMidas(world, level) {
+    if (WORLDS.indexOf(world) < 0) return { ok: false, player: getPlayer() };
+    var wp = Object.assign({}, player.worldProgress || {});
+    var w = Object.assign({}, wp[world] || {});
+    if (w.midasAt != null) return { ok: false, player: getPlayer() };
+    var inv = Object.assign({}, player.inventory || {});
+    if ((inv["midas"] || 0) <= 0) return { ok: false, player: getPlayer() };
+    inv["midas"] -= 1;
+    player.inventory = inv;
+    w.midasAt = Math.max(0, Math.min(11, Math.trunc(level)));
+    wp[world] = w;
+    player.worldProgress = wp;
+    player.updatedAt = Date.now();
+    persist();
+    return { ok: true, player: getPlayer() };
+  }
+
+  /** Pantalla bonus: suma/resta el botín al oro del jugador (mínimo 0). */
+  function addBonusGold(delta) {
+    player.gold = Math.max(0, (player.gold || 0) + Math.trunc(delta || 0));
+    player.updatedAt = Date.now();
+    persist();
+    return getPlayer();
   }
 
   function isWorldUnlocked(world) {
@@ -297,8 +362,8 @@
         assign.completed.forEach(function (id) { completedSet[id] = true; });
         var unused = pool.filter(function (s) { return !completedSet[s.id]; });
         var chosen;
-        if (unused.length > 0) chosen = unused[0];
-        else { assign.completed = []; chosen = pool[0]; }
+        if (unused.length > 0) chosen = unused[Math.floor(Math.random() * unused.length)];
+        else { assign.completed = []; chosen = pool[Math.floor(Math.random() * pool.length)]; }
         assign.current = chosen.id;
         assignments[key] = assign;
         persist();
@@ -414,9 +479,13 @@
     failScreen: function () {},
     isWorldComplete: isWorldComplete,
     markShopGone: markShopGone,
+    markShopVisited: markShopVisited,
     isWorldUnlocked: isWorldUnlocked,
     buyItem: buyItem,
     consumeItem: consumeItem,
+    activateMidas: activateMidas,
+    addBonusGold: addBonusGold,
+    itemPrice: itemPrice,
     getStats: getStats,
     getProgress: getProgress,
     currentTier: currentTier,

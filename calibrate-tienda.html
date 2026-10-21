@@ -68,7 +68,7 @@ function pxPt(p){const r=imageRect();return[(r.left+p[0]*r.width).toFixed(1),(r.
 let CATALOG=[{id:'pista',price:400,icon:'/assets/tienda/iconos/pista.webp'},{id:'deshacer',price:500,icon:'/assets/tienda/iconos/deshacer.webp'},{id:'midas',price:600,icon:'/assets/tienda/iconos/midas.webp'}];
 async function loadCatalog(){try{const r=await fetch('/api/shop-items');if(r.ok){const d=await r.json();if(d.items&&d.items.length)CATALOG=d.items}}catch{}}
 const slotItem=k=>CATALOG[Math.max(0,(+k.match(/^slot(\d)/)?.[1]||1)-1)]||CATALOG[0];
-function iconHtml(p,k){const it=slotItem(k);return `<img class="icpv" src="${it.icon}?v=p8" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px">`}
+function iconHtml(p,k){const it=slotItem(k);return `<img class="icpv" src="${it.icon}?v=p9" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px">`}
 function nameHtml(p,fs,k){const it=slotItem(k);return `<div class="txtpv" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px;font-size:${Math.max(9,p.h*.55*fs)}px"><div class="nm">${tt('shop.item.'+it.id+'.name')||it.id}</div></div>`}
 function priceHtml(p,fs,k){const it=slotItem(k);return `<div class="txtpv" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px;font-size:${Math.max(9,p.h*.55*fs)}px"><div class="pr"><img src="/assets/comunes/monedas.webp">${it.price}</div></div>`}
 function render(){const w=WORLD_ORDER[worldIndex];overlay.innerHTML='';svg.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);svg.setAttribute('width',innerWidth);svg.setAttribute('height',innerHeight);svg.innerHTML='';

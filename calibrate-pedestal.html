@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calibrar pedestal de reliquias</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#eee;font:14px 'Courier New',monospace}
+#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#image{max-width:100%;max-height:100%;display:block}
+#overlay{position:absolute;inset:0;pointer-events:none}
+#ped{position:absolute;pointer-events:none}
+#ped>img{width:100%;display:block}
+#ped.sel{outline:2px dashed #0ff}
+.hole{position:absolute;border:2px dashed rgba(0,255,255,.5);pointer-events:none}
+.hole.sel{border-color:#fc4;box-shadow:0 0 8px rgba(255,190,40,.4)}
+.hole .base{position:absolute;left:-4px;right:-4px;bottom:12%;border-bottom:2px dotted rgba(255,190,40,.9)}
+.hole .tag{position:absolute;top:-16px;left:-2px;padding:0 4px;background:rgba(0,255,255,.85);color:#000;font-size:10px;white-space:nowrap}
+.slot{position:absolute;display:flex;align-items:flex-end;justify-content:center;pointer-events:none}
+.slot img{display:block;width:100%;height:100%;object-fit:contain}
+.slot.sel img{filter:drop-shadow(0 0 8px rgba(255,190,40,.9))}
+.slot label{position:absolute;top:-20px;left:0;padding:1px 5px;background:#fc4;color:#000;font-size:11px;white-space:nowrap}
+#drag{position:absolute;border:3px solid #fc4;background:rgba(255,190,40,.16);display:none;pointer-events:none}
+#hud{position:absolute;top:12px;left:12px;z-index:20;background:rgba(0,0,0,.82);padding:12px 16px;line-height:1.7;border:1px solid #567;border-radius:4px;max-width:430px}
+#hud b{color:#0ff}.key{color:#fc4}
+#status{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(0,0,0,.82);padding:7px 15px}.ok{color:#0f0}.err{color:#f66}
+</style>
+</head>
+<body>
+<div id="stage"><img id="image" alt=""><div id="overlay"></div><div id="drag"></div></div>
+<div id="hud"><b>Calibrar pedestal de reliquias</b> · <span id="world" style="color:#fc4"></span><br>
+<span class="key">Espacio</span> = mundo · <span class="key">Click</span> (en icono o rectángulo cian) o <span class="key">Tab</span> = seleccionar<br>
+<span class="key">Arrastrar</span> = mover lo seleccionado · <span class="key">Flechas</span> = mover (<span class="key">Shift</span> fino)<br>
+<span class="key">+ / -</span> = tamaño pedestal · <span class="key">Q / E</span> = ancho hueco · <span class="key">Z / X</span> = alto hueco<br>
+La línea punteada = donde se apoya la base de la reliquia dentro del hueco<br>
+<span class="key">G</span> = guardar · <span class="key">C</span> = cargar · <button id="save-btn">Guardar</button> <button id="load-btn">Cargar</button><br>
+<span id="selinfo" style="display:block;margin-top:6px;padding:4px 8px;font-size:16px;font-weight:bold;background:#222;border:2px solid #fc4;color:#fc4;border-radius:4px"></span>
+<span id="coords" style="color:#0f0"></span></div>
+<div id="status">Arrastra el pedestal o selecciona un hueco</div>
+<script>
+const WORLDS=['ESPACIO','AGUA','TIERRA','FUEGO','HIELO','VIENTO','INFRAMUNDO','MAZMORRA'];
+const ICONS=['/assets/tienda/iconos/pista.webp','/assets/tienda/iconos/deshacer.webp','/assets/tienda/iconos/midas.webp'];
+const NAMES=['pista','deshacer','midas'];
+const img=document.getElementById('image'),overlay=document.getElementById('overlay'),drag=document.getElementById('drag'),coords=document.getElementById('coords'),status=document.getElementById('status');
+let wi=1, sel='ped'; // 'ped' | 0 | 1 | 2
+let data=null; // {pos:{x,y,w}, slots:[{x,y,w,h}*3]}
+let pedNat={w:1,h:1}, dragging=false, start=null;
+const pedImg=new Image();
+function world(){return WORLDS[wi]}
+function pedSrc(){return `/assets/backgrounds/${world()}/pedestal.webp`}
+function bgSrc(){return `/assets/backgrounds/${world()}/bg_01.webp`}
+pedImg.onload=()=>{pedNat={w:pedImg.naturalWidth,h:pedImg.naturalHeight};render()};
+function rect(){const e=img.getBoundingClientRect();const iw=img.naturalWidth||1,ih=img.naturalHeight||1;const s=Math.min(e.width/iw,e.height/ih);const w=iw*s,h=ih*s;return{left:e.left+(e.width-w)/2,top:e.top+(e.height-h)/2,width:w,height:h}}
+function defaults(){return{pos:{x:.755,y:.78,w:.235},slots:[{x:.15,y:.05,w:.2,h:.1},{x:.42,y:.05,w:.2,h:.1},{x:.68,y:.05,w:.2,h:.1}]}}
+function render(){
+  overlay.innerHTML='';if(!data)return;
+  const r=rect(),pos=data.pos;
+  const pw=pos.w*r.width, ph=pw*pedNat.h/pedNat.w;
+  const ped=document.createElement('div');ped.id='ped';if(sel==='ped')ped.classList.add('sel');
+  ped.style.cssText=`left:${r.left+pos.x*r.width}px;top:${r.top+pos.y*r.height}px;width:${pw}px;height:${ph}px`;
+  const pi=document.createElement('img');pi.src=pedSrc();ped.appendChild(pi);
+  data.slots.forEach((s,i)=>{
+    const hole=document.createElement('div');hole.className='hole'+(sel===i?' sel':'');
+    hole.style.cssText=`left:${s.x*pw}px;top:${s.y*ph}px;width:${s.w*pw}px;height:${s.h*ph}px`;
+    hole.innerHTML=`<div class="base"></div>${sel===i?`<div class="tag">${NAMES[i]}</div>`:''}`;
+    ped.appendChild(hole);
+    const ar=ICON_AR[i]||1, iw=s.w*pw*1.18, cx=(s.x+s.w/2)*pw, by=(s.y+s.h*.88)*ph;
+    const sl=document.createElement('div');sl.className='slot'+(sel===i?' sel':'');
+    sl.style.cssText=`left:${cx-iw/2}px;top:${by-iw*ar}px;width:${iw}px;height:${iw*ar}px`;
+    sl.innerHTML=`<img src="${ICONS[i]}">${sel===i?`<label>${NAMES[i]}</label>`:''}`;
+    ped.appendChild(sl);
+  });
+  overlay.appendChild(ped);
+  const d=sel==='ped'?pos:data.slots[sel];
+  const selName=sel==='ped'?'PEDESTAL':`hueco ${sel+1} · ${NAMES[sel]}`;
+  document.getElementById('selinfo').textContent=`Seleccionado: ${selName}`;
+  coords.textContent=`${sel==='ped'?'PEDESTAL':NAMES[sel]} x:${d.x.toFixed(4)} y:${d.y.toFixed(4)} w:${d.w.toFixed(4)}${sel==='ped'?'':` h:${d.h.toFixed(4)}`}`;
+}
+const ICON_AR=[1,1,1];
+ICONS.forEach((s,i)=>{const t=new Image();t.onload=()=>{ICON_AR[i]=t.naturalHeight/t.naturalWidth;render()};t.src=s});
+// click selecciona (reliquia > pedestal) y arrastrar mueve el seleccionado
+function down(e){
+  if(e.target.closest('#hud')||e.target.closest('#status')||!data)return;
+  const r=rect();
+  if(e.clientX<r.left||e.clientX>r.left+r.width||e.clientY<r.top||e.clientY>r.top+r.height)return;
+  const pos=data.pos, pw=pos.w*r.width, ph=pw*pedNat.h/pedNat.w;
+  const pl=r.left+pos.x*r.width, pt=r.top+pos.y*r.height;
+  let hit=null;
+  data.slots.forEach((s,i)=>{
+    const ar=ICON_AR[i]||1, iw=s.w*pw*1.18, cx=(s.x+s.w/2)*pw, by=(s.y+s.h*.88)*ph;
+    const l=pl+cx-iw/2, t=pt+by-iw*ar;
+    const hl=pl+s.x*pw, ht=pt+s.y*ph;
+    if((e.clientX>=l&&e.clientX<=l+iw&&e.clientY>=t&&e.clientY<=t+iw*ar)||
+       (e.clientX>=hl&&e.clientX<=hl+s.w*pw&&e.clientY>=ht&&e.clientY<=ht+s.h*ph))hit=i;
+  });
+  if(hit===null&&!(e.clientX>=pl&&e.clientX<=pl+pw&&e.clientY>=pt&&e.clientY<=pt+ph))return;
+  sel=hit===null?'ped':hit;
+  dragging=true;
+  start={mx:(e.clientX-r.left)/r.width,my:(e.clientY-r.top)/r.height,d:{... (sel==='ped'?pos:data.slots[sel])}};
+  e.preventDefault();render();
+}
+function move(e){
+  if(!dragging)return;const r=rect();
+  const nx=(e.clientX-r.left)/r.width,ny=(e.clientY-r.top)/r.height;
+  const d=sel==='ped'?data.pos:data.slots[sel];
+  if(sel==='ped'){
+    const pw=start.d.w, phImg=pw*(pedNat.h/pedNat.w)*(r.width/r.height);
+    d.x=Math.max(0,Math.min(1-pw,start.d.x+(nx-start.mx)));
+    d.y=Math.max(0,Math.min(1-phImg,start.d.y+(ny-start.my)));
+  }else{
+    // el slot vive en el espacio del pedestal: delta imagen → delta pedestal
+    const pw=data.pos.w, phImg=pw*(pedNat.h/pedNat.w)*(r.width/r.height);
+    d.x=Math.max(0,Math.min(1-(d.w||0),start.d.x+(nx-start.mx)/pw));
+    d.y=Math.max(0,Math.min(1-(d.h||0),start.d.y+(ny-start.my)/phImg));
+  }
+  render();
+}
+function up(){dragging=false}
+document.addEventListener('mousedown',down);
+document.addEventListener('mousemove',move);
+document.addEventListener('mouseup',up);
+document.addEventListener('keydown',e=>{
+  if(e.key===' '){e.preventDefault();wi=(wi+1)%WORLDS.length;switchWorld();return}
+  if(e.key==='Tab'){e.preventDefault();sel=(sel==='ped')?0:(sel+1>2?'ped':sel+1);render();return}
+  if(e.key==='g'||e.key==='G'){save();return}
+  if(e.key==='c'||e.key==='C'){load();return}
+  const step=e.ctrlKey?.0005:e.shiftKey?.002:.008;
+  const d=sel==='ped'?data.pos:data.slots[sel];
+  if(e.key==='ArrowLeft'){d.x=Math.max(0,d.x-step);render();return}
+  if(e.key==='ArrowRight'){d.x=Math.min(1-(d.w||0),d.x+step);render();return}
+  if(e.key==='ArrowUp'){d.y=Math.max(0,d.y-step);render();return}
+  if(e.key==='ArrowDown'){d.y=Math.min(1-(d.h||0),d.y+step);render();return}
+  if(e.key==='+'||e.key==='='){if(sel==='ped'){d.w=Math.min(.5,d.w+step)}else{d.w=Math.min(.5,d.w+step);d.h=Math.min(.3,d.h+step*.4)}render();return}
+  if(e.key==='-'||e.key==='_'){if(sel==='ped'){d.w=Math.max(.05,d.w-step)}else{d.w=Math.max(.03,d.w-step);d.h=Math.max(.02,d.h-step*.4)}render();return}
+  if(sel!=='ped'&&(e.key==='q'||e.key==='Q')){d.w=Math.max(.03,d.w-step);render();return}
+  if(sel!=='ped'&&(e.key==='e'||e.key==='E')){d.w=Math.min(.5,d.w+step);render();return}
+  if(sel!=='ped'&&(e.key==='z'||e.key==='Z')){d.h=Math.max(.02,d.h-step*.5);render();return}
+  if(sel!=='ped'&&(e.key==='x'||e.key==='X')){d.h=Math.min(.3,d.h+step*.5);render();return}
+});
+async function save(){try{const r=await fetch('/api/save-pedestal?world='+world(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({world:world(),...data},null,2)});if(!r.ok)throw Error();status.innerHTML='<span class="ok">Guardado '+world()+'</span>'}catch{status.innerHTML='<span class="err">Error al guardar</span>'}}
+async function load(){try{const r=await fetch('/api/load-pedestal?world='+world());if(!r.ok)throw Error();const d=await r.json();data={pos:d.pos||defaults().pos,slots:d.slots||defaults().slots};status.innerHTML='<span class="ok">Cargado '+world()+'</span>'}catch{data=defaults();status.innerHTML='<span class="err">Sin guardado — defaults</span>'}render()}
+function switchWorld(){document.getElementById('world').textContent=world();img.src=bgSrc();pedImg.src=pedSrc();load()}
+document.getElementById('save-btn').addEventListener('click',save);
+document.getElementById('load-btn').addEventListener('click',load);
+img.onload=render;img.onerror=()=>{img.src=bgSrc()};
+window.addEventListener('resize',render);
+switchWorld();
+</script>
+</body></html>

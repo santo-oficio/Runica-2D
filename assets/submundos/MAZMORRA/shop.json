@@ -6,24 +6,25 @@
       "from": 2,
       "dir": "up",
       "pos": {
-        "x": 0.6,
-        "y": 0.68
+        "x": 0.73,
+        "y": 0.177
       },
       "painted": false
     },
     {
       "unlockAfter": 9,
       "from": 8,
-      "dir": "left",
+      "dir": "up",
       "pos": {
-        "x": 0.05,
-        "y": 0.31
+        "x": 0.22,
+        "y": 0.177
       },
       "art": {
-        "x": 0.05,
-        "y": 0.31
+        "x": 0.241,
+        "y": 0.177
       },
-      "painted": false
+      "painted": false,
+      "mirror": true
     }
   ]
 }

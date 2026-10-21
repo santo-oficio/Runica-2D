@@ -176,7 +176,11 @@
       }
       return u;
     }
-    if (field === 'back' && areas.back?.polygon) return polyBounds(areas.back.polygon);
+    if (field === 'back') {
+      const e = areas.back?.ellipse;
+      if (e) return { x: e.cx - e.rx, y: e.cy - e.ry, w: e.rx * 2, h: e.ry * 2 };
+      if (areas.back?.polygon) return polyBounds(areas.back.polygon);
+    }
     return null;
   }
 
@@ -265,10 +269,17 @@
       polys.appendChild(p);
     }
 
-    // Atras (poligono)
-    if (areas.back?.polygon) {
-      const p = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-      p.setAttribute('points', areas.back.polygon.map(([x, y]) => `${rx(x)},${ry(y)}`).join(' '));
+    // Atras (elipse calibrada; poligono legacy si no hay elipse)
+    if (areas.back?.ellipse || areas.back?.polygon) {
+      const e = areas.back.ellipse;
+      const p = e
+        ? (() => { const el = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            el.setAttribute('cx', rx(e.cx)); el.setAttribute('cy', ry(e.cy));
+            el.setAttribute('rx', rw(e.rx)); el.setAttribute('ry', rh(e.ry));
+            return el; })()
+        : (() => { const el = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            el.setAttribute('points', areas.back.polygon.map(([x, y]) => `${rx(x)},${ry(y)}`).join(' '));
+            return el; })();
       p.setAttribute('fill', 'rgba(0,0,0,0)');
       p.style.pointerEvents = 'all';
       p.style.cursor = 'pointer';
@@ -304,6 +315,7 @@
     const b = fieldBounds(field);
     if (!b) { ring.style.display = 'none'; return; }
     ring.style.display = 'block';
+    ring.style.borderRadius = areas.back?.ellipse ? '50%' : '';
     ring.style.left = (rx(b.x) - 6) + 'px';
     ring.style.top = (ry(b.y) - 6) + 'px';
     ring.style.width = (rw(b.w) + 12) + 'px';

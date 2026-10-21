@@ -29,6 +29,16 @@ npm run dist        # genera release/Runika 2D Setup <ver>.exe (NSIS)
   `RUNIKA_PORT`. En dev sin variables todo sigue igual.
 - El instalador excluye `db/player.json`, `db/settings.json` y `db/old` —
   instalación limpia sin partida previa.
+- **PELIGRO — no lanzar `npm run dist` mientras se juega a
+  `release/win-unpacked/Runika 2D.exe`**: electron-builder vacía y recrea
+  `win-unpacked/` (incluido `resources/app/`, de donde el servidor en
+  marcha sirve las páginas). El exe sigue corriendo pero TODA navegación
+  siguiente devuelve `404 "Not found"` (pantalla negra + texto plano). Si
+  una build queda interrumpida, `win-unpacked` queda inutilizable (solo el
+  exe + dlls, sin `resources/`) y hay que rehacer el dist completo. Para
+  testear la build empaquetada sin riesgo, instalar una vez el Setup NSIS
+  (instala en `%LOCALAPPDATA%/Programs`, ajeno a `release/`) o usar el
+  servidor dev.
 
 ## App de TV Samsung (Tizen, `.wgt`)
 
@@ -64,8 +74,12 @@ simulan en cliente.
   tocado con los eventos pointer/click reales (todos los controles llevan
   `cursor:pointer` y handlers propios — NO mandar Enter sintético: dobla
   acciones). Una página puede definir `window.touchTapMove(x,y)` para
-  interpretar taps "en vacío" (game.html mueve hacia la casilla tocada,
-  submundo.html entra/mueve por isla). En Android NO se crea el <input>
+  interpretar taps "en vacío" (game.html mueve hacia la casilla tocada —
+  tap en casilla adyacente entra directo — y submundo.html entra/mueve por
+  isla). Si una página gestiona el tacto ella misma con pointer events
+  (bonus.html: el avatar se arrastra con el dedo), declara
+  `window.touchNative=true` y el puente no traduce swipes ni pulsación
+  larga. En Android NO se crea el <input>
   IME oculto (solo Tizen): la máquina de escribir de
   `seleccion-personaje.html` ya es táctil y el teclado del sistema solo
   taparía la interfaz. Se inyecta CSS `touch-action:none` +
@@ -81,10 +95,30 @@ simulan en cliente.
 - `config.xml`: landscape, fullscreen, minSdk 24, target 36,
   id `com.runika2d.game`.
 
+## Grabación de demo autopilotada (`?auto=1`)
+
+`npm run record:demo` → `tools/record-demo.mjs` abre una ventana Chrome
+1920×1080 y el juego se juega solo encadenando `?auto=1` por las páginas
+(menú → mapamundi → submundo → nivel resuelto por el solver → victoria →
+desbloqueo → bonus si hay tienda → mapamundi). Graba vía CDP
+`Page.startScreencast` y ensambla `recordings/runika-demo-<ts>.mp4` con
+ffmpeg (sin audio). Requisitos:
+
+- **Ventana real, no headless**: `headless=new` no soporta screencast
+  ("Not attached to an active page"); hay que activar la pestaña con
+  `Target.activateTarget` por el websocket del browser y NUNCA usar
+  `Emulation.setDeviceMetricsOverride` (rompe el attach) — el viewport se
+  fija redimensionando la ventana con `Browser.setWindowBounds`.
+- `?auto=1` en `menu/mapamundi/submundo/game/bonus` autopilotan cada
+  página; `submundo` marca `sessionStorage.runika-auto-done` al cerrar la
+  toma y `mapamundi` expone `window.__autoDone` para cortar la grabación.
+- El script respalda `db/player.json` y lo restaura al final: la demo no
+  altera la partida dev.
+
 ## Modo práctica (`game.html`)
 
 `http://localhost:3000/game.html` — modo práctica que elige una pantalla
-**al azar** del tier 3 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
+**al azar** del tier 6 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
 mundo al azar. **No guarda nada en la bbdd** (solo lectura).
 
 Controles: `Flechas/WASD` mover · `R` otra pantalla · `Espacio` cambiar mundo ·
@@ -235,6 +269,25 @@ dinámicamente. Coordenadas normalizadas 0–1 respecto a la imagen.
 | `calibrate-config.html` | `assets/configuracion/config-areas.json` (textos/casillas sonido+música rectángulos; flechas idioma y atrás = polígonos) |
 | `calibrate-fin.html` | `assets/comunes/fin-areas.json` — fin del juego: **círculos** `{cx,cy,r}` por mundo (el aura irregular la genera `AssetsCache.auraPoints` de forma determinista) + rectángulos `hero`/`boss` del tablero final |
 | `calibrate-tienda.html` | `assets/tienda/<M>/areas.json` — zonas del interior: `title`/`gold`/`bubble`/`desc`/`slotNicon`/`slotNname`/`slotNprice`/`slotNsel` (N=1..3; `sel` = **polígono**) |
+| `calibrate-tienda-nombre.html` | `assets/tienda/camino-tienda-name.json` — área+rotación del nombre sobre el tablón de la casa voladora (desktop: `npm run calibrate:tienda-nombre:desktop`) |
+| `calibrate-pedestal.html` | `assets/backgrounds/<M>/pedestal.json` — pedestal de reliquias del tablero: `pos` normalizada al fondo + `slots`×3 normalizados al webp (desktop: `npm run calibrate:pedestal:desktop`) |
+
+### `calibrate-pedestal.html` — pedestal de reliquias (pantalla de juego)
+
+Cada mundo tiene `assets/backgrounds/<M>/pedestal.webp` (arte temático con 3
+huecos) y `pedestal.json` = `{ world, pos:{x,y,w}, slots:[{x,y,w,h}×3] }`:
+`pos` es fracción del fondo 16:9 (esquina inf-der); `slots` son fracciones de
+la imagen del pedestal donde se apoyan las reliquias (orden 0,1,2 =
+`pista`, `deshacer`, `midas`). En `game.html`, `#pedestal` sustituye a los
+antiguos badges planos: cada reliquia comprada se sienta en su hueco con su
+`cnt` y tocarla ejecuta la acción del ítem (los ids `hint-badge`/`badge-undo`/
+`badge-midas` y `updateItemBadges()` se conservan). `midas` muestra `×2` y
+brillo verde cuando `worldProgress.<mundo>.midasAt` está activo. Solo modo
+real (`?world=`); modo práctica no lo muestra. API:
+`/api/load-pedestal` / `/api/save-pedestal?world=` (mapeado en api-shim).
+Controles: arrastrar mueve lo seleccionado · `Tab` pedestal/hueco 1-3 ·
+`Espacio` mundo · flechas mover · `+/-` tamaño pedestal · `Q/E` ancho y
+`Z/X` alto de hueco · `G`/`C` por mundo.
 
 ### `calibrate-board-sprites.html` — sprites + áreas
 
@@ -284,6 +337,19 @@ por avatar. Si no existe un override, el avatar usa `positions[level]`.
   mismos JSON. Tras calibrar en desktop, `npm run wgt` y
   `npm run build:android` distribuyen esos datos a TV y Android; no se
   reescala por resolución.
+- **`masks` — manchas oscuras de islas bloqueadas** (`masks[i] = [{x,y,r},…]`,
+  r = fracción del ancho): nubes de gradientes `radial-gradient` que cubren
+  cada isla bloqueada en `submundo.html`. Se generan con
+  `.sam-venv\Scripts\python.exe tools/sam-island-masks.py [MUNDO…]` —
+  MobileSAM segmenta la silueta bajo el punto de pies de cada isla y la cubre
+  con discos máximos inscritos (greedy sobre distance transform); las islas
+  que SAM no resuelve usan un fallback de 3 discos apilados. Si una isla
+  queda mal, editar sus blobs a mano en el JSON (o borrar la entrada para
+  usar la mancha heurística por defecto). Debug visual:
+  `.tmp_chk/island-seg/seg-<M>.png`. La isla recién desbloqueada
+  (`?from=level` tras ganar) usa la misma lista pero en un div propio que se
+  desvanece ~1.8s tras el reveal mientras `isMoving` bloquea el input
+  (total ~3s, sonido `orbe.wav`).
 
 ### `calibrate-submundos-text.html` — textos de submundo
 
@@ -294,9 +360,13 @@ por avatar. Si no existe un override, el avatar usa `positions[level]`.
 
 ### `calibrate-mapamundi-text.html` — textos del mapamundi
 
-`assets/mapamundi/text-areas.json` = `{ areas:{ gold:{x,y,w,h} } }` — texto en
-oro sobre `mapamundi.16x9.webp` (ej. contador de tesoros). Una sola imagen, sin
-selector de mundo. La fuente se auto-ajusta al área para no cortar letras.
+`assets/mapamundi/text-areas.json` = `{ areas:{ gold:{x,y,w,h,anchorX} } }` —
+texto en oro sobre `mapamundi.16x9.webp` (ej. contador de tesoros). El `gold`
+usa `anchorX:"viewRight"`: `x`/`w` son fracciones del ancho del VIEWPORT y `x`
+mide el margen desde el borde derecho — el contador queda pegado a la derecha
+de la pantalla sea cual sea el ratio (igual que en los submundos). Una sola
+imagen, sin selector de mundo. La fuente se auto-ajusta al área para no cortar
+letras.
 
 - API: `/api/save-mapamundi-text-areas`, `/api/load-mapamundi-text-areas`.
 
@@ -313,33 +383,95 @@ renderizarla igual.
 
 ## Tienda (islas extra por submundo)
 
-Cada submundo tiene **dos islas tienda** — nodos extra fuera de la
+Cada submundo tiene **dos caminos a tienda** — nodos extra fuera de la
 serpiente 4×3 que cuelgan de islas normales y no cuentan como nivel:
 entre el nivel 3 y el 4 (`from:2, dir:'up', unlockAfter:3`) y entre el
-nivel 9 y el 10 (`from:8, dir:'left', unlockAfter:9`). **Actualmente sin
-arte pintado** — los nodos llevan `painted:false` y no se dibuja ninguna
-mancha sobre el cielo (el usuario pondrá las imágenes y recalibraremos
-`pos`/`art`).
+nivel 9 y el 10 (`from:8, dir:'up', unlockAfter:9`). Su arte es la
+**cabaña con loro pirata** del usuario (`Downloads/cabana_loro_tienda.png`,
+864×2688) cortada en tres piezas a escala común: la casa
+(`camino-tienda-house.webp`, 864×640 — el loro invita desde su tablón y
+la puerta es el anclaje del avatar: `SHOP_PLANK_X=0.4977`,
+`SHOP_PLANK_Y=0.961`), tiles de un periodo de peldaño
+(`camino-tienda-rung.webp`, 120×50, `background-repeat-y`) y la punta
+natural (`camino-tienda-foot.webp`, 120×177 — cortada centrada en sus
+propios raíles porque la escalera del master se inclina al bajar; si se
+corta al mismo x0 que el tile, los últimos peldaños quedan desplazados
+~9px). La escalera
+cuelga justo bajo la puerta (`SHOP_SHAFT_DX=0`) y **toda la casa se
+ancla al punto medio resuelto** (`shopDoorPos()` = `mid.x` + `pos.y`):
+la escalera cae exacta sobre el pie y la trepa sale en línea recta —
+`pos.x` del JSON solo es fallback antes de cargar posiciones. Al desbloquearse, la casa
+**entra volando desde la esquina superior izquierda** (`flyShopHouseIn`,
+keyframes WAAPI con vaivenes tipo pájaro, ~6s, sonido
+`assets/sounds/comun/casa-vuela.wav`) con la escalera
+recogida; al posarse la **extiende poco a poco** (`deployShopLadder` →
+`shaft-clip.grow`, `clip-path` en `steps()` por periodo de peldaño, sin
+deformar) hasta que el pie aterriza en el **centro del puente** entre
+`from` y `from+1` (`shopMid()` — usa `node.mid` si el nodo lo trae
+calibrado al centro visual del puente pintado, p.ej. AGUA cuyas islas
+3-4 están desplazadas; si no, la media de las posiciones de avatar). Mientras la casa vuela/despliega (`shopFlying`)
+no se puede trepar. Moverse entre esas islas **para en el punto medio**
+(`atLadder`): izquierda/derecha a cada isla o `dir`/`Enter` para subir;
+el avatar **trepa en línea recta** por el eje de la escalera (9 pasos),
+la escalera se **encoge** (`shaft-clip.shrink`) y se navega a
+`shop.html`. Al volver de la tienda (`?from=shop`) el avatar empieza en
+la puerta y **baja con la punta de la escalera** mientras se despliega
+(`descendWithShopLadder`), aterrizando en el punto medio. La casa se
+posa **arriba del todo del mapa** (`pos.y≈0.177`); el segundo camino
+lleva `mirror:true` y queda espejado a la izquierda. SFX locales en
+`assets/sounds/comun/` (AudioGen, `tools/gen-sfx.py`):
+`escalera-crece.wav` al desplegar, `escalera-sube.wav` al trepar y
+`escalera-encoge.wav` al recogerse. En táctil/TV el tap sobre el camino
+(`shopLadderRects`) lleva al pie o trepa.
+**Visita única por tienda**: tras la bajada al volver de la tienda, la
+escalera se recoge y la casa **se marcha volando** (`retireShopHouse`),
+persistiendo `worldProgress[w].shopVisited` (y `shopGone`) vía
+`POST /api/shop-visit {world,index}` — no reaparece aunque se repita el
+nivel. Las visitadas no dejan mancha en el cielo (las pasadas de largo
+sí). `?demo=shop`/`?demo=shop2` se propaga a `shop.html` y a la vuelta
+(`&demo=`) y la tienda NO se retira ahí, para poder probarla siempre.
+Los masters antiguos (`camino-tienda*.webp` cartel/shaft) quedan de
+respaldo sin consumir. **Nombre sobre el tablón**: `submundo.html`
+pinta `shop.title` ("Tienda" localizado) dentro de `.sign-anim` (hereda el vuelo y
+el vaivén `inviting`) según `assets/tienda/camino-tienda-name.json` —
+`{x,y,w,h,rotate,fontScale}` normalizado a la imagen de la casa
+(864×640, compartida por todos los mundos → calibración única,
+`GET /api/shop-name-area` + `POST /api/save-shop-name-area`,
+mapeado en `web/api-shim.js` → `assets/tienda/camino-tienda-name.json`).
+Con `mirror` el flip del padre ya coloca el texto sobre el tablón
+espejado; el propio elemento lleva `scaleX(-1) rotate(-r)` para que
+los glifos salgan legibles con la inclinación invertida. La fuente se
+mide con canvas 2D (`measureText`) porque el path aún no está en el
+DOM al calcularse — `scrollWidth` daría 0. Calibración en desktop:
+`npm run calibrate:tienda-nombre:desktop` (arrastrar área, flechas
+mover, `+/-` tamaño, `,`/`.` fuente, `R/F` rotación, `M` vista espejo,
+`G/C` guardar/cargar).
 
 - `assets/submundos/<MUNDO>/shop.json` — `{world, nodes:[{unlockAfter,
-  from, dir, pos:{x,y}, art?:{x,y}, painted}]}` (el formato plano antiguo se
-  normaliza a `nodes[0]`). Cada nodo cuelga de la isla `from` en la
-  dirección `dir` y se desbloquea al completar `unlockAfter` niveles.
-  `pos` es la posición del avatar sobre la isla tienda (espacio `.169`,
-  0-1); `art` indica dónde se pintó la isla si difiere. `painted:false`
-  = nodo navegable pero invisible (sin efectos de bloqueo/disolución).
-- `submundo.html`: `loadShop()` carga `shopNodes`; desde la isla `from`,
-  la dirección `dir` mueve el avatar a la tienda (rebotando si está
-  bloqueada — máscara `island-fx locked` como las islas). `INV[dir]`
-  devuelve a la isla. Enter en la tienda navega a
-  `shop.html?world=X`. El HUD central muestra `shop.title` en vez de
-  "Nivel X/12". **La tienda desaparece al COMPLETAR el nivel `from+1`**:
+  from, dir, pos:{x,y}, mid?:{x,y}, mirror?, art?:{x,y}, painted}]}` (el formato
+  plano antiguo se normaliza a `nodes[0]`). Cada nodo cuelga de la isla
+  `from` en la dirección `dir` (`up`) y se desbloquea al completar
+  `unlockAfter` niveles. `pos` es el centro del tablón/cartel (0-1 sobre
+  la imagen) — el avatar aterriza ahí tras trepar; `mirror` espeja el
+  cartel en horizontal; `art` indica dónde se pintaría una isla si
+  difiriera. `painted:false` = sin isla pintada en el fondo (el
+  camino-escalera SÍ se dibuja; `painted` solo gobierna la mancha de
+  isla).
+- `submundo.html`: `loadShop()` carga `shopNodes`; el salto `from ↔
+  from+1` cruza el pie de la escalera (`atLadder`) si el camino está
+  desbloqueado — desde el pie, las flechas laterales llevan a cada isla
+  y `dir`/`Enter` trepan. `INV[dir]` baja del tablón al pie. Enter en el
+  tablón navega a `shop.html?world=X`. El HUD central muestra
+  `shop.title` mientras se trepa. **La tienda desaparece al COMPLETAR el
+  nivel `from+1`**:
   `shopGone` (Set de índices) se deriva en `loadShop()` de
   `completedLevels`, no al pisar la isla — moverse de `from` a `from+1`
   sin entrar la deja accesible; superar ese nivel la disuelve en una
-  mancha difuminada (`paintShopGoneFx`) para siempre. El flag persiste
-  `worldProgress[w].shopGone` vía `POST /api/shop-skip {world,index}`
-  (`true` legado = `[0]`).
+  mancha difuminada para siempre. Persisten `worldProgress[w].shopGone`
+  vía `POST /api/shop-skip {world,index}` (`true` legado = `[0]`) y
+  `worldProgress[w].shopVisited` (tiendas ya usadas) vía
+  `POST /api/shop-visit {world,index}` — ambos también en
+  `web/webdb.js` + `web/api-shim.js` (TV/Android).
   `?demo=shop`/`?demo=shop2` simulan el estado tras nivel 3/9 sin tocar
   la bbdd.
 - `assets/tienda/items.json` — catálogo `{items:[{id,price,icon,uses}]}`.
@@ -393,14 +525,23 @@ mancha sobre el cielo (el usuario pondrá las imágenes y recalibraremos
     ítem NO se gasta.
   - `deshacer` (500) — tecla **U** o badge: rebobina el último turno
     (`undoStack`: jugador, enemigos, aturdimientos y contador).
-  - `midas` (600) — tecla **M** o badge: se ARMA en la pantalla y duplica
-    `winGoldEarned` al ganarla; si pierdes o reinicias, se pierde. Solo
-    rentable en pantallas grandes/boss — es una inversión.
-  Los badges apilados (`#item-badges`, inf-der) muestran contador; el de
-  midas brilla con `×2` mientras está armado. El tendero rota un
-  agradecimiento (`shop.thanks.0..2`) tras cada compra.
-- Iconos `assets/tienda/iconos/*.webp` — orbe dorado generado con PIL
-  (`tools/mk-shop-icons.py`).
+  - `midas` (600×1.8ⁿ) — tecla **M** o badge: se APLICA al mundo entero
+    (`POST /api/midas-activate {world,level}` → `wp.midasAt`): todo el
+    oro de las islas posteriores de ESE mundo se duplica para siempre
+    (activarlo en el nivel 3 dobla del 4 al 12; el propio nivel no). El
+    bonus final del guardián también se dobla. Si el mundo ya lo tiene,
+    el badge se niega sin consumir. **Recomprable**: cada compra
+    multiplica el precio por `priceGrowth` (1.8, sin decimales —
+    600/1080/1944/3499…; contador `player.itemPurchases`, validado en
+    server via `itemPrice()` de db.ts/webdb.js; `max:8` = un mundo por
+    uso). El badge brilla `×2` mientras el mundo lo lleva activo.
+  Las reliquias compradas se muestran sentadas en el pedestal temático
+  (`#pedestal`, inf-der — ver `calibrate-pedestal.html`), con contador `cnt`.
+  El tendero rota un agradecimiento (`shop.thanks.0..2`) tras cada compra.
+- Iconos `assets/tienda/iconos/*.webp` — arte del usuario
+  (`Downloads/reliquia_*.png`, recortado al alpha + 512px); los masters
+  anteriores quedan en `iconos/old/` y el antiguo generador PIL
+  `tools/mk-shop-icons.py` de respaldo. Cache-buster `?v=p9` en los src.
 - El antiguo generador de isla tienda componía arte con inpainting SD y fue
   retirado. El interior `tienda.webp` sí se conserva. Las islas tienda del
   mapa las pintará el usuario; recalibrar `pos`/`art` en `shop.json` y poner
@@ -560,6 +701,34 @@ mancha sobre el cielo (el usuario pondrá las imágenes y recalibraremos
 - API: `/api/load-character-positions`, `/api/save-character-positions`, `/api/load-selection-buttons`, `/api/save-selection-buttons`, `/api/load-selection-name`, `/api/save-selection-name`. El servidor resuelve la raíz desde `server.ts`, no `process.cwd()`.
 - Al guardar se reemplaza **solo la entrada del índice editado** — nunca se envían los otros 7 desde memoria.
 - Avatares: `assets/avatars/avatar_0N.webp` 7680×7680 RGBA (masters) + `thumbs/` 512×512 + `display/` 2048×2048 webp (los que usa el cuerpo completo en pantalla; regenerar con `tools/convert-display-assets.py`). Cache-busting `?v=avatars-N` / `?v=display-N` (incrementar al regenerar). Para calidad extrema: Real-ESRGAN x4plus en `.sam-venv`.
+- `assets/avatars/cesta/avatar_0N.webp` (~512px) — el avatar de espaldas sujetando una cesta en alto (loro incluido), para la futura **pantalla de bonus** de recogida.
+- `assets/bonus/<MUNDO>.webp` (1920×1080, 16:9 exacto) — fondos temáticos de la pantalla de bonus por mundo (masters `Downloads/bonus *.jpg`); la casa voladora usa `shop.sign` ("Bonus") en su cartel.
+- Ítems que caen del cielo en el bonus (`assets/bonus/*.webp`, ~400px): `moneda-pequena`/`moneda-mediana`/`moneda-grande`/`collar-rubi` suman oro; `castigo` (engendro oscuro) y `calavera-bonus` restan.
+
+## Pantalla de bonus (`bonus.html`)
+
+Minijuego de la casa voladora: trepar la escalera del submundo lleva a
+`/bonus.html?world=X` (ya no a `shop.html`; `demo=shop/shop2` siguen
+abriendo la tienda para probarla). Fondo `assets/bonus/<M>.webp` (16:9),
+el avatar con cesta (`assets/avatars/cesta/avatar_0N.webp`) corre abajo.
+
+- **Intro**: "BONUS" grande + pista localizada + cuenta atrás 5→0 → `bonus.go`.
+- **Ronda**: 30 s; los ítems caen con vaivén y aceleran (4.4s→2.5s de
+  caída, spawn ~0.62s→0.36s). Cesta = banda superior del sprite. Valores:
+  `moneda-pequena` +10 · `mediana` +25 · `grande` +50 · `collar` +120 ·
+  `castigo` −40 · `calavera` −90.
+- **FX de captura**: pop del ítem + 7 chispas + aura que vuela al
+  contador (el oro se suma al LLEGAR) + "+X/−X" flotante; sonidos
+  `moneda.wav`/`trampa.wav`.
+- **Fin** (`bonus.timeup`): botín de la ronda + botones `bonus.enter-shop`
+  (va a `shop.html?world=X`) y `instructions.back` (vuelve con
+  `&from=shop` → bajada por escalera + casa se marcha). Escape acaba la
+  ronda antes. El oro se persiste UNA vez con `POST /api/bonus-gold
+  {world, delta}` → `addBonusGold()` en db.ts/webdb.js (nunca < 0);
+  api-shim lo mapea. `?demo=1|bonus` juega sin persistir.
+- Controles: flechas/A-D + puntero (arrastrar mueve al x tocado; el avatar
+  glisa). HUD `timer`/`gold` normalizados al rect de la imagen.
+- i18n: `bonus.title/go/timeup/won/enter-shop/hint` en los 10 idiomas.
 - Navegación y bordes: ver `docs/17-PANTALLA-SELECCION-PERSONAJE.md` (orden lineal, filas con memoria entre bloques, excepción Borrar R/S/T/Z→T, borde irregular feTurbulence, click=dorado fuerte / hover=suave, cuerpo completo por hover real).
 
 ## Mundos
@@ -627,13 +796,15 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   - **No es obligatorio mostrar todas** las imágenes del mundo en cada pantalla; basta con las que el nivel genere.
   - Si un mundo no tiene carpeta de obstáculos, se usa una imagen de marcador (placeholder) y se documenta el faltante.
   - Mapeo de carpetas especiales: `VIENTO` → `assets/obstaculos/AIRE/`.
-- **Progresión de dificultad**: 8 mundos × 12 islas = 96 pantallas, repartidas en los tiers **3..14** (la partida
-  siempre empieza en el nivel 3) según el **nº de pantallas superadas** —
-  `min(14, 3 + floor(c × 12 / 96))`, 8 islas por tier. NO depende de la
+- **Progresión de dificultad** (A FUEGO — decisión del usuario): 8 mundos ×
+  12 islas = 96 pantallas, repartidas en los tiers **6..15** (la partida
+  siempre empieza en el nivel **6** y se complica progresivamente hasta el
+  15) según el **nº de pantallas superadas** —
+  `min(15, 6 + floor(c × 10 / 96))`, ~9-10 islas por tier. NO depende de la
   isla/mundo (los mundos se juegan en orden libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
-  **Excepción — boss final**: la última isla de MAZMORRA (`level=11`) usa el
-  **tier 15**, exclusivo y fuera de la curva (`mapTierFor` en `db/db.ts`).
-  Su banco es `db/screens-tier-15.json`.
+  **Boss final**: la última isla de MAZMORRA (`level=11`) usa el
+  **tier 15** (`mapTierFor` en `db/db.ts`), que coincide con el techo de la
+  curva. Su banco es `db/screens-tier-15.json`.
 - **Generador de niveles** (`generator/generate-screens.ts`): rediseñado —
   máx. 2 enemigos (separación Manhattan ≥4 entre ellos, colocación táctica
   en el tramo final del camino), todo elemento imprescindible (quitarlo
@@ -726,6 +897,23 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   4. La pantalla anterior se desvanece mientras la nueva aparece.
   5. Usar CSS transitions/animations o un overlay de fundido negro/pergamino.
   6. Nunca mostrar un parpadeo en blanco ni carga brusca de contenido.
+- **Overlay nace en negro (regla dura)**: `#transition-overlay` existe en
+  todas las pantallas (menu, mapamundi, submundo, shop, bonus, creditos,
+  instructions, ajustes, game, fin) con CSS `opacity:1;pointer-events:auto`
+  — nace negro DESDE el primer paint, nunca `display:none`/`opacity:0`.
+  Si nace oculto, el navegador pinta contenido a medias antes de que el JS
+  reactive el negro → destello. Toda pagina nueva con overlay debe:
+  1. Nacer con `opacity:1` (el propio overlay o un loading-screen por encima).
+  2. Llamar `AssetsCache.transitionIn()` SOLO cuando la escena este
+     compuesta (imagenes decodificadas, primer render hecho) — en game/fin
+     se espera a los `<img>` concretos de la primera escena.
+  3. Si una imagen puede no tener `src` todavia (ej. hero de fin.html),
+     filtrarla del wait o el reveal nunca llega (ojo con gates tipo
+     "pulsa para empezar").
+- `assets-cache.js` lleva un watchdog de 25s: si nadie llamo a
+  `transitionIn` (error/hang), revela igualmente — un negro eterno es peor
+  que un reveal imperfecto. No esperar eventos que pueden no dispararse
+  sin timeout o sin watchdog propio.
 - **A fuego — movimiento lineal por submundos**: el avatar se mueve por los 12
   niveles de cada submundo de forma **lineal y secuencial** (1→2→3→...→12).
   Desde el nivel N solo se puede ir al N+1 o al N-1, nunca a otro nivel no

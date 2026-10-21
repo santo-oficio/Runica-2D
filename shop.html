@@ -44,7 +44,7 @@
   #transition-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 90; background: #000;
-    opacity: 0; pointer-events: none; display: none;
+    opacity: 1; pointer-events: auto; /* nace en negro: cero destello al entrar */
   }
   #bg {
     position: absolute; top: 0; left: 0;
@@ -199,6 +199,23 @@
     background: rgba(30, 20, 10, 0.8);
     color: #ffe9a8;
   }
+  #back-btn {
+    position: absolute; bottom: 12px; left: 12px; z-index: 20;
+    font-family: 'ChelseaMarket', cursive;
+    font-size: 1em; color: #e8d4a8;
+    padding: 8px 24px;
+    background: linear-gradient(180deg, rgba(60, 42, 20, 0.9), rgba(35, 24, 10, 0.95));
+    border: 2px solid rgba(180, 150, 80, 0.5);
+    border-radius: 8px; cursor: pointer;
+    box-shadow: 0 4px 0 rgba(20, 12, 4, 0.8), 0 6px 10px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    transition: all 0.15s ease;
+  }
+  #back-btn:hover {
+    background: linear-gradient(180deg, rgba(80, 58, 28, 0.9), rgba(50, 34, 14, 0.95));
+    border-color: rgba(232, 212, 168, 0.7); color: #fff8e0;
+  }
+  #back-btn:active { transform: translateY(3px); }
 </style>
 </head>
 <body>
@@ -226,6 +243,7 @@
 <div id="item-desc"></div>
 <svg id="seldraw"></svg>
 <div id="controls-hint"></div>
+<button id="back-btn" data-i18n="instructions.back"></button>
 
 <script src="/assets-cache.js"></script>
 <script>
@@ -459,6 +477,15 @@
     return (player && player.inventory && player.inventory[id]) || 0;
   }
 
+  // Precio efectivo: los ítems con priceGrowth (midas ×1.8) encarecen cada
+  // compra — el contador vive en player.itemPurchases y lo valida el server.
+  function itemPrice(item) {
+    const n = (player && player.itemPurchases && player.itemPurchases[item.id]) || 0;
+    return (item.priceGrowth > 1)
+      ? Math.round(item.price * Math.pow(item.priceGrowth, n))
+      : item.price;
+  }
+
   function renderItems() {
     const panel = document.getElementById('slots');
     panel.innerHTML = '';
@@ -470,7 +497,7 @@
 
       const icon = document.createElement('img');
       icon.className = 'item-icon';
-      icon.src = (item.icon || '/assets/comunes/monedas.webp') + '?v=p8';
+      icon.src = (item.icon || '/assets/comunes/monedas.webp') + '?v=p9';
       icon.alt = '';
       icon.onerror = () => { icon.src = '/assets/comunes/monedas.webp'; };
       slot.appendChild(icon);
@@ -483,7 +510,7 @@
       const price = document.createElement('div');
       price.className = 'item-price';
       price.innerHTML = '<img src="/assets/comunes/monedas.webp" alt="">';
-      price.appendChild(document.createTextNode(String(item.price)));
+      price.appendChild(document.createTextNode(String(itemPrice(item))));
       slot.appendChild(price);
 
       // Deshabilitado = ya lo tienes (máx. 1 por tipo); no hace falta texto
@@ -541,11 +568,16 @@
     try {
       let d;
       if (DEMO) {
-        const ok = (player.gold ?? 0) >= item.price;
+        const eff = itemPrice(item);
+        const ok = (player.gold ?? 0) >= eff;
         if (ok) {
-          player.gold -= item.price;
+          player.gold -= eff;
           player.inventory = player.inventory || {};
           player.inventory[item.id] = (player.inventory[item.id] || 0) + (item.uses || 1);
+          if (item.priceGrowth > 1) {
+            player.itemPurchases = player.itemPurchases || {};
+            player.itemPurchases[item.id] = (player.itemPurchases[item.id] || 0) + 1;
+          }
         }
         d = { ok, player };
       } else {
@@ -575,6 +607,10 @@
 
   function playHover() { AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45); }
   function playMove() { AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5); }
+  document.getElementById('back-btn').addEventListener('click', () => goBack());
+  document.getElementById('back-btn').addEventListener('mouseenter', () => {
+    AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.45);
+  });
   function goBack() {
     AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6);
     if (DEMO) {
@@ -582,7 +618,9 @@
       history.back();
       return;
     }
-    AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(currentWorld));
+    const demoParam = new URLSearchParams(window.location.search).get('demo');
+    AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(currentWorld) + '&from=shop' +
+      (demoParam ? '&demo=' + encodeURIComponent(demoParam) : ''));
   }
 
   document.addEventListener('keydown', (e) => {
@@ -650,8 +688,7 @@
       // necesita su fondo e iconos (8 iframes del mosaico no deben
       // descargar ~300 MB cada una).
       AssetsCache.unlockAudio();
-      AssetsCache.hideLoading();
-      setTimeout(() => AssetsCache.transitionIn(), 100);
+      AssetsCache.revealPage();
       return;
     }
     AssetsCache.showLoading();
@@ -662,8 +699,7 @@
       loadingBar.style.width = pct + '%';
       loadingText.textContent = t('loading.text') + ' ' + pct + '%';
     });
-    AssetsCache.hideLoading();
-    setTimeout(() => AssetsCache.transitionIn(), 500);
+    AssetsCache.revealPage();
   })();
 </script>
 

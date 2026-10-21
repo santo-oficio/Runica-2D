@@ -47,7 +47,7 @@
   #transition-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 90; background: #000;
-    opacity: 0; pointer-events: none; display: none;
+    opacity: 1; pointer-events: auto; /* nace en negro: cero destello al entrar */
   }
   #stage {
     position: absolute; top: 0; left: 0;
@@ -332,6 +332,10 @@
   if (new URLSearchParams(location.search).has('debug')) document.getElementById('hud').classList.add('debug');
   const DEMO_ALL7 = DEMO_WORLD === 'all7';
   const DEMO_MODE = WORLD_ORDER.includes(DEMO_WORLD) || DEMO_ALL7;
+  // ?auto=1 — autopiloto de grabación (tools/record-demo.mjs): entra al
+  // mundo seleccionado solo; si volvemos de cerrar la toma o de celebrar
+  // la conquista de un mundo, queda en pausa y marca __autoDone.
+  const AUTO_RUN = new URLSearchParams(location.search).get('auto') === '1';
   // Mundo recién conquistado (lo marca game.html al ganar la isla 12):
   // se pinta A COLOR y se desatura a B/N durante la celebración.
   const JUST_DONE_WORLD = sessionStorage.getItem('runika-world-done');
@@ -427,12 +431,14 @@
     const w = JUST_DONE_WORLD;
     if (!w || !WORLD_ORDER.includes(w)) return;
     sessionStorage.removeItem('runika-world-done');
-    // El mundo conquistado drena de color a B/N ~1s después de empezar
-    // la celebración (los anillos explotan sobre el mundo aún en color)
+    // El mundo conquistado aguanta a color ~3s mientras explotan los
+    // anillos/chispas; entonces suena el orbe misterioso y drena a B/N
+    // en 2.4s (transition del filtro de .world-fx.done)
     setTimeout(() => {
+      AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.8);
       overlay.querySelector('.world-fx.start-color')?.classList.remove('start-color');
       pendingFade = null;
-    }, 900);
+    }, 2800);
     const r = imageRect();
     const circ = FIN_AREAS?.aura?.[w];
     const pos = WORLD_POSITIONS[w];
@@ -468,8 +474,9 @@
     b.textContent = t('map.worldDone').replace('{0}', t('worlds.' + w));
     document.body.appendChild(b);
     setTimeout(() => b.remove(), 3600);
-    // Si era el último boss normal, MAZMORRA despierta tras la celebración
-    if (awakeningWanted()) setTimeout(awakenFinalWorld, 3400);
+    // Si era el último boss normal, MAZMORRA despierta cuando el mundo
+    // recién conquistado terminó de drenar a B/N
+    if (awakeningWanted()) setTimeout(awakenFinalWorld, 5600);
   }
 
   // MAZMORRA se enciende poco a poco: su capa oscura pasa a color durante
@@ -635,7 +642,7 @@
         const speed = 800;
         const duration = Math.max(0.3, Math.min(1.5, dist / speed));
         setTimeout(() => {
-          AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(world));
+          AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(world) + (AUTO_RUN ? '&auto=1' : ''));
         }, duration * 1000 + 100);
       });
 
@@ -645,11 +652,20 @@
     // Oro acumulado (área calibrada, alineado a la derecha con moneda)
     if (GOLD_AREA && player) {
       const ir = imageRect();
+      // anchorX 'viewRight'/'viewLeft': x y w son fracciones del ancho
+      // VISIBLE del viewport (x = margen desde ese borde), no de la imagen
+      const vw = window.innerWidth;
+      const goldLeft = GOLD_AREA.anchorX === 'viewRight'
+        ? vw * (1 - GOLD_AREA.x - GOLD_AREA.w)
+        : GOLD_AREA.anchorX === 'viewLeft'
+          ? GOLD_AREA.x * vw
+          : ir.left + GOLD_AREA.x * ir.width;
+      const goldW = GOLD_AREA.anchorX ? GOLD_AREA.w * vw : GOLD_AREA.w * ir.width;
       const goldEl = document.createElement('div');
       goldEl.className = 'gold-text';
-      goldEl.style.left = (ir.left + GOLD_AREA.x * ir.width) + 'px';
+      goldEl.style.left = goldLeft + 'px';
       goldEl.style.top = (ir.top + GOLD_AREA.y * ir.height) + 'px';
-      goldEl.style.width = (GOLD_AREA.w * ir.width) + 'px';
+      goldEl.style.width = goldW + 'px';
       goldEl.style.height = (GOLD_AREA.h * ir.height) + 'px';
       goldEl.style.fontSize = Math.max(10, GOLD_AREA.h * ir.height * 0.62 * (GOLD_AREA.fontScale || 1)) + 'px';
       goldEl.style.paddingRight = (ir.width * 0.01) + 'px';
@@ -759,9 +775,9 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    // demo simple: avatar quieto. demo all7: flechas sí (para ver
-    // MAZMORRA alcanzable a color), Enter rebota — sin navegación real
-    if (DEMO_MODE && !DEMO_ALL7) return;
+    // demo: las flechas SIEMPRE mueven (hay que recorrer el mapa para
+    // comprobar el mundo conquistado en B/N); Enter rebota sin navegar
+    // — en demo no se entra a ningún mundo ni se escribe la partida
     if (e.key === 'Escape') { AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.6); AssetsCache.transitionTo('/menu.html'); return; }
 
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { e.preventDefault(); moveByPath('left'); }
@@ -769,14 +785,14 @@
     else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); moveByPath('up'); }
     else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); moveByPath('down'); }
     else if (e.key === 'Enter') {
-      if (DEMO_ALL7) { e.preventDefault(); bounceAvatar('down'); return; }
+      if (DEMO_MODE) { e.preventDefault(); bounceAvatar('down'); return; }
       e.preventDefault();
       const world = WORLD_ORDER[selectedWorld];
       // Mundo completado o bloqueado: rebote, no se entra
       if (worldLocked(world)) { bounceAvatar('down'); return; }
       AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
       saveMapPosition();
-      AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(world));
+      AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(world) + (AUTO_RUN ? '&auto=1' : ''));
     }
   });
 
@@ -854,8 +870,7 @@
       await loadTextAreas();
       await loadFinAreas();
       render();
-      AssetsCache.hideLoading();
-      setTimeout(() => AssetsCache.transitionIn(), 100);
+      AssetsCache.revealPage();
       setTimeout(celebrateWorldDone, 500);
       return;
     }
@@ -883,10 +898,24 @@
     await loadFinAreas();
     render();
 
-    AssetsCache.hideLoading();
-    setTimeout(() => AssetsCache.transitionIn(), 500);
+    AssetsCache.revealPage();
     setTimeout(celebrateWorldDone, 800);
   })();
+
+  // === Autopiloto ?auto=1: entra al mundo seleccionado; si la toma ya
+  // cerró (runika-auto-done) o se celebra la conquista (JUST_DONE_WORLD),
+  // marca __autoDone para que el grabador corte ===
+  if (AUTO_RUN) {
+    if (sessionStorage.getItem('runika-auto-done') || JUST_DONE_WORLD) {
+      setTimeout(() => { window.__autoDone = true; }, JUST_DONE_WORLD ? 7000 : 1500);
+    } else {
+      setTimeout(() => {
+        const w = WORLD_ORDER[selectedWorld];
+        if (w && !worldLocked(w)) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+        else window.__autoDone = true;
+      }, 3200);
+    }
+  }
 
   bg.addEventListener('load', render);
   window.addEventListener('resize', render);

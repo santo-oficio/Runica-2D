@@ -90,7 +90,7 @@
   <b>Calibrar area de instrucciones</b><br>
   Marca la zona donde ira el texto (se ve con el contenido real)<br>
   <br>
-  <span class="key">B</span> = editar <b>BOTON ATRAS</b> (redondo: arrastra desde el centro)<br>
+  <span class="key">B</span> = editar <b>BOTON ATRAS</b> (elipse: arrastra desde el centro)<br>
   <span class="key">Arrastrar</span> = marcar area<br>
   <span class="new">Espacio</span> = clonar (mismo tamano)<br>
   <span class="key">Flechas</span> = mover seleccion (Shift = fino, Ctrl = ultra)<br>
@@ -122,7 +122,7 @@
   let currentRect = null;
   let showText = true;
   let i18n = {};
-  // Boton atras (redondo): {cx, cy, r} - r normalizado al ANCHO de imagen
+  // Boton atras (elipse): {cx, cy, rx, ry} - rx del ancho, ry del alto
   let backButton = null;
   let editTarget = 'areas'; // 'areas' | 'button'
 
@@ -199,18 +199,19 @@
       div.appendChild(tag);
       overlay.appendChild(div);
     });
-    // Boton atras (circulo)
+    // Boton atras (elipse)
     if (backButton) {
       const r = visibleImageRect();
-      const d = 2 * backButton.r * r.width;
+      const bw = 2 * backButton.rx * r.width;
+      const bh = 2 * backButton.ry * r.height;
       const cx = r.left + backButton.cx * r.width;
       const cy = r.top + backButton.cy * r.height;
       const div = document.createElement('div');
       div.className = 'area-rect circle' + (editTarget === 'button' ? ' active' : '');
-      div.style.left = (cx - d / 2) + 'px';
-      div.style.top = (cy - d / 2) + 'px';
-      div.style.width = d + 'px';
-      div.style.height = d + 'px';
+      div.style.left = (cx - bw / 2) + 'px';
+      div.style.top = (cy - bh / 2) + 'px';
+      div.style.width = bw + 'px';
+      div.style.height = bh + 'px';
       const tag = document.createElement('div');
       tag.className = 'tag';
       tag.textContent = 'boton atras';
@@ -240,7 +241,7 @@
     if (editTarget === 'button') {
       coordsEl.textContent = backButton
         ? 'BOTON ATRAS · cx:' + backButton.cx.toFixed(4) + ' cy:' + backButton.cy.toFixed(4) +
-          ' r:' + backButton.r.toFixed(4)
+          ' rx:' + backButton.rx.toFixed(4) + ' ry:' + backButton.ry.toFixed(4)
         : 'BOTON ATRAS · sin definir (arrastra desde el centro)';
       return;
     }
@@ -264,15 +265,15 @@
     if (!dragging) return;
     const r = visibleImageRect();
     if (editTarget === 'button') {
-      // Arrastre desde el centro: el radio es la distancia
+      // Arrastre desde el centro: define los dos radios de la elipse
       const c = normToPx(dragStart.x, dragStart.y);
-      const d = 2 * Math.hypot(e.clientX - c.x, e.clientY - c.y);
+      const ex = Math.abs(e.clientX - c.x), ey = Math.abs(e.clientY - c.y);
       dragRect.style.borderRadius = '50%';
-      dragRect.style.left = (c.x - d / 2) + 'px';
-      dragRect.style.top = (c.y - d / 2) + 'px';
-      dragRect.style.width = d + 'px';
-      dragRect.style.height = d + 'px';
-      coordsEl.textContent = 'BOTON ATRAS · r:' + (d / 2 / r.width).toFixed(4);
+      dragRect.style.left = (c.x - ex) + 'px';
+      dragRect.style.top = (c.y - ey) + 'px';
+      dragRect.style.width = (2 * ex) + 'px';
+      dragRect.style.height = (2 * ey) + 'px';
+      coordsEl.textContent = 'BOTON ATRAS · rx:' + (ex / r.width).toFixed(4) + ' ry:' + (ey / r.height).toFixed(4);
       return;
     }
     dragRect.style.borderRadius = '0';
@@ -297,11 +298,12 @@
     if (editTarget === 'button') {
       const r = visibleImageRect();
       const c = normToPx(dragStart.x, dragStart.y);
-      const radius = Math.hypot(e.clientX - c.x, e.clientY - c.y) / r.width;
-      if (radius > 0.005) {
-        backButton = { cx: dragStart.x, cy: dragStart.y, r: radius };
+      const erx = Math.abs(e.clientX - c.x) / r.width;
+      const ery = Math.abs(e.clientY - c.y) / r.height;
+      if (erx > 0.004 && ery > 0.004) {
+        backButton = { cx: dragStart.x, cy: dragStart.y, rx: erx, ry: ery };
         render();
-        statusEl.innerHTML = '<span class="ok">Boton atras definido. Flechas = mover · +/- = radio · G = guardar.</span>';
+        statusEl.innerHTML = '<span class="ok">Boton atras definido. Flechas = mover · +/- = radios · Q/E = rx · Z/X = ry · G = guardar.</span>';
       }
       updateCoords(null);
       dragStart = null;
@@ -322,13 +324,13 @@
     if (e.target.tagName === 'INPUT') return;
     const step = e.ctrlKey ? 0.0002 : e.shiftKey ? 0.001 : 0.005;
 
-    // B = alternar entre calibrar areas de texto y el boton atras (redondo)
+    // B = alternar entre calibrar areas de texto y el boton atras (elipse)
     if (e.key === 'b' || e.key === 'B') {
       editTarget = editTarget === 'button' ? 'areas' : 'button';
       render();
       updateCoords(areas[selectedIdx]);
       statusEl.innerHTML = editTarget === 'button'
-        ? '<span class="info">Editando BOTON ATRAS (redondo): arrastra desde el centro hasta el borde · flechas = mover · +/- = radio · G = guardar.</span>'
+        ? '<span class="info">Editando BOTON ATRAS (elipse): arrastra desde el centro · flechas = mover · +/- = radios · Q/E = rx · Z/X = ry · G = guardar.</span>'
         : '<span class="info">Editando areas de texto.</span>';
       return;
     }
@@ -338,7 +340,7 @@
     if (e.key === 'c' || e.key === 'C') { loadJson(); return; }
     if (e.key === 't' || e.key === 'T') { showText = !showText; render(); return; }
 
-    // Modo boton: flechas mueven el centro, +/- cambian el radio
+    // Modo boton: flechas mueven el centro, +/- ambos radios, Q/E solo rx, Z/X solo ry
     if (editTarget === 'button') {
       if (backButton) {
         let changed = false;
@@ -346,8 +348,12 @@
         if (e.key === 'ArrowRight') { backButton.cx = Math.min(1, backButton.cx + step); changed = true; }
         if (e.key === 'ArrowUp') { backButton.cy = Math.max(0, backButton.cy - step); changed = true; }
         if (e.key === 'ArrowDown') { backButton.cy = Math.min(1, backButton.cy + step); changed = true; }
-        if (e.key === '+' || e.key === '=') { backButton.r = Math.min(0.5, backButton.r + step / 2); changed = true; }
-        if (e.key === '-' || e.key === '_') { backButton.r = Math.max(0.005, backButton.r - step / 2); changed = true; }
+        if (e.key === '+' || e.key === '=') { backButton.rx = Math.min(0.5, backButton.rx + step / 2); backButton.ry = Math.min(0.5, backButton.ry + step / 2); changed = true; }
+        if (e.key === '-' || e.key === '_') { backButton.rx = Math.max(0.003, backButton.rx - step / 2); backButton.ry = Math.max(0.003, backButton.ry - step / 2); changed = true; }
+        if (e.key === 'q' || e.key === 'Q') { backButton.rx = Math.max(0.003, backButton.rx - step / 2); changed = true; }
+        if (e.key === 'e' || e.key === 'E') { backButton.rx = Math.min(0.5, backButton.rx + step / 2); changed = true; }
+        if (e.key === 'z' || e.key === 'Z') { backButton.ry = Math.max(0.003, backButton.ry - step / 2); changed = true; }
+        if (e.key === 'x' || e.key === 'X') { backButton.ry = Math.min(0.5, backButton.ry + step / 2); changed = true; }
         if (changed) { e.preventDefault(); render(); updateCoords(null); }
       }
       return;
@@ -443,6 +449,11 @@
       if (data.areas) {
         areas = data.areas;
         backButton = data.backButton || null;
+        // legacy: circulo {r} -> elipse equivalente
+        if (backButton && backButton.rx == null && backButton.r != null) {
+          const ar = (img.naturalWidth || 16) / (img.naturalHeight || 9);
+          backButton = { cx: backButton.cx, cy: backButton.cy, rx: backButton.r, ry: backButton.r * ar };
+        }
         selectedIdx = 0;
         render();
         if (areas.length > 0) updateCoords(areas[0]);

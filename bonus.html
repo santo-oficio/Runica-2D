@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/web/webdb.js"></script>
+<script src="/web/solver.bundle.js"></script>
+<script src="/web/api-shim.js"></script>
+<script src="/web/tizen.js"></script>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Runika 2D</title>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; background: #000; overflow: hidden;
+    font-family: 'ChelseaMarket', cursive;
+    user-select: none; touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #loading-screen {
+    position: fixed; inset: 0; z-index: 100; background: #0a0806;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #e8d4a8;
+  }
+  #loading-screen .title {
+    font-size: 2.5em; color: #f0d890;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    margin-bottom: 30px; letter-spacing: 3px;
+  }
+  #loading-bar-bg {
+    width: 300px; height: 8px;
+    background: rgba(60, 42, 20, 0.5);
+    border: 1px solid rgba(180, 150, 80, 0.4);
+    border-radius: 4px; overflow: hidden;
+  }
+  #loading-bar {
+    width: 0%; height: 100%;
+    background: linear-gradient(90deg, #c4a050, #f0d890);
+    transition: width 0.2s ease;
+  }
+  #loading-text { margin-top: 12px; font-size: 0.9em; color: #a08850; }
+  #transition-overlay {
+    position: fixed; inset: 0; z-index: 90; background: #000;
+    opacity: 1; pointer-events: auto; /* nace en negro: cero destello al entrar */
+  }
+  #bg {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; object-position: center; z-index: 1;
+  }
+  #fillbg {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; filter: blur(45px) brightness(0.42);
+    transform: scale(1.15); z-index: 0;
+  }
+  /* HUD: temporizador arriba-centro, botín arriba-derecha */
+  #timer {
+    position: absolute; z-index: 30; top: 0; transform: translateX(-50%);
+    color: #ffe9a8; text-shadow: 2px 2px 4px rgba(0,0,0,.85);
+    background: rgba(16,10,5,.65); border: 2px solid rgba(210,170,90,.7);
+    border-radius: 14px; padding: .4vh 1.2vw; font-size: 4.2vh; line-height: 1.2;
+    min-width: 3.2em; text-align: center;
+  }
+  #timer.low { color: #ff8a70; border-color: rgba(255,90,70,.85); animation: lowPulse .5s ease-in-out infinite alternate; }
+  @keyframes lowPulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.08); } }
+  #gold {
+    position: absolute; z-index: 30; top: 0;
+    display: flex; align-items: center; justify-content: flex-end; gap: .4em;
+    color: #ffe9a8; text-shadow: 2px 2px 4px rgba(0,0,0,.85);
+    background: rgba(16,10,5,.65); border: 2px solid rgba(210,170,90,.7);
+    border-radius: 14px; padding: .5vh .9vw; font-size: 3.6vh; line-height: 1;
+    white-space: nowrap;
+  }
+  #gold img { height: 1.15em; }
+  #gold.neg { color: #ff8a70; border-color: rgba(255,90,70,.85); }
+  #gold.bump { animation: goldBump .28s ease-out; }
+  @keyframes goldBump { 40% { transform: scale(1.18); } }
+  /* Capa de ítems cayendo */
+  #field { position: absolute; z-index: 10; overflow: visible; pointer-events: none; }
+  .fall-item {
+    position: absolute; z-index: 1; will-change: transform;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,.5));
+    transition: filter .12s;
+  }
+  .fall-item.caught {
+    animation: caughtPop .32s ease-out forwards;
+    filter: drop-shadow(0 0 18px rgba(255,230,140,.95)) brightness(1.6);
+  }
+  .fall-item.caught.neg {
+    filter: drop-shadow(0 0 18px rgba(255,80,60,.95)) brightness(1.3);
+  }
+  @keyframes caughtPop {
+    40% { opacity: 1; }
+    100% { opacity: 0; transform-origin: center; }
+  }
+  .spark {
+    position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    pointer-events: none; z-index: 3;
+  }
+  /* Aura que vuela del ítem al contador de oro */
+  .aura {
+    position: absolute; width: 22px; height: 22px; border-radius: 50%;
+    pointer-events: none; z-index: 40;
+    background: radial-gradient(circle, #fff6d8 0%, #ffd760 45%, rgba(255,180,40,0) 75%);
+    box-shadow: 0 0 14px 4px rgba(255,215,110,.85);
+  }
+  .aura.neg {
+    background: radial-gradient(circle, #ffd8d0 0%, #ff6a50 45%, rgba(255,80,50,0) 75%);
+    box-shadow: 0 0 14px 4px rgba(255,90,60,.85);
+  }
+  /* Texto flotante +X / -X */
+  .float-val {
+    position: absolute; z-index: 41; pointer-events: none;
+    font-size: 3.4vh; font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,.9);
+    animation: floatUp .85s ease-out forwards;
+  }
+  .float-val.pos { color: #ffe27a; }
+  .float-val.neg { color: #ff8a70; }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(6px) scale(.7); }
+    20% { opacity: 1; transform: translateY(0) scale(1.15); }
+    100% { opacity: 0; transform: translateY(-7vh) scale(1); }
+  }
+  #avatar {
+    position: absolute; z-index: 20; will-change: left;
+    filter: drop-shadow(0 6px 8px rgba(0,0,0,.55));
+  }
+  /* Rebote al capturar: se hunde con un premio, se agita con una trampa */
+  #avatar.dip { animation: avatarDip .24s ease-out; }
+  @keyframes avatarDip { 35% { transform: translateY(3%) scaleY(.95); } }
+  #avatar.shake { animation: avatarShake .3s ease-out; }
+  @keyframes avatarShake { 25% { transform: translateX(-4%); } 50% { transform: translateX(3.5%); } 75% { transform: translateX(-2%); } }
+  /* Nube voladora bajo el avatar (assets/bonus/nube.webp): el avatar
+     va montado sobre ella mientras recoge el botín */
+  #cloud {
+    position: absolute; z-index: 19; will-change: left;
+    pointer-events: none;
+    filter: drop-shadow(0 10px 14px rgba(0,0,0,.5));
+  }
+  #cloud img { display: block; width: 100%; height: 100%; animation: cloudBob 2.6s ease-in-out infinite; }
+  @keyframes cloudBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7%); }
+  }
+  /* Intro: BONUS grande + cuenta atrás */
+  #intro {
+    position: fixed; inset: 0; z-index: 60;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,.35);
+  }
+  #intro.show { display: flex; }
+  #intro-title {
+    font-size: 15vh; letter-spacing: .06em; line-height: 1;
+    color: #ffd760;
+    text-shadow: 0 0 24px rgba(255,190,60,.9), 0 0 60px rgba(255,150,30,.5), 4px 4px 0 rgba(90,50,10,.9);
+    animation: bonusPop .9s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  @keyframes bonusPop {
+    0% { transform: scale(.1) rotate(-8deg); opacity: 0; }
+    60% { transform: scale(1.15) rotate(2deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #intro-hint {
+    margin-top: 2vh; font-size: 3.4vh; color: #e8d4a8;
+    text-shadow: 2px 2px 4px rgba(0,0,0,.9);
+    animation: bonusPop .9s .25s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  #count {
+    margin-top: 3vh; font-size: 12vh; color: #ffe9a8;
+    text-shadow: 0 0 22px rgba(255,200,80,.9), 4px 4px 0 rgba(90,50,10,.9);
+  }
+  #count.tick { animation: countTick .55s ease-out both; }
+  @keyframes countTick {
+    0% { transform: scale(1.9); opacity: 0; }
+    35% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(.92); opacity: .9; }
+  }
+  #count.go { color: #8fe08f; }
+  /* Fin de ronda */
+  #endcard {
+    position: fixed; inset: 0; z-index: 60;
+    display: none; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55);
+  }
+  #endcard.show { display: flex; }
+  #end-title {
+    font-size: 11vh; color: #ffd760;
+    text-shadow: 0 0 22px rgba(255,190,60,.9), 4px 4px 0 rgba(90,50,10,.9);
+    animation: bonusPop .8s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  #end-gold {
+    margin-top: 2.5vh; font-size: 5.4vh; color: #ffe9a8;
+    text-shadow: 2px 2px 4px rgba(0,0,0,.9);
+  }
+  #end-gold.neg { color: #ff8a70; }
+  #end-btns { margin-top: 5vh; display: flex; gap: 3vw; justify-content: center; }
+  .end-btn {
+    font-family: inherit; font-size: 3.4vh; cursor: pointer;
+    color: #ffe9a8; background: rgba(24,16,8,.9);
+    border: 3px solid rgba(180,140,70,.7); border-radius: 12px;
+    padding: 1.4vh 2.2vw; text-shadow: 1px 1px 3px rgba(0,0,0,.8);
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .end-btn.sel {
+    border-color: #ffd760; background: rgba(80,55,20,.95);
+    box-shadow: 0 0 16px rgba(255,210,100,.5);
+  }
+</style>
+</head>
+<body>
+<div id="loading-screen">
+  <div class="title" id="loading-title"></div>
+  <div id="loading-bar-bg"><div id="loading-bar"></div></div>
+  <div id="loading-text"></div>
+</div>
+<div id="transition-overlay"></div>
+<img id="fillbg" alt=""><img id="bg" alt="">
+<div id="timer"></div>
+<div id="gold"><img id="gold-coin" alt=""><span id="gold-num">0</span></div>
+<div id="field"></div>
+<div id="cloud"><img id="cloud-img" alt=""></div>
+<img id="avatar" alt="">
+<div id="intro"><div id="intro-title"></div><div id="intro-hint"></div><div id="count"></div></div>
+<div id="endcard">
+  <div id="end-title"></div>
+  <div id="end-gold"></div>
+  <div id="end-btns">
+    <!-- TEMP: botón tienda desactivado — descomentar si el bonus vuelve a enlazar la tienda
+    <button class="end-btn" id="btn-shop"></button> -->
+    <button class="end-btn sel" id="btn-back"></button>
+  </div>
+</div>
+<script src="/assets-cache.js"></script>
+<script>
+  // Tacto nativo: el avatar se arrastra con el dedo (pointer events
+  // reales). En Android, web/tizen.js se abstiene de traducir swipes a
+  // flechas y de la pulsación larga → Escape (sostener el dedo quieto es
+  // un gesto válido aquí: la salida la dan el botón Volver y el botón
+  // atrás del sistema).
+  window.touchNative = true;
+  const PARAMS = new URLSearchParams(window.location.search);
+  const WORLD = (PARAMS.get('world') || 'AGUA').toUpperCase();
+  // demo=1|bonus: ronda de prueba sin persistencia (no toca la bbdd)
+  const DEMO = ['1', 'bonus', 'true'].includes(PARAMS.get('demo') || '');
+  const BG_URL = `/assets/bonus/${WORLD}.webp`;
+  const ROUND_SECONDS = 30;
+
+  // Ítems que caen del cielo: valor, tamaño (fracción del alto de imagen),
+  // peso relativo y sonido al atraparlo.
+  const ITEMS = [
+    { id: 'moneda-pequena', val: 10,   size: 0.050, w: 0.34, neg: false },
+    { id: 'moneda-mediana', val: 25,   size: 0.060, w: 0.22, neg: false },
+    { id: 'moneda-grande',  val: 50,   size: 0.072, w: 0.12, neg: false },
+    { id: 'collar-rubi',    val: 120,  size: 0.068, w: 0.05, neg: false },
+    { id: 'castigo',        val: -40,  size: 0.080, w: 0.14, neg: true  },
+    { id: 'calavera-bonus', val: -90,  size: 0.072, w: 0.08, neg: true  },
+  ];
+
+  let translations = {}, fallback = {}, player = null;
+  let imgRect = null, avatarW = 0, avatarH = 0, avatarX = 0, cloudW = 0, cloudH = 0;
+  let playing = false, ended = false, timeLeft = ROUND_SECONDS, elapsed = 0;
+  let items = [], sparks = [], spawnAcc = 0, lastT = 0;
+  let dirKey = 0, pointerX = null, sessionGold = 0, endSel = 1;
+  // Dificultad 0..1 derivada del tier de la partida (6..15): más caída,
+  // más spawn y más proporción de ítems negativos cuanto más avanza el juego.
+  let DIFF = 0, NEG_SCALE = 1;
+  // Nodo de la casa (0 = primer bonus del mundo, 1 = el avanzado). En el
+  // avanzado los ítems derivan de derecha a izquierda mientras caen —
+  // la ronda "al revés" que anima la segunda visita.
+  const BONUS_NODE = Math.max(0, parseInt(PARAMS.get('node') || '0', 10) || 0);
+  const DRIFT = BONUS_NODE >= 1 ? -1 : 0;
+
+  async function loadLang(lang) {
+    const r = await fetch('/api/i18n' + (lang ? '/' + lang : ''));
+    if (!r.ok) return {};
+    return await r.json();
+  }
+  function t(key) { return translations[key] ?? fallback[key] ?? key; }
+  function format(key, ...args) {
+    return t(key).replace(/\{(\d+)\}/g, (m, i) => String(args[+i] ?? m));
+  }
+
+  async function loadPlayer() {
+    try {
+      const r = await fetch('/api/savegame');
+      if (r.ok) { const d = await r.json(); player = d.player || null; }
+    } catch {}
+    if (!player) player = { gold: 0, avatarIndex: 0 };
+    // ?avatar=N (1-8): override de pruebas (avatar=2 = loro)
+    const av = parseInt(PARAMS.get('avatar') || '', 10);
+    if (av >= 1 && av <= 8) player = { ...player, avatarIndex: av - 1 };
+    // Dificultad = tier de la partida (6..15); ?diff=N fuerza un tier (pruebas)
+    const dv = parseInt(PARAMS.get('diff') || '', 10);
+    const tier = !isNaN(dv) ? dv : (player.gameLevel ?? 6);
+    DIFF = Math.max(0, Math.min(1, (tier - 6) / 9));
+    NEG_SCALE = 1 + DIFF * 0.9; // a tier alto caen ~el doble de trampas
+  }
+
+  const bg = document.getElementById('bg');
+  const fillbg = document.getElementById('fillbg');
+  const avatarEl = document.getElementById('avatar');
+  const cloudEl = document.getElementById('cloud');
+  const field = document.getElementById('field');
+  const timerEl = document.getElementById('timer');
+  const goldEl = document.getElementById('gold');
+  const goldNum = document.getElementById('gold-num');
+  const introEl = document.getElementById('intro');
+  const countEl = document.getElementById('count');
+  const endcard = document.getElementById('endcard');
+
+  function imgRectCalc() {
+    const iw = bg.naturalWidth || 1920, ih = bg.naturalHeight || 1080;
+    const s = Math.min(window.innerWidth / iw, window.innerHeight / ih);
+    const w = iw * s, h = ih * s;
+    return { left: (window.innerWidth - w) / 2, top: (window.innerHeight - h) / 2, width: w, height: h };
+  }
+
+  function layout() {
+    imgRect = imgRectCalc();
+    // El avatar con la cesta en alto corre por la parte baja de la imagen
+    avatarH = imgRect.height * 0.175;
+    const ar = avatarEl.naturalWidth ? avatarEl.naturalHeight / avatarEl.naturalWidth : 1.9;
+    avatarW = avatarH / ar;
+    field.style.left = imgRect.left + 'px';
+    field.style.top = imgRect.top + 'px';
+    field.style.width = imgRect.width + 'px';
+    field.style.height = imgRect.height + 'px';
+    timerEl.style.left = (imgRect.left + imgRect.width / 2) + 'px';
+    timerEl.style.top = (imgRect.top + imgRect.height * 0.02) + 'px';
+    // borde derecho fijo: el monto crece hacia la izquierda (alineación derecha)
+    goldEl.style.right = (innerWidth - (imgRect.left + imgRect.width * 0.98)) + 'px';
+    goldEl.style.top = (imgRect.top + imgRect.height * 0.02) + 'px';
+    placeAvatar();
+  }
+
+  function avatarBounds() {
+    const pad = imgRect.width * 0.012;
+    return [imgRect.left + pad, imgRect.left + imgRect.width - pad - avatarW];
+  }
+  function avatarTop() { return imgRect.top + imgRect.height * 0.945 - avatarH; }
+  function placeAvatar() {
+    const [lo, hi] = avatarBounds();
+    avatarX = Math.max(lo, Math.min(hi, avatarX));
+    avatarEl.style.left = avatarX + 'px';
+    avatarEl.style.top = avatarTop() + 'px';
+    avatarEl.style.height = avatarH + 'px';
+    // La nube va centrada bajo el avatar; los pies se hunden en sus lobulos
+    // superiores (nube.webp ~2.05:1)
+    cloudW = avatarW * 2.4;
+    cloudH = cloudW / 2.05;
+    cloudEl.style.left = (avatarX + avatarW / 2 - cloudW / 2) + 'px';
+    cloudEl.style.top = (avatarTop() + avatarH - cloudH * 0.55) + 'px';
+    cloudEl.style.width = cloudW + 'px';
+    cloudEl.style.height = cloudH + 'px';
+  }
+  // Zona de la cesta: banda superior del sprite (la cesta va en alto)
+  function basket() {
+    return {
+      y: avatarTop() + avatarH * 0.10,
+      cx: avatarX + avatarW / 2,
+      halfW: avatarW * 0.38,
+    };
+  }
+
+  function pickItem() {
+    // Peso efectivo: los negativos escalan con la dificultad de la partida
+    let total = 0;
+    for (const it of ITEMS) total += it.neg ? it.w * NEG_SCALE : it.w;
+    let r = Math.random() * total;
+    for (const it of ITEMS) { r -= it.neg ? it.w * NEG_SCALE : it.w; if (r <= 0) return it; }
+    return ITEMS[0];
+  }
+  function spawn() {
+    const def = pickItem();
+    const el = document.createElement('img');
+    el.className = 'fall-item';
+    el.src = `/assets/bonus/${def.id}.webp`;
+    const h = imgRect.height * def.size;
+    const it = {
+      el, def, h,
+      w: h, // sprites ~cuadrados
+      x: 0, y: -h * 1.1,
+      baseX: 0, phase: Math.random() * Math.PI * 2,
+      freq: 2 + Math.random() * 2.5,
+      sway: imgRect.width * (0.008 + Math.random() * 0.025),
+      rot: (Math.random() * 18 - 9),
+      // la caída acelera con el tier (hasta −0.9s) y el tiempo de ronda (−1.9s)
+      vy: (imgRect.height * 1.18) / (4.4 - 0.9 * DIFF - Math.min(1.9, elapsed / ROUND_SECONDS * 1.9)),
+      // deriva lateral del bonus avanzado (derecha→izquierda, escala con DIFF)
+      vx: DRIFT * imgRect.width * (0.055 + 0.05 * DIFF),
+    };
+    const margin = imgRect.width * 0.04;
+    // Con deriva el spawn se sesga a la derecha: los ítems cruzan todo el
+    // campo antes de salir por la izquierda.
+    const lo = DRIFT < 0 ? imgRect.width * 0.34 : margin;
+    it.baseX = lo + Math.random() * Math.max(0, imgRect.width - margin - it.w - lo);
+    it.x = it.baseX;
+    it.el.style.width = it.w + 'px';
+    it.el.style.height = it.h + 'px';
+    items.push(it);
+    field.appendChild(el);
+    draw(it);
+  }
+  function draw(it) {
+    const rot = it.def.neg ? Math.sin(it.phase) * 10 : it.rot + Math.sin(it.phase * 0.6) * 12;
+    it.el.style.transform = `translate(${it.x}px, ${it.y}px) rotate(${rot}deg)`;
+  }
+
+  function goldCenter() {
+    const b = goldEl.getBoundingClientRect();
+    return { x: b.left + b.width / 2 - imgRect.left, y: b.top + b.height / 2 - imgRect.top };
+  }
+
+  function catchItem(it, hitY) {
+    it.dead = true;
+    it.el.classList.add('caught');
+    if (it.def.neg) it.el.classList.add('neg');
+    setTimeout(() => it.el.remove(), 340);
+    const cx = it.x + it.w / 2, cy = hitY;
+    avatarEl.classList.remove('dip', 'shake'); void avatarEl.offsetWidth;
+    avatarEl.classList.add(it.def.neg ? 'shake' : 'dip');
+    AssetsCache.playSound(it.def.neg ? '/assets/sounds/comun/trampa.wav' : '/assets/sounds/comun/moneda.wav', it.def.neg ? 0.6 : 0.85);
+    // chispas alrededor del impacto
+    for (let i = 0; i < 7; i++) {
+      const s = document.createElement('div');
+      s.className = 'spark';
+      const col = it.def.neg ? '#ff7a60' : '#ffe27a';
+      s.style.background = `radial-gradient(circle, #fff 0%, ${col} 60%, transparent 100%)`;
+      const a = (i / 7) * Math.PI * 2 + Math.random() * 0.5;
+      const d = 18 + Math.random() * 34;
+      s.style.left = cx + 'px'; s.style.top = cy + 'px';
+      s.animate([
+        { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+        { transform: `translate(${Math.cos(a) * d - 5}px, ${Math.sin(a) * d - 5}px) scale(.2)`, opacity: 0 },
+      ], { duration: 420 + Math.random() * 200, easing: 'ease-out' }).onfinish = () => s.remove();
+      field.appendChild(s);
+    }
+    // aura que vuela al contador: el oro se suma al llegar
+    const aura = document.createElement('div');
+    aura.className = 'aura' + (it.def.neg ? ' neg' : '');
+    aura.style.left = (cx - 11) + 'px';
+    aura.style.top = (cy - 11) + 'px';
+    field.appendChild(aura);
+    const g = goldCenter();
+    aura.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(${g.x - cx + 11}px, ${g.y - cy + 11}px) scale(.35)`, opacity: .15 },
+    ], { duration: 520, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' }).onfinish = () => {
+      aura.remove();
+      sessionGold += it.def.val;
+      updateGoldHud();
+      goldEl.classList.remove('bump'); void goldEl.offsetWidth;
+      goldEl.classList.add('bump');
+    };
+    // +X / −X flotante en el punto de captura
+    const fv = document.createElement('div');
+    fv.className = 'float-val ' + (it.def.neg ? 'neg' : 'pos');
+    fv.textContent = (it.def.val > 0 ? '+' : '−') + Math.abs(it.def.val);
+    fv.style.left = (cx - 40) + 'px';
+    fv.style.top = (cy - 30) + 'px';
+    fv.style.width = '80px';
+    fv.style.textAlign = 'center';
+    field.appendChild(fv);
+    setTimeout(() => fv.remove(), 900);
+  }
+
+  function updateGoldHud() {
+    goldNum.textContent = (sessionGold > 0 ? '+' : '') + sessionGold;
+    goldEl.classList.toggle('neg', sessionGold < 0);
+  }
+
+  function step(ts) {
+    if (!playing) return;
+    if (!lastT) lastT = ts;
+    const dt = Math.min(0.05, (ts - lastT) / 1000);
+    lastT = ts;
+    elapsed += dt; timeLeft -= dt;
+    timerEl.textContent = String(Math.max(0, Math.ceil(timeLeft)));
+    timerEl.classList.toggle('low', timeLeft <= 10);
+    // movimiento del avatar
+    const spd = imgRect.width * 0.55;
+    if (dirKey) {
+      avatarX += dirKey * spd * dt;
+      pointerX = null;
+    } else if (pointerX != null) {
+      const target = pointerX - imgRect.left - avatarW / 2;
+      if (pointerDown) {
+        avatarX = target; // arrastre con el dedo: seguimiento 1:1
+      } else {
+        const dx = target - avatarX;
+        const stepX = imgRect.width * 1.6 * dt;
+        avatarX += Math.abs(dx) <= stepX ? dx : Math.sign(dx) * stepX;
+      }
+    }
+    placeAvatar();
+    // spawns: ~cada 0.62s al inicio; el tier (−0.14s) y la ronda (−0.26s) lo aceleran
+    spawnAcc += dt;
+    const period = 0.62 - 0.14 * DIFF - Math.min(0.26, elapsed / ROUND_SECONDS * 0.26);
+    if (spawnAcc >= period) { spawnAcc = 0; spawn(); }
+    // ítems: la captura se da cuando la base del ítem cruza la boca de la
+    // cesta (~6% superior del sprite) — por z-order queda oculta tras el
+    // aro, así que el impacto coincide con "entrar" en la cesta.
+    const bk = basket();
+    const mouthY = bk.y - avatarH * 0.04, mouthBot = mouthY + avatarH * 0.16;
+    for (const it of items) {
+      if (it.dead) continue;
+      it.phase += it.freq * dt;
+      it.y += it.vy * dt;
+      it.baseX += it.vx * dt;
+      it.x = it.baseX + Math.sin(it.phase * 0.7) * it.sway;
+      const bottom = it.y + it.h, cx = it.x + it.w / 2;
+      // Captura por solape CONTINUO con la boca: vale cualquier frame en
+      // que el ítem siga dentro verticalmente — antes solo contaba el frame
+      // exacto de cruce y un ítem desalineado atravesaba la cesta sin más
+      // oportunidad. Los buenos usan un aro más ancho que el sprite (la
+      // nube recoge); los negativos mantienen el margen estrecho.
+      const halfW = bk.halfW * (it.def.neg ? 0.75 : 1.6);
+      if (bottom >= mouthY && it.y <= mouthBot && Math.abs(cx - bk.cx) <= halfW) {
+        catchItem(it, mouthY);
+      } else if (it.y > imgRect.height + it.h || (DRIFT < 0 && it.x + it.w < 0)) {
+        it.dead = true; it.el.remove();
+      } else {
+        draw(it);
+      }
+    }
+    items = items.filter(it => !it.dead);
+    if (timeLeft <= 0) { endRound(); return; }
+    requestAnimationFrame(step);
+  }
+
+  function endRound() {
+    if (ended) return;
+    ended = true; playing = false;
+    AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.7);
+    items.forEach(it => it.el.remove()); items = [];
+    // Persistir el botín de la ronda (una sola escritura; demo no toca bbdd)
+    if (!DEMO && sessionGold !== 0) {
+      fetch('/api/bonus-gold', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({ world: WORLD, delta: sessionGold }),
+      }).then(r => r.ok ? r.json() : null).then(d => { if (d && d.player) player = d.player; }).catch(() => {});
+    }
+    document.getElementById('end-title').textContent = t('bonus.timeup');
+    const eg = document.getElementById('end-gold');
+    eg.textContent = t('bonus.won') + ': ' + (sessionGold > 0 ? '+' : '') + sessionGold;
+    eg.classList.toggle('neg', sessionGold < 0);
+    // TEMP tienda: document.getElementById('btn-shop').textContent = t('bonus.enter-shop');
+    document.getElementById('btn-back').textContent = t('instructions.back');
+    endSel = 1; selEndBtn();
+    endcard.classList.add('show');
+  }
+
+  function selEndBtn() {
+    // TEMP tienda: document.getElementById('btn-shop').classList.toggle('sel', endSel === 0);
+    document.getElementById('btn-back').classList.toggle('sel', endSel === 1);
+  }
+  function goShop() {
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.7);
+    AssetsCache.transitionTo('/shop.html?world=' + encodeURIComponent(WORLD) +
+      (PARAMS.get('demo') ? '&demo=' + encodeURIComponent(PARAMS.get('demo')) : ''));
+  }
+  function goBack() {
+    AssetsCache.playSound('/assets/sounds/comun/back.wav', 0.7);
+    // from=shop: el avatar baja por la escalera y la casa se marcha volando
+    AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(WORLD) + '&from=shop' +
+      (PARAMS.get('auto') === '1' ? '&auto=1' : '') +
+      (PARAMS.get('demo') ? '&demo=' + encodeURIComponent(PARAMS.get('demo')) : '') +
+      (PARAMS.get('avatar') ? '&avatar=' + encodeURIComponent(PARAMS.get('avatar')) : ''));
+  }
+
+  // Intro: BONUS + cuenta atrás 5→0 → ¡YA!
+  async function intro() {
+    introEl.classList.add('show');
+    document.getElementById('intro-title').textContent = t('bonus.title');
+    document.getElementById('intro-hint').textContent = t('bonus.hint');
+    AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.8);
+    await new Promise(r => setTimeout(r, 1600));
+    for (let n = 5; n >= 0; n--) {
+      countEl.classList.remove('tick'); void countEl.offsetWidth;
+      countEl.textContent = String(n);
+      countEl.classList.add('tick');
+      AssetsCache.playSound('/assets/sounds/comun/hover.wav', 0.55);
+      await new Promise(r => setTimeout(r, 620));
+    }
+    countEl.classList.remove('tick'); void countEl.offsetWidth;
+    countEl.textContent = t('bonus.go');
+    countEl.classList.add('tick', 'go');
+    AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.8);
+    await new Promise(r => setTimeout(r, 700));
+    introEl.classList.remove('show');
+    playing = true; lastT = 0;
+    requestAnimationFrame(step);
+  }
+
+  // Controles: flechas/WASD + puntero/dedo (arrastrar mueve el avatar 1:1
+  // bajo el punto tocado; el autopiloto mueve pointerX sin pointerDown y
+  // sigue usando la persecución limitada)
+  const keys = new Set();
+  document.addEventListener('keydown', e => {
+    if (['ArrowLeft', 'a', 'A'].includes(e.key)) { keys.add('L'); dirKey = -1; e.preventDefault(); return; }
+    if (['ArrowRight', 'd', 'D'].includes(e.key)) { keys.add('R'); dirKey = 1; e.preventDefault(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); ended ? goBack() : endRound(); return; }
+    if (ended) {
+      // TEMP tienda: selección entre botones desactivada mientras no haya btn-shop
+      // if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { endSel = 0; selEndBtn(); e.preventDefault(); return; }
+      // if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { endSel = 1; selEndBtn(); e.preventDefault(); return; }
+      if (e.key === 'Enter') { e.preventDefault(); /* TEMP tienda: endSel === 0 ? goShop() : */ goBack(); return; }
+    }
+  });
+  document.addEventListener('keyup', e => {
+    if (['ArrowLeft', 'a', 'A'].includes(e.key)) { keys.delete('L'); dirKey = keys.has('R') ? 1 : 0; }
+    if (['ArrowRight', 'd', 'D'].includes(e.key)) { keys.delete('R'); dirKey = keys.has('L') ? -1 : 0; }
+  });
+  let pointerDown = false;
+  document.addEventListener('pointerdown', e => {
+    if (e.target.closest('.end-btn') || e.target.closest('#hud')) return;
+    pointerDown = true; pointerX = e.clientX;
+  });
+  document.addEventListener('pointermove', e => { if (pointerDown) pointerX = e.clientX; });
+  document.addEventListener('pointerup', () => { pointerDown = false; });
+  document.addEventListener('pointercancel', () => { pointerDown = false; });
+  // TEMP tienda: listeners del btn-shop desactivados
+  // document.getElementById('btn-shop').addEventListener('click', goShop);
+  document.getElementById('btn-back').addEventListener('click', goBack);
+  // document.getElementById('btn-shop').addEventListener('pointerenter', () => { endSel = 0; selEndBtn(); });
+  document.getElementById('btn-back').addEventListener('pointerenter', () => { endSel = 1; selEndBtn(); });
+  window.addEventListener('resize', layout);
+
+  async function init() {
+    const bar = document.getElementById('loading-bar');
+    const setP = p => { bar.style.width = p + '%'; };
+    setP(15);
+    const settings = await fetch('/api/settings').then(r => r.ok ? r.json() : {}).catch(() => ({}));
+    const lang = settings.lang || settings.language || 'es';
+    [fallback, translations] = await Promise.all([loadLang('es'), loadLang(lang)]);
+    setP(40);
+    await loadPlayer();
+    setP(60);
+    document.getElementById('loading-title').textContent = t('menu.title');
+    document.getElementById('intro-title').textContent = t('bonus.title');
+    document.getElementById('intro-hint').textContent = t('bonus.hint');
+    document.getElementById('gold-coin').src = '/assets/bonus/moneda-mediana.webp';
+    document.getElementById('loading-text').textContent = t('loading.text');
+    const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
+    avatarEl.src = AssetsCache.getCachedImageUrl(`/assets/avatars/cesta/avatar_0${idx + 1}.webp`);
+    document.getElementById('cloud-img').src = AssetsCache.getCachedImageUrl('/assets/bonus/nube.webp');
+    bg.src = AssetsCache.getCachedImageUrl(BG_URL);
+    fillbg.src = AssetsCache.getCachedImageUrl(BG_URL);
+    await Promise.all([
+      new Promise(r => { bg.onload = bg.onerror = r; }),
+      new Promise(r => { avatarEl.onload = avatarEl.onerror = r; }),
+      new Promise(r => { const c = document.getElementById('cloud-img'); c.onload = c.onerror = r; }),
+    ]);
+    setP(90);
+    avatarX = (imgRectCalc().left + imgRectCalc().width / 2) - avatarW / 2;
+    layout();
+    updateGoldHud();
+    timerEl.textContent = String(ROUND_SECONDS);
+    AssetsCache.setMusicTrack(AssetsCache.musicForWorld(WORLD));
+    setP(100);
+    AssetsCache.revealPage();
+    intro();
+  }
+  // === Autopiloto ?auto=1 (grabación de demos): dirige la cesta por
+  // pointerX hacia el ítem positivo alcanzable más próximo a la boca y
+  // esquiva los negativos; al acabar la ronda vuelve solo ===
+  if (PARAMS.get('auto') === '1') {
+    setInterval(() => {
+      if (!playing || ended || !imgRect) return;
+      const bk = basket();
+      const mouthY = bk.y - avatarH * 0.04;
+      const reach = imgRect.width * 1.6; // velocidad del modo puntero (px/s)
+      const goods = items
+        .filter(it => !it.dead && !it.def.neg && it.vy > 0 && it.y + it.h < mouthY - 6)
+        .map(it => ({ it, eta: (mouthY - (it.y + it.h)) / it.vy }))
+        .filter(o => o.eta > 0 && Math.abs(o.it.x + o.it.w / 2 - bk.cx) < reach * o.eta)
+        .sort((a, b) => a.eta - b.eta);
+      if (goods.length) { pointerX = imgRect.left + goods[0].it.x + goods[0].it.w / 2; return; }
+      const threat = items.find(it => !it.dead && it.def.neg && it.vy > 0 &&
+        it.y + it.h < mouthY && Math.abs(it.x + it.w / 2 - bk.cx) < bk.halfW * 0.75 + it.w * 0.4);
+      if (threat) {
+        const dir = (threat.x + threat.w / 2) <= bk.cx ? 1 : -1;
+        pointerX = imgRect.left + bk.cx + dir * bk.halfW * 3;
+      } else pointerX = null;
+    }, 110);
+    const endWatch = setInterval(() => {
+      if (!ended) return;
+      clearInterval(endWatch);
+      setTimeout(goBack, 2600);
+    }, 400);
+  }
+
+  init();
+</script>
+</body>
+</html>
