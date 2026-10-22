@@ -142,6 +142,10 @@
     const iw = bgImage ? bgImage.naturalWidth : 3;
     const ih = bgImage ? bgImage.naturalHeight : 2;
     const cs = bgImage ? getComputedStyle(bgImage) : null;
+    if (cs && cs.objectFit === 'fill') {
+      imgRect = { w: vw, h: vh, x: 0, y: 0 };
+      return;
+    }
     const scale = cs && cs.objectFit === 'cover'
       ? Math.max(vw / iw, vh / ih)
       : Math.min(vw / iw, vh / ih);

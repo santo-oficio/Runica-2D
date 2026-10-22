@@ -391,6 +391,7 @@
     const vw = window.innerWidth, vh = window.innerHeight;
     const iw = bg.naturalWidth || 1670, ih = bg.naturalHeight || 941;
     const cs = getComputedStyle(bg);
+    if (cs.objectFit === 'fill') return { left: 0, top: 0, w: vw, h: vh };
     const s = cs.objectFit === 'cover'
       ? Math.max(vw / iw, vh / ih)
       : Math.min(vw / iw, vh / ih); // contain + fillbg en desktop

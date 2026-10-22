@@ -69,8 +69,12 @@
       // (y .10-.90) y siguen visibles. Las funciones *Rect de cada página
       // son fit-aware (leen objectFit/object-position).
       ".runika-native #fillbg{display:none!important}" +
+      // fill (no cover): la imagen entera cubre el viewport sin recortar
+      // arriba/abajo ni repetir — una sola imagen panorámica. El estirado
+      // horizontal (~9% en 19.5:9) es imperceptible. Las funciones *Rect
+      // de cada página leen objectFit y usan el rect del elemento.
       ".runika-native #bg,.runika-native #image,.runika-native #board-bg,.runika-native .bgimg{" +
-      "object-fit:cover!important;object-position:50% 50%!important}";
+      "object-fit:fill!important}";
     document.head.appendChild(lite);
     document.documentElement.classList.add("runika-native");
   } catch (e) {}

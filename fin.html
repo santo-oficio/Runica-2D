@@ -365,6 +365,7 @@ function getImgRect(img) {
   const nw = img.naturalWidth || 0, nh = img.naturalHeight || 0;
   if (!nw || !nh) return { left: 0, top: 0, width: innerWidth, height: innerHeight };
   const cs = getComputedStyle(img);
+  if (cs.objectFit === 'fill') return { left: 0, top: 0, width: innerWidth, height: innerHeight };
   const s = cs.objectFit === 'cover'
     ? Math.max(innerWidth / nw, innerHeight / nh)
     : Math.min(innerWidth / nw, innerHeight / nh);

@@ -315,6 +315,8 @@
   function imgRectCalc() {
     const iw = bg.naturalWidth || 1920, ih = bg.naturalHeight || 1080;
     const cs = getComputedStyle(bg);
+    if (cs.objectFit === 'fill')
+      return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
     const s = cs.objectFit === 'cover'
       ? Math.max(window.innerWidth / iw, window.innerHeight / ih)
       : Math.min(window.innerWidth / iw, window.innerHeight / ih);

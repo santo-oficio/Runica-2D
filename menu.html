@@ -388,6 +388,8 @@
     const er = bg.getBoundingClientRect();
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
     const cs = getComputedStyle(bg);
+    if (cs.objectFit === 'fill')
+      return { left: er.left, top: er.top, width: er.width, height: er.height, right: er.right, bottom: er.bottom };
     const s = cs.objectFit === 'cover'
       ? Math.max(er.width / iw, er.height / ih)
       : Math.min(er.width / iw, er.height / ih);

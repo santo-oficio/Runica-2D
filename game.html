@@ -541,6 +541,7 @@ function visibleImageRect() {
   const rect = img.getBoundingClientRect();
   if (!IMG_W || !IMG_H) return rect;
   const cs = getComputedStyle(img);
+  if (cs.objectFit === 'fill') return rect; // nativo: imagen = elemento
   const cover = cs.objectFit === 'cover';
   const scale = cover ? Math.max(rect.width / IMG_W, rect.height / IMG_H)
                       : Math.min(rect.width / IMG_W, rect.height / IMG_H);
@@ -1141,7 +1142,8 @@ function movePlayer(dc, dr) {
     moving = true;
     playerStunnedTurns--;
     moveEnemiesAnimated().then(captured => {
-      if (captured) { setTimeout(loseGame, 600); return; }
+      // El cazador que captura se dibuja por encima del avatar
+      if (captured) { selector.style.zIndex = 12; setTimeout(loseGame, 600); return; }
       turn++; updateTurnDisplay();
       moving = false;
     });
@@ -1169,7 +1171,9 @@ function movePlayer(dc, dr) {
   }
 
   if (!godMode && enemyAt(player.c, player.r)) {
-    selector.style.zIndex = 20;
+    // Capturado: el enemigo se dibuja POR ENCIMA del avatar (#entities
+    // va a z 13; bajar el selector por debajo deja al cazador visible)
+    selector.style.zIndex = 12;
     setTimeout(loseGame, 600);
     return;
   }
@@ -1181,7 +1185,7 @@ function movePlayer(dc, dr) {
 
   setTimeout(() => {
     moveEnemiesAnimated().then(captured => {
-      if (captured) { setTimeout(loseGame, 600); return; }
+      if (captured) { selector.style.zIndex = 12; setTimeout(loseGame, 600); return; }
       if (player.c === goal.c && player.r === goal.r) { turn++; updateTurnDisplay(); winGame(); return; }
       turn++; updateTurnDisplay();
       moving = false;
@@ -2189,17 +2193,13 @@ document.getElementById('badge-midas').addEventListener('pointerdown', e => {
 // flechas/WASD o gestos de swipe).
 window.touchTapMove = function (x, y) {
   if (!board.w || gameOver || won || modalOpen || countingDown || moving) return;
-  // Casilla objetivo del tap: adyacente ortogonal → entrar directo
+  // Solo la casilla adyacente ortogonal mueve un paso: un tap lejano no
+  // hace nada; una adyacente bloqueada cae en movePlayer, que ya hace
+  // la animación de rebote + sonido de choque.
   const cw = avatarBoard.w / COLS, ch = avatarBoard.h / ROWS;
   const dc = Math.floor((x - avatarBoard.left) / cw) - player.c;
   const dr = Math.floor((y - avatarBoard.top) / ch) - player.r;
-  if (Math.abs(dc) + Math.abs(dr) === 1) { movePlayer(dc, dr); return; }
-  const p = cellPos(player.c, player.r, true);
-  const dx = x - (p.left + p.w / 2), dy = y - (p.top + p.h / 2);
-  const adx = Math.abs(dx), ady = Math.abs(dy);
-  if (Math.max(adx, ady) < Math.max(p.w, p.h) * 0.4) return; // tap sobre el avatar
-  if (adx >= ady) movePlayer(dx > 0 ? 1 : -1, 0);
-  else movePlayer(0, dy > 0 ? 1 : -1);
+  if (Math.abs(dc) + Math.abs(dr) === 1) movePlayer(dc, dr);
 };
 
 // === Consola de hacks (Tab) ===

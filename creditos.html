@@ -222,15 +222,16 @@
     const iw = bg.naturalWidth || 7680;
     const ih = bg.naturalHeight || 4320;
     const cs = getComputedStyle(bg);
-    const s = cs.objectFit === 'cover'
+    const fill = cs.objectFit === 'fill';
+    const s = fill ? 0 : (cs.objectFit === 'cover'
       ? Math.max(rect.width / iw, rect.height / ih)
-      : Math.min(rect.width / iw, rect.height / ih);
-    const w = iw * s, h = ih * s;
+      : Math.min(rect.width / iw, rect.height / ih));
+    const w = fill ? rect.width : iw * s, h = fill ? rect.height : ih * s;
     const pos = (cs.objectPosition || '50% 50%').trim().split(/\s+/);
     const ox = (parseFloat(pos[0]) || 50) / 100, oy = (parseFloat(pos[1] ?? pos[0]) || 50) / 100;
     const r = {
-      left: rect.left + (rect.width - w) * ox,
-      top: rect.top + (rect.height - h) * oy,
+      left: fill ? rect.left : rect.left + (rect.width - w) * ox,
+      top: fill ? rect.top : rect.top + (rect.height - h) * oy,
       width: w, height: h,
     };
     imgH = r.height;
