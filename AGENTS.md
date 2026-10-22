@@ -810,6 +810,9 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   18) según el **nº de pantallas superadas** —
   `min(18, 2 + floor(c × 17 / 96))`, ~5-6 islas por tier. NO depende de la
   isla/mundo (los mundos se juegan en orden libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
+  **Bienvenida de mundo**: la primera isla de cada mundo usa el **tier 1**
+  y la segunda el **tier 2** (`mapTierFor` en `db/db.ts`), por encima de
+  la curva; el resto sigue la progresión.
   **Boss final**: la última isla de MAZMORRA (`level=11`) usa el
   **tier 18** (`mapTierFor` en `db/db.ts`), que coincide con el techo de la
   curva. Su banco es `db/screens-tier-18.json`.
@@ -831,7 +834,7 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   puede bailar aunque exista alternativa limpia — la regla es de
   existencia, no sobre el camino almacenado.
 - **Generador de niveles** (`generator/generate-screens.ts`): rediseñado —
-  máx. 3 enemigos (1 en tiers 2-4, 2 en 5-16, 3 desde el 17; separación Manhattan
+  máx. 3 enemigos (1 en tiers 1-4, 2 en 5-16, 3 desde el 17; separación Manhattan
   ≥4 entre ellos, colocación táctica
   en el tramo final del camino), todo elemento imprescindible (quitarlo
   rompe o cambia el óptimo), "jugada óptima" = par = mínimo real +1/+2

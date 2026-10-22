@@ -15,6 +15,7 @@
   var TOTAL_TIERS = 18;
   var FINAL_TIER = 18;
   var FIRST_TIER = 2;
+  var ENTRY_TIER = 1;
   var MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
   var FINAL_WORLD = "MAZMORRA";
   var BOSS_LEVEL_IDX = MAP_LEVELS_PER_WORLD - 1;
@@ -88,9 +89,9 @@
 
   function findScreenById(id) {
     var m = /^l(\d+)-/.exec(id || "");
-    var tiers = m && Number(m[1]) >= FIRST_TIER && Number(m[1]) <= FINAL_TIER
+    var tiers = m && Number(m[1]) >= ENTRY_TIER && Number(m[1]) <= FINAL_TIER
       ? [Number(m[1])]
-      : Array.from({ length: FINAL_TIER - FIRST_TIER + 1 }, function (_, i) { return FIRST_TIER + i; });
+      : Array.from({ length: FINAL_TIER - ENTRY_TIER + 1 }, function (_, i) { return ENTRY_TIER + i; });
     var chain = Promise.resolve(null);
     var _loop = function (i) {
       if (i >= tiers.length) return null;
@@ -125,6 +126,9 @@
 
   function mapTierFor(world, level) {
     if (world === FINAL_WORLD && level === BOSS_LEVEL_IDX) return FINAL_TIER;
+    // Bienvenida de mundo: isla 1 → tier 1, isla 2 → tier 2, resto la curva.
+    if (level === 0) return ENTRY_TIER;
+    if (level === 1) return FIRST_TIER;
     return currentTier();
   }
 

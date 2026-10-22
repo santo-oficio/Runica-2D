@@ -12,13 +12,13 @@
 - Objetivo: **25.000 puzzles únicos por tier** en `db/screens-tier-N.json`.
   En tiers donde el espacio válido es menor se generan todos los que
   existen y se informa del número real — nunca se rellena con duplicados.
-- La partida empieza en el **tier 2** (`FIRST_TIER` en `db/db.ts`) y la
-  curva llega progresivamente hasta el **18**. Solo existen bancos para
-  los tiers 2-18 — el tier 1 se eliminó: con la regla de las 6
-  columnas no hay espacio válido por debajo del par 8. Los tiers 2-4
+- La partida empieza en el **tier 1** en la primera isla de cada mundo
+  (`mapTierFor`: isla 0 → tier 1, isla 1 → tier 2) y la curva de progreso
+  va del **tier 2** (`FIRST_TIER` en `db/db.ts`) al **18**. Los tiers 1-4
   llevan **un** cazador — solo se aceptan las pantallas en las que
   condiciona de verdad la ruta (`decorative_enemy`); el tier 5
-  introduce el segundo cazador.
+  introduce el segundo cazador. (Medido: con 0 enemigos el espacio queda
+  vacío — los obstáculos no canalizan sin perseguidor, candidate_null ~72%.)
 - El tier 18 coincide con el techo de la curva y también es el del boss
   final (última isla de MAZMORRA, `mapTierFor`).
 - **REGLA A FUEGO — separación avatar↔salida** (`MIN_PLAYER_EXIT_COLDIST`):
@@ -54,14 +54,15 @@
 
 ### Longitud de solución por tier
 
-- La curva jugable arranca en el tier 2 (par 8–11) y crece hasta el 18
-  (par 22–30). **Desde el tier 7, el par mínimo es 12** (ver tabla).
+- La curva jugable arranca en el tier 1 (par 8–9, bienvenida de mundo)
+  y crece hasta el 18 (par 22–30). **Desde el tier 7, el par mínimo es
+  12** (ver tabla).
 - Ningún puzzle se resuelve por el **camino directo** (mínimo real =
   distancia BFS del tablero vacío) ni en **un único movimiento**.
 
 ### Enemigos
 
-- **1 enemigo** en los tiers de entrada 2–4, **2 enemigos** en 5–16;
+- **1 enemigo** en los tiers de entrada 1–4, **2 enemigos** en 5–16;
   **3 enemigos desde el tier 17** (máximo absoluto: 3).
 - Con ≥2 enemigos: distancia Manhattan **≥ 4** entre todos, colocados
   para cubrir tramos distintos del camino (bias táctico hacia el tramo
@@ -105,6 +106,11 @@
 
 | Tier | Enemigos | Obstáculos | Trampas | Par (óptimo) | Dist. E–P | Dist. E–E |
 |------|----------|------------|---------|--------------|-----------|-----------|
+| 1 †  | 1        | 2–3        | 0–1     | 8–9          | 4         | 0         |
+| 2    | 1        | 2–3        | 1–2     | 8–11         | 4         | 0         |
+| 3    | 1        | 2–3        | 1–1     | 9–11         | 3         | 0         |
+| 4    | 1        | 2–4        | 1–2     | 9–12         | 3         | 0         |
+| 5    | 2        | 2–4        | 1–2     | 9–13         | 4         | 4         |
 | 6    | 2        | 2–4        | 1–2     | 10–14        | 4         | 4         |
 | 7    | 2        | 4–8        | 2–4     | 12–18        | 3         | 4         |
 | 8    | 2        | 4–9        | 2–4     | 13–19        | 3         | 4         |
@@ -119,9 +125,11 @@
 | 17   | 3        | 6–13       | 4–8     | 22–30        | 3         | 4         |
 | 18 * | 3        | 5–9        | 5–8     | 22–30        | 3         | 4         |
 
-\* Tier 18 = boss final. Los máximos de obstáculos/trampas en tiers ≥7
-son altos a propósito: son el techo que `lengthenTo` puede usar para
-construir los pars largos; solo sobreviven los elementos necesarios.
+\* Tier 18 = boss final. † Tier 1 = bienvenida de mundo: la primera isla
+de cada mundo la juega (`mapTierFor`) y la segunda el tier 2; el resto
+sigue la curva de progreso 2→18. Los máximos de obstáculos/trampas en
+tiers ≥7 son altos a propósito: son el techo que `lengthenTo` puede usar
+para construir los pars largos; solo sobreviven los elementos necesarios.
 
 ## 4. Reglas del motor (idénticas a `engine/rules.ts`)
 

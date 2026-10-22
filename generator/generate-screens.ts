@@ -110,22 +110,29 @@ export interface Tier {
 }
 
 // ---------------------------------------------------------------------------
-// 17 tiers de dificultad (2..18) — rediseño con separación avatar↔salida ≥6.
+// 18 tiers de dificultad (1..18) — rediseño con separación avatar↔salida ≥6.
 //
 // Par = "jugada óptima" mostrada. El mínimo real es par−1 o par−2.
-// La curva jugable empieza en el tier 2 (petición del usuario: aterrizaje
-// suave) y llega al 18. Tiers 2-4 llevan UN cazador — a ≥6 columnas solo
-// es válido si condiciona de verdad la ruta (validación `decorative_enemy`
-// lo garantiza; medido: ~0.5% de aceptación, el espacio existe aunque es
-// pequeño). El tier 5 introduce el segundo cazador.
-// Enemigos: 1 en tiers 2-4, 2 en 5-16, 3 desde el 17 (máximo 3 — cada uno
-// debe condicionar la solución o la validación lo rechaza).
+// La curva de progreso va de 2 a 18 (FIRST_TIER en db.ts), pero el tier 1
+// existe como nivel de entrada de cada mundo: la primera isla de un mundo
+// juega tier 1 y la segunda tier 2 (mapTierFor); el resto sigue la curva.
+// Tiers 1-4 llevan UN cazador — a ≥6 columnas solo es válido si condiciona
+// de verdad la ruta (validación `decorative_enemy` lo garantiza; medido:
+// ~0.1-0.5% de aceptación, el espacio existe aunque es pequeño).
+// El tier 5 introduce el segundo cazador.
+// Enemigos: 1 en tiers 1-4, 2 en 5-16, 3 desde el 17 (máximo 3 —
+// cada uno debe condicionar la solución o la validación lo rechaza).
 // Obstáculos: mínimo 2 en todos los tiers, todos necesarios.
 // REGLA A FUEGO: |col(jugador) − col(salida)| ≥ 6 — la salida nunca está
 // cerca del avatar. Consecuencia: el mínimo real es ≥7 y el par ≥8.
 // ---------------------------------------------------------------------------
 
 export const TIERS: Tier[] = [
+  // Tier 1: bienvenida de cada mundo — 1 cazador lo más lejos posible
+  // (dEP 5), 0-1 trampas. Medido: par <9 y 0 enemigos son espacio vacío —
+  // un cazador necesario empuja el mínimo real a ~10, así que el par
+  // aceptado aterriza en 11 igual que el tier 2 pero con menos presión.
+  { level: 1,  numEnemies: 1, numObstacles: [2, 3], numTraps: [0, 1], minSolutionLen: [8, 11],  minEnemyPlayerDist: 5, minEnemyEnemyDist: 0 },
   // Rampa de entrada: 1 cazador, par 8-12. El cazador debe ser necesario
   // (la validación rechaza los decorativos) — la densidad la ponen los
   // obstáculos/trampas que canalizan, no el perseguidor.
@@ -1254,7 +1261,7 @@ export function validateCandidate(lv: LevelData, tier: Tier): ValidationResult {
     return { ok: false, reason: "no_solution", trueMin: null, par: null };
   }
   const T = res.length!;
-  if (lv.enemies.length === 0) {
+  if (lv.enemies.length === 0 && tier.numEnemies > 0) {
     return { ok: false, reason: "no_enemies_left", trueMin: T, par: null };
   }
 

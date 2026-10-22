@@ -75,6 +75,7 @@ APIs de progreso: `/api/map-position`, `/api/level-position`,
 
 - `GET /api/level-screen?world&level` → pantalla **sticky** del tier
   correspondiente (`mapTierFor`: misma pantalla hasta completar la isla;
+  la isla 0 de cada mundo usa el **tier 1** y la isla 1 el **tier 2**;
   excepción — `world=MAZMORRA&level=11` siempre usa el **tier 18**, el banco
   exclusivo del boss final `db/screens-tier-18.json`).
 - El **nivel de juego** mostrado es el **tier por progreso** (2..18; la

@@ -120,6 +120,8 @@ export const TOTAL_TIERS = 18;
 export const FINAL_TIER = 18;
 /** Tier de dificultad inicial: la partida siempre empieza en el nivel 2. */
 export const FIRST_TIER = 2;
+/** Tier de la primera isla de cada mundo (bienvenida, sin cazadores). */
+export const ENTRY_TIER = 1;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
 export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
@@ -227,9 +229,9 @@ function findScreenById(id: string): Screen | null {
   const tiers = (() => {
     const m = /^l(\d+)-/.exec(id);
     const t = m ? Number(m[1]) : 0;
-    return t >= FIRST_TIER && t <= FINAL_TIER
+    return t >= ENTRY_TIER && t <= FINAL_TIER
       ? [t]
-      : Array.from({ length: FINAL_TIER - FIRST_TIER + 1 }, (_, i) => FIRST_TIER + i);
+      : Array.from({ length: FINAL_TIER - ENTRY_TIER + 1 }, (_, i) => ENTRY_TIER + i);
   })();
   for (const t of tiers) {
     try {
@@ -382,6 +384,10 @@ export function failScreen(_screenId: string): void {
  */
 export function mapTierFor(world: string, level: number): number {
   if (world === FINAL_WORLD && level === BOSS_LEVEL_IDX) return FINAL_TIER;
+  // Bienvenida de mundo: la primera isla juega siempre el tier 1 (laberinto
+  // sin cazadores) y la segunda el tier 2; el resto sigue la curva.
+  if (level === 0) return ENTRY_TIER;
+  if (level === 1) return FIRST_TIER;
   return currentTier();
 }
 

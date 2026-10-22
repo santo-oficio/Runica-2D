@@ -15,7 +15,7 @@ import {
   BOARD_USE_FROM_TIER,
   type LevelData,
 } from "../generator/generate-screens.js";
-import { FIRST_TIER, tierForCompleted } from "../db/db.js";
+import { FIRST_TIER, tierForCompleted, mapTierFor } from "../db/db.js";
 
 const lv = (o: Partial<LevelData>): LevelData => ({
   obstacles: new Set(),
@@ -39,15 +39,23 @@ describe("rediseño — progresión", () => {
     expect(tierForCompleted(10)).toBeGreaterThanOrEqual(3);
     expect(tierForCompleted(10)).toBeLessThanOrEqual(4);
   });
-  it("la tabla de tiers cubre exactamente 2..18", () => {
-    expect(TIERS.map((t) => t.level)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+  it("la tabla de tiers cubre exactamente 1..18", () => {
+    expect(TIERS.map((t) => t.level)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+  });
+  it("la primera isla de cada mundo es tier 1 y la segunda tier 2", () => {
+    for (const w of ["ESPACIO", "AGUA", "MAZMORRA"]) {
+      expect(mapTierFor(w, 0)).toBe(1);
+      expect(mapTierFor(w, 1)).toBe(2);
+    }
+    // el boss final sigue siendo tier 18 aunque… (level 11 ≠ 0/1)
+    expect(mapTierFor("MAZMORRA", 11)).toBe(18);
   });
 });
 
 describe("rediseño — tabla de tiers", () => {
   it("máximo 3 enemigos en todos los tiers (3 solo desde el 17)", () => {
     for (const t of TIERS) expect(t.numEnemies).toBeLessThanOrEqual(3);
-    for (const t of TIERS.filter((t) => t.level < 5)) expect(t.numEnemies).toBe(1);
+    for (const t of TIERS.filter((t) => t.level >= 1 && t.level < 5)) expect(t.numEnemies).toBe(1);
     for (const t of TIERS.filter((t) => t.level >= 5 && t.level < 17)) expect(t.numEnemies).toBe(2);
     for (const t of TIERS.filter((t) => t.level >= 17)) expect(t.numEnemies).toBe(3);
   });

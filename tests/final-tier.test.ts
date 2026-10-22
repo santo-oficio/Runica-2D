@@ -26,8 +26,10 @@ describe("Tier 18 — boss final de MAZMORRA", () => {
     expect(mapTierFor(FINAL_WORLD, BOSS_LEVEL_IDX)).toBe(FINAL_TIER);
   });
 
-  it("solo la última isla: las demás de MAZMORRA siguen la curva", () => {
-    expect(mapTierFor(FINAL_WORLD, 0)).toBe(tierForCompleted(0));
+  it("solo la última isla: las demás de MAZMORRA siguen la curva (salvo la bienvenida)", () => {
+    // Islas 0 y 1 son la bienvenida de mundo (tier 1 y 2) en TODOS los mundos.
+    expect(mapTierFor(FINAL_WORLD, 0)).toBe(1);
+    expect(mapTierFor(FINAL_WORLD, 1)).toBe(2);
     expect(mapTierFor(FINAL_WORLD, BOSS_LEVEL_IDX - 1)).toBe(tierForCompleted(0));
   });
 

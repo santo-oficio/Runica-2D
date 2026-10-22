@@ -19,8 +19,10 @@ los 96 escenarios se reparten de forma uniforme entre los 17 tiers
    simples, nunca con elementos irrelevantes o desconectados del reto.
 3. **Separación avatar↔salida ≥ 6 columnas** (`MIN_PLAYER_EXIT_COLDIST`):
    la salida nunca queda cerca del avatar.
-4. **Máximo 3 enemigos** en cualquier pantalla (1 en tiers 2–4,
-   2 en 5–16, 3 desde el tier 17).
+4. **Máximo 3 enemigos** en cualquier pantalla (1 en tiers 1–4,
+   2 en 5–16, 3 desde el tier 17). La primera isla de cada mundo usa
+   siempre el tier 1 y la segunda el tier 2 (`mapTierFor`); el resto
+   sigue esta curva.
 5. **Trampa**: aturde 3 turnos a quien la pisa (jugador o enemigo), de
    forma individual por entidad.
 6. **Obstáculo (`X`)**: bloquea el 100% de su casilla, igual que una pared.
