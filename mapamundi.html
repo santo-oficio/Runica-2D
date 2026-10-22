@@ -634,6 +634,14 @@
 
       div.addEventListener('click', () => {
         if (DEMO_MODE) return; // demo: sin navegación ni escrituras
+        // Tocar el mundo donde ya está el avatar: entrar directo
+        if (w === WORLD_ORDER[selectedWorld]) {
+          if (worldLocked(w)) return;
+          AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
+          saveMapPosition();
+          AssetsCache.transitionTo('/submundo.html?world=' + encodeURIComponent(w) + (AUTO_RUN ? '&auto=1' : ''));
+          return;
+        }
         // Solo permitir si es alcanzable desde el mundo actual
         const dir = DIRS.find(d => paths[d] === w);
         if (!dir) return;
