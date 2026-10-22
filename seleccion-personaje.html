@@ -147,7 +147,7 @@ if(current.type==='avatar'){if(direction<0&&current.index>=4)next={type:'avatar'
 else if(current.type==='button'){const i=current.index;if(i<10){if(direction<0){const avatarForLetter=i<3?4:i<6?5:i<8?6:7;next={type:'avatar',index:avatarForLetter}}else next={type:'button',index:i+10}}else if(i<20){next=direction<0?{type:'button',index:i-10}:{type:'button',index:i===16?25:20+Math.min(i-10,6)}}else if(i<27&&direction<0){next={type:'button',index:i===26?19:i===25?16:10+Math.min(i-20,9)}}else if(i>=27&&direction<0){next={type:'button',index:i===27?20:26}}}
 if(next){if(focusBlock(next)!==currentBlock){verticalHistory.set(`${currentKey}:${direction}`,next);verticalHistory.set(`${focusKey(next)}:${-direction}`,current)}setFocus(next.type,next.index);playSound(moveSound,.5);return true}
 if(current.type==='button'&&current.index>=20&&current.index<27&&direction>0){const nextArrow=current.index<=23?27:28;next={type:'button',index:nextArrow};verticalHistory.set(`${currentKey}:${direction}`,next);verticalHistory.set(`${focusKey(next)}:${-direction}`,current);setFocus(next.type,next.index);playSound(moveSound,.5);return true}return false}
-function handleKey(e){if(imeInput&&document.activeElement===imeInput){if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();imeInput.blur()}return}if(modalOpen&&modalMode==='invalid'){if(e.key==='Enter'||e.key==='Escape'||e.code==='Space'){e.preventDefault();playSound(backSound);closeModal()}else e.preventDefault();return}if(modalOpen){if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();modalSel=modalSel===0?1:0;playSound(moveSound,.5);renderModal()}else if(e.key==='Enter'){e.preventDefault();playSound(modalSel===1?selectSound:backSound);modalSel===1?(closeModal(),doConfirm()):closeModal()}else if(e.key==='Escape'){e.preventDefault();playSound(backSound);closeModal()}return}if(e.key==='ArrowRight'){e.preventDefault();moveFocus(1)}else if(e.key==='ArrowLeft'){e.preventDefault();moveFocus(-1)}else if(e.key==='ArrowDown'){e.preventDefault();moveVertical(1)}else if(e.key==='ArrowUp'){e.preventDefault();moveVertical(-1)}else if(e.key==='Enter'){e.preventDefault();playSound(buttonSoundFor(focus.type,focus.index));activate()}else if(e.key==='Escape'){e.preventDefault();playSound(backSound);goBack()}else if(e.key==='Backspace'){e.preventDefault();typed=typed.slice(0,-1);playSound(typeSound);render()}else if(/^[a-zA-Z]$/.test(e.key)){e.preventDefault();if(typed.length<12)typed+=e.key.toUpperCase();playSound(typeSound);render()}}
+function handleKey(e){if(imeInput&&(document.activeElement===imeInput||(e.key==='Escape'&&Date.now()-imeBlurAt<700))){e.preventDefault();if(document.activeElement===imeInput&&(e.key==='Enter'||e.key==='Escape'))imeInput.blur();return}if(modalOpen&&modalMode==='invalid'){if(e.key==='Enter'||e.key==='Escape'||e.code==='Space'){e.preventDefault();playSound(backSound);closeModal()}else e.preventDefault();return}if(modalOpen){if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();modalSel=modalSel===0?1:0;playSound(moveSound,.5);renderModal()}else if(e.key==='Enter'){e.preventDefault();playSound(modalSel===1?selectSound:backSound);modalSel===1?(closeModal(),doConfirm()):closeModal()}else if(e.key==='Escape'){e.preventDefault();playSound(backSound);closeModal()}return}if(e.key==='ArrowRight'){e.preventDefault();moveFocus(1)}else if(e.key==='ArrowLeft'){e.preventDefault();moveFocus(-1)}else if(e.key==='ArrowDown'){e.preventDefault();moveVertical(1)}else if(e.key==='ArrowUp'){e.preventDefault();moveVertical(-1)}else if(e.key==='Enter'){e.preventDefault();playSound(buttonSoundFor(focus.type,focus.index));activate()}else if(e.key==='Escape'){e.preventDefault();playSound(backSound);goBack()}else if(e.key==='Backspace'){e.preventDefault();typed=typed.slice(0,-1);playSound(typeSound);render()}else if(/^[a-zA-Z]$/.test(e.key)){e.preventDefault();if(typed.length<12)typed+=e.key.toUpperCase();playSound(typeSound);render()}}
 modalBtnL.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();modalSel=0;playSound(backSound);closeModal()});
 modalBtnR.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();if(modalMode==='invalid'){playSound(backSound);closeModal();return}modalSel=1;playSound(selectSound);closeModal();doConfirm()});
 modalBtnL.addEventListener('pointerenter',()=>{modalSel=0;playSound(hoverSound,.4);renderModal()});
@@ -159,6 +159,7 @@ window.addEventListener('resize',()=>{if(modalOpen)renderModal()});
 // cada edición se filtra a A-Z máx 12 igual que la máquina de escribir.
 const IS_APK = typeof cordova !== 'undefined' && cordova.platformId === 'android';
 let imeInput = null;
+let imeBlurAt = 0;
 if (IS_APK) {
   imeInput = document.createElement('input');
   imeInput.id = 'ime-input';
@@ -166,7 +167,7 @@ if (IS_APK) {
   imeInput.autocomplete = 'off';
   imeInput.autocapitalize = 'characters';
   imeInput.spellcheck = false;
-  Object.assign(imeInput.style, { position: 'fixed', left: '8px', bottom: '8px', width: '44px', height: '44px', opacity: '.02', border: '0', padding: '0', fontSize: '16px', zIndex: '61', color: 'transparent', background: 'transparent', caretColor: 'transparent' });
+  Object.assign(imeInput.style, { position: 'fixed', left: '8px', bottom: '8px', width: '44px', height: '44px', opacity: '.02', border: '0', padding: '0', fontSize: '16px', zIndex: '61', color: 'transparent', background: 'transparent', caretColor: 'transparent', pointerEvents: 'none' });
   document.body.appendChild(imeInput);
   const kbBtn = document.createElement('button');
   kbBtn.id = 'kb-btn';
@@ -178,7 +179,7 @@ if (IS_APK) {
   imeInput.addEventListener('input', () => { const v = imeInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 12); if (v !== imeInput.value) imeInput.value = v; typed = v; playSound(typeSound, .4); render(); });
   const setKbOn = on => { kbBtn.style.background = on ? 'rgba(255,213,79,.9)' : 'rgba(25,16,7,.78)'; kbBtn.querySelector('svg').style.filter = on ? 'invert(1) brightness(.35)' : ''; };
   imeInput.addEventListener('focus', () => setKbOn(true));
-  imeInput.addEventListener('blur', () => setKbOn(false));
+  imeInput.addEventListener('blur', () => { setKbOn(false); imeBlurAt = Date.now(); });
   // Las teclas del juego siguen funcionando con el IME abierto → el input
   // queda resincronizado con typed cada vez que repinta.
   const _render = render;
