@@ -534,16 +534,24 @@ let board = { left: 0, top: 0, w: 0, h: 0 };
 let avatarBoard = { left: 0, top: 0, w: 0, h: 0 };
 let IMG_W = 7680, IMG_H = 4320;
 
-// Rect de la imagen visible (descartando el letterbox de object-fit: contain)
+// Rect de la imagen visible. contain → descuenta el letterbox; cover
+// (móvil nativo) → la imagen desborda y se recorta por los márgenes que
+// indica object-position.
 function visibleImageRect() {
   const rect = img.getBoundingClientRect();
   if (!IMG_W || !IMG_H) return rect;
-  const scale = Math.min(rect.width / IMG_W, rect.height / IMG_H);
+  const cs = getComputedStyle(img);
+  const cover = cs.objectFit === 'cover';
+  const scale = cover ? Math.max(rect.width / IMG_W, rect.height / IMG_H)
+                      : Math.min(rect.width / IMG_W, rect.height / IMG_H);
   const w = IMG_W * scale;
   const h = IMG_H * scale;
+  const pos = (cs.objectPosition || '50% 50%').trim().split(/\s+/);
+  const ox = (parseFloat(pos[0]) || 50) / 100;
+  const oy = (parseFloat(pos[1] ?? pos[0]) || 50) / 100;
   return {
-    left: rect.left + (rect.width - w) / 2,
-    top: rect.top + (rect.height - h) / 2,
+    left: rect.left + (rect.width - w) * ox,
+    top: rect.top + (rect.height - h) * oy,
     width: w, height: h,
   };
 }
@@ -2404,7 +2412,11 @@ window.addEventListener('resize', () => {
 // las imágenes del primer render ya están decodificadas — sin esto el
 // fundido descubre un tablero a medias (flicker).
 function revealWhenReady() {
-  const imgs = [...document.querySelectorAll('#stage img, #entities img, #selector img, #pedestal img')];
+  // Solo imágenes con src de verdad: un <img> sin src (p.ej. el pedestal,
+  // deshabilitado) tiene complete=true pero nunca dispara load/error —
+  // esperarlo dejaba el velo negro puesto hasta el watchdog.
+  const imgs = [...document.querySelectorAll('#stage img, #entities img, #selector img, #pedestal img')]
+    .filter(im => im.getAttribute('src'));
   const wait = Promise.all(imgs.map(im =>
     (im.complete && im.naturalWidth) ? Promise.resolve()
       : new Promise(res => {

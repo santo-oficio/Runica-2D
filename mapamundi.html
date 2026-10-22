@@ -396,6 +396,14 @@
     const lw = player?.lastWorld;
     const idx = lw ? WORLD_ORDER.indexOf(lw) : -1;
     if (idx >= 0) selectedWorld = idx;
+    // Si el mundo guardado no es accesible (bloqueado sin completar — p.ej.
+    // MAZMORRA en una partida guardada con una versión antigua), el avatar
+    // aparece en el primer mundo jugable en vez de sobre la isla apagada.
+    const cur = WORLD_ORDER[selectedWorld];
+    if (worldLocked(cur) && !worldCompleted(cur)) {
+      const n = WORLD_ORDER.findIndex(w => !worldLocked(w));
+      if (n >= 0) selectedWorld = n;
+    }
     if (DEMO_MODE) {
       // En all7 el avatar queda sobre el mundo recién conquistado
       const justDone = WORLD_ORDER.includes(JUST_DONE_WORLD) && JUST_DONE_WORLD !== FINAL_WORLD
@@ -546,9 +554,14 @@
   function imageRect() {
     const er = getImgRect();
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
-    const s = Math.min(er.width / iw, er.height / ih);
+    const cs = getComputedStyle(bg);
+    const s = cs.objectFit === 'cover'
+      ? Math.max(er.width / iw, er.height / ih)
+      : Math.min(er.width / iw, er.height / ih);
     const w = iw * s, h = ih * s;
-    const left = er.left + (er.width - w) / 2, top = er.top + (er.height - h) / 2;
+    const pos = (cs.objectPosition || '50% 50%').trim().split(/\s+/);
+    const ox = (parseFloat(pos[0]) || 50) / 100, oy = (parseFloat(pos[1] ?? pos[0]) || 50) / 100;
+    const left = er.left + (er.width - w) * ox, top = er.top + (er.height - h) * oy;
     return { left, top, width: w, height: h, right: left + w, bottom: top + h };
   }
 

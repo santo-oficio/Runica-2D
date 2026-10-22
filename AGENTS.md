@@ -68,7 +68,11 @@ simulan en cliente.
 `android-app/` es el proyecto Cordova (misma app autónoma que la TV).
 
 - `npm run apk` → genera `webdist` + `android-app/www` (con `cordova.js`
-  inyectado). `web/api-shim.js` se activa con `window.cordova` y
+  inyectado). `tools/build-android.mjs` **reescala las imágenes pesadas**
+  dentro de www con sharp (escenas/fondos ≤2560px, sprites ≤1536px,
+  iconos ≤768px): los masters 8-10K agotan la RAM del WebView → pantalla
+  negra/lag. Las coordenadas calibradas son normalizadas → el downscale
+  es seguro. NO quitar ese paso ni servir los masters en móvil. `web/api-shim.js` se activa con `window.cordova` y
   `web/tizen.js` también pone el puente de Android: `backbutton`→Escape,
   swipe→flechas y pulsación larga→Escape. El tap actúa sobre el control
   tocado con los eventos pointer/click reales (todos los controles llevan
@@ -197,6 +201,10 @@ coordenadas partiendo de la imagen original.
 viewport deja bandas. Se rellenan con `<img id="fillbg">` — copia del mismo
 fondo con `object-fit: cover` + `blur(45px) brightness(.42)` + `scale(1.15)`,
 detrás de `#bg` (z-index 0/1). Nunca estirar ni recortar el arte principal.
+En nativo (`tizen.js` añade la clase `runika-native` a `<html>`) el blur del
+fillbg se sustituye por `brightness(.4)` (GPU débil) y el mapa de
+`submundo.html` pasa de `cover` a `contain` (en móvil 19-21:9 cover recorta
+islas); `getImgRect()` es fit-aware.
 
 **Pantallas 3:2 a ratio ancho — dos estrategias**:
 

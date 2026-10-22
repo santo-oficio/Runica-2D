@@ -390,9 +390,14 @@
   function imgRect() {
     const vw = window.innerWidth, vh = window.innerHeight;
     const iw = bg.naturalWidth || 1670, ih = bg.naturalHeight || 941;
-    const s = Math.min(vw / iw, vh / ih); // contain + fillbg
+    const cs = getComputedStyle(bg);
+    const s = cs.objectFit === 'cover'
+      ? Math.max(vw / iw, vh / ih)
+      : Math.min(vw / iw, vh / ih); // contain + fillbg en desktop
     const w = iw * s, h = ih * s;
-    return { left: (vw - w) / 2, top: (vh - h) / 2, w, h };
+    const pos = (cs.objectPosition || '50% 50%').trim().split(/\s+/);
+    const ox = (parseFloat(pos[0]) || 50) / 100, oy = (parseFloat(pos[1] ?? pos[0]) || 50) / 100;
+    return { left: (vw - w) * ox, top: (vh - h) * oy, w, h };
   }
   function place(el, a, r) {
     el.style.left = (r.left + a.x * r.w) + 'px';

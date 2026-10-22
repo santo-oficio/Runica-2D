@@ -337,16 +337,12 @@
   const COLS = 4;
   const ROWS = 3;
 
-  // En nativo (móvil 19-21:9 / TV) el mapa se muestra entero con contain;
-  // en desktop sigue cover (pantalla 16:9 — sin diferencia visible).
-  const IS_NATIVE = document.documentElement.classList.contains('runika-native') ||
-    typeof window.cordova !== 'undefined' || typeof window.tizen !== 'undefined';
+  // En nativo tizen.js fuerza cover centrado en #bg (una sola imagen a
+  // sangre completa); el fillbg queda oculto por la misma regla. Aquí solo
+  // se alimenta el fillbg para el letterbox de escritorio.
   function setBg(src) {
-    if (IS_NATIVE) {
-      bg.style.objectFit = 'contain';
-      const fill = document.getElementById('fillbg');
-      if (fill && !fill.src) fill.src = src;
-    }
+    const fill = document.getElementById('fillbg');
+    if (fill && !fill.src) fill.src = src;
     bg.src = src;
   }
 
@@ -969,13 +965,14 @@
   function getImgRect() {
     const er = bg.getBoundingClientRect();
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
-    const contain = getComputedStyle(bg).objectFit === 'contain';
-    const s = contain
-      ? Math.min(er.width / iw, er.height / ih)
-      : Math.max(er.width / iw, er.height / ih);
+    const cs = getComputedStyle(bg);
+    const s = cs.objectFit === 'cover'
+      ? Math.max(er.width / iw, er.height / ih)
+      : Math.min(er.width / iw, er.height / ih);
     const w = iw * s, h = ih * s;
-    const left = er.left + (er.width - w) / 2;
-    const top = contain ? er.top + (er.height - h) / 2 : er.top;
+    const pos = (cs.objectPosition || '50% 50%').trim().split(/\s+/);
+    const ox = (parseFloat(pos[0]) || 50) / 100, oy = (parseFloat(pos[1] ?? pos[0]) || 50) / 100;
+    const left = er.left + (er.width - w) * ox, top = er.top + (er.height - h) * oy;
     return { left, top, width: w, height: h, right: left + w, bottom: top + h };
   }
 

@@ -314,9 +314,14 @@
 
   function imgRectCalc() {
     const iw = bg.naturalWidth || 1920, ih = bg.naturalHeight || 1080;
-    const s = Math.min(window.innerWidth / iw, window.innerHeight / ih);
+    const cs = getComputedStyle(bg);
+    const s = cs.objectFit === 'cover'
+      ? Math.max(window.innerWidth / iw, window.innerHeight / ih)
+      : Math.min(window.innerWidth / iw, window.innerHeight / ih);
     const w = iw * s, h = ih * s;
-    return { left: (window.innerWidth - w) / 2, top: (window.innerHeight - h) / 2, width: w, height: h };
+    const pos = (cs.objectPosition || '50% 50%').trim().split(/\s+/);
+    const ox = (parseFloat(pos[0]) || 50) / 100, oy = (parseFloat(pos[1] ?? pos[0]) || 50) / 100;
+    return { left: (window.innerWidth - w) * ox, top: (window.innerHeight - h) * oy, width: w, height: h };
   }
 
   function layout() {

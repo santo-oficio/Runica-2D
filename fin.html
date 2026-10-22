@@ -364,9 +364,14 @@ async function loadLang(lang) {
 function getImgRect(img) {
   const nw = img.naturalWidth || 0, nh = img.naturalHeight || 0;
   if (!nw || !nh) return { left: 0, top: 0, width: innerWidth, height: innerHeight };
-  const s = Math.min(innerWidth / nw, innerHeight / nh);
+  const cs = getComputedStyle(img);
+  const s = cs.objectFit === 'cover'
+    ? Math.max(innerWidth / nw, innerHeight / nh)
+    : Math.min(innerWidth / nw, innerHeight / nh);
   const w = nw * s, h = nh * s;
-  return { left: (innerWidth - w) / 2, top: (innerHeight - h) / 2, width: w, height: h };
+  const pos = (cs.objectPosition || '50% 50%').trim().split(/\s+/);
+  const ox = (parseFloat(pos[0]) || 50) / 100, oy = (parseFloat(pos[1] ?? pos[0]) || 50) / 100;
+  return { left: (innerWidth - w) * ox, top: (innerHeight - h) * oy, width: w, height: h };
 }
 function snd(url, vol) { return AssetsCache.playSound(url, vol ?? 0.6); }
 // Fundido de salida para rumbles largos: evita cortes en seco cuando el

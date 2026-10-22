@@ -62,7 +62,15 @@
   try {
     var lite = document.createElement("style");
     lite.textContent =
-      "#fillbg{filter:brightness(.4) saturate(1.15)!important;transform:scale(1.02)!important}";
+      "#fillbg{filter:brightness(.4) saturate(1.15)!important;transform:scale(1.02)!important}" +
+      // Móvil/TV panorámico (19-21:9): la imagen de fondo cubre todo el
+      // viewport con cover centrado — una sola imagen, sin bandas ni
+      // fillbg "repetido". Las zonas calibradas viven en el interior
+      // (y .10-.90) y siguen visibles. Las funciones *Rect de cada página
+      // son fit-aware (leen objectFit/object-position).
+      ".runika-native #fillbg{display:none!important}" +
+      ".runika-native #bg,.runika-native #image,.runika-native #board-bg,.runika-native .bgimg{" +
+      "object-fit:cover!important;object-position:50% 50%!important}";
     document.head.appendChild(lite);
     document.documentElement.classList.add("runika-native");
   } catch (e) {}

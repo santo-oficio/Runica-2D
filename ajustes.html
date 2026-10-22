@@ -141,12 +141,17 @@
     const vw = window.innerWidth, vh = window.innerHeight;
     const iw = bgImage ? bgImage.naturalWidth : 3;
     const ih = bgImage ? bgImage.naturalHeight : 2;
-    const scale = Math.min(vw / iw, vh / ih);
+    const cs = bgImage ? getComputedStyle(bgImage) : null;
+    const scale = cs && cs.objectFit === 'cover'
+      ? Math.max(vw / iw, vh / ih)
+      : Math.min(vw / iw, vh / ih);
+    const pos = cs ? (cs.objectPosition || '50% 50%').trim().split(/\s+/) : [];
+    const ox = (parseFloat(pos[0]) || 50) / 100, oy = (parseFloat(pos[1] ?? pos[0]) || 50) / 100;
     imgRect = {
       w: iw * scale,
       h: ih * scale,
-      x: (vw - iw * scale) / 2,
-      y: (vh - ih * scale) / 2,
+      x: (vw - iw * scale) * ox,
+      y: (vh - ih * scale) * oy,
     };
   }
   const rx = x => imgRect.x + x * imgRect.w;
