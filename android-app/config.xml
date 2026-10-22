@@ -20,7 +20,9 @@
              notch/cutout (bandas negras laterales en landscape). -->
         <resource-file src="res/android/values/runika-themes.xml" target="app/src/main/res/values/runika-themes.xml" />
         <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application/activity">
-            <activity android:theme="@style/Theme.Runika" />
+            <!-- adjustNothing: el teclado se superpone sin redimensionar el
+                 WebView — sin salto de layout al abrirlo ni crash al cerrarlo. -->
+            <activity android:theme="@style/Theme.Runika" android:windowSoftInputMode="adjustNothing" />
         </edit-config>
         <icon foreground="res/icon-foreground.png" background="res/icon-background.png" />
         <icon src="res/icon.png" density="xxxhdpi" />
