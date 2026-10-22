@@ -104,6 +104,7 @@
   "selection.loadingReady": "Seçici hazır. Giriliyor...",
   "selection.loadingError": "Tüm kaynaklar yüklenemedi. Devam ediliyor...",
   "selection.invalidTitle": "Bekle!",
+  "selection.keyboard": "Klavye",
   "selection.needAvatar": "Devam etmek için bir avatar seç.",
   "selection.needName": "Devam etmek için adını yaz.",
   "selection.needBoth": "Devam etmek için bir avatar seç ve adını yaz.",

@@ -104,6 +104,7 @@
   "selection.loadingReady": "Selettore pronto. Ingresso...",
   "selection.loadingError": "Impossibile caricare tutte le risorse. Continuo...",
   "selection.invalidTitle": "Aspetta!",
+  "selection.keyboard": "Tastiera",
   "selection.needAvatar": "Scegli un avatar per continuare.",
   "selection.needName": "Scrivi il tuo nome per continuare.",
   "selection.needBoth": "Scegli un avatar e scrivi il tuo nome per continuare.",

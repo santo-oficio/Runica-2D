@@ -104,6 +104,7 @@
   "selection.loadingReady": "Wybór gotowy. Wchodzimy...",
   "selection.loadingError": "Nie udało się wczytać wszystkich zasobów. Kontynuuję...",
   "selection.invalidTitle": "Czekaj!",
+  "selection.keyboard": "Klawiatura",
   "selection.needAvatar": "Wybierz awatara, aby kontynuować.",
   "selection.needName": "Wpisz swoje imię, aby kontynuować.",
   "selection.needBoth": "Wybierz awatara i wpisz imię, aby kontynuować.",
