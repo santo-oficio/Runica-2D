@@ -112,8 +112,12 @@
     position: absolute;
     z-index: 9;
     pointer-events: none;
-    background-size: contain; /* mismo fit que #bg para alinear la copia */
-    background-position: center;
+    /* El div se coloca exactamente sobre el rect dibujado de #bg:
+       estirar la copia a 100%×100% la alinea pixel a pixel sea cual sea
+       el object-fit (contain, cover o fill — en nativo era el "descuadre"
+       de las islas en negro). */
+    background-size: 100% 100%;
+    background-position: 0 0;
     background-repeat: no-repeat;
   }
   .island-fx.done {

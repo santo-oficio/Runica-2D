@@ -40,7 +40,7 @@ describe("Tier 18 — boss final de MAZMORRA", () => {
     expect(BOSS_LEVEL_IDX).toBe(MAP_LEVELS_PER_WORLD - 1);
   });
 
-  it("la curva va del tier 6 al 18 (techo = tier del boss final)", () => {
+  it("la curva va del tier 2 al 18 (techo = tier del boss final)", () => {
     expect(tierForCompleted(0)).toBe(FIRST_TIER);
     expect(tierForCompleted(10_000)).toBe(TOTAL_TIERS);
     expect(tierForCompleted(95)).toBe(18);

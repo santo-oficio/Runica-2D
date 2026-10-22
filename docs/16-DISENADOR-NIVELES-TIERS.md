@@ -12,11 +12,13 @@
 - Objetivo: **25.000 puzzles únicos por tier** en `db/screens-tier-N.json`.
   En tiers donde el espacio válido es menor se generan todos los que
   existen y se informa del número real — nunca se rellena con duplicados.
-- La partida empieza en el **tier 6** (`FIRST_TIER` en `db/db.ts`) y la
+- La partida empieza en el **tier 2** (`FIRST_TIER` en `db/db.ts`) y la
   curva llega progresivamente hasta el **18**. Solo existen bancos para
-  los tiers 6-18 — los tiers 1-5 se eliminaron: con la regla de las 6
-  columnas, un solo cazador 2× deja el espacio prácticamente vacío
-  (insoluble o decorativo; medido: 0 válidos exhaustivos).
+  los tiers 2-18 — el tier 1 se eliminó: con la regla de las 6
+  columnas no hay espacio válido por debajo del par 8. Los tiers 2-4
+  llevan **un** cazador — solo se aceptan las pantallas en las que
+  condiciona de verdad la ruta (`decorative_enemy`); el tier 5
+  introduce el segundo cazador.
 - El tier 18 coincide con el techo de la curva y también es el del boss
   final (última isla de MAZMORRA, `mapTierFor`).
 - **REGLA A FUEGO — separación avatar↔salida** (`MIN_PLAYER_EXIT_COLDIST`):
@@ -52,15 +54,15 @@
 
 ### Longitud de solución por tier
 
-- La curva jugable arranca en el tier 6 (par 10–14) y crece hasta el 18
+- La curva jugable arranca en el tier 2 (par 8–11) y crece hasta el 18
   (par 22–30). **Desde el tier 7, el par mínimo es 12** (ver tabla).
 - Ningún puzzle se resuelve por el **camino directo** (mínimo real =
   distancia BFS del tablero vacío) ni en **un único movimiento**.
 
 ### Enemigos
 
-- **2 enemigos** por pantalla hasta el tier 16; **3 enemigos desde el
-  tier 17** (máximo absoluto: 3).
+- **1 enemigo** en los tiers de entrada 2–4, **2 enemigos** en 5–16;
+  **3 enemigos desde el tier 17** (máximo absoluto: 3).
 - Con ≥2 enemigos: distancia Manhattan **≥ 4** entre todos, colocados
   para cubrir tramos distintos del camino (bias táctico hacia el tramo
   final / guardia de la salida — un enemigo lejos de la ruta atrapa

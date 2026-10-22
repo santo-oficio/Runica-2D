@@ -110,21 +110,30 @@ export interface Tier {
 }
 
 // ---------------------------------------------------------------------------
-// 13 tiers de dificultad (6..18) — rediseño con separación avatar↔salida ≥6.
+// 17 tiers de dificultad (2..18) — rediseño con separación avatar↔salida ≥6.
 //
 // Par = "jugada óptima" mostrada. El mínimo real es par−1 o par−2.
-// La curva jugable empieza en el tier 6 (regla a fuego del usuario) y
-// llega al 18 — los tiers 1-5 se han eliminado: con la regla de las 6
-// columnas un solo cazador 2× queda insoluble o decorativo (espacio
-// prácticamente vacío, medido: 0 válidos).
-// Enemigos: 2 hasta el tier 16, 3 desde el 17 (máximo 3 — cada uno debe
-// condicionar la solución o la validación lo rechaza).
+// La curva jugable empieza en el tier 2 (petición del usuario: aterrizaje
+// suave) y llega al 18. Tiers 2-4 llevan UN cazador — a ≥6 columnas solo
+// es válido si condiciona de verdad la ruta (validación `decorative_enemy`
+// lo garantiza; medido: ~0.5% de aceptación, el espacio existe aunque es
+// pequeño). El tier 5 introduce el segundo cazador.
+// Enemigos: 1 en tiers 2-4, 2 en 5-16, 3 desde el 17 (máximo 3 — cada uno
+// debe condicionar la solución o la validación lo rechaza).
 // Obstáculos: mínimo 2 en todos los tiers, todos necesarios.
 // REGLA A FUEGO: |col(jugador) − col(salida)| ≥ 6 — la salida nunca está
 // cerca del avatar. Consecuencia: el mínimo real es ≥7 y el par ≥8.
 // ---------------------------------------------------------------------------
 
 export const TIERS: Tier[] = [
+  // Rampa de entrada: 1 cazador, par 8-12. El cazador debe ser necesario
+  // (la validación rechaza los decorativos) — la densidad la ponen los
+  // obstáculos/trampas que canalizan, no el perseguidor.
+  { level: 2,  numEnemies: 1, numObstacles: [2, 3], numTraps: [1, 2], minSolutionLen: [8, 11],  minEnemyPlayerDist: 4, minEnemyEnemyDist: 0 },
+  { level: 3,  numEnemies: 1, numObstacles: [2, 3], numTraps: [1, 1], minSolutionLen: [9, 11],  minEnemyPlayerDist: 3, minEnemyEnemyDist: 0 },
+  { level: 4,  numEnemies: 1, numObstacles: [2, 4], numTraps: [1, 2], minSolutionLen: [9, 12],  minEnemyPlayerDist: 3, minEnemyEnemyDist: 0 },
+  // Tier 5: entra el segundo cazador (par un punto por debajo del 6).
+  { level: 5,  numEnemies: 2, numObstacles: [2, 4], numTraps: [1, 2], minSolutionLen: [9, 13],  minEnemyPlayerDist: 4, minEnemyEnemyDist: 4 },
   { level: 6,  numEnemies: 2, numObstacles: [2, 4], numTraps: [1, 2], minSolutionLen: [10, 14], minEnemyPlayerDist: 4, minEnemyEnemyDist: 4 },
   // Desde el tier 7 el par mínimo es 12: en tablero abierto el mínimo real
   // casi nunca llega — hacen falta tableros densos (más obstáculos y

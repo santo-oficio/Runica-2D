@@ -46,11 +46,17 @@ IDEAL_AREA = 0.055  # una isla "típica" ocupa ~5% de la imagen
 
 
 def FALLBACK(px, py, w, h):
-    """3 discos apilados: estructura + superficie + roca — cubre islas altas."""
+    """3 elipses achatadas: estructura + superficie + roca. `ry` (fracción de
+    la ALTURA) hace la mancha plana como la isla — los discos redondos de
+    antes llegaban a ~0.44h de alto y fusionaban en negro toda la columna
+    de islas (filas separadas ~0.20-0.24h)."""
     return [
-        {"x": round(px / w, 4), "y": round((py - 0.16 * h) / h, 4), "r": 0.09},
-        {"x": round(px / w, 4), "y": round((py - 0.06 * h) / h, 4), "r": 0.115},
-        {"x": round(px / w, 4), "y": round((py + 0.05 * h) / h, 4), "r": 0.095},
+        {"x": round(px / w, 4), "y": round((py - 0.065 * h) / h, 4),
+         "r": 0.065, "ry": 0.040},
+        {"x": round(px / w, 4), "y": round((py - 0.005 * h) / h, 4),
+         "r": 0.080, "ry": 0.045},
+        {"x": round(px / w, 4), "y": round((py + 0.040 * h) / h, 4),
+         "r": 0.060, "ry": 0.035},
     ]
 
 
@@ -200,8 +206,12 @@ def main():
                     cv2.circle(overlay, (int(b["x"] * w), int(b["y"] * h)),
                                int(b["r"] * w), (255, 0, 255), 2)
                 continue
+            # `ry` (fracción de h) < r, con tope 0.075h: aplana el disco en
+            # vertical para que la mancha siga la isla sin invadir la fila
+            # vecina (las filas de islas van ~0.20-0.24h separadas).
             masks_out[str(i)] = [
-                {"x": round(cx / w, 4), "y": round(cy / h, 4), "r": round(r / w, 4)}
+                {"x": round(cx / w, 4), "y": round(cy / h, 4),
+                 "r": round(r / w, 4), "ry": round(min(r * 0.75, 0.075 * h) / h, 4)}
                 for (cx, cy, r) in discs
             ]
             color = (0, 255, 0) if i == 0 else (255, 128, 0)
@@ -209,6 +219,27 @@ def main():
             for (cx, cy, r) in discs:
                 cv2.circle(overlay, (int(cx), int(cy)), int(r), (0, 0, 255), 3)
             print(f"  [{world}] isla {i}: {len(discs)} discos, área {m.sum() / (w * h):.3f}")
+
+        # Compresión vertical por isla: las filas van separadas ~0.20h —
+        # una mancha más alta une dos islas en una columna negra. Se
+        # comprimen offsets y `ry` hacia el centro del cluster hasta un
+        # alto máximo de 0.19h (los blobs siguen centrados en su isla).
+        MAX_SPAN = 0.19
+        for key, blobs in masks_out.items():
+            los, his = [], []
+            for b in blobs:
+                ry = b.get("ry", b["r"] * w / h)
+                los.append(b["y"] - ry)
+                his.append(b["y"] + ry)
+            span = max(his) - min(los)
+            if span <= MAX_SPAN:
+                continue
+            cy = (max(his) + min(los)) / 2
+            f = MAX_SPAN / span
+            for b in blobs:
+                ry = b.get("ry", b["r"] * w / h)
+                b["y"] = round(cy + (b["y"] - cy) * f, 4)
+                b["ry"] = round(ry * f, 4)
 
         if masks_out:
             data["masks"] = masks_out

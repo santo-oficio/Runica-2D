@@ -122,7 +122,7 @@ ffmpeg (sin audio). Requisitos:
 ## Modo práctica (`game.html`)
 
 `http://localhost:3000/game.html` — modo práctica que elige una pantalla
-**al azar** del tier 6 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
+**al azar** del tier 2 (endpoint `/api/practice-screen?tier=N`) en cada recarga y un
 mundo al azar. **No guarda nada en la bbdd** (solo lectura).
 
 Controles: `Flechas/WASD` mover · `R` otra pantalla · `Espacio` cambiar mundo ·
@@ -805,10 +805,10 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   - Si un mundo no tiene carpeta de obstáculos, se usa una imagen de marcador (placeholder) y se documenta el faltante.
   - Mapeo de carpetas especiales: `VIENTO` → `assets/obstaculos/AIRE/`.
 - **Progresión de dificultad** (A FUEGO — decisión del usuario): 8 mundos ×
-  12 islas = 96 pantallas, repartidas en los tiers **6..18** (la partida
-  siempre empieza en el nivel **6** y se complica progresivamente hasta el
+  12 islas = 96 pantallas, repartidas en los tiers **2..18** (la partida
+  siempre empieza en el nivel **2** y se complica progresivamente hasta el
   18) según el **nº de pantallas superadas** —
-  `min(18, 6 + floor(c × 13 / 96))`, ~7-8 islas por tier. NO depende de la
+  `min(18, 2 + floor(c × 17 / 96))`, ~5-6 islas por tier. NO depende de la
   isla/mundo (los mundos se juegan en orden libre). Ver `docs/15-TABLA-CURVA-DIFICULTAD-96-JUEGOS.md`.
   **Boss final**: la última isla de MAZMORRA (`level=11`) usa el
   **tier 18** (`mapTierFor` en `db/db.ts`), que coincide con el techo de la
@@ -831,7 +831,7 @@ ESPACIO y HIELO fueron reescalados desde resoluciones menores (1672×941 o
   puede bailar aunque exista alternativa limpia — la regla es de
   existencia, no sobre el camino almacenado.
 - **Generador de niveles** (`generator/generate-screens.ts`): rediseñado —
-  máx. 3 enemigos (2 hasta el tier 16, 3 desde el 17; separación Manhattan
+  máx. 3 enemigos (1 en tiers 2-4, 2 en 5-16, 3 desde el 17; separación Manhattan
   ≥4 entre ellos, colocación táctica
   en el tramo final del camino), todo elemento imprescindible (quitarlo
   rompe o cambia el óptimo), "jugada óptima" = par = mínimo real +1/+2

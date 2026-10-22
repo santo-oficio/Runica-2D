@@ -28,25 +28,27 @@ const lv = (o: Partial<LevelData>): LevelData => ({
 const idx = (c: number, r: number) => r * 8 + c;
 
 describe("rediseño — progresión", () => {
-  it("la partida empieza en el tier 6", () => {
-    expect(FIRST_TIER).toBe(6);
-    expect(tierForCompleted(0)).toBe(6);
+  it("la partida empieza en el tier 2", () => {
+    expect(FIRST_TIER).toBe(2);
+    expect(tierForCompleted(0)).toBe(2);
   });
-  it("los 96 escenarios se reparten 6..18 (~7-8 por tier)", () => {
-    expect(tierForCompleted(0)).toBe(6);
+  it("los 96 escenarios se reparten 2..18 (~5-6 por tier)", () => {
+    expect(tierForCompleted(0)).toBe(2);
     expect(tierForCompleted(95)).toBe(18);
-    // ~7-8 islas por tier: isla 10 → tier 7
-    expect(tierForCompleted(10)).toBe(7);
+    // ~5-6 islas por tier: isla 10 → tier 3-4
+    expect(tierForCompleted(10)).toBeGreaterThanOrEqual(3);
+    expect(tierForCompleted(10)).toBeLessThanOrEqual(4);
   });
-  it("la tabla de tiers cubre exactamente 6..18", () => {
-    expect(TIERS.map((t) => t.level)).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
+  it("la tabla de tiers cubre exactamente 2..18", () => {
+    expect(TIERS.map((t) => t.level)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
   });
 });
 
 describe("rediseño — tabla de tiers", () => {
   it("máximo 3 enemigos en todos los tiers (3 solo desde el 17)", () => {
     for (const t of TIERS) expect(t.numEnemies).toBeLessThanOrEqual(3);
-    for (const t of TIERS.filter((t) => t.level < 17)) expect(t.numEnemies).toBeLessThanOrEqual(2);
+    for (const t of TIERS.filter((t) => t.level < 5)) expect(t.numEnemies).toBe(1);
+    for (const t of TIERS.filter((t) => t.level >= 5 && t.level < 17)) expect(t.numEnemies).toBe(2);
     for (const t of TIERS.filter((t) => t.level >= 17)) expect(t.numEnemies).toBe(3);
   });
   it("separación enemigo-enemigo ≥4 cuando hay 2 o más", () => {

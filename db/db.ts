@@ -118,8 +118,8 @@ export const TOTAL_STAGES = WORLDS.length * SUBLEVELS_PER_WORLD; // 96
 export const TOTAL_TIERS = 18;
 /** Tier del boss final (ultima isla de MAZMORRA): coincide con el techo de la curva. */
 export const FINAL_TIER = 18;
-/** Tier de dificultad inicial: la partida siempre empieza en el nivel 6. */
-export const FIRST_TIER = 6;
+/** Tier de dificultad inicial: la partida siempre empieza en el nivel 2. */
+export const FIRST_TIER = 2;
 /** Islas jugables por submundo en el mapa (rejilla serpiente 4×3). */
 export const MAP_LEVELS_PER_WORLD = SUBLEVELS_PER_WORLD;
 /** Mundo central del mapamundi: solo se desbloquea al completar los demás. */
@@ -133,10 +133,10 @@ export function stageFor(world: number, subLevel: number): number {
 }
 
 /**
- * Tier de dificultad (6..18) según el Nº DE PANTALLAS SUPERADAS, no la
+ * Tier de dificultad (2..18) según el Nº DE PANTALLAS SUPERADAS, no la
  * posición en el mapa (los mundos se juegan en orden libre). La partida
- * siempre empieza en el tier 6 y los 96 escenarios se reparten de forma
- * uniforme entre los 13 tiers (~7-8 islas por tier).
+ * siempre empieza en el tier 2 y los 96 escenarios se reparten de forma
+ * uniforme entre los 17 tiers (~5-6 islas por tier).
  */
 export function tierForCompleted(completed: number): number {
   const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
