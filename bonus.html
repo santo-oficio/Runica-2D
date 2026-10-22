@@ -495,14 +495,13 @@
       pointerX = null;
     } else if (pointerX != null) {
       const target = pointerX - imgRect.left - avatarW / 2;
-      if (pointerDown) {
-        avatarX = target; // arrastre con el dedo: seguimiento 1:1
-      } else {
-        const dx = target - avatarX;
-        const stepX = imgRect.width * 1.6 * dt;
-        avatarX += Math.abs(dx) <= stepX ? dx : Math.sign(dx) * stepX;
-      }
+      const dx = target - avatarX;
+      const stepX = imgRect.width * 1.6 * dt;
+      avatarX += Math.abs(dx) <= stepX ? dx : Math.sign(dx) * stepX;
     }
+    // Arrastre relativo con el dedo: el avatar recorre el mismo delta que
+    // el dedo (nunca salta al punto tocado)
+    if (dragDelta) { avatarX += dragDelta; dragDelta = 0; }
     placeAvatar();
     // spawns: ~cada 0.62s al inicio; el tier (−0.14s) y la ronda (−0.26s) lo aceleran
     spawnAcc += dt;
@@ -604,9 +603,9 @@
     requestAnimationFrame(step);
   }
 
-  // Controles: flechas/WASD + puntero/dedo (arrastrar mueve el avatar 1:1
-  // bajo el punto tocado; el autopiloto mueve pointerX sin pointerDown y
-  // sigue usando la persecución limitada)
+  // Controles: flechas/WASD + puntero/dedo (arrastrar mueve el avatar el
+  // mismo delta que recorre el dedo — tocar sin arrastrar no hace nada;
+  // el autopiloto mueve pointerX y sigue usando la persecución limitada)
   const keys = new Set();
   document.addEventListener('keydown', e => {
     if (['ArrowLeft', 'a', 'A'].includes(e.key)) { keys.add('L'); dirKey = -1; e.preventDefault(); return; }
@@ -623,14 +622,18 @@
     if (['ArrowLeft', 'a', 'A'].includes(e.key)) { keys.delete('L'); dirKey = keys.has('R') ? 1 : 0; }
     if (['ArrowRight', 'd', 'D'].includes(e.key)) { keys.delete('R'); dirKey = keys.has('L') ? -1 : 0; }
   });
-  let pointerDown = false;
+  let pointerDown = false, lastDragX = null, dragDelta = 0;
   document.addEventListener('pointerdown', e => {
-    if (e.target.closest('.end-btn') || e.target.closest('#hud')) return;
-    pointerDown = true; pointerX = e.clientX;
+    if (e.target instanceof Element && (e.target.closest('.end-btn') || e.target.closest('#hud'))) return;
+    pointerDown = true; lastDragX = e.clientX; dragDelta = 0;
   });
-  document.addEventListener('pointermove', e => { if (pointerDown) pointerX = e.clientX; });
-  document.addEventListener('pointerup', () => { pointerDown = false; });
-  document.addEventListener('pointercancel', () => { pointerDown = false; });
+  document.addEventListener('pointermove', e => {
+    if (!pointerDown || lastDragX == null) return;
+    dragDelta += e.clientX - lastDragX;
+    lastDragX = e.clientX;
+  });
+  document.addEventListener('pointerup', () => { pointerDown = false; lastDragX = null; });
+  document.addEventListener('pointercancel', () => { pointerDown = false; lastDragX = null; });
   // TEMP tienda: listeners del btn-shop desactivados
   // document.getElementById('btn-shop').addEventListener('click', goShop);
   document.getElementById('btn-back').addEventListener('click', goBack);

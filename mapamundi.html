@@ -396,11 +396,11 @@
     const lw = player?.lastWorld;
     const idx = lw ? WORLD_ORDER.indexOf(lw) : -1;
     if (idx >= 0) selectedWorld = idx;
-    // Si el mundo guardado no es accesible (bloqueado sin completar — p.ej.
-    // MAZMORRA en una partida guardada con una versión antigua), el avatar
-    // aparece en el primer mundo jugable en vez de sobre la isla apagada.
+    // Si el mundo guardado no se puede entrar ahora mismo (bloqueado sin
+    // completar — p.ej. MAZMORRA — o completado con datos de una versión
+    // antigua), el avatar aparece en el primer mundo entrañable.
     const cur = WORLD_ORDER[selectedWorld];
-    if (worldLocked(cur) && !worldCompleted(cur)) {
+    if (worldLocked(cur)) {
       const n = WORLD_ORDER.findIndex(w => !worldLocked(w));
       if (n >= 0) selectedWorld = n;
     }
