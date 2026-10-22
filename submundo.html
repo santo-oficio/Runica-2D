@@ -450,7 +450,16 @@
     const idx = (player && typeof player.avatarIndex === 'number') ? player.avatarIndex : 0;
     const pad = avatarPad[idx] || 0;
     avatarEl.style.setProperty('--avatar-pad', String(pad));
-    const base = r.top + pos.y * r.height - sz / 2 + pad * sz;
+    // La caja del avatar es cuadrada en píxeles de IMAGEN: el ancla es su
+    // centro y los pies quedan media caja de imagen más abajo. Bajo
+    // object-fit:fill (nativo) la imagen se estira anamórficamente y
+    // sz (= size·r.width) no equivale a media caja en vertical — hay que
+    // convertir por el ratio real de la imagen o los pies quedan bajos.
+    const iw = bg.naturalWidth || 0, ih = bg.naturalHeight || 0;
+    const feetOff = (iw > 0 && ih > 0)
+      ? (sz / r.width) * iw * (r.height / ih) / 2
+      : sz / 2;
+    const base = r.top + pos.y * r.height + feetOff - (1 - pad) * sz;
     return Math.min(base, window.innerHeight - 2 - sz * (1 - pad));
   }
 
