@@ -314,6 +314,15 @@
   // "Continuar" (indice 1) solo activo si hay partida empezada en la bbdd
   let hasSave = false;
   const CONTINUE_IDX = 1;
+  // Menú móvil: solo en la app nativa cuando el lado corto del viewport es
+  // <550px (móviles en landscape ≈ 400-480). En escritorio, TV y ventanas
+  // anchas se usa el menú normal de siempre. Fondo y zonas propios.
+  const MOBILE_MENU = IS_NATIVE && Math.min(window.innerWidth, window.innerHeight) < 550;
+  if (MOBILE_MENU) {
+    const mSrc = '/assets/menu%20principal/menu-mobile.webp?v=mm1';
+    document.getElementById('bg').src = mSrc;
+    document.getElementById('fillbg').src = mSrc;
+  }
   // ?auto=1 — autopiloto de grabación (tools/record-demo.mjs)
   const AUTO_MODE = new URLSearchParams(location.search).get('auto') === '1';
 
@@ -333,7 +342,9 @@
 
   async function loadButtons() {
     try {
-      const r = await fetch('/api/load-menu-buttons');
+      const r = await fetch(MOBILE_MENU
+        ? '/assets/menu%20principal/menu-buttons-mobile.json'
+        : '/api/load-menu-buttons');
       if (!r.ok) return;
       const data = await r.json();
       if (data.buttons) {
@@ -643,6 +654,7 @@
       audioUnlocked = true;
       AssetsCache.unlockAudio();
       await refreshSaveState();
+      if (MOBILE_MENU) { try { await document.getElementById('bg').decode(); } catch (e) {} }
       render();
       AssetsCache.revealPage();
       return;
