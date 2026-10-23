@@ -314,10 +314,12 @@
   // "Continuar" (indice 1) solo activo si hay partida empezada en la bbdd
   let hasSave = false;
   const CONTINUE_IDX = 1;
-  // Menú móvil: solo en la app nativa cuando el lado corto del viewport es
-  // <550px (móviles en landscape ≈ 400-480). En escritorio, TV y ventanas
-  // anchas se usa el menú normal de siempre. Fondo y zonas propios.
-  const MOBILE_MENU = IS_NATIVE && Math.min(window.innerWidth, window.innerHeight) < 550;
+  // Menú móvil: solo en la app nativa con pantalla táctil cuando el lado
+  // corto del viewport es <550px (móviles en landscape ≈ 400-480). La TV
+  // reporta viewport en dp pequeño (~540) pero no tiene táctil — sin el
+  // check de maxTouchPoints salía el menú móvil en el Fire Stick.
+  const MOBILE_MENU = IS_NATIVE && navigator.maxTouchPoints > 0
+    && Math.min(window.innerWidth, window.innerHeight) < 550;
   if (MOBILE_MENU) {
     const mSrc = '/assets/menu%20principal/menu-mobile.webp?v=mm1';
     document.getElementById('bg').src = mSrc;
@@ -594,6 +596,7 @@
   // --- Ajustes de glow ---
   let glowX = 14, glowY = 0, glowOp = 0.6, glowBlur = 8;
   let loadingScreenCleanup = null;
+  let menuActive = false; // true tras "pulsa para empezar" o al volver en sesión
   const glowInfo = document.getElementById('glow-info');
 
   function applyGlow() {
@@ -605,6 +608,9 @@
   }
 
   document.addEventListener('keydown', (e) => {
+    // Ignorar teclas hasta que el menú sea interactivo: el mismo Enter que
+    // cierra "pulsa para empezar" activaba Nueva Partida de rebote.
+    if (!menuActive) return;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       const dir = e.key === 'ArrowDown' ? 1 : -1;
@@ -656,6 +662,7 @@
       await refreshSaveState();
       if (MOBILE_MENU) { try { await document.getElementById('bg').decode(); } catch (e) {} }
       render();
+      menuActive = true;
       AssetsCache.revealPage();
       return;
     }
@@ -726,6 +733,7 @@
     const loadingScreen = document.getElementById('loading-screen');
     const enterGame = () => {
       if (loadingScreenCleanup) loadingScreenCleanup();
+      menuActive = true;
       unlockAudio();
       AssetsCache.startMusic(AssetsCache.MUSIC.main);
       sessionStorage.setItem('runika-session', 'active');
