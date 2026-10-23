@@ -502,8 +502,7 @@
   function shopGoneMasks(r, sz, node) {
     const pos = shopDoorPos(node);
     const px = pos.x * r.width, py = pos.y * r.height, rr = sz * 1.45;
-    const g = (x, y, rad, s, f) =>
-      `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
+    const g = (x, y, rad, s, f) => ({ x, y, rx: rad, s, f });
     return [
       g(px, py, rr, 42, 82),
       g(px - rr * 0.35, py - rr * 0.3, rr * 0.55, 28, 65),
@@ -858,9 +857,8 @@
       const sz = resolvedAvatarSize() * r.width;
       const x = axisX;
       const y = mid.y + (node.pos.y - mid.y) * (s / total);
-      avatarEl.style.transition = 'left .17s ease-out, top .17s ease-out';
-      avatarEl.style.left = (r.left + x * r.width - sz / 2) + 'px';
-      avatarEl.style.top = avatarBaseTop({ x, y }, sz, r) + 'px';
+      glideTo(avatarEl, r.left + x * r.width - sz / 2,
+              avatarBaseTop({ x, y }, sz, r), 0.17, 'ease-out');
       if (s < total) { setTimeout(step, 170); return; }
       isMoving = false;
       render();
@@ -893,9 +891,8 @@
     setTimeout(() => AssetsCache.playSound('/assets/sounds/comun/escalera-crece.wav', 0.5), dur * 550);
     isMoving = true;
     const sz = resolvedAvatarSize() * r.width;
-    avatarEl.style.transition = `left ${dur}s linear, top ${dur}s linear`;
-    avatarEl.style.left = (r.left + mid.x * r.width - sz / 2) + 'px';
-    avatarEl.style.top = avatarBaseTop(mid, sz, r) + 'px';
+    glideTo(avatarEl, r.left + mid.x * r.width - sz / 2,
+            avatarBaseTop(mid, sz, r), dur, 'linear');
     setTimeout(() => {
       isMoving = false;
       atShop = -1;
@@ -1090,8 +1087,9 @@
     // gradientes como máscara: N divs con background-image del mapa 10K +
     // filter disparaban la presion de memoria y Chrome rasterizaba toda la
     // pagina (incluido #bg) a baja resolucion — se veia todo borroso.
-    const g = (x, y, rad, s, f) =>
-      `radial-gradient(circle ${rad.toFixed(1)}px at ${x.toFixed(1)}px ${y.toFixed(1)}px, #000 ${s}%, transparent ${f}%)`;
+    const g = (x, y, rad, s, f) => ({ x, y, rx: rad, s, f });
+    const maskCss = (b) =>
+      `radial-gradient(ellipse ${b.rx.toFixed(1)}px ${(b.ry ?? b.rx).toFixed(1)}px at ${b.x.toFixed(1)}px ${b.y.toFixed(1)}px, #000 ${b.s}%, transparent ${b.f}%)`;
     const lockedMasks = [];
     const unlockMasks = []; // isla recién abierta: mancha propia (se despeja)
     const goneMasks = [];
@@ -1125,7 +1123,7 @@
             const py = (b.y ?? pos.y) * r.height;
             const rpx = (b.r ?? 0.12) * r.width;
             const rpy = (b.ry != null) ? b.ry * r.height : rpx;
-            bucket.push(`radial-gradient(ellipse ${rpx.toFixed(1)}px ${rpy.toFixed(1)}px at ${px.toFixed(1)}px ${py.toFixed(1)}px, #000 55%, transparent 86%)`);
+            bucket.push({ x: px, y: py, rx: rpx, ry: rpy, s: 55, f: 86 });
           }
         } else {
           const rr = sz * 1.5;
@@ -1175,41 +1173,39 @@
     // Un solo div oscurece todas las islas bloqueadas. Con background (no
     // <img>): los backgrounds se repintan solos al decodificar; un <img> con
     // mask+filter pre-decode rasterizaba vacio y jamas se repintaba.
-    if (lockedMasks.length) {
+    // En nativo (WebView sin compositor): la capa se hornea UNA vez a canvas
+    // — el mask+filter de pantalla completa se re-evaluaba por frame dañado.
+    const putFx = (cls, blobs, filterCss) => {
+      if (!blobs.length) return;
+      if (document.documentElement.classList.contains('runika-native')
+          && bg.complete && bg.naturalWidth) {
+        const cv = AssetsCache.bakeMaskedLayer(bg, r.width, r.height, blobs, filterCss);
+        if (cv) {
+          cv.className = 'island-fx ' + cls;
+          cv.style.left = r.left + 'px';
+          cv.style.top = r.top + 'px';
+          cv.style.width = r.width + 'px';
+          cv.style.height = r.height + 'px';
+          cv.style.filter = 'none';
+          overlay.appendChild(cv);
+          return;
+        }
+      }
       const fx = document.createElement('div');
-      fx.className = 'island-fx locked';
+      fx.className = 'island-fx ' + cls;
       fx.style.left = r.left + 'px';
       fx.style.top = r.top + 'px';
       fx.style.width = r.width + 'px';
       fx.style.height = r.height + 'px';
       fx.style.backgroundImage = `url("${bg.src}")`;
-      fx.style.webkitMaskImage = fx.style.maskImage = lockedMasks.join(',');
+      fx.style.webkitMaskImage = fx.style.maskImage = blobs.map(maskCss).join(',');
       overlay.appendChild(fx);
-    }
+    };
+    putFx('locked', lockedMasks, 'grayscale(0.8) brightness(0.22) contrast(1.05)');
     // Mancha de la isla recién desbloqueada: idéntica a las bloqueadas pero
     // en su propio div — se desvanece con el efecto de "se despeja".
-    if (unlockMasks.length) {
-      const fx = document.createElement('div');
-      fx.className = 'island-fx locked unlocking';
-      fx.style.left = r.left + 'px';
-      fx.style.top = r.top + 'px';
-      fx.style.width = r.width + 'px';
-      fx.style.height = r.height + 'px';
-      fx.style.backgroundImage = `url("${bg.src}")`;
-      fx.style.webkitMaskImage = fx.style.maskImage = unlockMasks.join(',');
-      overlay.appendChild(fx);
-    }
-    if (goneMasks.length) {
-      const fx = document.createElement('div');
-      fx.className = 'island-fx shopgone';
-      fx.style.left = r.left + 'px';
-      fx.style.top = r.top + 'px';
-      fx.style.width = r.width + 'px';
-      fx.style.height = r.height + 'px';
-      fx.style.backgroundImage = `url("${bg.src}")`;
-      fx.style.webkitMaskImage = fx.style.maskImage = goneMasks.join(',');
-      overlay.appendChild(fx);
-    }
+    putFx('locked unlocking', unlockMasks, 'grayscale(0.8) brightness(0.22) contrast(1.05)');
+    putFx('shopgone', goneMasks, 'blur(11px) brightness(1.06) saturate(0.9)');
     renderShopLadders(r, sz);
 
     // Avatar en la casilla actual (o en la tienda)
@@ -1401,6 +1397,23 @@
     document.getElementById('pos-info').textContent = format('submundo.level', currentLevel + 1, NUM_LEVELS);
   }
 
+  // Desplazamiento visual por transform (compositado en GPU): left/top quedan
+  // en el destino y el viaje se dibuja como translate inverso con WAAPI
+  // (fill none — no pisa transform de clases). En el WebView de TV animar
+  // left/top repintaba el sprite cada frame → todo iba a saltos.
+  function glideTo(el, x, y, dur, ease) {
+    const ox = parseFloat(el.style.left), oy = parseFloat(el.style.top);
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    if (isFinite(ox) && isFinite(oy) && (Math.abs(ox - x) > .5 || Math.abs(oy - y) > .5) && el.animate) {
+      el.animate(
+        [{ transform: 'translate(' + (ox - x) + 'px,' + (oy - y) + 'px)' },
+         { transform: 'translate(0px,0px)' }],
+        { duration: dur * 1000, easing: ease || 'ease-in-out' }
+      );
+    }
+  }
+
   // Vuelo del avatar hasta una posición (isla o tienda) con duración
   // proporcional a la distancia.
   function animateAvatarTo(pos) {
@@ -1445,15 +1458,14 @@
     const bounceX = Math.max(r.left, Math.min(r.right - sz, baseX + dx * r.width));
     const bounceY = Math.max(r.top, Math.min(r.bottom - sz, baseY + dy * r.height));
 
-    avatarEl.style.transition = 'left 0.15s ease-out, top 0.15s ease-out';
-    avatarEl.style.left = bounceX + 'px';
-    avatarEl.style.top = bounceY + 'px';
+    // Rebote por transform (compositado): left/top repintan cada frame.
+    avatarEl.style.transition = 'transform 0.15s ease-out';
+    avatarEl.style.transform = 'translate(' + (bounceX - baseX) + 'px,' + (bounceY - baseY) + 'px)';
     AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.4);
 
     setTimeout(() => {
-      avatarEl.style.transition = 'left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      avatarEl.style.left = baseX + 'px';
-      avatarEl.style.top = baseY + 'px';
+      avatarEl.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      avatarEl.style.transform = 'translate(0px,0px)';
     }, 150);
   }
 

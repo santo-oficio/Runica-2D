@@ -124,7 +124,7 @@
     100% { opacity: 0; transform: translateY(-7vh) scale(1); }
   }
   #avatar {
-    position: absolute; z-index: 20; will-change: left;
+    position: absolute; z-index: 20; left: 0; will-change: transform;
     filter: drop-shadow(0 6px 8px rgba(0,0,0,.55));
   }
   /* Rebote al capturar: se hunde con un premio, se agita con una trampa */
@@ -135,7 +135,7 @@
   /* Nube voladora bajo el avatar (assets/bonus/nube.webp): el avatar
      va montado sobre ella mientras recoge el botín */
   #cloud {
-    position: absolute; z-index: 19; will-change: left;
+    position: absolute; z-index: 19; left: 0; will-change: transform;
     pointer-events: none;
     filter: drop-shadow(0 10px 14px rgba(0,0,0,.5));
   }
@@ -341,6 +341,15 @@
     // borde derecho fijo: el monto crece hacia la izquierda (alineación derecha)
     goldEl.style.right = (innerWidth - (imgRect.left + imgRect.width * 0.98)) + 'px';
     goldEl.style.top = (imgRect.top + imgRect.height * 0.02) + 'px';
+    // Geometría fija del avatar/nube: se asigna solo en resize/orientación.
+    // Escribir top/height cada frame invalidaba layout+paint por frame.
+    avatarEl.style.top = avatarTop() + 'px';
+    avatarEl.style.height = avatarH + 'px';
+    cloudW = avatarW * 2.4;
+    cloudH = cloudW / 2.05;
+    cloudEl.style.top = (avatarTop() + avatarH - cloudH * 0.55) + 'px';
+    cloudEl.style.width = cloudW + 'px';
+    cloudEl.style.height = cloudH + 'px';
     placeAvatar();
   }
 
@@ -352,17 +361,12 @@
   function placeAvatar() {
     const [lo, hi] = avatarBounds();
     avatarX = Math.max(lo, Math.min(hi, avatarX));
-    avatarEl.style.left = avatarX + 'px';
-    avatarEl.style.top = avatarTop() + 'px';
-    avatarEl.style.height = avatarH + 'px';
+    // X por transform (compositado): este código corre cada frame del bucle
+    // y con left hacía layout+paint por frame — el "a saltitos" del bonus.
+    avatarEl.style.transform = 'translateX(' + avatarX + 'px)';
     // La nube va centrada bajo el avatar; los pies se hunden en sus lobulos
     // superiores (nube.webp ~2.05:1)
-    cloudW = avatarW * 2.4;
-    cloudH = cloudW / 2.05;
-    cloudEl.style.left = (avatarX + avatarW / 2 - cloudW / 2) + 'px';
-    cloudEl.style.top = (avatarTop() + avatarH - cloudH * 0.55) + 'px';
-    cloudEl.style.width = cloudW + 'px';
-    cloudEl.style.height = cloudH + 'px';
+    cloudEl.style.transform = 'translateX(' + (avatarX + avatarW / 2 - cloudW / 2) + 'px)';
   }
   // Zona de la cesta: banda superior del sprite (la cesta va en alto)
   function basket() {

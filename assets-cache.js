@@ -446,6 +446,44 @@ function auraPoints(cx, cy, r, seed, aspect) {
   return pts;
 }
 
+// Rasteriza UNA vez una capa "imagen + máscara de blobs + filter" en un
+// canvas. En WebViews sin compositor de capas (Fire TV/Chromium de Amazon)
+// un div con mask-image+filter se re-rasteriza ENTERO por cada repaint del
+// área dañada — ~30ms por frame a pantalla completa → todo va a saltos. El
+// canvas horneado solo se blitea: el mismo resultado a coste casi nulo.
+// blobs: [{x,y,rx,ry,s,f}] en px del rect de la capa — equivalen a
+// radial-gradient(ellipse rx ry at x y, #000 s%, transparent f%).
+function bakeMaskedLayer(img, w, h, blobs, filterCss) {
+  const cw = Math.max(1, Math.round(w)), ch = Math.max(1, Math.round(h));
+  const cv = document.createElement('canvas');
+  cv.width = cw; cv.height = ch;
+  const ctx = cv.getContext('2d');
+  if (!('filter' in ctx)) return null; // WebView vieja: caer al div mask+filter
+  ctx.filter = filterCss;
+  ctx.drawImage(img, 0, 0, cw, ch);
+  ctx.filter = 'none';
+  const mc = document.createElement('canvas');
+  mc.width = cw; mc.height = ch;
+  const mctx = mc.getContext('2d');
+  for (const b of blobs) {
+    const rx = b.rx, ry = b.ry ?? b.rx;
+    mctx.save();
+    mctx.translate(b.x, b.y);
+    mctx.scale(1, ry / rx);
+    const grad = mctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+    grad.addColorStop(Math.min(1, b.s / 100), 'rgba(0,0,0,1)');
+    grad.addColorStop(Math.min(1, b.f / 100), 'rgba(0,0,0,0)');
+    mctx.fillStyle = grad;
+    mctx.beginPath();
+    mctx.arc(0, 0, rx, 0, Math.PI * 2);
+    mctx.fill();
+    mctx.restore();
+  }
+  ctx.globalCompositeOperation = 'destination-in';
+  ctx.drawImage(mc, 0, 0);
+  return cv;
+}
+
 // --- Transiciones entre pantallas ---
 function transitionTo(url) {
   const overlay = document.getElementById('transition-overlay');
@@ -508,7 +546,7 @@ function hideLoading() {
 }
 
 window.AssetsCache = {
-  preloadAll, preloadSounds, getCachedImage, getCachedImageUrl, getCachedSound, playSound, auraPoints,
+  preloadAll, preloadSounds, getCachedImage, getCachedImageUrl, getCachedSound, playSound, auraPoints, bakeMaskedLayer,
   transitionTo, transitionIn, revealPage, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,

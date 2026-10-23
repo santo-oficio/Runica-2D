@@ -452,7 +452,13 @@
     // en 2.4s (transition del filtro de .world-fx.done)
     setTimeout(() => {
       AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.8);
-      overlay.querySelector('.world-fx.start-color')?.classList.remove('start-color');
+      const sc = overlay.querySelector('.world-fx.start-color');
+      if (sc) {
+        sc.classList.remove('start-color');
+        // Canvas horneada (nativo): el drenaje a B/N es la copia a color
+        // fundiéndose fuera por opacidad sobre la copia gris de debajo.
+        if ('fxFade' in sc.dataset) sc.style.opacity = '0';
+      }
       pendingFade = null;
     }, 2800);
     const r = imageRect();
@@ -506,8 +512,15 @@
     const circ = FIN_AREAS?.aura?.[w];
     const pos = WORLD_POSITIONS[w];
     if (!pos) { awakenState = 'done'; return; }
-    requestAnimationFrame(() =>
-      overlay.querySelector('.world-fx.awakening')?.classList.add('lit'));
+    requestAnimationFrame(() => {
+      const aw = overlay.querySelector('.world-fx.awakening');
+      if (aw) {
+        aw.classList.add('lit');
+        // Canvas horneada (nativo): la capa oscura se funde fuera por
+        // opacidad sobre la copia encendida de debajo.
+        if ('awakenFade' in aw.dataset) aw.style.opacity = '0';
+      }
+    });
     const cx = r.left + (circ ? circ.cx * r.width : pos.x * r.width);
     const cy = r.top + (circ ? circ.cy * r.height : pos.y * r.height);
     const baseR = circ ? circ.r * r.width * 0.8 : (worldSize(w) * r.width) / 2;
@@ -541,6 +554,9 @@
     setTimeout(() => {
       awakenState = 'done';
       overlay.querySelector('.world-fx.awakening')?.remove();
+      // Nativo: la copia encendida horneada que quedó debajo también sale —
+      // el mundo vuelve a verse directo del fondo.
+      overlay.querySelector('.world-fx.awakening-base')?.remove();
       wave();
       AssetsCache.playSound('/assets/sounds/comun/orbe.wav', 0.6);
       const b = document.createElement('div');
@@ -606,7 +622,7 @@
           : (done ? (w === pendingFade ? 'done start-color' : 'done') : 'locked');
         const circ = FIN_AREAS?.aura?.[w];
         const grad = (px, py, rr, solid, fade) =>
-          `radial-gradient(circle ${rr.toFixed(1)}px at ${px.toFixed(1)}px ${py.toFixed(1)}px, #000 ${solid}%, transparent ${fade}%)`;
+          ({ x: px, y: py, rx: rr, s: solid, f: fade });
         const grads = fxGrads[fxClass] ||= [];
         if (circ && circ.r > 0) {
           const coreR = circ.r * r.width * 1.05;
@@ -674,20 +690,63 @@
     });
 
     // Capas de oscurecido agrupadas: un solo div por clase con la unión de
-    // todas sus máscaras (misma imagen de fondo → mismo resultado, N→1 capas)
-    for (const [cls, grads] of Object.entries(fxGrads)) {
-      if (!grads.length) continue;
-      const fx = document.createElement('div');
-      fx.className = 'world-fx ' + cls
-        + (cls === 'awakening' && awakenState === 'fading' ? ' lit' : '');
+    // todas sus máscaras (misma imagen de fondo → mismo resultado, N→1 capas).
+    // En nativo (WebView sin compositor) cada capa se hornea UNA vez a
+    // canvas: el mask+filter de pantalla completa se re-evaluaba por frame
+    // dañado (~30ms) — de ahí los saltos en el mapa.
+    const NATIVE_BAKE = document.documentElement.classList.contains('runika-native')
+      && bg.complete && bg.naturalWidth
+      && 'filter' in document.createElement('canvas').getContext('2d');
+    const blobCss = (b) =>
+      `radial-gradient(circle ${b.rx.toFixed(1)}px at ${b.x.toFixed(1)}px ${b.y.toFixed(1)}px, #000 ${b.s}%, transparent ${b.f}%)`;
+    const placeFx = (fx, cls) => {
+      fx.className = 'world-fx ' + cls;
       fx.style.left = r.left + 'px';
       fx.style.top = r.top + 'px';
       fx.style.width = r.width + 'px';
       fx.style.height = r.height + 'px';
-      fx.style.backgroundImage = `url("${document.getElementById('bg').src}")`;
-      fx.style.webkitMaskImage = grads.join(',');
-      fx.style.maskImage = fx.style.webkitMaskImage;
       overlay.appendChild(fx);
+      return fx;
+    };
+    for (const [cls, grads] of Object.entries(fxGrads)) {
+      if (!grads.length) continue;
+      if (NATIVE_BAKE) {
+        const bake = (bcls, filterCss) => {
+          const cv = AssetsCache.bakeMaskedLayer(bg, r.width, r.height, grads, filterCss);
+          cv.style.filter = 'none';
+          return placeFx(cv, bcls);
+        };
+        if (cls === 'done start-color') {
+          // Color→B/N: crossfade por opacidad entre dos copias horneadas —
+          // una transition de filter re-rasterizaba toda la capa por frame.
+          bake('done', 'grayscale(1) brightness(0.55)');
+          const top = bake('done start-color', 'grayscale(0) brightness(1)');
+          top.dataset.fxFade = '';
+          top.style.transition = 'opacity 2.4s ease-in-out';
+        } else if (cls === 'done') {
+          bake('done', 'grayscale(1) brightness(0.55)');
+        } else if (cls === 'awakening') {
+          if (awakenState === 'fading') {
+            bake('awakening', 'grayscale(0) brightness(1.08)');
+          } else {
+            bake('awakening-base', 'grayscale(0) brightness(1.08)')
+              .dataset.awaken = '';
+            const top = bake('awakening', 'grayscale(0.6) brightness(0.35)');
+            top.dataset.awaken = '';
+            top.dataset.awakenFade = '';
+            top.style.transition = 'opacity 5.5s ease-in-out';
+          }
+        } else {
+          bake(cls, 'grayscale(0.6) brightness(0.35)');
+        }
+        continue;
+      }
+      const fx = document.createElement('div');
+      placeFx(fx, cls
+        + (cls === 'awakening' && awakenState === 'fading' ? ' lit' : ''));
+      fx.style.backgroundImage = `url("${document.getElementById('bg').src}")`;
+      fx.style.webkitMaskImage = grads.map(blobCss).join(',');
+      fx.style.maskImage = fx.style.webkitMaskImage;
     }
 
     // Oro acumulado (área calibrada, alineado a la derecha con moneda)
@@ -809,21 +868,15 @@
     const bounceX = Math.max(r.left, Math.min(r.right - sz, baseX + dx * r.width));
     const bounceY = Math.max(r.top, Math.min(r.bottom - sz, baseY + dy * r.height));
 
-    // Quitar transicion temporalmente para el primer salto
-    avatarEl.style.transition = 'left 0.15s ease-out, top 0.15s ease-out';
-    avatarEl.style.left = bounceX + 'px';
-    avatarEl.style.top = bounceY + 'px';
+    // Rebote por transform (compositado): left/top repintan cada frame.
+    avatarEl.style.transition = 'transform 0.15s ease-out';
+    avatarEl.style.transform = 'translate(' + (bounceX - baseX) + 'px,' + (bounceY - baseY) + 'px)';
     AssetsCache.playSound('/assets/sounds/comun/choque.wav', 0.7);
 
     // Volver con rebote elastico
     setTimeout(() => {
-      avatarEl.style.transition = 'left 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      avatarEl.style.left = baseX + 'px';
-      avatarEl.style.top = baseY + 'px';
-      // Restaurar transicion normal
-      setTimeout(() => {
-        avatarEl.style.transition = 'left 0.5s ease, top 0.5s ease';
-      }, 350);
+      avatarEl.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      avatarEl.style.transform = 'translate(0px,0px)';
     }, 150);
   }
 

@@ -203,11 +203,12 @@
   /* Orbes de los mundos restaurados: vuelan y coronan al héroe en arco.
      El color del mundo va en `color` → el halo brilla con ese matiz */
   .orb { position: absolute; z-index: 26; pointer-events: none; border-radius: 50%;
-    transition: left .72s cubic-bezier(.3,.7,.35,1), top .72s cubic-bezier(.3,.7,.35,1);
+    /* El vuelo va por WAAPI transform (compositado); left/top ya quedan en
+       el destino — animar left/top repintaba cada frame en WebView de TV */
     box-shadow: 0 0 20px 5px currentColor; }
   .orbcore { width: 100%; height: 100%; border-radius: 50%; }
   .orb.set { animation: orbFloat 2.6s ease-in-out infinite alternate; }
-  @keyframes orbFloat { from { margin-top: -7px; } to { margin-top: 7px; } }
+  @keyframes orbFloat { from { transform: translateY(-7px); } to { transform: translateY(7px); } }
 
   /* Celebración del boss final (portada de bossWinFx de game.html):
      destello dorado, anillos expansivos, chispas, escombros y polvo */
@@ -818,19 +819,25 @@ async function sceneEnd() {
     o.className = 'orb';
     const sz = innerHeight * 0.055;
     o.style.width = o.style.height = sz + 'px';
-    o.style.left = (cx + (i % 2 ? 1 : -1) * (innerWidth * 0.35 + Math.random() * 60)) + 'px';
-    o.style.top = (innerHeight + 40) + 'px';
+    const sx = cx + (i % 2 ? 1 : -1) * (innerWidth * 0.35 + Math.random() * 60);
+    const sy = innerHeight + 40;
+    o.style.left = sx + 'px';
+    o.style.top = sy + 'px';
     o.style.color = col;
     const core = document.createElement('div');
     core.className = 'orbcore';
     core.style.background = `radial-gradient(circle at 35% 30%, #fff, ${col} 55%)`;
     o.appendChild(core);
     se.appendChild(o);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    // Vuelo por transform en el compositor; al terminar se fijan las
+    // coordenadas reales (fill none → el elemento vuelve a left/top).
+    o.animate(
+      [{ transform: 'translate(0px,0px)' },
+       { transform: 'translate(' + (tx - sz / 2 - sx) + 'px,' + (ty - sz / 2 - sy) + 'px)' }],
+      { duration: 720, easing: 'cubic-bezier(.3,.7,.35,1)' });
+    setTimeout(() => {
       o.style.left = (tx - sz / 2) + 'px';
       o.style.top = (ty - sz / 2) + 'px';
-    }));
-    setTimeout(() => {
       burst(tx, ty, 22, ['#fff3c4', col], 4, { size: 3, g: 0.05, spark: true });
       // Campanita ascendente por mundo — arpegio mágico, no un blip de UI
       const bell = snd('/assets/sounds/comun/orbe.wav', 0.5);

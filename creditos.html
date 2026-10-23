@@ -303,9 +303,9 @@
     const flow = document.getElementById('credits-flow');
     const ta = document.getElementById('text-area');
     if (!scrollInit && ta.clientHeight > 0 && flow.scrollHeight > 0) {
-      // Arranque: el texto entra ya parcialmente visible — con -0.9 el
-      // primer renglon tardaba ~15-20s en ser legible en TV (croll lento).
-      scrollPos = -ta.clientHeight * 0.35;
+      // Arranque: el primer renglon ya esta en zona legible — en TV el
+      // texto tardaba ~15-20s en aparecer y parecia pantalla vacia.
+      scrollPos = -ta.clientHeight * 0.12;
       applyScroll();
       scrollInit = true;
       manualUntil = ts + 1200;
@@ -317,7 +317,7 @@
           resetting = true;
           flow.style.opacity = '0';
           setTimeout(() => {
-            scrollPos = -ta.clientHeight * 0.35;
+            scrollPos = -ta.clientHeight * 0.12;
             applyScroll();
             flow.style.opacity = '1';
             resetting = false;
@@ -330,7 +330,7 @@
         applyScroll();
         holdUntil = ts + 4000;
       } else if (ts >= manualUntil) {
-        scrollPos = Math.min(max, scrollPos + imgH * 0.022 * dt / 1000);
+        scrollPos = Math.min(max, scrollPos + imgH * 0.03 * dt / 1000);
         applyScroll();
       }
     }

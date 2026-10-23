@@ -35,7 +35,9 @@
   }
   #selector {
     position: absolute; z-index: 15; pointer-events: none;
-    transition: left 0.15s ease-in-out, top 0.15s ease-in-out;
+    /* El viaje va por glideTo (transform/WAAPI); sin transition de left/top
+       — en WebView de TV cada paso repintaba el sprite cada frame. */
+    will-change: transform;
   }
   #avatar {
     position: absolute; top: 0; left: 0;
@@ -66,7 +68,8 @@
   @keyframes mhint { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
   .entity {
     position: absolute; pointer-events: none;
-    transition: left 0.25s ease-in-out, top 0.25s ease-in-out;
+    /* Movimiento por glideTo (transform/WAAPI), nunca left/top animado. */
+    will-change: transform;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
   }
   /* Capas del tablero: trampas y meta son suelo; los enemigos (más
@@ -638,6 +641,23 @@ function cellPos(c, r, useAvatarArea) {
   return { left: b.left + c * cw, top: b.top + r * ch, w: cw, h: ch };
 }
 
+// Desplazamiento visual por transform (compositado en GPU): left/top quedan
+// ya en el destino y el viaje se dibuja como translate inverso con WAAPI
+// (fill none — no pisa transform de clases como .defeated). En el WebView
+// de TV animar left/top repintaba cada frame → todo iba a saltos.
+function glideTo(el, x, y, dur, ease) {
+  const ox = parseFloat(el.style.left), oy = parseFloat(el.style.top);
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  if (isFinite(ox) && isFinite(oy) && (Math.abs(ox - x) > .5 || Math.abs(oy - y) > .5) && el.animate) {
+    el.animate(
+      [{ transform: 'translate(' + (ox - x) + 'px,' + (oy - y) + 'px)' },
+       { transform: 'translate(0px,0px)' }],
+      { duration: dur * 1000, easing: ease || 'ease-in-out' }
+    );
+  }
+}
+
 // === Textos calibrados del tablero (modo real) ===
 // Áreas de assets/backgrounds/<M>/text-areas.json: etiqueta+número de turno,
 // óptimo, nivel de juego (tier de la curva global) en info, y oro.
@@ -994,8 +1014,7 @@ async function applyScreen(s, tier) {
 
 function positionSelector() {
   const p = cellPos(player.c, player.r, true);
-  selector.style.left = p.left + 'px';
-  selector.style.top = p.top + 'px';
+  glideTo(selector, p.left, p.top, 0.15);
   selector.style.width = p.w + 'px';
   selector.style.height = p.h + 'px';
   // Calibración del avatar: el selector queda a tamaño casilla (el rebote y
@@ -1041,8 +1060,8 @@ function place(el, c, r, useAvatarArea) {
   const cl = (ck && ck !== 'wall') ? calibFor(ck, +(el.dataset.inst || 0))
                                   : { size: 1, ox: 0, oy: 0 };
   const w = p.w * cl.size, h = p.h * cl.size;
-  el.style.left = (p.left + (p.w - w) / 2 + cl.ox * p.w) + 'px';
-  el.style.top = (p.top + (p.h - h) / 2 + cl.oy * p.h) + 'px';
+  glideTo(el, p.left + (p.w - w) / 2 + cl.ox * p.w,
+            p.top + (p.h - h) / 2 + cl.oy * p.h, 0.25);
   el.style.width = w + 'px';
   el.style.height = h + 'px';
 }
@@ -1292,15 +1311,10 @@ function bounceSelector(dc, dr) {
   const p = cellPos(player.c, player.r, true);
   const dx = dc * p.w * 0.25;
   const dy = dr * p.h * 0.25;
-  selector.style.transition = 'left 0.08s ease-out, top 0.08s ease-out';
-  selector.style.left = (p.left + dx) + 'px';
-  selector.style.top = (p.top + dy) + 'px';
+  glideTo(selector, p.left + dx, p.top + dy, 0.08, 'ease-out');
   setTimeout(() => {
-    selector.style.transition = 'left 0.15s ease-in, top 0.15s ease-in';
-    selector.style.left = p.left + 'px';
-    selector.style.top = p.top + 'px';
+    glideTo(selector, p.left, p.top, 0.15, 'ease-in');
     setTimeout(() => {
-      selector.style.transition = 'left 0.15s ease-in-out, top 0.15s ease-in-out';
       moving = false;
       renderMoveHints();
     }, 160);
@@ -1369,8 +1383,11 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
       if (finished) return;
       const k = Math.min(1, Math.max(0, (t - t0) / dur)), e = k * k * (3 - 2 * k);
       const u = 1 - e;
-      c.style.left = (u * u * fromX + 2 * u * e * mx + e * e * tx - size / 2) + 'px';
-      c.style.top = (u * u * fromY + 2 * u * e * my + e * e * ty - size / 2) + 'px';
+      // transform, no left/top: la posición base ya está puesta y el arco
+      // viaja por compositor (sin repaints por frame en el WebView de TV).
+      c.style.transform = 'translate(' +
+        (u * u * fromX + 2 * u * e * mx + e * e * tx - fromX) + 'px,' +
+        (u * u * fromY + 2 * u * e * my + e * e * ty - fromY) + 'px)';
       if (k < 1) { requestAnimationFrame(step); return; }
       c.remove();
       playOnce(coinAudio, 0.3, 0.9 + Math.random() * 0.25);
@@ -1444,14 +1461,10 @@ function shatterScreen(cx, cy) {
   const ar = selector.getBoundingClientRect();
   const hx = ir.left + ir.width * 0.17;
   const hy = ir.top + ir.height * 0.60;
-  selector.style.transition = 'left 1.15s ease-in-out, top 1.15s ease-in-out';
-  selector.style.left = (hx - ar.width / 2) + 'px';
-  selector.style.top = (hy - ar.height / 2) + 'px';
+  glideTo(selector, hx - ar.width / 2, hy - ar.height / 2, 1.15);
   const boss = document.querySelector('.entity[data-type="boss"], .entity.defeated');
   if (boss) {
-    boss.style.transition = 'left 1.15s ease-in-out, top 1.15s ease-in-out';
-    boss.style.left = (hx + ar.width * 0.35) + 'px';
-    boss.style.top = (hy + ar.height * 0.5) + 'px';
+    glideTo(boss, hx + ar.width * 0.35, hy + ar.height * 0.5, 1.15);
     boss.classList.add('spotlight'); // bajo el foco del heroe
   }
   // Haz cenital + halo + brillo coronan al héroe (y al boss a sus pies)

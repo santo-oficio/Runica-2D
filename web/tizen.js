@@ -87,7 +87,19 @@
       // en bucle INFINITO en mapamundi y submundo: rasteriza cada frame para
       // siempre (~80fps medidos en reposo en Fire TV) — la causa del lag
       // continuo. En nativo queda estatica; sigue siendo una aura dorada.
-      ".runika-native #avatar::before{animation:none!important}";
+      ".runika-native #avatar::before{animation:none!important}" +
+      // El letrero de la tienda "invita" oscilando en bucle infinito: ~60fps
+      // de repaint perpetuo en el WebView de la TV. Estatico en nativo.
+      ".runika-native .shop-ladder-path.inviting .sign-anim{animation:none!important}" +
+      // Margen seguro de TV (~6%): en el panel los HUDs quedaban pegados a
+      // los bordes y las TVs con overscan recortaban textos laterales. Se
+      // escala la página entera (contenido + overlays) alrededor del centro.
+      ".runika-native body{transform:scale(.94)}" +
+      // Capas que viajan por transform: promoción a capa de compositor para
+      // que WAAPI/transform no rasterice el sprite en el main thread.
+      ".runika-native #avatar,.runika-native .shop-ladder-path," +
+      ".runika-native .entity,.runika-native #selector," +
+      ".runika-native .fall-item{will-change:transform}";
     document.head.appendChild(lite);
     document.documentElement.classList.add("runika-native");
   } catch (e) {}
