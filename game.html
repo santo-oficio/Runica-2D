@@ -1281,7 +1281,7 @@ function moveEnemiesAnimated() {
       updateEnemyPositions();
       if (!godMode && enemyAt(player.c, player.r)) { resolve(true); return; }
       step++;
-      anyMoved ? setTimeout(doStep, 350) : doStep();
+      anyMoved ? setTimeout(doStep, 280) : doStep();
     }
     doStep();
   });

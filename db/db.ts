@@ -104,6 +104,8 @@ export interface PlayerState {
 interface WorldTierAssignment {
   current: string | null;
   completed: string[];
+  /** Huellas de contenido de las pantallas usadas (dedupe entre bancos de tier). */
+  keys?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -184,6 +186,7 @@ function assignmentKey(world: string, tier: number): string {
 }
 
 function persist(): void {
+  usedKeysCache = null; // las asignaciones cambiaron: huellas se recalculan
   if (!existsSync(DB_DIR)) mkdirSync(DB_DIR, { recursive: true });
   writeFileSync(
     PLAYER_PATH,
@@ -384,11 +387,19 @@ export function failScreen(_screenId: string): void {
  */
 export function mapTierFor(world: string, level: number): number {
   if (world === FINAL_WORLD && level === BOSS_LEVEL_IDX) return FINAL_TIER;
-  // Bienvenida de mundo: la primera isla juega siempre el tier 1 (laberinto
-  // sin cazadores) y la segunda el tier 2; el resto sigue la curva.
-  if (level === 0) return ENTRY_TIER;
-  if (level === 1) return FIRST_TIER;
-  return currentTier();
+  const wIdx = WORLDS.indexOf(world as (typeof WORLDS)[number]);
+  // Bienvenida solo en el PRIMER mundo: su primera isla juega tier 1
+  // (laberinto sin cazadores) y la segunda el tier 2; en mundos posteriores
+  // seria un descenso absurdo (antes TODAS las islas caian a tier 1-2 y el
+  // mundo entero se sentia planisimo).
+  if (wIdx === 0 && level === 0) return ENTRY_TIER;
+  if (wIdx === 0 && level === 1) return FIRST_TIER;
+  // Curva por mundo + rampa por isla: cada mundo arranca ~2 tiers por
+  // encima del anterior y las 12 islas suben ~4-5 tiers dentro del mundo
+  // (ESPACIO 1-6 → INFRAMUNDO 14-18 → MAZMORRA 16-18 + boss 18).
+  const base = FIRST_TIER + Math.max(0, wIdx) * 2;
+  const ramp = Math.floor(level * 0.45);
+  return Math.min(TOTAL_TIERS, base + ramp);
 }
 
 /** Recuerda el último mundo seleccionado en el mapamundi. */
@@ -428,6 +439,45 @@ function usedScreenIds(): Set<string> {
 }
 
 /**
+ * Huella de contenido de una pantalla: mismo puzzle = misma clave aunque
+ * exista en dos bancos de tier con ids distintos (hay ~950 duplicados así
+ * entre bancos — el dedupe por id no los cazaba y el puzzle "se repetía").
+ */
+function screenContentKey(s: Screen): string {
+  const cell = (p: readonly number[]) => `${p[0]},${p[1]}`;
+  const en = (s.enemies ?? []).map((e) => `${cell(e.pos)}:${e.pattern}`).sort().join("|");
+  const ob = (s.obstacles ?? []).map(cell).sort().join("|");
+  const tr = (s.traps ?? []).map(cell).sort().join("|");
+  return [(s.grid ?? []).join("/"), cell(s.player), cell(s.goal), en, ob, tr].join("#");
+}
+
+/**
+ * Huellas de contenido de TODAS las pantallas ya usadas en la partida.
+ * Las asignaciones antiguas sin `keys` se resuelven por id una sola vez
+ * por sesión y sus huellas se guardan en la propia asignación.
+ */
+let usedKeysCache: Set<string> | null = null;
+function usedContentKeys(): Set<string> {
+  if (usedKeysCache) return usedKeysCache;
+  const keys = new Set<string>();
+  let migrated = false;
+  for (const a of assignments.values()) {
+    for (const k of a.keys ?? []) keys.add(k);
+    for (const id of [a.current, ...a.completed]) {
+      if (!id) continue;
+      const s = findScreenById(id);
+      if (!s) continue;
+      const k = screenContentKey(s);
+      keys.add(k);
+      if (!(a.keys ?? []).includes(k)) { a.keys = [...(a.keys ?? []), k]; migrated = true; }
+    }
+  }
+  if (migrated) persist();
+  usedKeysCache = keys;
+  return keys;
+}
+
+/**
  * Pantalla asignada a una isla del mapa (sticky): mientras la isla no se
  * complete, siempre devuelve la misma pantalla del tier correspondiente.
  * La elección excluye TODAS las pantallas ya usadas en el juego, así dos
@@ -455,13 +505,18 @@ export function getLevelScreen(world: string, level: number): { screen: Screen; 
 
   const pool = ensureTierLoaded(tier);
   const used = usedScreenIds();
+  const usedKeys = usedContentKeys();
   // Primera visita a la isla: sorteo AL AZAR entre las pantallas aún no
-  // usadas en esta partida (el histórico las mantiene fijas después).
+  // usadas en esta partida — ni por id NI por contenido (un mismo puzzle
+  // puede existir en dos bancos con ids distintos y "repetirse").
   const free = pool.filter((s) => !used.has(s.id));
-  const chosen = free.length > 0
-    ? free[Math.floor(Math.random() * free.length)]!
+  const fresh = free.filter((s) => !usedKeys.has(screenContentKey(s)));
+  const pickFrom = fresh.length > 0 ? fresh : free;
+  const chosen = pickFrom.length > 0
+    ? pickFrom[Math.floor(Math.random() * pickFrom.length)]!
     : pool[Math.floor(Math.random() * pool.length)]!;
   assign.current = chosen.id;
+  assign.keys = [...(assign.keys ?? []), screenContentKey(chosen)];
   assignments.set(key, assign);
   persist();
   return { screen: chosen, tier };

@@ -52,7 +52,9 @@
     return 0.5 + (c / (TOTAL_STAGES - 1)) * 7.5;
   }
 
+  var usedKeysCache = null;
   function persist() {
+    usedKeysCache = null; // las asignaciones cambiaron: huellas se recalculan
     try {
       localStorage.setItem(LS_PLAYER, JSON.stringify(player));
       localStorage.setItem(LS_ASSIGN, JSON.stringify(assignments));
@@ -126,10 +128,15 @@
 
   function mapTierFor(world, level) {
     if (world === FINAL_WORLD && level === BOSS_LEVEL_IDX) return FINAL_TIER;
-    // Bienvenida de mundo: isla 1 → tier 1, isla 2 → tier 2, resto la curva.
-    if (level === 0) return ENTRY_TIER;
-    if (level === 1) return FIRST_TIER;
-    return currentTier();
+    var wIdx = WORLDS.indexOf(world);
+    // Bienvenida solo en el PRIMER mundo (isla 1 → tier 1, isla 2 → tier 2);
+    // en mundos posteriores seria un descenso absurdo.
+    if (wIdx === 0 && level === 0) return ENTRY_TIER;
+    if (wIdx === 0 && level === 1) return FIRST_TIER;
+    // base por mundo (+2 tiers) + rampa por isla (~4-5 dentro del mundo)
+    var base = FIRST_TIER + Math.max(0, wIdx) * 2;
+    var ramp = Math.floor(level * 0.45);
+    return Math.min(TOTAL_TIERS, base + ramp);
   }
 
   function setLastWorld(world) {
@@ -163,6 +170,49 @@
     return used;
   }
 
+  /** Huella de contenido: mismo puzzle = misma clave aunque viva en dos
+      bancos de tier con ids distintos (~950 duplicados entre bancos — el
+      dedupe por id no los cazaba y el puzzle "se repetia"). */
+  function screenContentKey(s) {
+    function cell(p) { return p[0] + "," + p[1]; }
+    var en = (s.enemies || []).map(function (e) { return cell(e.pos) + ":" + e.pattern; }).sort().join("|");
+    var ob = (s.obstacles || []).map(cell).sort().join("|");
+    var tr = (s.traps || []).map(cell).sort().join("|");
+    return [(s.grid || []).join("/"), cell(s.player), cell(s.goal), en, ob, tr].join("#");
+  }
+
+  /** Huellas de contenido de TODAS las pantallas ya usadas (async: las ids
+      antiguas sin `keys` se resuelven por fetch una sola vez por sesión y
+      se guardan en la asignacion). */
+  function usedContentKeys() {
+    if (usedKeysCache) return Promise.resolve(usedKeysCache);
+    var keys = {}, pairs = [];
+    for (var k in assignments) {
+      var a = assignments[k];
+      (a.keys || []).forEach(function (kk) { keys[kk] = true; });
+      if (a.current) pairs.push([a, a.current]);
+      (a.completed || []).forEach(function (id) { pairs.push([a, id]); });
+    }
+    var migrated = false;
+    return pairs.reduce(function (p, pair) {
+      return p.then(function () {
+        return findScreenById(pair[1]).then(function (s) {
+          if (!s) return;
+          var key = screenContentKey(s);
+          keys[key] = true;
+          if ((pair[0].keys || []).indexOf(key) < 0) {
+            pair[0].keys = (pair[0].keys || []).concat(key);
+            migrated = true;
+          }
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      if (migrated) persist();
+      usedKeysCache = keys;
+      return keys;
+    });
+  }
+
   /** Pantalla sticky de una isla (misma lógica que getLevelScreen de db.ts). */
   function getLevelScreen(world, level) {
     var tier = mapTierFor(world, level);
@@ -184,16 +234,20 @@
       var replayId = assign.completed[0] || null;
       var after = function () {
         return ensureTierLoaded(tier).then(function (pool) {
-          var used = usedScreenIds();
-          // Primera visita: sorteo al azar entre las no usadas (misma
-          // regla que db.ts — el histórico la deja fija después).
-          var free = pool.filter(function (s) { return !used[s.id]; });
-          var src = free.length ? free : pool;
-          var chosen = src[Math.floor(Math.random() * src.length)];
-          assign.current = chosen.id;
-          assignments[key] = assign;
-          persist();
-          return { screen: chosen, tier: tier };
+          return usedContentKeys().then(function (usedKeys) {
+            var used = usedScreenIds();
+            // Primera visita: sorteo al azar entre las no usadas — ni por
+            // id NI por contenido (un puzzle puede vivir en dos bancos).
+            var free = pool.filter(function (s) { return !used[s.id]; });
+            var fresh = free.filter(function (s) { return !usedKeys[screenContentKey(s)]; });
+            var src = fresh.length ? fresh : (free.length ? free : pool);
+            var chosen = src[Math.floor(Math.random() * src.length)];
+            assign.current = chosen.id;
+            assign.keys = (assign.keys || []).concat(screenContentKey(chosen));
+            assignments[key] = assign;
+            persist();
+            return { screen: chosen, tier: tier };
+          });
         });
       };
       if (replayId !== null) {

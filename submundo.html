@@ -99,7 +99,7 @@
     pointer-events: none;
     border: none;
     background: transparent;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, opacity 0.2s ease;
   }
   .cell-marker.completed {
     border: none;
@@ -713,19 +713,25 @@
     shopFlying.add(index);
     clip.style.clipPath = 'inset(0 0 100.5% 0)';
     const vw = window.innerWidth, vh = window.innerHeight;
-    // Salida real desde la esquina superior izquierda: layout.sign da la
-    // posición de la casa en pantalla (el path no se puede medir: aún no
-    // está en el DOM). Se traduce hasta la esquina y zigzaguea hasta posarse.
-    const sx = vw * 0.01 - layout.sign.left;
+    // La casa espejada (mirror, segunda tienda) mira a la IZQUIERDA: si
+    // entra por la izquierda volando a la derecha se ve "marcha atrás".
+    // Entra por la derecha volando a la izquierda — sprite mirando hacia
+    // el sentido del vuelo, igual que la casa normal mira a la derecha.
+    const fromLeft = layout.mirror >= 0;
+    const sx = fromLeft
+      ? vw * 0.01 - layout.sign.left
+      : vw * 0.99 - layout.sign.left - layout.sign.w;
     const sy = vh * 0.01 - layout.top - layout.sign.top;
+    const R = fromLeft ? 1 : -1; // signo de rotación: el vaivén se espeja
+    const W = fromLeft ? 1 : -1; // zigzag lateral espejado
     const anim = path.animate([
-      { transform: `translate(${sx}px, ${sy}px) rotate(14deg)`, offset: 0 },
-      { transform: `translate(${sx * 0.7 + vw * 0.05}px, ${sy * 0.7 - vh * 0.09}px) rotate(-10deg)`, offset: 0.26 },
-      { transform: `translate(${sx * 0.48}px, ${sy * 0.48 + vh * 0.07}px) rotate(9deg)`, offset: 0.5 },
-      { transform: `translate(${sx * 0.26 - vw * 0.05}px, ${sy * 0.26 - vh * 0.05}px) rotate(-8deg)`, offset: 0.74 },
-      { transform: `translate(${vw * 0.015}px, ${vh * 0.015}px) rotate(3deg)`, offset: 0.88 },
+      { transform: `translate(${sx}px, ${sy}px) rotate(${14 * R}deg)`, offset: 0 },
+      { transform: `translate(${sx * 0.7 + vw * 0.05 * W}px, ${sy * 0.7 - vh * 0.09}px) rotate(${-10 * R}deg)`, offset: 0.26 },
+      { transform: `translate(${sx * 0.48}px, ${sy * 0.48 + vh * 0.07}px) rotate(${9 * R}deg)`, offset: 0.5 },
+      { transform: `translate(${sx * 0.26 - vw * 0.05 * W}px, ${sy * 0.26 - vh * 0.05}px) rotate(${-8 * R}deg)`, offset: 0.74 },
+      { transform: `translate(${vw * 0.015 * W}px, ${vh * 0.015}px) rotate(${3 * R}deg)`, offset: 0.88 },
       { transform: 'translate(0px, 0px) rotate(0deg)', offset: 1 },
-    ], { duration: 6000, easing: 'ease-in-out', fill: 'both' });
+    ], { duration: 3800, easing: 'ease-in-out', fill: 'both' });
     // Si el mundo aún se está revelando, el despegue espera a que el
     // fundido termine — si no, la casa aparece a mitad de vuelo.
     const startFlight = () => {
@@ -790,15 +796,20 @@
     const vw = window.innerWidth, vh = window.innerHeight;
     const r = getImgRect();
     const layout = shopLadderLayout(r, node);
-    // Salida por la esquina superior izquierda (por donde entró): la casa
-    // termina totalmente fuera de pantalla arriba a la izquierda.
-    const tx = layout ? -layout.sign.left - layout.sign.w - vw * 0.05 : -vw;
+    // Salida por la esquina por la que "mira" la casa: normal → izquierda
+    // (voló izq→der); espejada → derecha (voló der→izq). Siempre sale
+    // volando hacia adelante, nunca marcha atrás.
+    const exitLeft = !layout || layout.mirror >= 0;
+    const tx = !layout ? -vw
+      : exitLeft ? -layout.sign.left - layout.sign.w - vw * 0.05
+      : vw - layout.sign.left + vw * 0.05;
     const ty = layout ? -layout.top - layout.sign.h - vh * 0.05 : -vh;
+    const ER = exitLeft ? 1 : -1; // alabeo espejado según la dirección de salida
     setTimeout(() => {
       path.animate([
         { transform: 'translate(0px, 0px) rotate(0deg)', offset: 0 },
-        { transform: `translate(${tx * 0.15}px, ${-vh * 0.07}px) rotate(-6deg)`, offset: 0.3 },
-        { transform: `translate(${tx}px, ${ty}px) rotate(-14deg)`, offset: 1 },
+        { transform: `translate(${tx * 0.15}px, ${-vh * 0.07}px) rotate(${-6 * ER}deg)`, offset: 0.3 },
+        { transform: `translate(${tx}px, ${ty}px) rotate(${-14 * ER}deg)`, offset: 1 },
       ], { duration: 1600, easing: 'ease-in', fill: 'forwards' });
       setTimeout(finish, 1600);
     }, 750);
@@ -1402,12 +1413,21 @@
     const newX = r.left + pos.x * r.width - sz / 2;
     const newY = avatarBaseTop(pos, sz, r);
     const dist = Math.hypot(newX - oldX, newY - oldY);
-    const speed = 800;
-    const duration = Math.max(0.2, Math.min(1.0, dist / speed));
+    const speed = 1400;
+    const duration = Math.max(0.15, Math.min(0.7, dist / speed));
 
-    avatarEl.style.transition = 'left ' + duration + 's linear, top ' + duration + 's linear';
+    // Viaje por transform (compositado en GPU): animar left/top fuerza
+    // layout+paint por frame — en WebView de TV se veía a tirones.
+    avatarEl.style.transition = 'none';
     avatarEl.style.left = newX + 'px';
     avatarEl.style.top = newY + 'px';
+    avatarEl.style.transform = dist > 1
+      ? 'translate(' + (oldX - newX) + 'px,' + (oldY - newY) + 'px)' : 'none';
+    if (dist > 1) {
+      void avatarEl.offsetWidth;
+      avatarEl.style.transition = 'transform ' + duration + 's linear';
+      avatarEl.style.transform = 'translate(0px,0px)';
+    }
 
     setTimeout(() => { isMoving = false; }, duration * 1000);
     return duration;

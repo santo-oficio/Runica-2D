@@ -443,10 +443,10 @@ function transitionTo(url) {
   overlay.style.pointerEvents = 'auto';
   overlay.style.display = 'block';
   requestAnimationFrame(() => {
-    overlay.style.transition = 'opacity 400ms ease';
+    overlay.style.transition = 'opacity 260ms ease';
     overlay.style.opacity = '1';
   });
-  setTimeout(() => { window.location.href = url; }, 450);
+  setTimeout(() => { window.location.href = url; }, 300);
 }
 
 function transitionIn() {
@@ -456,13 +456,13 @@ function transitionIn() {
   overlay.style.pointerEvents = 'auto';
   overlay.style.display = 'block';
   requestAnimationFrame(() => {
-    overlay.style.transition = 'opacity 400ms ease';
+    overlay.style.transition = 'opacity 260ms ease';
     overlay.style.opacity = '0';
   });
   setTimeout(() => {
     overlay.style.pointerEvents = 'none';
     overlay.style.display = 'none';
-  }, 450);
+  }, 300);
 }
 
 // Revelado de página: funde la pantalla de carga y el overlay A LA VEZ.

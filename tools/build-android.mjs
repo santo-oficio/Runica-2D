@@ -52,7 +52,9 @@ for (const f of ["icon.png", "icon-foreground.png", "icon-background.png"]) {
 // renderer por OOM → pantalla negra al entrar al tablero. Las coordenadas
 // calibradas son normalizadas (0-1), así que reducir el bitmap no rompe
 // nada. Límites por clase:
-//   - escenas/fondos/menús/modales: 2560px máx (sobra para 1440p móvil)
+//   - escenas/fondos/menús/modales: 1920px máx (la TV/móvil renderizan a
+//     1080p: 2560 era memoria de raster desperdiciada y decodificación
+//     más lenta — casi la mitad de coste sin diferencia visible)
 //   - sprites/variantes display:    1536px máx (ocupan 1-2 casillas)
 //   - iconos puros (monedas…):      768px máx
 const { default: sharp } = await import("sharp");
@@ -77,7 +79,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let shrunk = 0, kept = 0, failed = 0;
 for await (const abs of walk(join(WWW, "assets"))) {
   const rel = abs.slice(WWW.length + 1);
-  const cap = ICON_CAP.get(rel.replaceAll("\\", "/")) ?? (isSpritePath(rel) ? 1536 : 2560);
+  const cap = ICON_CAP.get(rel.replaceAll("\\", "/")) ?? (isSpritePath(rel) ? 1536 : 1920);
   // sharp(abs) mantiene el archivo mapeado en Windows y luego no deja
   // sobrescribirlo — se lee a buffer primero para que no quede handle.
   let done = false;
