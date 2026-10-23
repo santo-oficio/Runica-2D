@@ -404,6 +404,10 @@
       const n = WORLD_ORDER.findIndex(w => !worldLocked(w));
       if (n >= 0) selectedWorld = n;
     }
+    // Partida sin progreso: el avatar se planta sobre MAZMORRA (centro del
+    // mapa) aunque el mundo siga bloqueado; la selección lógica queda en el
+    // primer mundo entrañable para poder moverse por los caminos.
+    avatarAtCenter = !DEMO_MODE && player && Object.keys(player.worldProgress || {}).length === 0;
     if (DEMO_MODE) {
       // En all7 el avatar queda sobre el mundo recién conquistado
       const justDone = WORLD_ORDER.includes(JUST_DONE_WORLD) && JUST_DONE_WORLD !== FINAL_WORLD
@@ -413,6 +417,8 @@
   }
 
   let selectedWorld = 0; // ESPACIO por defecto; luego manda player.lastWorld
+  let avatarAtCenter = false; // partida nueva: avatar dibujado en MAZMORRA
+  const avatarHomeWorld = () => avatarAtCenter ? FINAL_WORLD : WORLD_ORDER[selectedWorld];
 
   async function loadLang(lang) {
     const r = await fetch('/api/i18n' + (lang ? '/' + lang : ''));
@@ -701,7 +707,7 @@
     }
 
     // Mostrar avatar siempre (el elegido en la seleccion de personaje)
-    const pos = avatarPos(world);
+    const pos = avatarPos(avatarHomeWorld());
     if (pos) {
       const src = playerAvatarSrc();
       avatarImg.src = AssetsCache.getCachedImageUrl(src);
@@ -748,6 +754,7 @@
     const targetIdx = WORLD_ORDER.indexOf(targetWorld);
     if (targetIdx < 0) return;
     selectedWorld = targetIdx;
+    avatarAtCenter = false;
     AssetsCache.playSound('/assets/sounds/comun/move.wav', 0.5);
     isMoving = true;
     render();
@@ -771,7 +778,7 @@
     const r = imageRect();
     const world = WORLD_ORDER[selectedWorld];
     const sz = avatarSz(world) * r.width;
-    const pos = avatarPos(world);
+    const pos = avatarPos(avatarHomeWorld());
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;
     const baseY = r.top + pos.y * r.height - sz / 2;
