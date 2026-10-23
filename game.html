@@ -2254,6 +2254,24 @@ window.touchTapMove = function (x, y) {
   if (Math.abs(dc) + Math.abs(dr) === 1) movePlayer(dc, dr);
 };
 
+// === Botón Volver (solo APK Android) ===
+// En el móvil no hay tecla Esc física: botón fijo abajo-izquierda que
+// replica la semántica de Escape (volver al submundo; si se ganó,
+// confirmWin para seguir el flujo normal).
+const IS_APK = typeof cordova !== 'undefined' && cordova.platformId === 'android';
+if (IS_APK && REAL_MODE) {
+  const backBtn = document.createElement('button');
+  backBtn.id = 'back-btn';
+  backBtn.type = 'button';
+  backBtn.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#ffe28a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"><path d="M15 4l-8 8 8 8"/></svg>';
+  Object.assign(backBtn.style, { position: 'fixed', left: '14px', bottom: '12px', width: '56px', height: '42px', zIndex: '61', border: '2px solid rgba(255,213,79,.85)', borderRadius: '9px', background: 'rgba(25,16,7,.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', WebkitTapHighlightColor: 'transparent' });
+  document.body.appendChild(backBtn);
+  backBtn.addEventListener('click', () => { play(backAudio); if (won) confirmWin(); else backToSubmundo(); });
+  const setBackLabel = () => { try { const l = tt('instructions.back'); if (l && l !== 'instructions.back') { backBtn.title = l; backBtn.setAttribute('aria-label', l); return true; } } catch (e) {} return false; };
+  let labelTries = 0;
+  const labelPoll = setInterval(() => { if (setBackLabel() || ++labelTries > 200) clearInterval(labelPoll); }, 100);
+}
+
 // === Consola de hacks (Tab) ===
 // Panel inferior semitransparente con historial y mapa de comandos
 // extensible (HACK_CMDS). Abierta, bloquea el input del juego.
