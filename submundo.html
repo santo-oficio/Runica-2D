@@ -1228,9 +1228,12 @@
     // viewport y x mide el margen desde ese borde — el HUD usa todo el lienzo
     // panorámico aunque la imagen desborde la pantalla.
     const vw = bg.getBoundingClientRect().width;
+    // Margen seguro TV: en nativo los textos anclados a un borde no pueden
+    // quedar a menos del 2.5% del lateral (quedaban "pegadísimos" al borde).
+    const SAFE_X = document.documentElement.classList.contains('runika-native') ? 0.025 : 0;
     const areaX = (area) => {
-      if (area.anchorX === 'viewRight') return { left: vw * (1 - area.x - area.w), w: area.w * vw };
-      if (area.anchorX === 'viewLeft') return { left: area.x * vw, w: area.w * vw };
+      if (area.anchorX === 'viewRight') return { left: vw * (1 - Math.max(area.x, SAFE_X) - area.w), w: area.w * vw };
+      if (area.anchorX === 'viewLeft') return { left: Math.max(area.x, SAFE_X) * vw, w: area.w * vw };
       return { left: r.left + area.x * r.width, w: area.w * r.width };
     };
     const dynamicValues = {

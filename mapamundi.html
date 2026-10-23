@@ -755,10 +755,14 @@
       // anchorX 'viewRight'/'viewLeft': x y w son fracciones del ancho
       // VISIBLE del viewport (x = margen desde ese borde), no de la imagen
       const vw = window.innerWidth;
+      // Margen seguro TV: en nativo el HUD no puede quedar a menos del
+      // 2.5% del lateral (quedaba pegado al borde de la pantalla).
+      const safeX = document.documentElement.classList.contains('runika-native') ? 0.025 : 0;
+      const goldMargin = Math.max(GOLD_AREA.x, safeX);
       const goldLeft = GOLD_AREA.anchorX === 'viewRight'
-        ? vw * (1 - GOLD_AREA.x - GOLD_AREA.w)
+        ? vw * (1 - goldMargin - GOLD_AREA.w)
         : GOLD_AREA.anchorX === 'viewLeft'
-          ? GOLD_AREA.x * vw
+          ? goldMargin * vw
           : ir.left + GOLD_AREA.x * ir.width;
       const goldW = GOLD_AREA.anchorX ? GOLD_AREA.w * vw : GOLD_AREA.w * ir.width;
       const goldEl = document.createElement('div');

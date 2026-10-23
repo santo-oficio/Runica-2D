@@ -123,10 +123,12 @@
       ".runika-native .star:nth-child(7n){opacity:.85}" +
       ".runika-native .star:nth-child(8n){animation:twinkle 2.6s ease-in-out infinite!important}" +
       ".runika-native .star:nth-child(16n){animation-duration:3.7s!important}" +
-      // Margen seguro de TV (~6%): en el panel los HUDs quedaban pegados a
-      // los bordes y las TVs con overscan recortaban textos laterales. Se
-      // escala la página entera (contenido + overlays) alrededor del centro.
-      ".runika-native body{transform:scale(.94)}" +
+      // Margen seguro de TV: NUNCA escalar el body (deja un marco negro y
+      // descalibra todo el arte a sangre completa). El padding se aplica
+      // solo a los HUDs anclados al borde: los textos 'viewLeft'/'viewRight'
+      // se claman a >=2.5% en submundo/mapamundi y la etiqueta de versión
+      // del menú se separa de la esquina.
+      ".runika-native #version-tag{right:48px!important;bottom:28px!important}" +
       // Capas que viajan por transform: promoción a capa de compositor para
       // que WAAPI/transform no rasterice el sprite en el main thread.
       ".runika-native #avatar,.runika-native .shop-ladder-path," +
