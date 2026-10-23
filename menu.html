@@ -313,6 +313,22 @@
   let translations = {};
   let fallback = {};
   let selectedIdx = 0, hoveredIdx = -1, selVisible = false;
+  // En TV no hay puntero real (hover:none, maxTouchPoints:0): el WebView
+  // puede sintetizar mouseenter/click fantasma (cursor residual tras un
+  // Enter, o re-hit-test al re-renderizar los botones) que movía o activaba
+  // la selección "solo" — el menú subía y bajaba sin tocar el mando.
+  // Solo se honra el puntero si hubo uno REAL en los últimos 1.5 s
+  // (movimiento/pulsación/tacto), y nunca un click pegado a un keydown
+  // (el click sintetizado que a veces acompaña al Enter del mando).
+  let realPointerAt = -1e9, lastKeyDownAt = -1e9, lastTouchAt = -1e9;
+  const sawPointer = () => { realPointerAt = performance.now(); };
+  document.addEventListener('mousemove', sawPointer, true);
+  document.addEventListener('mousedown', sawPointer, true);
+  document.addEventListener('touchstart', () => { sawPointer(); lastTouchAt = performance.now(); }, { capture: true, passive: true });
+  document.addEventListener('keydown', () => { lastKeyDownAt = performance.now(); }, true);
+  const realPointer = () => performance.now() - realPointerAt < 1500;
+  const phantomClick = () => performance.now() - lastKeyDownAt < 300
+    || performance.now() - lastTouchAt < 600; // tap ya activó en touchstart
   // "Continuar" (indice 1) solo activo si hay partida empezada en la bbdd
   let hasSave = false;
   const CONTINUE_IDX = 1;
@@ -560,13 +576,16 @@
       }
 
       div.addEventListener('mouseenter', () => {
+        if (!realPointer()) return;
         if (hoveredIdx !== i) playHover();
         hoveredIdx = i; selectedIdx = i; updateActive();
       });
       div.addEventListener('mouseleave', () => {
+        if (!realPointer()) return;
         if (hoveredIdx === i) { hoveredIdx = -1; updateActive(); }
       });
       div.addEventListener('click', () => {
+        if (!realPointer() || phantomClick()) return;
         selectedIdx = i; updateActive(); playSelect(); activate(i);
       });
       div.addEventListener('touchstart', (e) => {

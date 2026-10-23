@@ -160,6 +160,24 @@
     }, true);
   }
 
+  // ── Filtro de keydown duplicados (TV) ────────────────────────────────────
+  // La cadena mando→CEC/IR→WebView a veces entrega el MISMO keydown dos
+  // veces a unos ms de distancia: una sola pulsación movía dos opciones o
+  // un Enter descartaba la pantalla de carga y activaba el botón marcado.
+  // Regla: si llega un keydown de una tecla que ya está "abajo" (sin keyup
+  // intermedio, sin e.repeat) a <60 ms del anterior, es un duplicado físico
+  // imposible — una pulsación real siempre suelta la tecla primero.
+  var _keyDown = {}, _keyAt = {};
+  document.addEventListener("keydown", function (e) {
+    var k = e.key || e.keyCode, now = performance.now();
+    if (!e.repeat && _keyDown[k] && now - (_keyAt[k] || 0) < 60) {
+      e.preventDefault(); e.stopImmediatePropagation(); return;
+    }
+    _keyDown[k] = true; _keyAt[k] = now;
+  }, true);
+  document.addEventListener("keyup", function (e) { _keyDown[e.key || e.keyCode] = false; }, true);
+  window.addEventListener("blur", function () { _keyDown = {}; }, true);
+
   // ── Android: botón atrás + gestos táctiles ───────────────────────────────
   if (IS_ANDROID) {
     document.addEventListener("deviceready", function () {
