@@ -24,6 +24,19 @@
                  WebView — sin salto de layout al abrirlo ni crash al cerrarlo. -->
             <activity android:theme="@style/Theme.Runika" android:windowSoftInputMode="adjustNothing" />
         </edit-config>
+        <!-- TV: activity-alias con LEANBACK_LAUNCHER + banner — el launcher
+             de Android TV / Fire TV solo lista apps con esa categoría. -->
+        <config-file parent="/manifest/application" target="AndroidManifest.xml">
+            <activity-alias android:name="com.runika2d.game.TvActivity" android:targetActivity=".MainActivity" android:exported="true" android:banner="@mipmap/ic_launcher" android:label="@string/app_name" android:icon="@mipmap/ic_launcher">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+                    <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                </intent-filter>
+            </activity-alias>
+        </config-file>
+        <edit-config file="AndroidManifest.xml" mode="merge" target="/manifest/application">
+            <application android:banner="@mipmap/ic_launcher" />
+        </edit-config>
         <icon foreground="res/icon-foreground.png" background="res/icon-background.png" />
         <icon src="res/icon.png" density="xxxhdpi" />
         <icon src="res/icon.png" density="xxhdpi" />
