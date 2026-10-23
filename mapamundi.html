@@ -576,7 +576,7 @@
   function render() {
     const r = imageRect();
     overlay.innerHTML = '';
-    const world = WORLD_ORDER[selectedWorld];
+    const world = avatarHomeWorld(); // mundo donde está el avatar (centro=MAZMORRA)
     const paths = WORLD_PATHS[world] || {};
 
     WORLD_ORDER.forEach((w, i) => {
@@ -627,7 +627,7 @@
 
       const div = document.createElement('div');
       let cls = 'world-marker';
-      if (i === selectedWorld) cls += ' selected';
+      if (w === world) cls += ' selected';
       // Es alcanzable desde el mundo actual?
       if (DIRS.some(d => paths[d] === w)) cls += ' reachable';
       div.className = cls;
@@ -643,7 +643,7 @@
       div.addEventListener('click', () => {
         if (DEMO_MODE) return; // demo: sin navegación ni escrituras
         // Tocar el mundo donde ya está el avatar: entrar directo
-        if (w === WORLD_ORDER[selectedWorld]) {
+        if (w === avatarHomeWorld()) {
           if (worldLocked(w)) return;
           AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
           saveMapPosition();
@@ -744,7 +744,7 @@
 
   function moveByPath(dir) {
     if (isMoving) return; // Bloquear mientras se mueve
-    const world = WORLD_ORDER[selectedWorld];
+    const world = avatarHomeWorld(); // desde el centro se sale por los caminos de MAZMORRA
     const paths = WORLD_PATHS[world];
     if (!paths || !paths[dir]) {
       bounceAvatar(dir);
@@ -776,9 +776,9 @@
     const offsets = { up: [0, -0.08], down: [0, 0.08], left: [-0.08, 0], right: [0.08, 0] };
     const [dx, dy] = offsets[dir];
     const r = imageRect();
-    const world = WORLD_ORDER[selectedWorld];
+    const world = avatarHomeWorld();
     const sz = avatarSz(world) * r.width;
-    const pos = avatarPos(avatarHomeWorld());
+    const pos = avatarPos(world);
     if (!pos) return;
     const baseX = r.left + pos.x * r.width - sz / 2;
     const baseY = r.top + pos.y * r.height - sz / 2;
@@ -817,7 +817,7 @@
     else if (e.key === 'Enter') {
       if (DEMO_MODE) { e.preventDefault(); bounceAvatar('down'); return; }
       e.preventDefault();
-      const world = WORLD_ORDER[selectedWorld];
+      const world = avatarHomeWorld(); // en partida nueva el avatar está en MAZMORRA
       // Mundo completado o bloqueado: rebote, no se entra
       if (worldLocked(world)) { bounceAvatar('down'); return; }
       AssetsCache.playSound('/assets/sounds/comun/press.wav', 0.6);
@@ -940,7 +940,7 @@
       setTimeout(() => { window.__autoDone = true; }, JUST_DONE_WORLD ? 7000 : 1500);
     } else {
       setTimeout(() => {
-        const w = WORLD_ORDER[selectedWorld];
+        const w = avatarHomeWorld();
         if (w && !worldLocked(w)) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
         else window.__autoDone = true;
       }, 3200);
