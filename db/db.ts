@@ -136,15 +136,18 @@ export function stageFor(world: number, subLevel: number): number {
   return (world - 1) * SUBLEVELS_PER_WORLD + subLevel;
 }
 
+/** Puzles resueltos que tarda en subir un tier (curva global). */
+export const TIER_STEP = 4;
 /**
  * Tier de dificultad (2..18) según el Nº DE PANTALLAS SUPERADAS, no la
  * posición en el mapa (los mundos se juegan en orden libre). La partida
- * siempre empieza en el tier 2 y los 96 escenarios se reparten de forma
- * uniforme entre los 17 tiers (~5-6 islas por tier).
+ * empieza en el tier 2 y sube un tier cada ~4 puzles resueltos, con el
+ * techo 18 alrededor del puzle 65 — así un mundo se nota más difícil
+ * que el anterior juegues donde juegues.
  */
 export function tierForCompleted(completed: number): number {
   const c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
-  return Math.min(TOTAL_TIERS, FIRST_TIER + Math.floor((c * (TOTAL_TIERS - FIRST_TIER + 1)) / TOTAL_STAGES));
+  return Math.min(TOTAL_TIERS, FIRST_TIER + Math.floor(c / TIER_STEP));
 }
 
 /** Banda de dificultad continua (0.5..8.0) según pantallas superadas. */
@@ -387,19 +390,14 @@ export function failScreen(_screenId: string): void {
  */
 export function mapTierFor(world: string, level: number): number {
   if (world === FINAL_WORLD && level === BOSS_LEVEL_IDX) return FINAL_TIER;
-  const wIdx = WORLDS.indexOf(world as (typeof WORLDS)[number]);
-  // Bienvenida solo en el PRIMER mundo: su primera isla juega tier 1
-  // (laberinto sin cazadores) y la segunda el tier 2; en mundos posteriores
-  // seria un descenso absurdo (antes TODAS las islas caian a tier 1-2 y el
-  // mundo entero se sentia planisimo).
-  if (wIdx === 0 && level === 0) return ENTRY_TIER;
-  if (wIdx === 0 && level === 1) return FIRST_TIER;
-  // Curva por mundo + rampa por isla: cada mundo arranca ~2 tiers por
-  // encima del anterior y las 12 islas suben ~4-5 tiers dentro del mundo
-  // (ESPACIO 1-6 → INFRAMUNDO 14-18 → MAZMORRA 16-18 + boss 18).
-  const base = FIRST_TIER + Math.max(0, wIdx) * 2;
-  const ramp = Math.floor(level * 0.45);
-  return Math.min(TOTAL_TIERS, base + ramp);
+  // Curva GLOBAL por puzles resueltos — no por mundo ni por isla: la
+  // isla que juegas ahora sale del tier correspondiente a tu progreso
+  // total, sea cual sea el mundo. Bienvenida solo en las dos primeras
+  // pantallas de la partida (tier 1 y 2).
+  const c = player.totalStagesCompleted || 0;
+  if (c === 0 && level === 0) return ENTRY_TIER;
+  if (c === 1 && level === 1) return FIRST_TIER;
+  return tierForCompleted(c);
 }
 
 /** Recuerda el último mundo seleccionado en el mapamundi. */

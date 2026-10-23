@@ -42,9 +42,11 @@
 
   function stageFor(world, subLevel) { return (world - 1) * SUBLEVELS_PER_WORLD + subLevel; }
 
+  var TIER_STEP = 4;
+  // Curva GLOBAL por puzles resueltos (no por mundo): +1 tier cada ~4.
   function tierForCompleted(completed) {
     var c = Math.max(0, Math.min(TOTAL_STAGES - 1, completed));
-    return Math.min(TOTAL_TIERS, FIRST_TIER + Math.floor((c * (TOTAL_TIERS - FIRST_TIER + 1)) / TOTAL_STAGES));
+    return Math.min(TOTAL_TIERS, FIRST_TIER + Math.floor(c / TIER_STEP));
   }
 
   function bandForCompleted(completed) {
@@ -128,15 +130,12 @@
 
   function mapTierFor(world, level) {
     if (world === FINAL_WORLD && level === BOSS_LEVEL_IDX) return FINAL_TIER;
-    var wIdx = WORLDS.indexOf(world);
-    // Bienvenida solo en el PRIMER mundo (isla 1 → tier 1, isla 2 → tier 2);
-    // en mundos posteriores seria un descenso absurdo.
-    if (wIdx === 0 && level === 0) return ENTRY_TIER;
-    if (wIdx === 0 && level === 1) return FIRST_TIER;
-    // base por mundo (+2 tiers) + rampa por isla (~4-5 dentro del mundo)
-    var base = FIRST_TIER + Math.max(0, wIdx) * 2;
-    var ramp = Math.floor(level * 0.45);
-    return Math.min(TOTAL_TIERS, base + ramp);
+    // Curva GLOBAL por puzles resueltos — no por mundo ni por isla.
+    // Bienvenida solo en las dos primeras pantallas de la partida.
+    var c = player.totalStagesCompleted || 0;
+    if (c === 0 && level === 0) return ENTRY_TIER;
+    if (c === 1 && level === 1) return FIRST_TIER;
+    return tierForCompleted(c);
   }
 
   function setLastWorld(world) {

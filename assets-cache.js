@@ -250,15 +250,20 @@ const MUSIC_TRACK_KEY = 'runika-music-track';
 let musicTrack = null;
 try { musicTrack = localStorage.getItem(MUSIC_TRACK_KEY) || null; } catch {}
 
-function saveMusicPos() {
+let lastSavedMusicPos = -1;
+function saveMusicPos(force) {
   if (!musicEl || !musicTrack) return;
+  // timeupdate dispara ~4 veces/s y localStorage es escritura a disco
+  // SINCRONA que bloquea el main thread -> solo persistir cada >=4s.
+  if (!force && Math.abs(musicEl.currentTime - lastSavedMusicPos) < 4) return;
+  lastSavedMusicPos = musicEl.currentTime;
   try {
     const map = JSON.parse(localStorage.getItem(MUSIC_POS_KEY) || '{}');
     map[musicTrack] = musicEl.currentTime;
     localStorage.setItem(MUSIC_POS_KEY, JSON.stringify(map));
   } catch {}
 }
-window.addEventListener('beforeunload', saveMusicPos);
+window.addEventListener('beforeunload', () => saveMusicPos(true));
 
 async function startMusic(url) {
   await settingsReady;
@@ -335,7 +340,7 @@ function stopSting() {
 function playMusicSting(url) {
   stopSting();
   if (!isMusicEnabled() || !url) return;
-  if (musicEl) { saveMusicPos(); musicEl.pause(); }
+  if (musicEl) { saveMusicPos(true); musicEl.pause(); }
   stingEl = new Audio(getCachedSound(url) || url);
   stingEl.volume = 0.8;
   const done = () => { stingEl = null; startMusic(); };
@@ -359,7 +364,7 @@ function setMusicTrack(url) {
   // Misma pista: crear el elemento si no existe (página recién cargada) o
   // reanudar el loop si quedó pausado por un jingle cortado
   if (url === musicTrack) { if (!musicEl || musicEl.paused) startMusic(); return; }
-  if (musicEl) { saveMusicPos(); musicEl.pause(); musicEl = null; }
+  if (musicEl) { saveMusicPos(true); musicEl.pause(); musicEl = null; }
   musicTrack = url;
   try { localStorage.setItem(MUSIC_TRACK_KEY, url); } catch {}
   startMusic();
@@ -372,7 +377,7 @@ function currentMusicTrack() { return musicTrack; }
 function stopMusic() {
   stopSting();
   if (!musicEl) return;
-  saveMusicPos();
+  saveMusicPos(true);
   musicEl.pause();
   musicEl = null;
 }
@@ -389,8 +394,14 @@ async function preloadSounds(urls) {
   }));
 }
 
+// Mismo sfx a <100ms se ignora: la repeticion de tecla del mando (DPAD
+// sostenido ~10-15/s) no debe amontonar decoders de Audio por pulsacion.
+const lastPlayAt = new Map();
 function playSound(url, volume) {
   if (!isSoundEnabled()) return null;
+  const now = performance.now();
+  if (now - (lastPlayAt.get(url) || -1e9) < 100) return null;
+  lastPlayAt.set(url, now);
   let src = cache.sounds.get(url);
   if (!src) {
     // Fuera de precarga: sonar igual y cachear para la proxima vez

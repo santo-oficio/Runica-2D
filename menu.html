@@ -418,6 +418,10 @@
   const borders = document.getElementById('borders');
   const SVGNS = 'http://www.w3.org/2000/svg';
 
+  // En nativo (Fire TV/movil) el drop-shadow SVG obliga a refiltrar toda
+  // la capa en cada navegacion -> el highlight llegaba tarde ("a saltos").
+  const NATIVE_LITE = document.documentElement.classList.contains('runika-native');
+
   function renderBorders() {
     const r = getImgRect();
     borders.setAttribute('viewBox', '0 0 ' + window.innerWidth + ' ' + window.innerHeight);
@@ -436,7 +440,7 @@
         poly.setAttribute('fill', 'none');
         poly.setAttribute('stroke', stroke);
         poly.setAttribute('stroke-width', sw);
-        if (isSel) poly.style.filter = 'drop-shadow(0 0 6px rgba(255,200,80,0.9))';
+        if (isSel && !NATIVE_LITE) poly.style.filter = 'drop-shadow(0 0 6px rgba(255,200,80,0.9))';
         borders.appendChild(poly);
       } else if (b.rect && b.rect.w > 0) {
         const cx = r.left + (b.rect.x + b.rect.w / 2) * r.width;
@@ -452,7 +456,7 @@
         poly.setAttribute('fill', 'none');
         poly.setAttribute('stroke', stroke);
         poly.setAttribute('stroke-width', sw);
-        if (isSel) poly.style.filter = 'drop-shadow(0 0 6px rgba(255,200,80,0.9))';
+        if (isSel && !NATIVE_LITE) poly.style.filter = 'drop-shadow(0 0 6px rgba(255,200,80,0.9))';
         borders.appendChild(poly);
       }
     });

@@ -74,7 +74,20 @@
       // horizontal (~9% en 19.5:9) es imperceptible. Las funciones *Rect
       // de cada página leen objectFit y usan el rect del elemento.
       ".runika-native #bg,.runika-native #image,.runika-native #board-bg,.runika-native .bgimg{" +
-      "object-fit:fill!important}";
+      "object-fit:fill!important}" +
+      // Selección de menú ligera: el active lleva 5 text-shadow (hasta
+      // 60px blur) + 4 box-shadow — a 4K cada tecla repintaba una zona
+      // enorme y el highlight llegaba tarde ("a saltos"). Un solo glow
+      // corto; el rombo dorado SVG ya marca la opción.
+      ".runika-native .btn,.runika-native .btn-text{transition:none!important}" +
+      ".runika-native .btn.active,.runika-native .btn:hover{box-shadow:none!important}" +
+      ".runika-native .btn.active .btn-text,.runika-native .btn:hover .btn-text{" +
+      "text-shadow:1px 1px 2px rgba(0,0,0,.9),0 0 12px rgba(255,220,120,.95)!important}" +
+      // El aura del avatar (#avatar::before) anima box-shadow+border-radius
+      // en bucle INFINITO en mapamundi y submundo: rasteriza cada frame para
+      // siempre (~80fps medidos en reposo en Fire TV) — la causa del lag
+      // continuo. En nativo queda estatica; sigue siendo una aura dorada.
+      ".runika-native #avatar::before{animation:none!important}";
     document.head.appendChild(lite);
     document.documentElement.classList.add("runika-native");
   } catch (e) {}

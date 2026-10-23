@@ -107,4 +107,42 @@ for await (const abs of walk(join(WWW, "assets"))) {
 if (failed) console.warn(`⚠ ${failed} imágenes no se pudieron reescalar`);
 console.log(`imágenes www: ${shrunk} reescaladas, ${kept} ya cabían`);
 
+// 6. MainActivity: forzar modo de display 1080p en TVs. Un Fire TV Stick
+// reporta 3840x2160 y el WebView rasteriza a 4K (GPU débil → 66% jank).
+// Con preferredDisplayModeId=1080p el juego compone a 1080p y la tele
+// reescala — los assets ya son ≤1920px, cero pérdida. El parche es
+// idempotente por si `cordova platform add` regenera la clase.
+const MA = join(APP, "platforms/android/app/src/main/java/com/runika2d/game/MainActivity.java");
+if (existsSync(MA)) {
+  let s = readFileSync(MA, "utf8");
+  if (!s.includes("prefer1080pDisplayMode")) {
+    s = s
+      .replace("import android.os.Bundle;",
+        "import android.os.Bundle;\nimport android.view.Display;\nimport android.view.WindowManager;")
+      .replace("public class MainActivity extends CordovaActivity\n{",
+        `public class MainActivity extends CordovaActivity
+{
+    private void prefer1080pDisplayMode() {
+        try {
+            Display display = getWindowManager().getDefaultDisplay();
+            Display.Mode best = null;
+            for (Display.Mode m : display.getSupportedModes()) {
+                if (m.getPhysicalWidth() == 1920 && m.getPhysicalHeight() == 1080
+                        && (best == null || m.getRefreshRate() > best.getRefreshRate())) best = m;
+            }
+            if (best != null && best.getModeId() != display.getMode().getModeId()) {
+                WindowManager.LayoutParams lp = getWindow().getAttributes();
+                lp.preferredDisplayModeId = best.getModeId();
+                getWindow().setAttributes(lp);
+            }
+        } catch (Throwable ignored) {}
+    }
+`)
+      .replace("        super.onCreate(savedInstanceState);",
+        "        super.onCreate(savedInstanceState);\n        prefer1080pDisplayMode();");
+    writeFileSync(MA, s);
+    console.log("MainActivity: modo 1080p preferido inyectado");
+  }
+}
+
 console.log("android-app/www listo — siguiente: npx cordova platform add android && npx cordova build android");
