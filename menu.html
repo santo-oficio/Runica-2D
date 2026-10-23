@@ -668,6 +668,7 @@
       await refreshSaveState();
       if (MOBILE_MENU) { try { await document.getElementById('bg').decode(); } catch (e) {} }
       render();
+      selVisible = true; updateActive();
       menuActive = true;
       AssetsCache.revealPage();
       return;
@@ -739,6 +740,7 @@
     const loadingScreen = document.getElementById('loading-screen');
     const enterGame = () => {
       if (loadingScreenCleanup) loadingScreenCleanup();
+      selVisible = true; updateActive();
       menuActive = true;
       unlockAudio();
       AssetsCache.startMusic(AssetsCache.MUSIC.main);

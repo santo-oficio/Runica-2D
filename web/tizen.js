@@ -91,6 +91,38 @@
       // El letrero de la tienda "invita" oscilando en bucle infinito: ~60fps
       // de repaint perpetuo en el WebView de la TV. Estatico en nativo.
       ".runika-native .shop-ladder-path.inviting .sign-anim{animation:none!important}" +
+      // Tablero (medido en Fire TV con SurfaceFlinger): cada sprite en capa
+      // propia con drop-shadow obliga a la GPU a re-desenfocarlo en CADA
+      // frame — ~8% de frames perdidos en reposo y ~16% al mover. Sin esos
+      // filtros: 0%. El halo de la meta pasa a un degradado de fondo (se
+      // rasteriza una vez; el pulso escala la capa sin recalcular nada).
+      ".runika-native .entity:not(.defeated):not(.stunned),.runika-native #selector:not(.hero) #avatar," +
+      ".runika-native .flycoin{filter:none!important}" +
+      ".runika-native .entity.stunned:not(.defeated){filter:brightness(.55) saturate(.4)!important}" +
+      ".runika-native .entity.goal:not(.defeated){background:radial-gradient(circle,rgba(255,255,0,.42) 0%,rgba(255,240,0,.18) 45%,rgba(255,240,0,0) 70%)}" +
+      // Fondo del tablero en capa propia: si no, cada cambio del HUD o de
+      // las pistas re-rasterizaba la capa raiz con el fondo 1920x1080
+      // (tareas de raster de ~100ms → tirones de 150-180ms al mover).
+      ".runika-native #image{will-change:transform}" +
+      // Cuenta atras del tablero: digito de ~260px con 4 sombras (una de
+      // 60px de blur) — cada numero nuevo costaba 100-150ms de raster.
+      ".runika-native #countdown{text-shadow:3px 3px 0 #4a2c00,0 0 14px rgba(255,170,0,.85)!important}" +
+      // Bonus: misma causa — drop-shadow en cada objeto que cae, en la
+      // cesta y en la nube (con su hijo flotando en bucle = re-filtrado por
+      // frame). Medido: ~8.5% de frames perdidos (~30% al final de la
+      // ronda, con mas objetos) → 0% sin ellos. El brillo al atrapar se
+      // conserva (dura 0.3s).
+      ".runika-native #cloud,.runika-native #cloud~#avatar,.runika-native .fall-item:not(.caught){" +
+      "filter:none!important;transition:none!important}" +
+      // Final del juego: 130 estrellas parpadeando a la vez = 130 capas
+      // animadas → ~16% de frames perdidos en la escena final. En nativo
+      // brillan estáticas con opacidad variada y solo 1 de cada 8 parpadea
+      // (medido: 0% de frames perdidos, mismo efecto visual).
+      ".runika-native .star{animation:none!important;opacity:.35}" +
+      ".runika-native .star:nth-child(3n){opacity:.6}" +
+      ".runika-native .star:nth-child(7n){opacity:.85}" +
+      ".runika-native .star:nth-child(8n){animation:twinkle 2.6s ease-in-out infinite!important}" +
+      ".runika-native .star:nth-child(16n){animation-duration:3.7s!important}" +
       // Margen seguro de TV (~6%): en el panel los HUDs quedaban pegados a
       // los bordes y las TVs con overscan recortaban textos laterales. Se
       // escala la página entera (contenido + overlays) alrededor del centro.
