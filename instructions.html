@@ -343,10 +343,15 @@
   }
   function t(key) { return translations[key] ?? fallback[key] ?? key; }
 
+  const STORY_WORLDS = ['ESPACIO', 'AGUA', 'TIERRA', 'FUEGO', 'HIELO', 'VIENTO', 'INFRAMUNDO', 'MAZMORRA'];
+  function storyText(key) {
+    return t(key).replace(/\{(\d)\}/g, (m, i) => t('worlds.' + STORY_WORLDS[+i]));
+  }
+
   function applyI18n() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
-      el.textContent = t(key);
+      el.textContent = key.startsWith('instructions.story') ? storyText(key) : t(key);
     });
     document.title = t('instructions.title') + ' — ' + t('menu.title');
   }

@@ -186,7 +186,7 @@
       return u;
     }
     if (field === 'back') {
-      const e = areas.back?.ellipse;
+      const e = areas.back?.ring || areas.back?.ellipse;
       if (e) return { x: e.cx - e.rx, y: e.cy - e.ry, w: e.rx * 2, h: e.ry * 2 };
       if (areas.back?.polygon) return polyBounds(areas.back.polygon);
     }
