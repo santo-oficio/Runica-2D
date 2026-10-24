@@ -1084,9 +1084,10 @@ async function renderEntities() {
   // Enemigos — en la última isla del submundo (modo real) salen los bosses
   const enemyPool = isBossLevel() ? (assets.boss?.length ? assets.boss : assets.enemy) : assets.enemy;
   // Regla: los enemigos normales usan la variante "criatura" del mundo
-  // (enemy_XX_03 — índice 2). La última variante (esqueleto pirata)
-  // se reserva al parecer un mini-boss y confunde con el boss real.
-  const enemyInst = enemyPool ? Math.min(2, enemyPool.length - 1) : 0;
+  // (enemy_XX_03 — índice 2). Excepción: TIERRA usa la variante 4
+  // (enemy_TIERRA_04 — índice 3). El boss sigue saliendo solo en la última isla.
+  const ENEMY_VARIANT = { TIERRA: 3 };
+  const enemyInst = enemyPool ? Math.min(ENEMY_VARIANT[world] ?? 2, enemyPool.length - 1) : 0;
   const enemySrc = isBossLevel() ? null : (enemyPool?.[enemyInst] || '');
   const enemyPicks = isBossLevel() ? pickRandomImages(enemyPool, enemies.length)
                                 : enemies.map(() => enemySrc);
