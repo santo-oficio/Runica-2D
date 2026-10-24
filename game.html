@@ -2063,12 +2063,16 @@ document.addEventListener('keydown', (e) => {
   if (REAL_MODE) {
     if (e.key === 'Escape') { e.preventDefault(); play(backAudio); if (won) confirmWin(); else backToSubmundo(); return; }
     if (countingDown) return;
-    if (e.key === 'r' || e.key === 'R' || e.code === 'Space' || e.key === 'Enter') {
+    if (e.key === 'r' || e.key === 'R') {
       e.preventDefault();
       play(pressAudio);
       if (won) confirmWin(); else loadScreen();
       return;
     }
+    // Botón de acción (Enter/OK del mando, Espacio): en el tablero no hace
+    // nada — solo mueven las flechas y vuelve Atrás. Antes recargaba la
+    // pantalla como 'R' y era fácil pulsarlo por accidente en TV.
+    if (e.key === 'Enter' || e.code === 'Space') { e.preventDefault(); return; }
     if (gameOver) return;
     if (e.key === 'h' || e.key === 'H') { e.preventDefault(); useHintItem(); return; }
     if (e.key === 'u' || e.key === 'U') { e.preventDefault(); useUndoItem(); return; }

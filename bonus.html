@@ -123,10 +123,15 @@
     20% { opacity: 1; transform: translateY(0) scale(1.15); }
     100% { opacity: 0; transform: translateY(-7vh) scale(1); }
   }
-  #avatar {
+  /* #avatar-pos lleva la posición (translateX por frame); el <img> interno
+     recibe las animaciones de captura. Si dip/shake animaran transform en
+     el mismo nodo posicionado, pisarían el translateX y el avatar saltaría
+     al lateral durante el efecto. */
+  #avatar-pos {
     position: absolute; z-index: 20; left: 0; will-change: transform;
     filter: drop-shadow(0 6px 8px rgba(0,0,0,.55));
   }
+  #avatar { display: block; width: 100%; height: 100%; }
   /* Rebote al capturar: se hunde con un premio, se agita con una trampa */
   #avatar.dip { animation: avatarDip .24s ease-out; }
   @keyframes avatarDip { 35% { transform: translateY(3%) scaleY(.95); } }
@@ -223,7 +228,7 @@
 <div id="gold"><img id="gold-coin" alt=""><span id="gold-num">0</span></div>
 <div id="field"></div>
 <div id="cloud"><img id="cloud-img" alt=""></div>
-<img id="avatar" alt="">
+<div id="avatar-pos"><img id="avatar" alt=""></div>
 <div id="intro"><div id="intro-title"></div><div id="intro-hint"></div><div id="count"></div></div>
 <div id="endcard">
   <div id="end-title"></div>
@@ -303,6 +308,7 @@
   const bg = document.getElementById('bg');
   const fillbg = document.getElementById('fillbg');
   const avatarEl = document.getElementById('avatar');
+  const avatarPosEl = document.getElementById('avatar-pos');
   const cloudEl = document.getElementById('cloud');
   const field = document.getElementById('field');
   const timerEl = document.getElementById('timer');
@@ -343,8 +349,9 @@
     goldEl.style.top = (imgRect.top + imgRect.height * 0.02) + 'px';
     // Geometría fija del avatar/nube: se asigna solo en resize/orientación.
     // Escribir top/height cada frame invalidaba layout+paint por frame.
-    avatarEl.style.top = avatarTop() + 'px';
-    avatarEl.style.height = avatarH + 'px';
+    avatarPosEl.style.top = avatarTop() + 'px';
+    avatarPosEl.style.width = avatarW + 'px';
+    avatarPosEl.style.height = avatarH + 'px';
     cloudW = avatarW * 2.4;
     cloudH = cloudW / 2.05;
     cloudEl.style.top = (avatarTop() + avatarH - cloudH * 0.55) + 'px';
@@ -363,7 +370,7 @@
     avatarX = Math.max(lo, Math.min(hi, avatarX));
     // X por transform (compositado): este código corre cada frame del bucle
     // y con left hacía layout+paint por frame — el "a saltitos" del bonus.
-    avatarEl.style.transform = 'translateX(' + avatarX + 'px)';
+    avatarPosEl.style.transform = 'translateX(' + avatarX + 'px)';
     // La nube va centrada bajo el avatar; los pies se hunden en sus lobulos
     // superiores (nube.webp ~2.05:1)
     cloudEl.style.transform = 'translateX(' + (avatarX + avatarW / 2 - cloudW / 2) + 'px)';

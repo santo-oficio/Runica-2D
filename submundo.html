@@ -864,7 +864,13 @@
       render();
       retractShopLadder(index);
     };
+    // render() recoloca el avatar en la puerta (atShop ya está puesto):
+    // conservamos su posición real al pie para que la trepa empiece ahí
+    // y no dé un salto hacia arriba antes del primer peldaño.
+    const keepX = avatarEl.style.left, keepY = avatarEl.style.top;
     render();
+    avatarEl.style.left = keepX;
+    avatarEl.style.top = keepY;
     step();
   }
 
@@ -873,7 +879,7 @@
   function descendWithShopLadder(index) {
     const node = shopNodes[index];
     const mid = node && shopMid(node);
-    if (!mid) { atShop = -1; atLadder = index; render(); return; }
+    if (!mid) { isMoving = false; atShop = -1; atLadder = index; render(); return; }
     shopDescending.delete(index);
     const r = getImgRect();
     const layout = shopLadderLayout(r, node);
@@ -904,7 +910,13 @@
       currentLevel = node.from;
       document.getElementById('pos-info').textContent =
         format('submundo.level', currentLevel + 1, NUM_LEVELS);
+      // render() colocaría al avatar directo en la isla: conservamos su
+      // posición al pie de la escalera para que animateAvatarTo lo lleve
+      // volando de verdad (antes teletransportaba — dist 0, sin animación).
+      const keepX = avatarEl.style.left, keepY = avatarEl.style.top;
       render();
+      avatarEl.style.left = keepX;
+      avatarEl.style.top = keepY;
       // La tienda ya usada se marcha volando y no vuelve (en demo queda)
       if (!DEMO_SHOP) retireShopHouse(index);
       animateAvatarTo(resolvedLevelPosition(currentLevel));
@@ -1046,6 +1058,9 @@
     currentLevel = shopNodes[idx].from;
     shopDescending.add(idx);
     pendingShopDescent = idx;
+    // Input bloqueado desde ya: entre el reveal y la bajada automática hay
+    // ~600ms con atShop puesto — un Enter ahí reabría el bonus.
+    isMoving = true;
   }
 
   async function loadShop(world) {
