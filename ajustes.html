@@ -141,7 +141,10 @@
     const vw = window.innerWidth, vh = window.innerHeight;
     const iw = bgImage ? bgImage.naturalWidth : 3;
     const ih = bgImage ? bgImage.naturalHeight : 2;
-    const cs = bgImage ? getComputedStyle(bgImage) : null;
+    // object-fit hay que leerlo del <img> del DOM: bgImage es un Image()
+    // suelto para decodificar y getComputedStyle en él no refleja el CSS
+    // (en nativo tizen.js fuerza object-fit:fill sobre #bg).
+    const cs = getComputedStyle(document.getElementById('bg'));
     if (cs && cs.objectFit === 'fill') {
       imgRect = { w: vw, h: vh, x: 0, y: 0 };
       return;

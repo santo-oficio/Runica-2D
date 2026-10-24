@@ -150,7 +150,7 @@
 
 <div id="title-area"><h1 data-i18n="credits.title"></h1></div>
 
-<div id="text-area">
+<div id="text-area" data-touch-scroll>
   <div id="credits-flow">
     <div class="line big" data-i18n="menu.title"></div>
     <div class="line" data-i18n="credits.created"></div>
@@ -347,6 +347,30 @@
     manualUntil = performance.now() + 4500;
     applyScroll();
   }
+
+  // Arrastre con el dedo: moverlo desplaza los créditos y pausa el
+  // auto-scroll unos segundos (igual que las flechas)
+  (function () {
+    const ta = document.getElementById('text-area');
+    let dragY = null;
+    ta.addEventListener('pointerdown', e => {
+      dragY = e.clientY;
+      try { ta.setPointerCapture(e.pointerId); } catch {}
+    });
+    ta.addEventListener('pointermove', e => {
+      if (dragY === null) return;
+      const dy = e.clientY - dragY;
+      dragY = e.clientY;
+      holdUntil = -1;
+      scrollPos = Math.max(-ta.clientHeight * 0.9,
+        Math.min(creditsMaxScroll(), scrollPos - dy));
+      manualUntil = performance.now() + 4500;
+      applyScroll();
+    });
+    const endDrag = () => { dragY = null; };
+    ta.addEventListener('pointerup', endDrag);
+    ta.addEventListener('pointercancel', endDrag);
+  })();
 
   // Sonidos desde cache
   AssetsCache.unlockAudio();

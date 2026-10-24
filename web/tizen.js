@@ -243,6 +243,10 @@
       var t = e.changedTouches[0];
       var dx = t.clientX - x0, dy = t.clientY - y0;
       var adx = Math.abs(dx), ady = Math.abs(dy);
+      // Arrastre dentro de una zona scrollable: ya scrolló el dedo (pan
+      // nativo o drag de la página) — no convertir en flecha: doblaría.
+      if (Math.max(adx, ady) >= SWIPE &&
+          startEl && startEl.closest && startEl.closest("[data-touch-scroll]")) return;
       if (Math.max(adx, ady) >= SWIPE) {
         if (adx >= ady) sendKey(dx > 0 ? "ArrowRight" : "ArrowLeft", dx > 0 ? 39 : 37);
         else sendKey(dy > 0 ? "ArrowDown" : "ArrowUp", dy > 0 ? 40 : 38);

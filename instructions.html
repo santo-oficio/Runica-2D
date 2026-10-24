@@ -67,6 +67,12 @@
     padding: 15px 25px;
     transition: box-shadow 0.3s ease;
   }
+  /* En nativo tizen.js pone *{touch-action:none}; el pergamino sí es
+     scrollable — pan-y nativo en el área Y en sus hijos (el gesto se
+     evalúa en el elemento tocado, no solo en el contenedor) */
+  #text-area, #text-area * {
+    touch-action: pan-y;
+  }
   #text-area.focused {
     box-shadow: inset 0 0 0 2px rgba(138, 96, 48, 0.5);
   }
@@ -282,7 +288,7 @@
   <img id="bg" src="/assets/instrucciones/instrucciones.webp" />
 </div>
 
-<div id="text-area">
+<div id="text-area" data-touch-scroll>
   <h1 data-i18n="instructions.title"></h1>
   <div class="divider"><img src="/assets/comunes/calavera.webp" alt=""></div>
   <div class="section">
