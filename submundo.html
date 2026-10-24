@@ -996,7 +996,7 @@
   // Nativo (móvil/TV): contain — el mapa entero cabe y ninguna isla queda
   // recortada; las bandas laterales las rellena #fillbg.
   function getImgRect() {
-    const er = bg.getBoundingClientRect();
+    const er = AssetsCache.layoutRect(bg);
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
     const cs = getComputedStyle(bg);
     if (cs.objectFit === 'fill')
@@ -1242,7 +1242,7 @@
     // con anchorX 'viewLeft'/'viewRight' son fracciones del ancho VISIBLE del
     // viewport y x mide el margen desde ese borde — el HUD usa todo el lienzo
     // panorámico aunque la imagen desborde la pantalla.
-    const vw = bg.getBoundingClientRect().width;
+    const vw = AssetsCache.layoutRect(bg).width;
     // Margen seguro TV: en nativo los textos anclados a un borde no pueden
     // quedar a menos del 2.5% del lateral (quedaban "pegadísimos" al borde).
     const SAFE_X = document.documentElement.classList.contains('runika-native') ? 0.025 : 0;

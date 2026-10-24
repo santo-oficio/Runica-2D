@@ -217,7 +217,7 @@
 
   function positionAreas() {
     const bg = document.getElementById('bg');
-    const rect = bg.getBoundingClientRect();
+    const rect = AssetsCache.layoutRect(bg);
     // Rect visible de la imagen (descuenta el letterbox de object-fit: contain)
     const iw = bg.naturalWidth || 7680;
     const ih = bg.naturalHeight || 4320;

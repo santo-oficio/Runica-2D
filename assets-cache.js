@@ -545,8 +545,27 @@ function hideLoading() {
   }
 }
 
+// ── Espacio de coordenadas de layout ──────────────────────────────────────
+// En TV el <body> va escalado (margen seguro de overscan, RUNIKA_UI_SCALE):
+// getBoundingClientRect devuelve coords VISUALES pero todo posicionamiento
+// por style.left/top vive en coords de LAYOUT (sin escalar). layoutRect
+// des-escala el rect al espacio donde se escriben las posiciones — todas las
+// *Rect de las páginas lo usan en vez de getBoundingClientRect directo.
+function uiScale() { return window.RUNIKA_UI_SCALE || 1; }
+function layoutRect(el) {
+  const r = el.getBoundingClientRect();
+  const s = uiScale();
+  if (!s || s === 1)
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height, x: r.x, y: r.y };
+  const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+  const left = cx + (r.left - cx) / s, right = cx + (r.right - cx) / s;
+  const top = cy + (r.top - cy) / s, bottom = cy + (r.bottom - cy) / s;
+  return { left, top, right, bottom, width: right - left, height: bottom - top, x: left, y: top };
+}
+
 window.AssetsCache = {
   preloadAll, preloadSounds, getCachedImage, getCachedImageUrl, getCachedSound, playSound, auraPoints, bakeMaskedLayer,
+  layoutRect, uiScale,
   transitionTo, transitionIn, revealPage, showLoading, hideLoading,
   unlockAudio,
   settings, loadSettings, setSetting, isSoundEnabled, isMusicEnabled, currentLang,

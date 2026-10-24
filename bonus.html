@@ -429,7 +429,7 @@
   }
 
   function goldCenter() {
-    const b = goldEl.getBoundingClientRect();
+    const b = AssetsCache.layoutRect(goldEl);
     return { x: b.left + b.width / 2 - imgRect.left, y: b.top + b.height / 2 - imgRect.top };
   }
 

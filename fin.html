@@ -897,7 +897,7 @@ async function sceneEnd() {
     span.textContent = tt('fin.goldTotal', goldTotal);
     g.appendChild(img); g.appendChild(span);
     se.appendChild(g);
-    const subBottom = sub.getBoundingClientRect().bottom;
+    const subBottom = AssetsCache.layoutRect(sub).bottom;
     g.style.top = Math.min(innerHeight * 0.915, subBottom + innerHeight * 0.02) + 'px';
     requestAnimationFrame(() => g.classList.add('on'));
   }

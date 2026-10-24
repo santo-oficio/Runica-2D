@@ -570,7 +570,7 @@
     }, 5800);
   }
 
-  function getImgRect() { return bg.getBoundingClientRect(); }
+  function getImgRect() { return AssetsCache.layoutRect(bg); }
   // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain).
   // TODAS las coordenadas calibradas (avatar, mundos, auras, textos) viven
   // en este espacio — si no, cualquier ventana con ratio != al del mapa

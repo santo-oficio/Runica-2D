@@ -558,7 +558,7 @@ let IMG_W = 7680, IMG_H = 4320;
 // (móvil nativo) → la imagen desborda y se recorta por los márgenes que
 // indica object-position.
 function visibleImageRect() {
-  const rect = img.getBoundingClientRect();
+  const rect = AssetsCache.layoutRect(img);
   if (!IMG_W || !IMG_H) return rect;
   const cs = getComputedStyle(img);
   if (cs.objectFit === 'fill') return rect; // nativo: imagen = elemento
@@ -1349,7 +1349,7 @@ function flyGoldToHud(fromX, fromY, goldBefore, earned, onDone) {
     renderBoardTexts(); onDone(); return;
   }
   const icon = goldEl.querySelector('img');
-  const tr = (icon || goldEl).getBoundingClientRect();
+  const tr = AssetsCache.layoutRect(icon || goldEl);
   const tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
   const n = Math.min(9, Math.max(4, Math.round(earned / 8)));
   const per = Math.floor(earned / n);
@@ -1459,7 +1459,7 @@ function shatterScreen(cx, cy) {
 
   // El héroe salta a un lado del encuadre (fuera del modal) mientras el
   // mundo se rompe, y el boss caído se arrastra a sus pies
-  const ar = selector.getBoundingClientRect();
+  const ar = AssetsCache.layoutRect(selector);
   const hx = ir.left + ir.width * 0.17;
   const hy = ir.top + ir.height * 0.60;
   glideTo(selector, hx - ar.width / 2, hy - ar.height / 2, 1.15);

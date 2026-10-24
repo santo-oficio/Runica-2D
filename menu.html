@@ -416,7 +416,7 @@
   // Rect de la imagen dibujada (descuenta el letterbox de object-fit: contain):
   // las coordenadas calibradas viven en el espacio de la imagen original.
   function getImgRect() {
-    const er = bg.getBoundingClientRect();
+    const er = AssetsCache.layoutRect(bg);
     const iw = bg.naturalWidth || 1536, ih = bg.naturalHeight || 1024;
     const cs = getComputedStyle(bg);
     if (cs.objectFit === 'fill')

@@ -28,6 +28,17 @@
     /Android/i.test(navigator.userAgent || "");
   if (!IS_TIZEN && !IS_ANDROID) return;
 
+  // Televisor (overscan: la tele recorta los bordes de la imagen): Tizen
+  // siempre es TV; en Android lo delatan los modelos AFT* (Fire TV) y las
+  // UAs de Android TV. Móviles y tablets NO llevan escala (pantalla completa,
+  // táctil intacto — escalar rompería además sus coordenadas de toque).
+  var IS_TV = IS_TIZEN || /AFT|Android ?TV|BRAVIA|SmartTV|CrKey/i.test(navigator.userAgent || "");
+  // Factor de escala del body en TV (~3% de margen por lado). Las páginas
+  // lo compensan con AssetsCache.layoutRect: getBoundingClientRect devuelve
+  // coords visuales pero style.left/top se escribe en coords de layout.
+  var TV_SCALE = 0.94;
+  window.RUNIKA_UI_SCALE = IS_TV ? TV_SCALE : 1;
+
   var NAV_TIMEOUT = 1400; // > duración de AssetsCache.transitionTo (450 ms)
 
   function sendKey(key, keyCode) {
@@ -123,11 +134,13 @@
       ".runika-native .star:nth-child(7n){opacity:.85}" +
       ".runika-native .star:nth-child(8n){animation:twinkle 2.6s ease-in-out infinite!important}" +
       ".runika-native .star:nth-child(16n){animation-duration:3.7s!important}" +
-      // Margen seguro de TV: NUNCA escalar el body (deja un marco negro y
-      // descalibra todo el arte a sangre completa). El padding se aplica
-      // solo a los HUDs anclados al borde: los textos 'viewLeft'/'viewRight'
-      // se claman a >=2.5% en submundo/mapamundi y la etiqueta de versión
-      // del menú se separa de la esquina.
+      // Margen seguro de TV (overscan: la tele recorta ~3% del marco):
+      // el body se encoge al 94% dejando un marco uniforme. OJO: NO usar en
+      // táctil (rompe clientX/Y). Todas las páginas leen rects con
+      // AssetsCache.layoutRect, que des-escala a coords de layout — por eso
+      // esta vez botones y arte quedan alineados (el intento anterior leía
+      // getBoundingClientRect ya escalado y todo quedaba ~3% desplazado).
+      ".runika-tv body{transform:scale(" + TV_SCALE + ")!important;transform-origin:center center!important}" +
       ".runika-native #version-tag{right:48px!important;bottom:28px!important}" +
       // Capas que viajan por transform: promoción a capa de compositor para
       // que WAAPI/transform no rasterice el sprite en el main thread.
@@ -136,6 +149,7 @@
       ".runika-native .fall-item{will-change:transform}";
     document.head.appendChild(lite);
     document.documentElement.classList.add("runika-native");
+    if (IS_TV) document.documentElement.classList.add("runika-tv");
   } catch (e) {}
 
   function onBack() {
